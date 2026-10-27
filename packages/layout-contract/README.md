@@ -16,7 +16,7 @@ The package has no runtime dependencies.
 | The measures | `MeasureSpec`, `Direction`, `JointMeasureId`, `JOINT_MEASURES`, `JOINT_MOVED_MIN` |
 | The turn | `turnBox`, `turnPort`, `turnMargin`, `turnRegion`, `turnSide`, `turnPoint` |
 | The tolerances | `EPS`, `RECORD_EPS`, `Tolerance`, `DEFAULT_TOLERANCE` |
-| The hard rules | `countOverlaps`, `countObstacleHits`, `regionHitsRect`, `countOutside`, `countPortsOffBorder`, `packHard`, `PackHard`, `placedRect` |
+| The hard rules | `countOverlaps`, `countObstacleHits`, `regionHitsRect`, `countOutside`, `countPortsOffBorder`, `packHard`, `PackHard`, `placedRect`, `checkInput` |
 
 ## The rules
 
@@ -24,7 +24,7 @@ The package has no runtime dependencies.
 - **The margin.** A margin is a ring around a box. No other box and no route enters it. A route from a port of the box crosses the ring at a right angle.
 - **The gap.** The gap is the free space between two boxes with their margins. Routes use it. Two boxes are `mA + gap + mB` apart.
 - **The ports.** A port can have a side. Without a side, the router picks the side. A fixed port has `x` and `y` on the border of the box, relative to its top-left corner.
-- **The hard rules of a pack.** `no-overlap` counts the pairs of boxes and the pairs of a box and an obstacle. A locked box without a placement breaks `locked-kept`. Another box without a placement and not in `overflow` breaks `complete`.
+- **The hard rules of a pack.** `no-overlap` counts the pairs of boxes and the pairs of a box and an obstacle. A locked box without a placement, or with a move of more than `RECORD_EPS`, breaks `locked-kept`. `checkInput` refuses a locked box without a position. Another box without a placement and not in `overflow` breaks `complete`.
 - **The tolerances.** `EPS` (`1e-6`) is for the float compares in an engine. `RECORD_EPS` (`1e-3`) is for the compares on a written file. A record writes the tolerance of each hard rule in its field `tolerance`. The defaults are `overlap` `0.001` and `through` `0.5`.
 
 ## An example

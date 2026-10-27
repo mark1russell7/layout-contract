@@ -4,7 +4,7 @@
 # and private members. The command `api-report check` compares this file with the built .d.ts files.
 # To accept a change of the API, start the build, then `api-report update`, and review the diff.
 
-## . (build/index.d.ts): 56 names
+## . (build/index.d.ts): 57 names
 
 DEFAULT_TOLERANCE: build/index.d.ts#DEFAULT_TOLERANCE
 Direction: build/index.d.ts#Direction
@@ -43,6 +43,7 @@ Supports: build/index.d.ts#Supports
 Tolerance: build/index.d.ts#Tolerance
 applyPack: build/index.d.ts#applyPack
 boundsOf: build/index.d.ts#boundsOf
+checkInput: build/index.d.ts#checkInput
 countObstacleHits: build/index.d.ts#countObstacleHits
 countOutside: build/index.d.ts#countOutside
 countOverlaps: build/index.d.ts#countOverlaps
@@ -357,6 +358,9 @@ export declare function applyPack(input: LayoutInput, output: PackOutput): Layou
 
 ### build/index.d.ts#boundsOf
 export declare function boundsOf(region: Region): Rect;
+
+### build/index.d.ts#checkInput
+export declare function checkInput(input: LayoutInput): readonly string[];
 
 ### build/index.d.ts#countObstacleHits
 export declare function countObstacleHits(boxes: readonly LayoutBox[], obstacles: readonly Obstacle[] | undefined, tolerance?: number): number;

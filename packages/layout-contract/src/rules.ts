@@ -187,7 +187,8 @@ export function countObstacleHits(
  * This function gives the count of each hard rule of the output of a packer.
  * It applies the output with `applyPack`. Only the placed boxes and the locked boxes count for the overlaps and the container.
  * `no-overlap` counts the pairs of boxes and the pairs of a box and an obstacle.
- * A locked box without a placement, or with a different position, breaks `locked-kept`.
+ * A locked box without a placement, or with a move of more than `RECORD_EPS`, breaks `locked-kept`.
+ * A locked box without a position in the input is a bad input, not a break. `checkInput` finds it.
  * Another box without a placement that is not in `overflow` breaks `complete`.
  */
 export function packHard(input: LayoutInput, output: PackOutput, tolerance: number = DEFAULT_TOLERANCE.overlap): PackHard {
@@ -201,7 +202,8 @@ export function packHard(input: LayoutInput, output: PackOutput, tolerance: numb
   for (const box of after.boxes) {
     const old = was.get(box.id);
     if (old?.locked === true) {
-      const moved = Math.abs((old.x ?? 0) - (box.x ?? 0)) > tolerance || Math.abs((old.y ?? 0) - (box.y ?? 0)) > tolerance;
+      if (old.x === undefined || old.y === undefined) continue;
+      const moved = Math.abs(old.x - (box.x ?? old.x)) > RECORD_EPS || Math.abs(old.y - (box.y ?? old.y)) > RECORD_EPS;
       if (!placed.has(box.id) || moved) lockedMoved++;
       kept.push(box);
     } else if (placed.has(box.id)) {
@@ -216,4 +218,24 @@ export function packHard(input: LayoutInput, output: PackOutput, tolerance: numb
     "locked-kept": lockedMoved,
     complete: incomplete,
   };
+}
+
+/**
+ * This function gives the problems of an input file. An empty list tells that the file is good.
+ * A problem is a bad input, not a break of a hard rule. Thus an engine refuses the input.
+ */
+export function checkInput(input: LayoutInput): readonly string[] {
+  const problems: string[] = [];
+  const ids = new Set<string>();
+  for (const box of input.boxes) {
+    if (ids.has(box.id)) problems.push(`box ${box.id}: the id is not unique`);
+    ids.add(box.id);
+    if (!(box.w > 0 && box.h > 0 && Number.isFinite(box.w) && Number.isFinite(box.h))) problems.push(`box ${box.id}: the size is not positive and finite`);
+    if (box.locked === true && (box.x === undefined || box.y === undefined)) problems.push(`box ${box.id}: a locked box has no position`);
+  }
+  if (countPortsOffBorder(input.boxes) > 0) problems.push("a fixed port is not on the border of its box");
+  for (const edge of input.edges ?? []) {
+    if (!ids.has(edge.source) || !ids.has(edge.target)) problems.push(`edge ${edge.id}: a box of the edge is not in the input`);
+  }
+  return problems;
 }
