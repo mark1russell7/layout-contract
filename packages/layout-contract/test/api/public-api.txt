@@ -6,328 +6,328 @@
 
 ## . (build/index.d.ts): 44 names
 
-DEFAULT_TOLERANCE: build/tolerance.d.ts#DEFAULT_TOLERANCE
-EPS: build/tolerance.d.ts#EPS
-Item: build/input.d.ts#Item
-LayoutBox: build/input.d.ts#LayoutBox
-LayoutContainer: build/input.d.ts#LayoutContainer
-LayoutEdge: build/input.d.ts#LayoutEdge
-LayoutInput: build/input.d.ts#LayoutInput
-LayoutRecord: build/record.d.ts#LayoutRecord
-Margin: build/geometry.d.ts#Margin
-Obstacle: build/input.d.ts#Obstacle
-PackHard: build/rules.d.ts#PackHard
-PackInput: build/input.d.ts#PackInput
-PackOutput: build/output.d.ts#PackOutput
-Placement: build/output.d.ts#Placement
-Point: build/geometry.d.ts#Point
-Port: build/input.d.ts#Port
-RECORD_EPS: build/tolerance.d.ts#RECORD_EPS
-Rect: build/geometry.d.ts#Rect
-Region: build/geometry.d.ts#Region
-SIDES: build/geometry.d.ts#SIDES
-Side: build/geometry.d.ts#Side
-Sides: build/geometry.d.ts#Sides
-Stage: build/record.d.ts#Stage
-StageTrace: build/output.d.ts#StageTrace
-Supports: build/record.d.ts#Supports
-Tolerance: build/tolerance.d.ts#Tolerance
-applyPack: build/output.d.ts#applyPack
-boundsOf: build/geometry.d.ts#boundsOf
-countOutside: build/rules.d.ts#countOutside
-countOverlaps: build/rules.d.ts#countOverlaps
-countPortsOffBorder: build/rules.d.ts#countPortsOffBorder
-grow: build/geometry.d.ts#grow
-marginSides: build/geometry.d.ts#marginSides
-overlapOf: build/geometry.d.ts#overlapOf
-packHard: build/rules.d.ts#packHard
-placedRect: build/rules.d.ts#placedRect
-toPackInput: build/input.d.ts#toPackInput
-translate: build/geometry.d.ts#translate
-turnBox: build/turn.d.ts#turnBox
-turnMargin: build/turn.d.ts#turnMargin
-turnPoint: build/turn.d.ts#turnPoint
-turnPort: build/turn.d.ts#turnPort
-turnRegion: build/turn.d.ts#turnRegion
-turnSide: build/turn.d.ts#turnSide
+DEFAULT_TOLERANCE: build/index.d.ts#DEFAULT_TOLERANCE
+EPS: build/index.d.ts#EPS
+Item: build/index.d.ts#Item
+LayoutBox: build/index.d.ts#LayoutBox
+LayoutContainer: build/index.d.ts#LayoutContainer
+LayoutEdge: build/index.d.ts#LayoutEdge
+LayoutInput: build/index.d.ts#LayoutInput
+LayoutRecord: build/index.d.ts#LayoutRecord
+Margin: build/index.d.ts#Margin
+Obstacle: build/index.d.ts#Obstacle
+PackHard: build/index.d.ts#PackHard
+PackInput: build/index.d.ts#PackInput
+PackOutput: build/index.d.ts#PackOutput
+Placement: build/index.d.ts#Placement
+Point: build/index.d.ts#Point
+Port: build/index.d.ts#Port
+RECORD_EPS: build/index.d.ts#RECORD_EPS
+Rect: build/index.d.ts#Rect
+Region: build/index.d.ts#Region
+SIDES: build/index.d.ts#SIDES
+Side: build/index.d.ts#Side
+Sides: build/index.d.ts#Sides
+Stage: build/index.d.ts#Stage
+StageTrace: build/index.d.ts#StageTrace
+Supports: build/index.d.ts#Supports
+Tolerance: build/index.d.ts#Tolerance
+applyPack: build/index.d.ts#applyPack
+boundsOf: build/index.d.ts#boundsOf
+countOutside: build/index.d.ts#countOutside
+countOverlaps: build/index.d.ts#countOverlaps
+countPortsOffBorder: build/index.d.ts#countPortsOffBorder
+grow: build/index.d.ts#grow
+marginSides: build/index.d.ts#marginSides
+overlapOf: build/index.d.ts#overlapOf
+packHard: build/index.d.ts#packHard
+placedRect: build/index.d.ts#placedRect
+toPackInput: build/index.d.ts#toPackInput
+translate: build/index.d.ts#translate
+turnBox: build/index.d.ts#turnBox
+turnMargin: build/index.d.ts#turnMargin
+turnPoint: build/index.d.ts#turnPoint
+turnPort: build/index.d.ts#turnPort
+turnRegion: build/index.d.ts#turnRegion
+turnSide: build/index.d.ts#turnSide
 
 ## Declarations
 
-### build/geometry.d.ts#Margin
-export type Margin = number | Sides;
-
-### build/geometry.d.ts#Point
-export interface Point {
-    readonly x: number;
-    readonly y: number;
-}
-
-### build/geometry.d.ts#Rect
-export interface Rect {
-    readonly x: number;
-    readonly y: number;
-    readonly w: number;
-    readonly h: number;
-}
-
-### build/geometry.d.ts#Region
-export type Region = {
-    readonly kind: "rect";
-    readonly x: number;
-    readonly y: number;
-    readonly w: number;
-    readonly h: number;
-} | {
-    readonly kind: "polygon";
-    readonly points: readonly (readonly [number, number])[];
-    readonly holes?: readonly (readonly (readonly [number, number])[])[];
-} | {
-    readonly kind: "circle";
-    readonly cx: number;
-    readonly cy: number;
-    readonly r: number;
-} | {
-    readonly kind: "ellipse";
-    readonly cx: number;
-    readonly cy: number;
-    readonly rx: number;
-    readonly ry: number;
-};
-
-### build/geometry.d.ts#SIDES
-export declare const SIDES: readonly Side[];
-
-### build/geometry.d.ts#Side
-export type Side = "top" | "right" | "bottom" | "left";
-
-### build/geometry.d.ts#Sides
-export interface Sides {
-    readonly top: number;
-    readonly right: number;
-    readonly bottom: number;
-    readonly left: number;
-}
-
-### build/geometry.d.ts#boundsOf
-export declare function boundsOf(region: Region): Rect;
-
-### build/geometry.d.ts#grow
-export declare function grow(rect: Rect, margin: Margin | undefined): Rect;
-
-### build/geometry.d.ts#marginSides
-export declare function marginSides(margin: Margin | undefined): Sides;
-
-### build/geometry.d.ts#overlapOf
-export declare function overlapOf(a: Rect, b: Rect): {
-    readonly x: number;
-    readonly y: number;
-};
-
-### build/geometry.d.ts#translate
-export declare function translate(region: Region, dx: number, dy: number): Region;
-
-### build/input.d.ts#Item
-export type Item = LayoutBox;
-
-### build/input.d.ts#LayoutBox
-export interface LayoutBox {
-    readonly id: string;
-    readonly w: number;
-    readonly h: number;
-    readonly x?: number;
-    readonly y?: number;
-    readonly locked?: boolean;
-    readonly rank?: number;
-    readonly parent?: string;
-    readonly group?: string;
-    readonly shape?: Region;
-    readonly ports?: readonly Port[];
-    readonly margin?: Margin;
-    readonly turnable?: boolean;
-}
-
-### build/input.d.ts#LayoutContainer
-export interface LayoutContainer {
-    readonly w?: number;
-    readonly h?: number;
-    readonly fixed: "size" | "width" | "height" | "none";
-    readonly aspect?: number;
-    readonly aspectWeight?: number;
-    readonly shape?: Region;
-    readonly inset?: number;
-}
-
-### build/input.d.ts#LayoutEdge
-export interface LayoutEdge {
-    readonly id: string;
-    readonly source: string;
-    readonly target: string;
-    readonly sourcePort?: string;
-    readonly targetPort?: string;
-    readonly data?: Readonly<Record<string, unknown>>;
-}
-
-### build/input.d.ts#LayoutInput
-export interface LayoutInput {
-    readonly schema: "layout-input/1";
-    readonly id: string;
-    readonly set?: string;
-    readonly family?: string;
-    readonly seed?: number;
-    readonly source?: string;
-    readonly hash?: string;
-    readonly container: LayoutContainer;
-    readonly gap?: number;
-    readonly boxes: readonly LayoutBox[];
-    readonly edges?: readonly LayoutEdge[];
-    readonly obstacles?: readonly Obstacle[];
-    readonly base?: string;
-    readonly change?: "add" | "remove" | "resize" | "reorder";
-}
-
-### build/input.d.ts#Obstacle
-export interface Obstacle {
-    readonly id: string;
-    readonly region: Region;
-    readonly move?: {
-        readonly cost: number;
-    };
-}
-
-### build/input.d.ts#PackInput
-export interface PackInput {
-    readonly container: LayoutContainer;
-    readonly items: readonly Item[];
-    readonly obstacles?: readonly Obstacle[];
-    readonly gap?: number;
-}
-
-### build/input.d.ts#Port
-export interface Port {
-    readonly id: string;
-    readonly side: Side;
-    readonly x?: number;
-    readonly y?: number;
-}
-
-### build/input.d.ts#toPackInput
-export declare function toPackInput(input: LayoutInput): PackInput;
-
-### build/output.d.ts#PackOutput
-export interface PackOutput {
-    readonly placements: readonly Placement[];
-    readonly overflow: readonly string[];
-    readonly size: {
-        readonly w: number;
-        readonly h: number;
-    };
-    readonly moved: readonly {
-        readonly id: string;
-        readonly x: number;
-        readonly y: number;
-    }[];
-    readonly trace?: readonly StageTrace[];
-}
-
-### build/output.d.ts#Placement
-export interface Placement {
-    readonly id: string;
-    readonly x: number;
-    readonly y: number;
-    readonly turn?: 0 | 90;
-}
-
-### build/output.d.ts#StageTrace
-export interface StageTrace {
-    readonly id: string;
-    readonly ms?: number;
-    readonly measures?: Readonly<Record<string, number>>;
-}
-
-### build/output.d.ts#applyPack
-export declare function applyPack(input: LayoutInput, output: PackOutput): LayoutInput;
-
-### build/record.d.ts#LayoutRecord
-export interface LayoutRecord {
-    readonly schema: "layout-record/1";
-    readonly stage: Stage;
-    readonly step: string;
-    readonly strategy: string;
-    readonly options: Readonly<Record<string, unknown>>;
-    readonly corpus: string;
-    readonly input: string;
-    readonly inputHash: string;
-    readonly set: string;
-    readonly seed: number;
-    readonly nodes: number;
-    readonly edges: number;
-    readonly measures: Readonly<Record<string, number>>;
-    readonly hard: Readonly<Record<string, number>>;
-    readonly tolerance?: Readonly<Partial<Tolerance>>;
-    readonly deterministic: boolean;
-    readonly prediction?: string;
-    readonly ms?: number;
-    readonly commit?: string;
-}
-
-### build/record.d.ts#Stage
-export type Stage = "pack" | "route" | "joint";
-
-### build/record.d.ts#Supports
-export type Supports = Readonly<Record<string, readonly string[]>>;
-
-### build/rules.d.ts#PackHard
-export interface PackHard {
-    readonly "no-overlap": number;
-    readonly "in-container": number;
-    readonly "locked-kept": number;
-    readonly complete: number;
-}
-
-### build/rules.d.ts#countOutside
-export declare function countOutside(input: LayoutInput, tolerance?: number): number;
-
-### build/rules.d.ts#countOverlaps
-export declare function countOverlaps(boxes: readonly LayoutBox[], tolerance?: number): number;
-
-### build/rules.d.ts#countPortsOffBorder
-export declare function countPortsOffBorder(boxes: readonly LayoutBox[], eps?: number): number;
-
-### build/rules.d.ts#packHard
-export declare function packHard(before: LayoutInput, after: LayoutInput, overflow: readonly string[], tolerance?: number): PackHard;
-
-### build/rules.d.ts#placedRect
-export declare function placedRect(box: LayoutBox): Rect | undefined;
-
-### build/tolerance.d.ts#DEFAULT_TOLERANCE
+### build/index.d.ts#DEFAULT_TOLERANCE
 export declare const DEFAULT_TOLERANCE: Tolerance;
 
-### build/tolerance.d.ts#EPS
-export declare const EPS = 0.000001;
+### build/index.d.ts#EPS
+export declare const EPS = 1e-6;
 
-### build/tolerance.d.ts#RECORD_EPS
-export declare const RECORD_EPS = 0.001;
+### build/index.d.ts#Item
+export type Item = LayoutBox;
 
-### build/tolerance.d.ts#Tolerance
-export interface Tolerance {
-    readonly overlap: number;
-    readonly through: number;
+### build/index.d.ts#LayoutBox
+export interface LayoutBox {
+  readonly id: string;
+  readonly w: number;
+  readonly h: number;
+  readonly x?: number;
+  readonly y?: number;
+  readonly locked?: boolean;
+  readonly rank?: number;
+  readonly parent?: string;
+  readonly group?: string;
+  readonly shape?: Region;
+  readonly ports?: readonly Port[];
+  readonly margin?: Margin;
+  readonly turnable?: boolean;
 }
 
-### build/turn.d.ts#turnBox
+### build/index.d.ts#LayoutContainer
+export interface LayoutContainer {
+  readonly w?: number;
+  readonly h?: number;
+  readonly fixed: "size" | "width" | "height" | "none";
+  readonly aspect?: number;
+  readonly aspectWeight?: number;
+  readonly shape?: Region;
+  readonly inset?: number;
+}
+
+### build/index.d.ts#LayoutEdge
+export interface LayoutEdge {
+  readonly id: string;
+  readonly source: string;
+  readonly target: string;
+  readonly sourcePort?: string;
+  readonly targetPort?: string;
+  readonly data?: Readonly<Record<string, unknown>>;
+}
+
+### build/index.d.ts#LayoutInput
+export interface LayoutInput {
+  readonly schema: "layout-input/1";
+  readonly id: string;
+  readonly set?: string;
+  readonly family?: string;
+  readonly seed?: number;
+  readonly source?: string;
+  readonly hash?: string;
+  readonly container: LayoutContainer;
+  readonly gap?: number;
+  readonly boxes: readonly LayoutBox[];
+  readonly edges?: readonly LayoutEdge[];
+  readonly obstacles?: readonly Obstacle[];
+  readonly base?: string;
+  readonly change?: "add" | "remove" | "resize" | "reorder";
+}
+
+### build/index.d.ts#LayoutRecord
+export interface LayoutRecord {
+  readonly schema: "layout-record/1";
+  readonly stage: Stage;
+  readonly step: string;
+  readonly strategy: string;
+  readonly options: Readonly<Record<string, unknown>>;
+  readonly corpus: string;
+  readonly input: string;
+  readonly inputHash: string;
+  readonly set: string;
+  readonly seed: number;
+  readonly nodes: number;
+  readonly edges: number;
+  readonly measures: Readonly<Record<string, number>>;
+  readonly hard: Readonly<Record<string, number>>;
+  readonly tolerance?: Readonly<Partial<Tolerance>>;
+  readonly deterministic: boolean;
+  readonly prediction?: string;
+  readonly ms?: number;
+  readonly commit?: string;
+}
+
+### build/index.d.ts#Margin
+export type Margin = number | Sides;
+
+### build/index.d.ts#Obstacle
+export interface Obstacle {
+  readonly id: string;
+  readonly region: Region;
+  readonly move?: {
+    readonly cost: number;
+  };
+}
+
+### build/index.d.ts#PackHard
+export interface PackHard {
+  readonly "no-overlap": number;
+  readonly "in-container": number;
+  readonly "locked-kept": number;
+  readonly complete: number;
+}
+
+### build/index.d.ts#PackInput
+export interface PackInput {
+  readonly container: LayoutContainer;
+  readonly items: readonly Item[];
+  readonly obstacles?: readonly Obstacle[];
+  readonly gap?: number;
+}
+
+### build/index.d.ts#PackOutput
+export interface PackOutput {
+  readonly placements: readonly Placement[];
+  readonly overflow: readonly string[];
+  readonly size: {
+    readonly w: number;
+    readonly h: number;
+  };
+  readonly moved: readonly {
+    readonly id: string;
+    readonly x: number;
+    readonly y: number;
+  }[];
+  readonly trace?: readonly StageTrace[];
+}
+
+### build/index.d.ts#Placement
+export interface Placement {
+  readonly id: string;
+  readonly x: number;
+  readonly y: number;
+  readonly turn?: 0 | 90;
+}
+
+### build/index.d.ts#Point
+export interface Point {
+  readonly x: number;
+  readonly y: number;
+}
+
+### build/index.d.ts#Port
+export interface Port {
+  readonly id: string;
+  readonly side: Side;
+  readonly x?: number;
+  readonly y?: number;
+}
+
+### build/index.d.ts#RECORD_EPS
+export declare const RECORD_EPS = .001;
+
+### build/index.d.ts#Rect
+export interface Rect {
+  readonly x: number;
+  readonly y: number;
+  readonly w: number;
+  readonly h: number;
+}
+
+### build/index.d.ts#Region
+export type Region = {
+  readonly kind: "rect";
+  readonly x: number;
+  readonly y: number;
+  readonly w: number;
+  readonly h: number;
+} | {
+  readonly kind: "polygon";
+  readonly points: readonly (readonly [number, number])[];
+  readonly holes?: readonly (readonly (readonly [number, number])[])[];
+} | {
+  readonly kind: "circle";
+  readonly cx: number;
+  readonly cy: number;
+  readonly r: number;
+} | {
+  readonly kind: "ellipse";
+  readonly cx: number;
+  readonly cy: number;
+  readonly rx: number;
+  readonly ry: number;
+};
+
+### build/index.d.ts#SIDES
+export declare const SIDES: readonly Side[];
+
+### build/index.d.ts#Side
+export type Side = "top" | "right" | "bottom" | "left";
+
+### build/index.d.ts#Sides
+export interface Sides {
+  readonly top: number;
+  readonly right: number;
+  readonly bottom: number;
+  readonly left: number;
+}
+
+### build/index.d.ts#Stage
+export type Stage = "pack" | "route" | "joint";
+
+### build/index.d.ts#StageTrace
+export interface StageTrace {
+  readonly id: string;
+  readonly ms?: number;
+  readonly measures?: Readonly<Record<string, number>>;
+}
+
+### build/index.d.ts#Supports
+export type Supports = Readonly<Record<string, readonly string[]>>;
+
+### build/index.d.ts#Tolerance
+export interface Tolerance {
+  readonly overlap: number;
+  readonly through: number;
+}
+
+### build/index.d.ts#applyPack
+export declare function applyPack(input: LayoutInput, output: PackOutput): LayoutInput;
+
+### build/index.d.ts#boundsOf
+export declare function boundsOf(region: Region): Rect;
+
+### build/index.d.ts#countOutside
+export declare function countOutside(input: LayoutInput, tolerance?: number): number;
+
+### build/index.d.ts#countOverlaps
+export declare function countOverlaps(boxes: readonly LayoutBox[], tolerance?: number): number;
+
+### build/index.d.ts#countPortsOffBorder
+export declare function countPortsOffBorder(boxes: readonly LayoutBox[], eps?: number): number;
+
+### build/index.d.ts#grow
+export declare function grow(rect: Rect, margin: Margin | undefined): Rect;
+
+### build/index.d.ts#marginSides
+export declare function marginSides(margin: Margin | undefined): Sides;
+
+### build/index.d.ts#overlapOf
+export declare function overlapOf(a: Rect, b: Rect): {
+  readonly x: number;
+  readonly y: number;
+};
+
+### build/index.d.ts#packHard
+export declare function packHard(before: LayoutInput, after: LayoutInput, overflow: readonly string[], tolerance?: number): PackHard;
+
+### build/index.d.ts#placedRect
+export declare function placedRect(box: LayoutBox): Rect | undefined;
+
+### build/index.d.ts#toPackInput
+export declare function toPackInput(input: LayoutInput): PackInput;
+
+### build/index.d.ts#translate
+export declare function translate(region: Region, dx: number, dy: number): Region;
+
+### build/index.d.ts#turnBox
 export declare function turnBox(box: LayoutBox): LayoutBox;
 
-### build/turn.d.ts#turnMargin
+### build/index.d.ts#turnMargin
 export declare function turnMargin(margin: Margin): Margin;
 
-### build/turn.d.ts#turnPoint
+### build/index.d.ts#turnPoint
 export declare function turnPoint(x: number, y: number, h: number): [number, number];
 
-### build/turn.d.ts#turnPort
+### build/index.d.ts#turnPort
 export declare function turnPort(port: Port, h: number): Port;
 
-### build/turn.d.ts#turnRegion
+### build/index.d.ts#turnRegion
 export declare function turnRegion(region: Region, h: number): Region;
 
-### build/turn.d.ts#turnSide
+### build/index.d.ts#turnSide
 export declare function turnSide(side: Side): Side;
