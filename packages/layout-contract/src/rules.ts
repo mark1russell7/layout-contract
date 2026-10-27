@@ -35,8 +35,8 @@ export function countOverlaps(boxes: readonly LayoutBox[], tolerance: number = D
 }
 
 /**
- * This function counts the placed boxes that go out of the container: each box with its margin must stay inside
- * the container made smaller by `inset`. Only the fixed sides of the size count. A shaped container counts as its bounding box.
+ * This function counts the placed boxes that go out of the container.
+ * Each box with its margin must stay inside the container made smaller by `inset`. Only the fixed sides of the size count. A shaped container counts as its bounding box.
  */
 export function countOutside(input: LayoutInput, tolerance: number = DEFAULT_TOLERANCE.overlap): number {
   const c = input.container;

@@ -30,9 +30,9 @@ export interface PackOutput {
 }
 
 /**
- * This function gives the input with the output of a packer applied: each placed box gets its position,
- * a turned box gets its turned size, ports, margin and shape, and each moved obstacle moves.
- * The container gets the size of the output. The router reads this result. It never reads `turn`.
+ * This function gives the input with the output of a packer applied. Each placed box gets its position.
+ * A turned box gets its turned size, ports, margin and shape. Each moved obstacle moves.
+ * The container gets the size of the output. The router reads this result. It does not read `turn`.
  */
 export function applyPack(input: LayoutInput, output: PackOutput): LayoutInput {
   const at = new Map(output.placements.map((p) => [p.id, p]));

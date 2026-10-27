@@ -12,7 +12,7 @@ export interface Port {
   readonly y?: number;
 }
 
-/** A box of an input. The packer calls it an item. */
+/** A box of an input. In the packer, its name is item. */
 export interface LayoutBox {
   readonly id: string;
   readonly w: number;
@@ -29,7 +29,7 @@ export interface LayoutBox {
   /** A region relative to the origin of the box. Without it, the box is the rectangle `w` by `h`. */
   readonly shape?: Region;
   readonly ports?: readonly Port[];
-  /** A ring around the box. No other box and no route enters it, except a route from a port of the box, at a right angle. */
+  /** A ring around the box. No other box enters it. Only a route from a port of the box enters it, at a right angle. */
   readonly margin?: Margin;
   /** The packer can turn the box by 90 degrees. The output has the turned box and ports. */
   readonly turnable?: boolean;
