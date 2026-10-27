@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   applyPack,
+  checkInput,
   countObstacleHits,
   countOutside,
   countOverlaps,
@@ -126,6 +127,30 @@ describe("rules", () => {
 
   it("gives grow a rectangle with each side of the margin", () => {
     expect(grow({ x: 10, y: 10, w: 5, h: 5 }, { top: 1, right: 2, bottom: 3, left: 4 })).toEqual({ x: 6, y: 9, w: 11, h: 9 });
+  });
+});
+
+describe("locked boxes and bad inputs", () => {
+  const out = { overflow: [], size: { w: 100, h: 100 }, moved: [] };
+
+  it("uses RECORD_EPS for the move of a locked box, not the overlap tolerance", () => {
+    const i = input([{ id: "pin", w: 10, h: 10, x: 50, y: 50, locked: true }]);
+    expect(packHard(i, { ...out, placements: [{ id: "pin", x: 50.01, y: 50 }] }, 0.1)["locked-kept"]).toBe(1);
+    expect(packHard(i, { ...out, placements: [{ id: "pin", x: 50.0005, y: 50 }] }, 0.1)["locked-kept"]).toBe(0);
+  });
+
+  it("gives one break for a locked box without a placement", () => {
+    const i = input([{ id: "pin", w: 10, h: 10, x: 50, y: 50, locked: true }]);
+    expect(packHard(i, { ...out, placements: [] })).toEqual({ "no-overlap": 0, "in-container": 0, "locked-kept": 1, complete: 0 });
+  });
+
+  it("finds a locked box without a position as a bad input, not as a break", () => {
+    const i = input([{ id: "pin", w: 10, h: 10, locked: true }]);
+    expect(packHard(i, { ...out, placements: [] })["locked-kept"]).toBe(0);
+    expect(checkInput(i)).toEqual(["box pin: a locked box has no position"]);
+    expect(checkInput(input([{ id: "a", w: 1, h: 1 }], { edges: [{ id: "e", source: "a", target: "b" }] }))).toEqual([
+      "edge e: a box of the edge is not in the input",
+    ]);
   });
 });
 
