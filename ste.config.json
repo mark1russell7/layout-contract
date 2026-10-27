@@ -8,6 +8,7 @@
     "RELEASING.md",
     "CI.md",
     "packages/*/README.md",
+    "packages/*/CHANGELOG.md",
     "docs/*.md",
     "packages/*/src/**/*.{ts,tsx}",
     "packages/*/*.config.{ts,mts}"
