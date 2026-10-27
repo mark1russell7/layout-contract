@@ -4,17 +4,24 @@
 # and private members. The command `api-report check` compares this file with the built .d.ts files.
 # To accept a change of the API, start the build, then `api-report update`, and review the diff.
 
-## . (build/index.d.ts): 44 names
+## . (build/index.d.ts): 56 names
 
 DEFAULT_TOLERANCE: build/index.d.ts#DEFAULT_TOLERANCE
+Direction: build/index.d.ts#Direction
 EPS: build/index.d.ts#EPS
 Item: build/index.d.ts#Item
+JOINT_MEASURES: build/index.d.ts#JOINT_MEASURES
+JOINT_MOVED_MIN: build/index.d.ts#JOINT_MOVED_MIN
+JointMeasureId: build/index.d.ts#JointMeasureId
 LayoutBox: build/index.d.ts#LayoutBox
+LayoutCell: build/index.d.ts#LayoutCell
 LayoutContainer: build/index.d.ts#LayoutContainer
 LayoutEdge: build/index.d.ts#LayoutEdge
+LayoutGenerator: build/index.d.ts#LayoutGenerator
 LayoutInput: build/index.d.ts#LayoutInput
 LayoutRecord: build/index.d.ts#LayoutRecord
 Margin: build/index.d.ts#Margin
+MeasureSpec: build/index.d.ts#MeasureSpec
 Obstacle: build/index.d.ts#Obstacle
 PackHard: build/index.d.ts#PackHard
 PackInput: build/index.d.ts#PackInput
@@ -25,15 +32,18 @@ Port: build/index.d.ts#Port
 RECORD_EPS: build/index.d.ts#RECORD_EPS
 Rect: build/index.d.ts#Rect
 Region: build/index.d.ts#Region
+RunFacts: build/index.d.ts#RunFacts
 SIDES: build/index.d.ts#SIDES
 Side: build/index.d.ts#Side
 Sides: build/index.d.ts#Sides
 Stage: build/index.d.ts#Stage
 StageTrace: build/index.d.ts#StageTrace
+StrategyInfo: build/index.d.ts#StrategyInfo
 Supports: build/index.d.ts#Supports
 Tolerance: build/index.d.ts#Tolerance
 applyPack: build/index.d.ts#applyPack
 boundsOf: build/index.d.ts#boundsOf
+countObstacleHits: build/index.d.ts#countObstacleHits
 countOutside: build/index.d.ts#countOutside
 countOverlaps: build/index.d.ts#countOverlaps
 countPortsOffBorder: build/index.d.ts#countPortsOffBorder
@@ -42,6 +52,8 @@ marginSides: build/index.d.ts#marginSides
 overlapOf: build/index.d.ts#overlapOf
 packHard: build/index.d.ts#packHard
 placedRect: build/index.d.ts#placedRect
+regionHitsRect: build/index.d.ts#regionHitsRect
+toLayoutRecord: build/index.d.ts#toLayoutRecord
 toPackInput: build/index.d.ts#toPackInput
 translate: build/index.d.ts#translate
 turnBox: build/index.d.ts#turnBox
@@ -56,11 +68,23 @@ turnSide: build/index.d.ts#turnSide
 ### build/index.d.ts#DEFAULT_TOLERANCE
 export declare const DEFAULT_TOLERANCE: Tolerance;
 
+### build/index.d.ts#Direction
+export type Direction = "lower" | "higher";
+
 ### build/index.d.ts#EPS
 export declare const EPS = 1e-6;
 
 ### build/index.d.ts#Item
 export type Item = LayoutBox;
+
+### build/index.d.ts#JOINT_MEASURES
+export declare const JOINT_MEASURES: readonly MeasureSpec<JointMeasureId>[];
+
+### build/index.d.ts#JOINT_MOVED_MIN
+export declare const JOINT_MOVED_MIN = .01;
+
+### build/index.d.ts#JointMeasureId
+export type JointMeasureId = "joint.fill" | "joint.aspectError" | "joint.spill" | "joint.straight.crossings" | "joint.straight.length" | "joint.stability.mean" | "joint.stability.moved" | "joint.proxy.rank" | "joint.ms";
 
 ### build/index.d.ts#LayoutBox
 export interface LayoutBox {
@@ -77,6 +101,21 @@ export interface LayoutBox {
   readonly ports?: readonly Port[];
   readonly margin?: Margin;
   readonly turnable?: boolean;
+  readonly data?: Readonly<Record<string, unknown>>;
+}
+
+### build/index.d.ts#LayoutCell
+export interface LayoutCell {
+  readonly containerSize?: "fixed" | "freeHeight" | "freeWidth" | "freeAspect" | "freeArea";
+  readonly containerShape?: "rect" | "convex" | "polygon" | "circle" | "ellipse" | "holes";
+  readonly obstacles?: "none" | "center" | "scattered" | "wall" | "corridors" | "touching" | "edge";
+  readonly sizes?: "identical" | "uniform" | "heavyTail" | "bimodal" | "extremeAspect" | "nearIdentical";
+  readonly count?: "1" | "10" | "100" | "1k" | "10k";
+  readonly mode?: "offline" | "online" | "incremental";
+  readonly edgeDensity?: "sparse" | "medium" | "dense";
+  readonly edgeShape?: "random" | "clustered" | "hubChain" | "longRange" | "tree" | "bundled";
+  readonly groups?: "none" | "flat" | "nested";
+  readonly ports?: "free" | "sides" | "fixed";
 }
 
 ### build/index.d.ts#LayoutContainer
@@ -100,6 +139,14 @@ export interface LayoutEdge {
   readonly data?: Readonly<Record<string, unknown>>;
 }
 
+### build/index.d.ts#LayoutGenerator
+export interface LayoutGenerator {
+  readonly name: string;
+  readonly version: number;
+  readonly params: Readonly<Record<string, unknown>>;
+  readonly seed: number;
+}
+
 ### build/index.d.ts#LayoutInput
 export interface LayoutInput {
   readonly schema: "layout-input/1";
@@ -109,13 +156,16 @@ export interface LayoutInput {
   readonly seed?: number;
   readonly source?: string;
   readonly hash?: string;
-  readonly container: LayoutContainer;
+  readonly generator?: LayoutGenerator | null;
+  readonly cell?: LayoutCell;
+  readonly step?: number;
+  readonly container?: LayoutContainer;
   readonly gap?: number;
   readonly boxes: readonly LayoutBox[];
   readonly edges?: readonly LayoutEdge[];
   readonly obstacles?: readonly Obstacle[];
   readonly base?: string;
-  readonly change?: "add" | "remove" | "resize" | "reorder";
+  readonly change?: "add" | "remove" | "resize" | "reorder" | "packed";
 }
 
 ### build/index.d.ts#LayoutRecord
@@ -137,12 +187,26 @@ export interface LayoutRecord {
   readonly tolerance?: Readonly<Partial<Tolerance>>;
   readonly deterministic: boolean;
   readonly prediction?: string;
-  readonly ms?: number;
+  readonly ms: number;
+  readonly skipped?: string;
   readonly commit?: string;
 }
 
 ### build/index.d.ts#Margin
 export type Margin = number | Sides;
+
+### build/index.d.ts#MeasureSpec
+export interface MeasureSpec<Id extends string = string> {
+  readonly id: Id;
+  readonly unit: string;
+  readonly direction: Direction;
+  readonly min: number;
+  readonly max: number;
+  readonly family?: string;
+  readonly floor?: number;
+  readonly tol?: number;
+  readonly role?: "guard" | "change-guard" | "diagnostic" | "time";
+}
 
 ### build/index.d.ts#Obstacle
 export interface Obstacle {
@@ -202,7 +266,7 @@ export interface Point {
 ### build/index.d.ts#Port
 export interface Port {
   readonly id: string;
-  readonly side: Side;
+  readonly side?: Side;
   readonly x?: number;
   readonly y?: number;
 }
@@ -242,6 +306,9 @@ export type Region = {
   readonly ry: number;
 };
 
+### build/index.d.ts#RunFacts
+export type RunFacts = Omit<LayoutRecord, "schema" | "input" | "inputHash" | "set" | "nodes" | "edges">;
+
 ### build/index.d.ts#SIDES
 export declare const SIDES: readonly Side[];
 
@@ -266,6 +333,16 @@ export interface StageTrace {
   readonly measures?: Readonly<Record<string, number>>;
 }
 
+### build/index.d.ts#StrategyInfo
+export interface StrategyInfo<O = unknown, S extends Supports = Supports> {
+  readonly id: string;
+  readonly family: string;
+  readonly catalog: readonly string[];
+  readonly supports: S;
+  readonly defaults: O;
+  readonly deterministic: boolean;
+}
+
 ### build/index.d.ts#Supports
 export type Supports = Readonly<Record<string, readonly string[]>>;
 
@@ -280,6 +357,9 @@ export declare function applyPack(input: LayoutInput, output: PackOutput): Layou
 
 ### build/index.d.ts#boundsOf
 export declare function boundsOf(region: Region): Rect;
+
+### build/index.d.ts#countObstacleHits
+export declare function countObstacleHits(boxes: readonly LayoutBox[], obstacles: readonly Obstacle[] | undefined, tolerance?: number): number;
 
 ### build/index.d.ts#countOutside
 export declare function countOutside(input: LayoutInput, tolerance?: number): number;
@@ -303,10 +383,16 @@ export declare function overlapOf(a: Rect, b: Rect): {
 };
 
 ### build/index.d.ts#packHard
-export declare function packHard(before: LayoutInput, after: LayoutInput, overflow: readonly string[], tolerance?: number): PackHard;
+export declare function packHard(input: LayoutInput, output: PackOutput, tolerance?: number): PackHard;
 
 ### build/index.d.ts#placedRect
 export declare function placedRect(box: LayoutBox): Rect | undefined;
+
+### build/index.d.ts#regionHitsRect
+export declare function regionHitsRect(region: Region, rect: Rect): boolean;
+
+### build/index.d.ts#toLayoutRecord
+export declare function toLayoutRecord(input: LayoutInput, run: RunFacts): LayoutRecord;
 
 ### build/index.d.ts#toPackInput
 export declare function toPackInput(input: LayoutInput): PackInput;
