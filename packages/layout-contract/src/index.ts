@@ -5,3 +5,5 @@ export * from "./output.ts";
 export * from "./record.ts";
 export * from "./rules.ts";
 export * from "./turn.ts";
+export * from "./measures.ts";
+export * from "./strategy.ts";

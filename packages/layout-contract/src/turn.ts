@@ -18,12 +18,15 @@ export function turnPoint(x: number, y: number, h: number): [number, number] {
   return [h - y, x];
 }
 
-/** This function gives a port of a box of height `h` after the turn. */
+/** This function gives a port of a box of height `h` after the turn. Each value of the port turns, also a port with only `x` or only `y`. */
 export function turnPort(port: Port, h: number): Port {
-  const side = turnSide(port.side);
-  if (port.x === undefined || port.y === undefined) return { ...port, side };
-  const [x, y] = turnPoint(port.x, port.y, h);
-  return { ...port, side, x, y };
+  const { side, x, y, ...rest } = port;
+  return {
+    ...rest,
+    ...(side === undefined ? {} : { side: turnSide(side) }),
+    ...(y === undefined ? {} : { x: h - y }),
+    ...(x === undefined ? {} : { y: x }),
+  };
 }
 
 /** This function gives a margin after the turn: the value of each side moves one side clockwise. */

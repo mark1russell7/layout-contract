@@ -1,4 +1,5 @@
 import type { Tolerance } from "./tolerance.ts";
+import type { LayoutInput } from "./input.ts";
 
 /** The stage of a record: the packer, the router, or both together. */
 export type Stage = "pack" | "route" | "joint";
@@ -30,7 +31,9 @@ export interface LayoutRecord {
   readonly deterministic: boolean;
   /** The id of the prediction that was written before the run. */
   readonly prediction?: string;
-  readonly ms?: number;
+  readonly ms: number;
+  /** The reason when the strategy did not run, for example an input over its `maxNodes`. Then the record has no measures. */
+  readonly skipped?: string;
   readonly commit?: string;
 }
 
@@ -39,3 +42,19 @@ export interface LayoutRecord {
  * The dimension names are in `docs/FORMAT.md` of `packing` and `docs/LAYOUT-RECORDS.md` of `highways`.
  */
 export type Supports = Readonly<Record<string, readonly string[]>>;
+
+/** The facts of a run that the input does not give. */
+export type RunFacts = Omit<LayoutRecord, "schema" | "input" | "inputHash" | "set" | "nodes" | "edges">;
+
+/** This function gives the record of a run. The input gives its id, its hash, its set and the counts of the nodes and the edges. */
+export function toLayoutRecord(input: LayoutInput, run: RunFacts): LayoutRecord {
+  return {
+    schema: "layout-record/1",
+    ...run,
+    input: input.id,
+    inputHash: input.hash ?? "",
+    set: input.set ?? "",
+    nodes: input.boxes.length,
+    edges: input.edges?.length ?? 0,
+  };
+}

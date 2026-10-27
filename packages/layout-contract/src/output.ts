@@ -51,7 +51,7 @@ export function applyPack(input: LayoutInput, output: PackOutput): LayoutInput {
   });
   return {
     ...input,
-    container: { ...input.container, w: output.size.w, h: output.size.h },
+    container: { ...(input.container ?? { fixed: "none" }), w: output.size.w, h: output.size.h },
     boxes,
     ...(obstacles === undefined ? {} : { obstacles }),
   };
