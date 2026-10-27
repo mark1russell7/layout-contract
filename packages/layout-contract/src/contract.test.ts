@@ -1,14 +1,19 @@
 import { describe, expect, it } from "vitest";
 import {
   applyPack,
+  countObstacleHits,
   countOutside,
   countOverlaps,
   countPortsOffBorder,
   grow,
+  JOINT_MEASURES,
   packHard,
+  regionHitsRect,
+  toLayoutRecord,
   toPackInput,
   turnBox,
   turnMargin,
+  turnPort,
   turnRegion,
   type LayoutBox,
   type LayoutInput,
@@ -55,6 +60,12 @@ describe("turn", () => {
     expect(turnMargin(5)).toBe(5);
   });
 
+  it("turns a port with only one value, and keeps a port without a side", () => {
+    expect(turnPort({ id: "p", side: "top", x: 5 }, 10)).toEqual({ id: "p", side: "right", y: 5 });
+    expect(turnPort({ id: "p", side: "left", y: 3 }, 10)).toEqual({ id: "p", side: "top", x: 7 });
+    expect(turnPort({ id: "p" }, 10)).toEqual({ id: "p" });
+  });
+
   it("turns a rectangle shape inside the turned box", () => {
     expect(turnRegion({ kind: "rect", x: 0, y: 0, w: 40, h: 4 }, 10)).toEqual({ kind: "rect", x: 6, y: 0, w: 4, h: 40 });
   });
@@ -87,8 +98,56 @@ describe("rules", () => {
     expect(countOutside(input([{ id: "a", w: 10, h: 10, x: 0, y: 0 }], { container: { w: 100, h: 100, fixed: "size", inset: 1 } }))).toBe(1);
   });
 
+  it("gives 0 outside without a container", () => {
+    const i: LayoutInput = { schema: "layout-input/1", id: "r", boxes: [{ id: "a", w: 10, h: 10, x: -50, y: 0 }] };
+    expect(countOutside(i)).toBe(0);
+    expect(toPackInput(i).container).toEqual({ fixed: "none" });
+  });
+
+  it("finds a box over each kind of obstacle", () => {
+    const r = { x: 0, y: 0, w: 10, h: 10 };
+    expect(regionHitsRect({ kind: "rect", x: 10, y: 0, w: 5, h: 5 }, r)).toBe(false);
+    expect(regionHitsRect({ kind: "rect", x: 9, y: 0, w: 5, h: 5 }, r)).toBe(true);
+    expect(regionHitsRect({ kind: "circle", cx: 15, cy: 5, r: 5 }, r)).toBe(false);
+    expect(regionHitsRect({ kind: "circle", cx: 14, cy: 5, r: 5 }, r)).toBe(true);
+    expect(regionHitsRect({ kind: "circle", cx: 14, cy: 14, r: 5 }, r)).toBe(false);
+    expect(regionHitsRect({ kind: "ellipse", cx: 5, cy: 20, rx: 2, ry: 11 }, r)).toBe(true);
+    expect(regionHitsRect({ kind: "ellipse", cx: 5, cy: 20, rx: 2, ry: 9 }, r)).toBe(false);
+    const tri = { kind: "polygon" as const, points: [[10, 0], [20, 0], [10, 10]] as [number, number][] };
+    expect(regionHitsRect(tri, r)).toBe(false);
+    expect(regionHitsRect({ ...tri, points: [[5, -5], [15, -5], [5, 5]] }, r)).toBe(true);
+    expect(regionHitsRect({ ...tri, points: [[-5, 4], [15, 4], [5, -20]] }, r)).toBe(true);
+    expect(regionHitsRect({ ...tri, points: [[5, -5], [15, -5], [15, 5]] }, r)).toBe(false);
+    const ring = { kind: "polygon" as const, points: [[-10, -10], [20, -10], [20, 20], [-10, 20]] as [number, number][] };
+    expect(regionHitsRect(ring, r)).toBe(true);
+    expect(regionHitsRect({ ...ring, holes: [[[-1, -1], [11, -1], [11, 11], [-1, 11]]] }, r)).toBe(false);
+    expect(countObstacleHits([{ id: "a", w: 10, h: 10, x: 0, y: 0 }], [{ id: "o", region: { kind: "rect", x: 9.9995, y: 0, w: 5, h: 5 } }])).toBe(0);
+  });
+
   it("gives grow a rectangle with each side of the margin", () => {
     expect(grow({ x: 10, y: 10, w: 5, h: 5 }, { top: 1, right: 2, bottom: 3, left: 4 })).toEqual({ x: 6, y: 9, w: 11, h: 9 });
+  });
+});
+
+describe("measures and records", () => {
+  it("has one joint spec for each id", () => {
+    expect(new Set(JOINT_MEASURES.map((m) => m.id)).size).toBe(JOINT_MEASURES.length);
+  });
+
+  it("fills the record from the input", () => {
+    const r = toLayoutRecord(input([{ id: "a", w: 1, h: 1 }], { set: "s", hash: "h" }), {
+      stage: "joint",
+      step: "joint",
+      strategy: "x",
+      options: {},
+      corpus: "c",
+      seed: 1,
+      measures: {},
+      hard: {},
+      deterministic: true,
+      ms: 2,
+    });
+    expect(r).toMatchObject({ schema: "layout-record/1", input: "t", inputHash: "h", set: "s", nodes: 1, edges: 0, ms: 2 });
   });
 });
 
@@ -102,17 +161,20 @@ describe("applyPack", () => {
       ],
       { obstacles: [{ id: "o", region: { kind: "circle", cx: 5, cy: 5, r: 5 }, move: { cost: 1 } }] },
     );
-    const after = applyPack(before, {
-      placements: [{ id: "a", x: 0, y: 0, turn: 90 }, { id: "pin", x: 50, y: 50 }],
+    const output = {
+      placements: [{ id: "a", x: 0, y: 0, turn: 90 as const }, { id: "pin", x: 50, y: 50 }],
       overflow: [],
       size: { w: 100, h: 100 },
       moved: [{ id: "o", x: 20, y: 0 }],
-    });
+    };
+    const after = applyPack(before, output);
     expect(after.boxes[0]).toMatchObject({ w: 10, h: 40, x: 0, y: 0 });
     expect(after.obstacles?.[0]?.region).toEqual({ kind: "circle", cx: 25, cy: 5, r: 5 });
     expect(before.boxes[0]).toEqual({ id: "a", w: 40, h: 10, turnable: true });
-    expect(packHard(before, after, [])).toEqual({ "no-overlap": 0, "in-container": 0, "locked-kept": 0, complete: 1 });
-    expect(packHard(before, after, ["c"]).complete).toBe(0);
+    expect(packHard(before, output)).toEqual({ "no-overlap": 0, "in-container": 0, "locked-kept": 0, complete: 1 });
+    expect(packHard(before, { ...output, overflow: ["c"] }).complete).toBe(0);
+    expect(packHard(before, { ...output, placements: [{ id: "a", x: 0, y: 0, turn: 90 }] })["locked-kept"]).toBe(1);
+    expect(packHard(before, { ...output, moved: [] })["no-overlap"]).toBe(1);
   });
 
   it("gives the packer input without the edges", () => {
