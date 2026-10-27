@@ -17,7 +17,7 @@ A joint run packs an input, and then routes the edges of the same input. The `jo
 | `joint.spill` | 0 to 1 | lower | 0 | 0.001 | guard |
 | `joint.straight.crossings` | count | lower | 0 | 0 | guard |
 | `joint.straight.length` | `S` for each edge | lower | 0 | 0.01 | guard |
-| `joint.stability.mean` | container widths | lower | 0 | 0.005 | guard on change pairs |
+| `joint.stability.mean` | `W` | lower | 0 | 0.005 | guard on change pairs |
 | `joint.stability.moved` | 0 to 1 | lower | 0 | 0.02 | guard on change pairs |
 | `joint.proxy.rank` | -1 to 1 | higher | none | none | diagnostic |
 | `joint.ms` | milliseconds | lower | none | none | time |
@@ -26,11 +26,14 @@ A joint run packs an input, and then routes the edges of the same input. The `jo
 
 - `joint.fill` is the sum of the areas of the boxes divided by the area of the hull. `pack.fill` uses only the boxes. Routes that go out of the boxes make `joint.fill` smaller.
 - `joint.aspectError` is the absolute natural log of the aspect of the hull divided by the target aspect of the container. `pack.aspectError` uses the boxes only.
-- `joint.spill` is the length of the routes outside the bounding box of the boxes with their margins, divided by the length of all the routes. A value above 0 tells that the packing did not keep space for the routes.
+- `joint.spill` is the length of the routes outside the bounding box of the boxes with their margins, divided by the length of all the routes. A value above 0 tells that the packing did not keep space for the routes. `route.outside` (R13) is different: it counts the routes outside the container.
 - `joint.straight.crossings` is the count of the pairs of edges whose straight segments cross. A straight segment goes from the center of the source box to the center of the target box. The value comes from the placement alone. The router does not change it.
 - `joint.straight.length` is the sum of the Manhattan lengths of the straight segments, divided by `S` and by the count of the edges. A packer can calculate it during its search.
-- `joint.stability.mean` compares a base input and its variant after the two stages run again on each. It is the mean move of the boxes and the routes that stay. The width of the base container is its unit. The move of a route is its Hausdorff distance to the old route.
-- `joint.stability.moved` is the share of the boxes and the edges that stay and move more than `RECORD_EPS`.
+- `joint.stability.mean` compares a base input and its variant after the two stages run again on each. It is the mean move of the boxes and the routes that stay. The width `W` of the base is its unit.
+- The move of a route is its discrete Fréchet distance to the old route, as in `route.stability.*` (Z10). Thus a route that reverses or makes a loop moves.
+- `W` is the width of the container when the width is fixed. In the other cells, `W` is the width of the bounding box of the boxes with their margins.
+- `joint.stability.moved` is the share of the boxes and the edges that stay and move more than `joint.stability.movedMin` times `W`. The value of `joint.stability.movedMin` is 0.01.
+- `route.stability.moved` counts a route as moved above 1 unit of the board. Thus on a large board, `joint.stability.moved` and `route.stability.moved` are different.
 - `joint.proxy.rank` is the Spearman rank correlation, over the edges, between the straight length and the length of the route. A value near 1 tells that `joint.straight.length` is a good proxy for the length of the routes. Then a packer can optimize the proxy.
 - `joint.ms` is the time of the pack plus the time of the route, in milliseconds. The time test of the promotion rule uses it.
 
