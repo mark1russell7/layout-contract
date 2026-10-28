@@ -4,8 +4,9 @@
 # and private members. The command `api-report check` compares this file with the built .d.ts files.
 # To accept a change of the API, start the build, then `api-report update`, and review the diff.
 
-## . (build/index.d.ts): 70 names
+## . (build/index.d.ts): 72 names
 
+ContainerTest: build/index.d.ts#ContainerTest
 DEFAULT_TOLERANCE: build/index.d.ts#DEFAULT_TOLERANCE
 Direction: build/index.d.ts#Direction
 EDGE_DENSITY: build/index.d.ts#EDGE_DENSITY
@@ -65,6 +66,7 @@ overlapOf: build/index.d.ts#overlapOf
 packHard: build/index.d.ts#packHard
 placedRect: build/index.d.ts#placedRect
 randomInt: build/index.d.ts#randomInt
+rectInRegion: build/index.d.ts#rectInRegion
 regionHitsRect: build/index.d.ts#regionHitsRect
 stepRandom: build/index.d.ts#stepRandom
 toLayoutRecord: build/index.d.ts#toLayoutRecord
@@ -78,6 +80,11 @@ turnRegion: build/index.d.ts#turnRegion
 turnSide: build/index.d.ts#turnSide
 
 ## Declarations
+
+### build/index.d.ts#ContainerTest
+export interface ContainerTest {
+  readonly exactContainer?: boolean;
+}
 
 ### build/index.d.ts#DEFAULT_TOLERANCE
 export declare const DEFAULT_TOLERANCE: Tolerance;
@@ -420,7 +427,7 @@ export declare function compareMeasure(candidate: number, baseline: number, spec
 export declare function countObstacleHits(boxes: readonly LayoutBox[], obstacles: readonly Obstacle[] | undefined, tolerance?: number): number;
 
 ### build/index.d.ts#countOutside
-export declare function countOutside(input: LayoutInput, tolerance?: number): number;
+export declare function countOutside(input: LayoutInput, tolerance?: number, options?: ContainerTest): number;
 
 ### build/index.d.ts#countOverlaps
 export declare function countOverlaps(boxes: readonly LayoutBox[], tolerance?: number): number;
@@ -453,13 +460,16 @@ export declare function overlapOf(a: Rect, b: Rect): {
 };
 
 ### build/index.d.ts#packHard
-export declare function packHard(input: LayoutInput, output: PackOutput, tolerance?: number): PackHard;
+export declare function packHard(input: LayoutInput, output: PackOutput, tolerance?: number, options?: ContainerTest): PackHard;
 
 ### build/index.d.ts#placedRect
 export declare function placedRect(box: LayoutBox): Rect | undefined;
 
 ### build/index.d.ts#randomInt
 export declare function randomInt(r: () => number, lo: number, hi: number): number;
+
+### build/index.d.ts#rectInRegion
+export declare function rectInRegion(region: Region, rect: Rect): boolean;
 
 ### build/index.d.ts#regionHitsRect
 export declare function regionHitsRect(region: Region, rect: Rect): boolean;
