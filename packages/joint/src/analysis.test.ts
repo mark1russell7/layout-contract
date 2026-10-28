@@ -221,3 +221,47 @@ describe("the stress cell and the breaks by spacing", () => {
     expect(analyze(list, marked, { resamples: 50 }).predictions[0]!.id).toBe("P1");
   });
 });
+
+describe("the baseline", () => {
+  /**
+   * The baseline `base+r` has the fill 0.5 on each input. On `q/s1` it breaks the cap 1.25, so it misses the floor there and scores 0.
+   * In the cell `all` 1.25: the baseline score is 2.5 / 6. The best pair `b+r` scores 0.6 on `p` and 0.9 on `q`.
+   * The oracle scores 0.8 on `p` and 0.9 on `q`. The portfolio with k = 3 gets the oracle on each held-out seed.
+   */
+  const list = [...records(), ...inputs.map((i) => rec(i.id, "base+r", { "joint.fill": 0.5, "route.cap.1.25": i.id === "q/s1" ? 1 : 0 }))];
+  const report = analyze(list, inputs, { resamples: 200, baseline: "base+r" });
+  const cell = report.cells.find((c) => c.rule === "all" && c.cap === 1.25)!;
+
+  it("gives the misses and the score of the baseline", () => {
+    expect(cell.best.pair).toBe("b+r");
+    expect(cell.baseline?.pair).toBe("base+r");
+    expect(cell.baseline?.misses).toBe(1);
+    expect(cell.baseline?.score).toBeCloseTo(2.5 / 6, 9);
+  });
+
+  it("gives the gains of the best pair, of the oracle and of the portfolios over the baseline", () => {
+    // The best pair: 0.1 on each input of p, and 0.4, 0.4 and 0.9 on q.
+    expect(cell.baseline?.best.mean).toBeCloseTo(2.0 / 6, 9);
+    expect(cell.baseline?.best.open).toBe(false);
+    // The oracle: 0.3 on each input of p, and 0.4, 0.4 and 0.9 on q.
+    expect(cell.baseline?.oracle.mean).toBeCloseTo(2.6 / 6, 9);
+    const k3 = cell.baseline!.portfolios.find((p) => p.k === 3)!;
+    expect(k3.misses).toBe(0);
+    expect(k3.score).toBeCloseTo(0.85, 9);
+    expect(k3.gain.mean).toBeCloseTo(2.6 / 6, 9);
+    expect(k3.gain.n).toBe(6);
+  });
+
+  it("writes the table of the baseline, and has no baseline without the option", () => {
+    const md = reportMarkdown(report);
+    expect(md).toContain("### The baseline base+r");
+    expect(md).toContain("| all (6) | all | 1.25 | 1 | 0.417 | b+r | 0.333 [");
+    const plain = analyze(list, inputs, { resamples: 50 });
+    expect(plain.cells[0]!.baseline).toBeUndefined();
+    expect(reportMarkdown(plain)).not.toContain("### The baseline");
+  });
+
+  it("refuses a baseline pair that the records do not have", () => {
+    expect(() => analyze(list, inputs, { resamples: 50, baseline: "none+r" })).toThrow(RangeError);
+  });
+});

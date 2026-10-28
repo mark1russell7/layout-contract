@@ -4,18 +4,20 @@
 //   smoke [--corpus <set>]                                                  packs and routes 1 input of each value of spacing with corners
 //   run --shards <n> --shard <i> --out <dir> [--slice pr] [--corpus <set>]   writes <dir>/records-<i>.jsonl
 //   plan --shards <n> [--slice pr] [--corpus <set>]                           prints the planned cost of each shard
-//   analyze --records <dir> --out <dir> [--slice pr] [--corpus <set>] [--allow-missing <file>] [--subset <file>]
+//   analyze --records <dir> --out <dir> [--slice pr] [--corpus <set>] [--allow-missing <file>] [--subset <file>] [--baseline <pair>]
 //                                                                            writes <dir>/report.json and <dir>/report.md
 //
 // The corpus is `joint-v2` by default. The slice `pr` is the small slice of the pull request: seed 1 of the specs with count 10 and of the fixed cases.
 // The shards get the inputs by their planned cost (`plannedCost`, `planShards`). Each shard job computes the same plan.
 // The cost model is data/cost-margins.json. scripts/fit-cost.mjs writes it from the shard logs of a full run.
+// analyze gives the gains over the baseline pair of `--baseline`. The default is `BASELINE`: rows+portfolio. The value `none` removes the baseline.
 // analyze fails when an input of the manifest has no records, unless the file of `--allow-missing` lists it. The files list one input id on each line.
 import { appendFileSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import {
   analyze,
+  BASELINE,
   checkCorpus,
   idList,
   jointCorpus,
@@ -159,6 +161,7 @@ if (command === "check") {
     predictions: set === SET_V2 ? "joint-v2" : "joint-v1",
     ...(args["allow-missing"] === undefined ? {} : { allowMissing: idFile(args["allow-missing"]) }),
     ...(args.subset === undefined ? {} : { subset: idFile(args.subset) }),
+    ...(args.baseline === "none" ? {} : { baseline: args.baseline ?? BASELINE }),
   });
   mkdirSync(out, { recursive: true });
   writeFileSync(join(out, "report.json"), JSON.stringify(report, null, 2) + "\n");

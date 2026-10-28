@@ -91,6 +91,39 @@ export interface AnalysisOptions {
   readonly allowMissing?: readonly string[];
   /** The ids of the inputs of the second headline. With it, the report also gives the headline cell on these inputs only. */
   readonly subset?: readonly string[];
+  /** The pair of the baseline, for example `BASELINE`. With it, each cell also gives the baseline and the gains over it. */
+  readonly baseline?: string;
+}
+
+/** The pair of the sequential baseline (L10): the default pack entry `rows`, then the portfolio router. */
+export const BASELINE = "rows+portfolio";
+
+/** The options of the report of one cell. */
+type CellOptions = Required<Pick<AnalysisOptions, "resamples" | "seed" | "sizes">> & Pick<AnalysisOptions, "baseline">;
+
+/** A greedy portfolio of one size against the baseline, on the held-out seeds. Each input is in the test seed of one fold. */
+export interface BaselinePortfolio {
+  readonly k: number;
+  /** The count of the held-out inputs where the picks of the portfolio miss the floor. */
+  readonly misses: number;
+  /** The mean score of the picks of the portfolio on the held-out inputs. */
+  readonly score: number;
+  /** The score of the portfolio minus the score of the baseline, on each input. */
+  readonly gain: Interval;
+}
+
+/** The baseline of one cell, and the gains over it. Each gain is a bootstrap interval of the difference of the scores on each input. */
+export interface BaselineReport {
+  readonly pair: string;
+  /** The count of the inputs where the baseline misses the floor. */
+  readonly misses: number;
+  /** The mean score of the baseline. */
+  readonly score: number;
+  /** The score of the best single pair minus the score of the baseline. */
+  readonly best: Interval;
+  /** The score of the oracle minus the score of the baseline. */
+  readonly oracle: Interval;
+  readonly portfolios: readonly BaselinePortfolio[];
 }
 
 /** The routers of the prediction Q2 of `joint-v2`. */
@@ -205,6 +238,8 @@ export interface CellReport {
   readonly split: { readonly best: OverflowSplit; readonly oracle: OverflowSplit };
   /** This value is true when no pair of the group of the best pair uses the best pack entry. */
   readonly bestPackOutside: boolean;
+  /** The baseline of `AnalysisOptions.baseline`. It is absent without this option. */
+  readonly baseline?: BaselineReport;
 }
 
 /** One input that must give no routes, with its facts. */
@@ -536,7 +571,7 @@ function cellReport(
   rule: "collection" | "all",
   cap: number,
   bestPack: string,
-  options: Required<Pick<AnalysisOptions, "resamples" | "seed" | "sizes">>,
+  options: CellOptions,
 ): CellReport {
   const cell = cellValues(index, inputs, rule, cap);
   const ids = inputs.map((i) => i.id);
@@ -569,6 +604,9 @@ function cellReport(
   const maxK = Math.max(...options.sizes);
   const pooled = new Map<number, { cluster: string; value: number; weight: number }[]>(options.sizes.map((k) => [k, []]));
   const folds = new Map<number, Fold[]>(options.sizes.map((k) => [k, []]));
+  const baseline = options.baseline;
+  /** The picks of each portfolio size on the held-out inputs of all folds, for the baseline. */
+  const heldPicks = new Map<number, Map<string, string | undefined>>(options.sizes.map((k) => [k, new Map()]));
   for (const test of seeds) {
     const train = inputs.filter((i) => i.seed !== test).map((i) => i.id);
     const held = inputs.filter((i) => i.seed === test).map((i) => i.id);
@@ -576,6 +614,7 @@ function cellReport(
     const base = picksOf(cell, held, members.slice(0, 1));
     for (const k of options.sizes) {
       const picks = picksOf(cell, held, members.slice(0, k));
+      for (const [i, p] of picks) heldPicks.get(k)!.set(i, p);
       const rows = held.map((i) => {
         const b = scoreOf(cell, i, base.get(i));
         return { cluster: spec.get(i)!, value: scoreOf(cell, i, picks.get(i)) - b, weight: scoreOf(cell, i, cell.oracle.get(i)) - b };
@@ -587,6 +626,26 @@ function cellReport(
     }
   }
   const portfolios: PortfolioReport[] = options.sizes.map((k) => ({ k, share: bootstrap(pooled.get(k)!, options.resamples, options.seed), folds: folds.get(k)! }));
+
+  let baselineReport: BaselineReport | undefined;
+  if (baseline !== undefined) {
+    const over = (pick: (input: string) => string | undefined): Interval =>
+      bootstrap(
+        ids.map((i) => ({ cluster: spec.get(i)!, value: scoreOf(cell, i, pick(i)) - scoreOf(cell, i, baseline) })),
+        options.resamples,
+        options.seed,
+      );
+    baselineReport = {
+      pair: baseline,
+      ...setValues(cell, picksOf(cell, ids, [baseline])),
+      best: over(() => best),
+      oracle: over((i) => cell.oracle.get(i)),
+      portfolios: options.sizes.map((k) => {
+        const picks = heldPicks.get(k)!;
+        return { k, ...setValues(cell, picks), gain: over((i) => picks.get(i)) };
+      }),
+    };
+  }
 
   const group = groups.find((g) => g.id === best)!;
   return {
@@ -603,6 +662,7 @@ function cellReport(
     portfolios,
     split: { best: splitOf(index, picksOf(cell, ids, [best])), oracle: splitOf(index, cell.oracle) },
     bestPackOutside: !group.members.some((m) => packOf(m) === bestPack),
+    ...(baselineReport === undefined ? {} : { baseline: baselineReport }),
   };
 }
 
@@ -763,9 +823,17 @@ export function checkPredictionsV2(report: Omit<Report, "predictions">): Predict
  * - For each cell of a rule and a cap, it finds the best single pair, the oracle and the greedy portfolios.
  * - Pairs with the same output hash on each input make one output group. A group counts as one candidate.
  * - The headline numbers use only the inputs outside the stress cell. The field `stress` holds the cells of the stress inputs.
+ * - With a baseline pair, each cell also gives the score of the baseline and the gains over it.
  */
 export function analyze(records: readonly LayoutRecord[], allInputs: readonly AnalysisInput[], options: AnalysisOptions = {}): Report {
-  const opts = { resamples: options.resamples ?? 1000, seed: options.seed ?? 1, sizes: options.sizes ?? PORTFOLIO_SIZES };
+  const opts: CellOptions = {
+    resamples: options.resamples ?? 1000,
+    seed: options.seed ?? 1,
+    sizes: options.sizes ?? PORTFOLIO_SIZES,
+    ...(options.baseline === undefined ? {} : { baseline: options.baseline }),
+  };
+  if (options.baseline !== undefined && records.length > 0 && !records.some((r) => r.strategy === options.baseline))
+    throw new RangeError(`The records have no pair "${options.baseline}" for the baseline.`);
   const caps = options.caps ?? CAPS;
   const inputs = allInputs.filter((i) => i.stress !== true);
   const stressInputs = allInputs.filter((i) => i.stress === true);
@@ -851,7 +919,7 @@ function subsetReport(
   inputs: readonly AnalysisInput[],
   ids: readonly string[],
   bestPack: string,
-  opts: Required<Pick<AnalysisOptions, "resamples" | "seed" | "sizes">>,
+  opts: CellOptions,
 ): SubsetReport {
   const wanted = new Set(ids);
   const chosen = inputs.filter((i) => wanted.has(i.id));
@@ -870,7 +938,7 @@ function stressReport(
   inputs: readonly AnalysisInput[],
   caps: readonly number[],
   bestPack: string,
-  opts: Required<Pick<AnalysisOptions, "resamples" | "seed" | "sizes">>,
+  opts: CellOptions,
 ): StressReport | undefined {
   if (inputs.length === 0) return undefined;
   const known = new Set(inputs.map((i) => i.id));
@@ -892,6 +960,37 @@ function f3(v: number | undefined): string {
 function interval(i: Interval | undefined): string {
   if (i === undefined) return "-";
   return `${f3(i.mean)} [${f3(i.lo)}, ${f3(i.hi)}]${i.open ? " open" : ""}`;
+}
+
+/** This function writes the table of the baseline: the cells, the headline cell on the subset and the stress cells. It gives no lines without a baseline. */
+function baselineLines(report: Report): string[] {
+  const rows: [string, CellReport][] = [
+    ...report.cells.map((c): [string, CellReport] => [`all (${report.inputs})`, c]),
+    ...(report.subset?.cell === undefined ? [] : [[`subset (${report.subset.inputs})`, report.subset.cell] as [string, CellReport]]),
+    ...(report.stress?.cells ?? []).map((c): [string, CellReport] => [`stress (${report.stress!.inputs})`, c]),
+  ];
+  const first = rows.find(([, c]) => c.baseline !== undefined)?.[1].baseline;
+  if (first === undefined) return [];
+  const ks = first.portfolios.map((p) => p.k);
+  const lines = [
+    "",
+    `### The baseline ${first.pair}`,
+    "",
+    "Each gain is the score of a pick minus the score of the baseline on each input, with its interval. The portfolios use the held-out seeds.",
+    "",
+    `| Inputs | Rule | Cap | Misses | Score | Best pair | Best pair gain | Oracle gain | ${ks.map((k) => `k = ${k} misses | k = ${k} gain`).join(" | ")} |`,
+    `|---|---|---|---|---|---|---|---|${ks.map(() => "---|---|").join("")}`,
+  ];
+  for (const [name, c] of rows) {
+    const b = c.baseline;
+    if (b === undefined) continue;
+    const k = ks.map((n) => {
+      const p = b.portfolios.find((x) => x.k === n);
+      return p === undefined ? "- | -" : `${p.misses} | ${interval(p.gain)}`;
+    });
+    lines.push(`| ${name} | ${c.rule} | ${c.cap} | ${b.misses} | ${f3(b.score)} | ${c.best.pair} | ${interval(b.best)} | ${interval(b.oracle)} | ${k.join(" | ")} |`);
+  }
+  return lines;
 }
 
 /** This function writes a report as Markdown. */
@@ -925,6 +1024,7 @@ export function reportMarkdown(report: Report): string {
     const k = (n: number): string => interval(c.portfolios.find((p) => p.k === n)?.share);
     lines.push(`| ${c.rule} | ${c.cap} | ${c.best.pair} | ${c.best.misses} | ${f3(c.best.score)} | ${f3(c.oracle.score)} | ${interval(c.oracle.gain)} | ${c.oracle.wins} | ${k(3)} | ${k(8)} |`);
   }
+  lines.push(...baselineLines(report));
   if (report.subset !== undefined) {
     const full = report.cells.find((c) => c.rule === HEADLINE.rule && c.cap === HEADLINE.cap);
     lines.push("", `### The headline cell on the subset (${report.subset.inputs} of ${report.inputs} inputs)`, "", "| Inputs | Best pair | Misses | Score | Oracle | Gain | Oracle wins | k = 3 share | k = 8 share |", "|---|---|---|---|---|---|---|---|---|");
