@@ -181,8 +181,8 @@ if (command === "plan") {
     const skipped = records.filter((r) => r.skipped !== undefined).length;
     const passes = runs.reduce((n, r) => n + r.run.passes, 0);
     // The rounds of the iteration chains count as pairs, at `iterPlanPairs` (3 pairs for each round), as the plan counts them.
-    const units = runs.length + iterPlanPairs(iterate);
-    console.log(`${unit.id}: ${records.length} records, ${skipped} skipped, ${Math.round(performance.now() - t0)} ms, ${units} pairs, ${passes} lane passes`);
+    const pairCount = runs.length + iterPlanPairs(iterate);
+    console.log(`${unit.id}: ${records.length} records, ${skipped} skipped, ${Math.round(performance.now() - t0)} ms, ${pairCount} pairs, ${passes} lane passes`);
   }
   writeJson(join(out, `shard-${plan.round}-${shard}.json`), { round: plan.round, shard, planned: plan.loads[shard] / 60000, real: (performance.now() - start) / 60000 });
 } else if (command === "race") {
