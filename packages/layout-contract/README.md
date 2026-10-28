@@ -22,7 +22,7 @@ The package has no runtime dependencies.
 | The pick rule | `selectBest`, `SelectCandidate`, `SelectLevel`, `Selection`, `PickSpec` |
 | The corpus checks | `ClaimBreak`, `checkDeclared`, `declaredCounts`, `declaredClaimOf`, `DeclaredClaim`, `Declares`, `corpusHashOf`, `CorpusEntry` |
 | The families | `familyOf`, `FamilyBy`, `FamilyCell`, `FAMILY_ANY_KIND` |
-| The verdict | `verdict`, `VerdictOptions`, `VerdictResult`, `VerdictRecord`, `VerdictSide`, `VerdictInterval`, `FamilyVerdict`, `VerdictPermutation`, `VerdictSignTest`, `VerdictLabel`, `VERDICT_EXACT_MAX`, `VERDICT_EXACT_CAP`, `VERDICT_RUNS`, `VERDICT_DRAWS`, `VERDICT_SEED` |
+| The verdict | `verdict`, `VerdictOptions`, `VerdictResult`, `VerdictRecord`, `VerdictSide`, `VerdictInterval`, `FamilyVerdict`, `VerdictPermutation`, `VerdictSignTest`, `VerdictLabel`, `VerdictScope`, `VerdictBreadth`, `VERDICT_EXACT_MAX`, `VERDICT_EXACT_CAP`, `VERDICT_RUNS`, `VERDICT_DRAWS`, `VERDICT_SEED` |
 | The split files | `checkSplit`, `splitFolds`, `leaveOneSeedOut`, `splitFileName`, `SPLIT_SCHEMA`, `CorpusSplit`, `SplitFold`, `SplitCorpus` |
 | The strategy space | `StrategySpace`, `SpaceStage`, `StageOption`, `SpaceParam`, `ParamWhen`, `MemberRule`, `SpaceConstraint`, `OptionRef`, `StrategyConfig`, `StageChoice`, `ParamKind`, `ParamValue`, `STRATEGY_SPACE_SCHEMA` |
 | The space functions | `checkSpace`, `checkConfig`, `canonicalConfig`, `configId`, `spaceSize`, `paramLevels`, `enumerateSpace`, `productSpace`, `joinConfigs`, `splitConfig`, `SpaceSize`, `SpaceSizeOptions`, `EnumerateOptions`, `GridOptions`, `SampleOptions` |

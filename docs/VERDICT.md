@@ -72,6 +72,9 @@ The function throws a `RangeError` for a missing `tie` or `level`. Each caller g
 | `signTest` | `{ wins, losses, ties, p }`: the two-sided exact binomial test of the family signs. It is a report only. |
 | `agree` | `true` only when the verdict holds under both weightings. |
 | `label` | `better`, `worse`, `depends on the mix` or `no verdict`. |
+| `scope` | `"these families"`. The claim is about the families of the corpus, not about a new kind of input. |
+| `breadth` | `{ against, of, ties }`: the families against the side of the verdict, all the families, and the ties. |
+| `summary` | The label, the scope and the breadth in one line. |
 | `dropped` | The keys of the pairs that the verdict does not use. |
 
 ### The permutation test
@@ -93,6 +96,38 @@ A flip changes the sign of the difference of one input, inside its family. The s
 - `agree` is `true` when the two means have the same sign and the two intervals are clear of 0 on that side. The permutation p is also below `level`. Then the label is `better` or `worse`, by the side of `b`.
 - When the two means have opposite signs, the label is `depends on the mix`. Then the mix of the families in the corpus decides the sign.
 - Otherwise, the label is `no verdict`.
+
+### The scope and the breadth
+
+The label stays the same, but each verdict also tells its scope and its breadth. The rule does not change.
+
+- The test keeps each family as fixed. It does not take the families as a random sample of all the kinds of input. In statistics, the families are fixed effects, not random effects.
+- Thus `better` tells "better on these families". It does not tell "better on a new kind of board".
+- Only the sign test of the families speaks about new kinds of input. With 6 families, it reaches p 0.031 only at 6 of 6. "The power" tells the limit.
+- Thus a verdict can be `better` with families against it. The field `breadth` shows them.
+
+`breadth` has 3 counts:
+
+| Count | Value |
+|---|---|
+| `against` | The families with a sign against the side of the verdict. |
+| `of` | All the families. |
+| `ties` | The families with the sign 0. |
+
+The side of `better` is 1, and the side of `worse` is -1. For `depends on the mix` and `no verdict`, the side is the sign of the stratified mean. A stratified mean of exactly 0 has no side. Then `against` is 0, and `of` is the count of the families.
+
+`summary` puts the label, the scope and the breadth in one line:
+
+| Label | Example of `summary` |
+|---|---|
+| `better`, with losses | `better on these families, worse on 2 of 6 (1 tie)` |
+| `better`, with no loss | `better on these families, worse on none of 6` |
+| `worse` | `worse on these families, better on 1 of 6` |
+| `depends on the mix` | `depends on the mix: worse on the family mean, better on 1 of 3` |
+| `no verdict` | `no verdict: better on the family mean, worse on none of 2 (1 tie)` |
+| `no verdict`, a mean of 0 | `no verdict: the family mean is 0, on 3 families (1 tie)` |
+
+The part in parentheses shows only when one or more families are a tie.
 
 ## The power
 

@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.2.12
+
+- The result of `verdict` has 3 new fields: `scope`, `breadth` and `summary`. The label and the rule do not change.
+- `scope` is `"these families"`. The test keeps the families as fixed, so the claim is about these families only.
+- `breadth` is `{ against, of, ties }`: the count of the families against the side of the verdict, of all the families and of the ties.
+- `summary` gives the label, the scope and the breadth in one line, for example `better on these families, worse on 2 of 6 (1 tie)`.
+
 ## 0.2.11
 
 - The claim `claims.declared` can have `familyBy`: the key of the family of each input. `familyOf(cell, familyBy)` gives the key of one cell.

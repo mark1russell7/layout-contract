@@ -175,3 +175,56 @@ describe("verdict: the arguments and the pairs", () => {
     expect(v.permutation.p).toBe(2 / 64);
   });
 });
+
+describe("verdict: the scope and the breadth (SCREEN-WEIGHT step 2)", () => {
+  it("counts the losses of a better verdict with 3 wins, 2 losses and 1 tie", () => {
+    // Three large wins, two small losses and one tie. The verdict holds, but 2 of 6 families are against it.
+    const v = verdict(
+      recordsOf({ A: [2, 2.1, 1.9], B: [2, 2.1, 1.9], C: [2, 2.1, 1.9], D: [-0.3, -0.2, -0.25], E: [-0.3, -0.2, -0.25], F: [0, 0, 0] }),
+      options(),
+    );
+    expect(v.signTest).toMatchObject({ wins: 3, losses: 2, ties: 1 });
+    expect(v.label).toBe("better");
+    expect(v.scope).toBe("these families");
+    expect(v.breadth).toEqual({ against: 2, of: 6, ties: 1 });
+    expect(v.summary).toBe("better on these families, worse on 2 of 6 (1 tie)");
+  });
+
+  it("gives none for a verdict with no family against it", () => {
+    const better = verdict(recordsOf({ X: [1, 2, 3], Y: [1, 1, 1] }), options());
+    expect(better.breadth).toEqual({ against: 0, of: 2, ties: 0 });
+    expect(better.summary).toBe("better on these families, worse on none of 2");
+    const worse = verdict(recordsOf({ X: [1, 2, 3], Y: [1, 1, 1] }), options({ a: "cand", b: "base" }));
+    expect(worse.label).toBe("worse");
+    expect(worse.breadth).toEqual({ against: 0, of: 2, ties: 0 });
+    expect(worse.summary).toBe("worse on these families, better on none of 2");
+  });
+
+  it("counts against the sign of the stratified mean for depends on the mix", () => {
+    // X has 30 inputs of +1. Y and Z have 3 inputs of -1 each. The stratified mean is -1/3.
+    const v = verdict(recordsOf({ X: Array.from({ length: 30 }, () => 1), Y: [-1, -1, -1], Z: [-1, -1, -1] }), options());
+    expect(v.label).toBe("depends on the mix");
+    expect(v.scope).toBe("these families");
+    expect(v.breadth).toEqual({ against: 1, of: 3, ties: 0 });
+    expect(v.summary).toBe("depends on the mix: worse on the family mean, better on 1 of 3");
+  });
+
+  it("counts against the sign of the stratified mean for no verdict", () => {
+    // The stratified mean is 1/9, but the permutation p is not below the level. Z is against it.
+    const v = verdict(recordsOf({ X: [1, 1, 1], Y: [1, 1, -1], Z: [-1, -1, -1] }), options());
+    expect(v.label).toBe("no verdict");
+    expect(v.breadth).toEqual({ against: 1, of: 3, ties: 0 });
+    expect(v.summary).toBe("no verdict: better on the family mean, worse on 1 of 3");
+    const tied = verdict(recordsOf({ X: [1, 1, 1], Y: [0.1, 0.2, 0] }), options({ tie: 0.5, level: 0.01 }));
+    expect(tied.label).toBe("no verdict");
+    expect(tied.summary).toBe("no verdict: better on the family mean, worse on none of 2 (1 tie)");
+  });
+
+  it("gives no side when the stratified mean is exactly 0", () => {
+    const v = verdict(recordsOf({ X: [1, 1, 1], Y: [-1, -1, -1], Z: [0, 0, 0] }), options());
+    expect(v.stratified.mean).toBe(0);
+    expect(v.label).toBe("no verdict");
+    expect(v.breadth).toEqual({ against: 0, of: 3, ties: 1 });
+    expect(v.summary).toBe("no verdict: the family mean is 0, on 3 families (1 tie)");
+  });
+});
