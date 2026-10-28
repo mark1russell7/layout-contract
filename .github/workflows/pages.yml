@@ -40,6 +40,8 @@ jobs:
       site-pages: true
       packages: "@mark1russell7/layout-contract"
       site-name: layout-contract
+      # The status page reads the items of this table. The tracker of the session layout-stack makes it.
+      roadmap: docs/ROADMAP.md
 
   # This job examines the deployed site: the Releases page, the Status page and their data files.
   # It starts no code of the repository and reads only the public site.
