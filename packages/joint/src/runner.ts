@@ -42,8 +42,9 @@ export interface PackEntry {
 }
 
 /**
- * The pack entries of the joint runner: the entries of the benchmark of `packing` 0.2.10 (`bench/entries.ts`) without `push`.
+ * The pack entries of the joint runner: the entries of the benchmark of `packing` 0.2.10 (`bench/entries.ts`) without `push`, and `select`.
  * The strategy `push` supports only the mode `incremental`, and each input of the joint corpora has the mode `offline`.
+ * The composite strategy `select` of `packing` 0.2.15 (roadmap item L32) packs each input with `rows` or `maxrects-bl`. Its output is the output of that member.
  */
 export const PACK_ENTRIES: readonly PackEntry[] = Object.freeze([
   { id: "rows", strategy: "rows", options: {} },
@@ -58,6 +59,7 @@ export const PACK_ENTRIES: readonly PackEntry[] = Object.freeze([
   { id: "maxrects-baf", strategy: "maxrects", options: { rule: "baf" } },
   { id: "maxrects-bl", strategy: "maxrects", options: { rule: "bl" } },
   { id: "maxrects-cp", strategy: "maxrects", options: { rule: "cp" } },
+  { id: "select", strategy: "select", options: {} },
 ]);
 
 /** The name of the portfolio router of `highways` 0.6.0 in the pair ids. The runner uses `portfolioRouter()` with its defaults. */

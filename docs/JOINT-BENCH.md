@@ -3,10 +3,11 @@
 The joint benchmark packs each input of a joint corpus, and then routes the packed input. It runs each pair of a pack entry and a router. The package `packages/joint` holds the runner and the analysis. The workflow `joint-bench.yml` runs them in CI.
 
 - The corpus is `joint-v2` by default (`docs/JOINT-CORPUS.md`). The first run used `joint-v1`.
-- The pack entries are the 12 entries of the benchmark of `packing` 0.2.10 without `push`. The strategy `push` supports only the mode `incremental`, and each joint input is `offline`.
+- The pack entries are the 12 entries of the benchmark of `packing` 0.2.10 without `push`, and the entry `select` (L32). The strategy `push` supports only the mode `incremental`, and each joint input is `offline`.
+- The entry `select` is the composite strategy `select` of `packing` 0.2.15, the `DEFAULT_STRATEGY` of `packDefault`. Refer to "The prediction for the select packer (L32)".
 - The routers are the 9 router strategies of `highways` 0.6.0, and the portfolio router `portfolio` of `highways` 0.6.0.
 - The joint-v2 run of 2026-10-28 used `packing` 0.2.6 and `highways` 0.5.1. Version 0.6.0 changes the default members of `portfolio`.
-- Thus the benchmark has 120 pairs. `joint-v2` has 303 inputs, and `joint-v1` has 285 inputs.
+- Thus the benchmark has 130 pairs. The runs before L32 had 120 pairs. `joint-v2` has 303 inputs, and `joint-v1` has 285 inputs.
 
 The portfolio router is `portfolioRouter()` with its defaults: the rule `collection`, the cap 1.5 and the order `fit`. Its default is deterministic. Above 40 nodes, it uses only `shared`.
 
@@ -230,6 +231,11 @@ The fit of the run `40666991882` gave `8 + 5.5 * boxes * boxes / 1000 + 1.35 * b
 - The new plan gives 717 minutes to all shards. The run took 641 minutes on the inputs.
 
 The limit of a shard job is 360 minutes, the limit of GitHub. At 64 shards, the plan gives 91.6 minutes to the most costly shard. This shard has 1 seed of the dense spec with hubs. This load is less than half of the limit, so 64 shards and the limit of 360 minutes stay.
+
+- The model gives the cost of one pair, from a run with 120 pairs. The plan multiplies this cost by the 130 pairs of the runner with `select`.
+- With 130 pairs, the plan gives 776.7 minutes to all shards, and 99.2 minutes to the most costly shard.
+- This plan overestimates the cost. `select` gives the output of one of its members, so it shares the routes of that member.
+- The margins come from `highways` 0.6.0. Version 0.8.1 routes the dense spec faster, so the margins also overestimate it. The next full run gives the data for a new fit.
 
 `pnpm bench plan --shards <n>` shows the planned cost of the most costly shards. The lines of the logs keep the words "predicted minutes".
 
@@ -497,3 +503,57 @@ On the subset of 207 inputs, the headline cell gives the baseline 135 misses and
 - The score counts only `joint.fill` on the floor. A co-optimization idea that improves other measures does not show in this score.
 - The baseline is `portfolio` of `highways` 0.6.0, with its defaults, after `rows` of `packing` 0.2.10. A new version of either package needs a new run.
 - The portfolios learn their members on 2 seeds, and the held-out seed has the same specs. The baseline learns nothing. Thus the gains of the portfolios do not show the effect on new specs.
+
+## The prediction for the select packer (L32)
+
+This prediction comes before the next full run on `joint-v2`: 303 inputs, 3 seeds and 64 shards, as in the L28 run. The verdicts come from the report, a second analysis and the shard logs, by hand. The entries stay the same after the run.
+
+The run has 3 changes from the run 40685494092:
+
+- The runner has the pack entry `select`, with the options `{}`. Thus the run has 13 pack entries and 130 pairs.
+- The runner uses `highways` 0.8.1 and `packing` 0.2.16. `highways` 0.8.1 routes the dense spec with hubs faster (ROUTE-SCALE).
+- The run measures the baseline `rows+portfolio` of L10 again on the new versions. Thus the numbers of the baseline can move from 145 misses and the score 0.226.
+
+### What select does on the joint inputs
+
+`select` reads 4 features of the input: the count of the items, a fixed or free size, a rectangle container and the size spread. A table of 7 leaves picks one member, `rows` or `maxrects-bl`. The strategy packs with that member and the same seed.
+
+- A fixed container with 316 items or fewer gets `rows` for identical sizes, and `maxrects-bl` for other sizes. With 317 items or more, a uniform spread gets `rows`, and a heavy tail gets `maxrects-bl`.
+- A free size gets `rows`, except a heavy tail in a container that is not a rectangle. That input gets `maxrects-bl`.
+- The output of `select` is the output of its member, with one more trace stage. Its pack hash and its measures are those of the member, but `pack.ms` is different.
+- Thus `select` is deterministic for a seed, and the runner routes its output one time with the routes of its member.
+- The supports of `select` are the union of the supports of `rows` and `maxrects`. `unsupportedOf` uses this union, as for each other entry.
+- A member that does not support the cell throws `UnsupportedCell`. The runner then writes a skipped record with the reason `error: ...`.
+- On `joint-v2`, `select` picks `rows` on 216 inputs and `maxrects-bl` on 87 inputs. Each input of `maxrects-bl` has the order `free` and no turn, so `maxrects` supports it.
+- In the headline cell of 222 inputs, `select` picks `rows` on 159 and `maxrects-bl` on 63. In the stress cell of 81 inputs, it picks `rows` on 57 and `maxrects-bl` on 24.
+
+### The claims
+
+The verdicts of S2 and S5 to S8 need the analysis of the records with `--baseline select+portfolio`. S2 also needs the analysis without the records of `select`.
+
+| Id | Confidence | Claim |
+|---|---|---|
+| S1 | 0.95 | No record of `select` is skipped. On each input, the records of `select` have the output hashes of the records of the member that the table picks: `rows` on 216 inputs and `maxrects-bl` on 87. |
+| S2 | 0.9 | In each of the 6 cells, the oracle score is the same with and without the 10 pairs of `select`. |
+| S3 | 0.6 | In the headline cell, the baseline `rows+portfolio` misses the floor on 135 to 155 inputs, and its score is from 0.206 to 0.246. |
+| S4 | 0.7 | In the headline cell, `select+portfolio` misses the floor on fewer inputs than `rows+portfolio`. |
+| S5 | 0.45 | In the headline cell, `select+portfolio` misses the floor on at least 15 fewer inputs than `rows+portfolio`. |
+| S6 | 0.5 | In the headline cell, the score of `select+portfolio` is higher than the score of `rows+portfolio`, by less than 0.04. |
+| S7 | 0.5 | In the headline cell, the best pair of `select` is in the first 5 output groups by the levels of the best pair: the misses, then the score. |
+| S8 | 0.3 | The best pair of the headline cell is a pair of `select`. |
+| S9 | 0.4 | On the held-out seeds, the gain of k = 3 over the baseline in the headline cell is more than 0.250. L10 gave 0.240. |
+| S10 | 0.65 | On each of the 3 seeds of the dense spec with hubs, the median `route.ms` of the records of `shared-all` is less than 90 seconds. |
+| S11 | 0.5 | Each shard takes less than 60 minutes on its inputs. The plan gives 99.2 minutes to the most costly shard. |
+
+### The reasons for the confidences
+
+In this document, 7 of 9 claims of L28 and 4 of 5 claims of L10 held. The misses were the risky claims, and most of them were claims of a gain over a strong single pair. The mean confidence of the claims above is 0.59. Thus approximately 6 or 7 of the 11 claims hold, if the confidences are correct.
+
+- S1 and S2 follow from the code. The pick of the table comes from the features of the input alone. On each input, a pair of `select` has the values of a pair of `rows` or of `maxrects-bl`. Thus it cannot give the oracle a better pick.
+- S3 is a check of the new versions. `highways` 0.8.0 changed the lane order of `shared` and `sections`, but no route point moved. ROUTE-SCALE changes the speed. Thus the baseline moves only a little.
+- S4 has a high confidence because `select+portfolio` is `rows+portfolio` on 159 of the 222 inputs. Of the other 63 inputs, 36 have a fixed container. There, `rows` overflows more than `maxrects-bl`, and the excess area is a level of the floor.
+- S5 and S6 are less sure. L10 showed that the misses and the score do not agree. The mean `joint.fill` of `rows` on the floor was approximately 0.62, and that of the best `maxrects` pair approximately 0.36. Thus a pick of `maxrects-bl` can reach the floor with a low fill.
+- S7 and S8 are risky claims. `maxrects-cp+corners` was the best pair in the last 2 runs, with 42 misses. `select+corners` has the packs of `rows` on 159 headline inputs. It is the best pair only if `rows+corners` reaches the floor on most of these inputs.
+- S9 is a risky claim of a gain over a strong pick. A pair of `select` joins 2 pairs in one candidate, so the greedy portfolio can cover more inputs with 3 members. But the portfolio learns on 2 seeds, and the new candidates can fit these seeds better than the held-out seed.
+- S10 comes from the measures of `highways` 0.8.1 on the input `s2` of the dense spec: 36 seconds for each route of `shared-all`, against 1455 seconds before. The other seeds and the other pack outputs can take longer.
+- S11 is a risky claim. The 3 shards of the dense spec took 85 to 93 minutes, and approximately 45% of that time was in the repeat route of `benchRun` (L30). `highways` 0.8.1 cuts the routes of `shared`, `shared-all` and `portfolio` by a factor of 10 or more. But `exactStretches` and the checks of each pack output stay the same, and the spec with hub chains has a plan of 38 minutes.
