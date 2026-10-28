@@ -328,3 +328,29 @@ describe("the family rect-scattered", () => {
     expect(RECT_SCATTERED.crossEngine).toBe("exact");
   });
 });
+
+describe("a cell of cellOf as the dims of the registry", () => {
+  it("goes back into generate, resolve, cellOf and rngOf with its own kind", () => {
+    const reg = createFamilyRegistry<unknown>([kindFamily(), { ...kindFamily(), version: 2 }, RECT_SCATTERED]);
+    const dims = { layout: "clustered", locality: 0.25, nodes: 100 };
+    const cell = reg.cellOf("graph", dims);
+    expect(cell.kind).toBe("graph@1");
+    expect(reg.generate("graph", 5, cell)).toEqual(reg.generate("graph", 5, dims));
+    expect(reg.resolve("graph", cell)).toEqual(reg.resolve("graph", dims));
+    expect(reg.cellOf("graph", cell)).toEqual(cell);
+    expect(u32(reg.rngOf("graph")(5, cell), 3)).toEqual(u32(reg.rngOf("graph")(5, dims), 3));
+    const two = reg.cellOf("graph", dims, 2);
+    expect(reg.generate("graph", 5, two, { version: 2 })).toEqual(reg.generate("graph", 5, dims, { version: 2 }));
+    const scattered = reg.cellOf("rect-scattered", { count: 40 });
+    expect((reg.generate("rect-scattered", 1, scattered) as LayoutInput).hash).toBe(RECT_SCATTERED_HASHES[0]);
+  });
+
+  it("refuses a kind of another family or of another version", () => {
+    const reg = createFamilyRegistry<unknown>([kindFamily(), { ...kindFamily(), version: 2 }, RECT_SCATTERED]);
+    const two = reg.cellOf("graph", {}, 2);
+    expect(() => reg.generate("graph", 5, two)).toThrow(/has the kind "graph@1", not the kind "graph@2" of the cell/);
+    expect(() => reg.resolve("graph", { kind: "rect-scattered@1" })).toThrow(RangeError);
+    expect(() => reg.generate("rect-scattered", 1, { kind: "graph@1" })).toThrow(RangeError);
+    expect(() => reg.cellOf("graph", { kind: 1 })).toThrow(RangeError);
+  });
+});

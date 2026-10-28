@@ -1,5 +1,20 @@
 # Changelog
 
+## 0.2.14
+
+- PATCH: new optional exports and fields, with no break: `MemberRule.pool`, `PairGap`, `LayoutInput.pairGaps` and `canonicalInput`. It also has a fix of `generate`.
+- `MemberRule.pool` is a fixed list of member lists (L39). Each entry is a list of whole configs of the space of the members.
+- With a `pool`, `spaceSize` counts each entry one time. `enumerateSpace` gives only entries of the pool, and `checkConfig` refuses another member list with the claim `pool`.
+- `checkSpace` checks each entry of a pool. The shape filter of 0.2.13 also applies to the members of each entry. A rule without `pool` does not change.
+- With a pool of 1 list on `cell-portfolio`, the meta count of `packing` at 3 levels goes from approximately 1.49e25 to approximately 1.72e15.
+- `LayoutInput.pairGaps` gives a minimum distance to a pair of boxes (L49). For its pair, it replaces the two margins and the `gap`. `PackInput` and `toPackInput` carry it.
+- `checkInput` refuses an unknown box, a pair of one box, a repeated pair in either order, a bad `gap` and bad `lanes`.
+- The hard rule `no-overlap` reads `pairGaps`. For a pair of the list, in either order, the `gap` replaces the two margins. `countOverlaps` has a new optional third parameter `pairGaps`.
+- A pair of the list breaks `no-overlap` only when the boxes are nearer than the gap on each axis. The other pairs keep their margins.
+- `canonicalInput` sorts the pairs. `documentHash` uses it for each `layout-input/1` document, so the order of the pairs does not change the hash.
+- The fix: `generate`, `resolve`, `cellOf` and `rngOf` of a registry accept a cell of `cellOf`. They ignore a `kind` that is the `familyKind` of the family, and refuse another `kind`.
+- Each input, verdict, record, hash and `configId` of 0.2.13 stays the same.
+
 ## 0.2.13
 
 - The shape kind of an item is a dimension of the contract (L46). `docs/SHAPES.md` tells the rules.

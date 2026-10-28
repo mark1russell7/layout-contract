@@ -108,7 +108,10 @@ export interface FamilyRegistry<O = LayoutInput> {
   family(name: string, version?: number): CorpusFamily<O>;
   /** This method gives each family, in the order of registration. */
   families(): readonly CorpusFamily<O>[];
-  /** This method gives the full dimension values of an input. It throws a `RangeError` for an unknown dimension or a bad value. */
+  /**
+   * This method gives the full dimension values of an input. It throws a `RangeError` for an unknown dimension or a bad value.
+   * The methods with `dims` accept a cell of `cellOf`: they ignore a `kind` that is the `familyKind` of the family, and refuse another `kind`.
+   */
   resolve(name: string, dims?: Readonly<Record<string, ParamValue>>, version?: number): DimensionValues;
   /** This method gives the input of a seed. The output is the output of the family, with no change. */
   generate(name: string, seed: number, dims?: Readonly<Record<string, ParamValue>>, options?: GenerateOptions): O;
@@ -358,6 +361,14 @@ export function createFamilyRegistry<O = LayoutInput>(families: Iterable<CorpusF
     if (found === undefined) throw new RangeError(`The family "${name}" has the versions ${named.map((f) => f.version).join(", ")}, not ${version}.`);
     return found;
   };
+  /** This function removes the `kind` of a cell of `cellOf` when it is the `familyKind` of `f`. It throws a `RangeError` for another kind. */
+  const ownDims = (f: CorpusFamily<O>, dims: Readonly<Record<string, ParamValue>> | undefined): Readonly<Record<string, ParamValue>> | undefined => {
+    if (dims === undefined || !Object.hasOwn(dims, "kind")) return dims;
+    const kind = familyKind(f.name, f.version);
+    if (dims["kind"] !== kind) throw new RangeError(`${label(f)} has the kind "${kind}", not the kind ${JSON.stringify(dims["kind"])} of the cell.`);
+    const { kind: _kind, ...rest } = dims;
+    return rest;
+  };
   const streamOf = (f: CorpusFamily<O>, seed: number, full: DimensionValues): { readonly rng: RngFactory; readonly random: () => number } => {
     const rng = f.rng ?? DEFAULT_RNG;
     return { rng, random: rng(f.rngSeed === undefined ? seed : f.rngSeed(seed, full)) };
@@ -382,18 +393,18 @@ export function createFamilyRegistry<O = LayoutInput>(families: Iterable<CorpusF
     families: () => [...list],
     resolve(name, dims, version) {
       const f = find(name, version);
-      return resolveDimensions(f.dimensions, dims, label(f));
+      return resolveDimensions(f.dimensions, ownDims(f, dims), label(f));
     },
     generate(name, seed, dims, options = {}) {
       checkSeed(seed);
       const f = find(name, options.version);
-      const full = resolveDimensions(f.dimensions, dims, label(f));
+      const full = resolveDimensions(f.dimensions, ownDims(f, dims), label(f));
       const context: GenerateContext = { ...streamOf(f, seed, full), ...(options.set === undefined ? {} : { set: options.set }) };
       return f.generate(seed, full, context);
     },
     cellOf(name, dims, version) {
       const f = find(name, version);
-      return { kind: familyKind(f.name, f.version), ...activeValues(f.dimensions, resolveDimensions(f.dimensions, dims, label(f))) };
+      return { kind: familyKind(f.name, f.version), ...activeValues(f.dimensions, resolveDimensions(f.dimensions, ownDims(f, dims), label(f))) };
     },
     *cells(name, options = {}) {
       const f = find(name, options.version);
@@ -426,7 +437,7 @@ export function createFamilyRegistry<O = LayoutInput>(families: Iterable<CorpusF
       const f = find(name, version);
       return (seed, dims) => {
         checkSeed(seed);
-        return streamOf(f, seed, resolveDimensions(f.dimensions, dims, label(f))).random;
+        return streamOf(f, seed, resolveDimensions(f.dimensions, ownDims(f, dims), label(f))).random;
       };
     },
     familyBy() {

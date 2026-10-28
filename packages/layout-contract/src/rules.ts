@@ -1,5 +1,5 @@
 import { boundsOf, grow, overlapOf, type Rect, type Region } from "./geometry.ts";
-import type { LayoutBox, LayoutInput, Obstacle } from "./input.ts";
+import type { LayoutBox, LayoutInput, Obstacle, PairGap } from "./input.ts";
 import { applyPack, type PackOutput } from "./output.ts";
 import { SHAPE_KIND_IDS, shapeKindProblem, type ShapeSupport } from "./shapes.ts";
 import { DEFAULT_TOLERANCE, EPS, RECORD_EPS } from "./tolerance.ts";
@@ -15,20 +15,52 @@ export function placedRect(box: LayoutBox): Rect | undefined {
 /**
  * This function counts the pairs of placed boxes whose insides, with their margins, overlap by more than `tolerance` on each axis.
  * A box with a shape counts as its bounding box. That area is larger, thus the count is safe.
+ *
+ * A pair of `pairGaps`, in either order, uses its `gap` in place of the two margins. One box grows by the gap, and the other box does not grow.
+ * Thus the pair breaks the rule only when the boxes are nearer than the gap on each axis. The other pairs do not change.
  */
-export function countOverlaps(boxes: readonly LayoutBox[], tolerance: number = DEFAULT_TOLERANCE.overlap): number {
-  const rects: Rect[] = [];
+export function countOverlaps(boxes: readonly LayoutBox[], tolerance: number = DEFAULT_TOLERANCE.overlap, pairGaps?: readonly PairGap[]): number {
+  if (pairGaps === undefined || pairGaps.length === 0) return marginOverlaps(boxes, tolerance, undefined);
+  const gaps = new Map<string, number>();
+  for (const p of pairGaps) {
+    const key = pairKey(p.a, p.b);
+    if (p.a !== p.b && !gaps.has(key)) gaps.set(key, p.gap);
+  }
+  const raw = new Map<string, Rect>();
   for (const box of boxes) {
     const r = placedRect(box);
-    if (r !== undefined) rects.push(grow(r, box.margin));
+    if (r !== undefined && !raw.has(box.id)) raw.set(box.id, r);
   }
-  rects.sort((a, b) => a.x - b.x);
+  let count = marginOverlaps(boxes, tolerance, gaps);
+  for (const [key, gap] of gaps) {
+    const [a, b] = JSON.parse(key) as [string, string];
+    const ra = raw.get(a);
+    const rb = raw.get(b);
+    if (ra === undefined || rb === undefined) continue;
+    const o = overlapOf(grow(ra, gap), rb);
+    if (o.x > tolerance && o.y > tolerance) count++;
+  }
+  return count;
+}
+
+/** This function gives the key of a pair of box ids, with the same key for each order. */
+const pairKey = (a: string, b: string): string => JSON.stringify(a < b ? [a, b] : [b, a]);
+
+/** This function counts the overlaps of the boxes with their margins. It skips the pairs of `skip`. Without `skip`, it is the rule of 0.2.13. */
+function marginOverlaps(boxes: readonly LayoutBox[], tolerance: number, skip: ReadonlyMap<string, number> | undefined): number {
+  const rects: { readonly id: string; readonly r: Rect }[] = [];
+  for (const box of boxes) {
+    const r = placedRect(box);
+    if (r !== undefined) rects.push({ id: box.id, r: grow(r, box.margin) });
+  }
+  rects.sort((a, b) => a.r.x - b.r.x);
   let count = 0;
   for (let i = 0; i < rects.length; i++) {
-    const a = rects[i]!;
+    const a = rects[i]!.r;
     for (let j = i + 1; j < rects.length; j++) {
-      const b = rects[j]!;
+      const b = rects[j]!.r;
       if (b.x >= a.x + a.w - tolerance) break;
+      if (skip !== undefined && skip.has(pairKey(rects[i]!.id, rects[j]!.id))) continue;
       const o = overlapOf(a, b);
       if (o.x > tolerance && o.y > tolerance) count++;
     }
@@ -279,7 +311,8 @@ export function countObstacleHits(
 /**
  * This function gives the count of each hard rule of the output of a packer.
  * It applies the output with `applyPack`. Only the placed boxes and the locked boxes count for the overlaps and the container.
- * `no-overlap` counts the pairs of boxes and the pairs of a box and an obstacle.
+ * `no-overlap` counts the pairs of boxes and the pairs of a box and an obstacle. A pair of `pairGaps` uses its gap in place of the margins.
+ *
  * A locked box without a placement, or with a move of more than `RECORD_EPS`, breaks `locked-kept`.
  * A locked box without a position in the input is a bad input, not a break. `checkInput` finds it.
  * Another box without a placement that is not in `overflow` breaks `complete`.
@@ -308,7 +341,7 @@ export function packHard(input: LayoutInput, output: PackOutput, tolerance: numb
     }
   }
   return {
-    "no-overlap": countOverlaps(kept, tolerance) + countObstacleHits(kept, after.obstacles, tolerance),
+    "no-overlap": countOverlaps(kept, tolerance, input.pairGaps) + countObstacleHits(kept, after.obstacles, tolerance),
     "in-container": countOutside({ ...after, boxes: kept }, tolerance, options),
     "locked-kept": lockedMoved,
     complete: incomplete,
@@ -318,6 +351,7 @@ export function packHard(input: LayoutInput, output: PackOutput, tolerance: numb
 /**
  * This function gives the problems of an input file. An empty list tells that the file is good.
  * A problem is a bad input, not a break of a hard rule. Thus an engine refuses the input.
+ * In `pairGaps`, an unknown box, a pair of one box, a repeated pair in either order, a bad `gap` and bad `lanes` are problems.
  */
 export function checkInput(input: LayoutInput): readonly string[] {
   const problems: string[] = [];
@@ -334,5 +368,31 @@ export function checkInput(input: LayoutInput): readonly string[] {
   for (const edge of input.edges ?? []) {
     if (!ids.has(edge.source) || !ids.has(edge.target)) problems.push(`edge ${edge.id}: a box of the edge is not in the input`);
   }
+  problems.push(...pairGapProblems(input.pairGaps, ids));
+  return problems;
+}
+
+/** This function gives the problems of the `pairGaps` of an input. `ids` has the ids of the boxes. */
+function pairGapProblems(pairGaps: LayoutInput["pairGaps"], ids: ReadonlySet<string>): string[] {
+  if (pairGaps === undefined) return [];
+  if (!Array.isArray(pairGaps)) return ["pairGaps: the value is not a list"];
+  const problems: string[] = [];
+  const seen = new Map<string, number>();
+  pairGaps.forEach((p: PairGap, i) => {
+    const at = `pair gap ${i} (${String(p?.a)}, ${String(p?.b)})`;
+    if (typeof p !== "object" || p === null || typeof p.a !== "string" || typeof p.b !== "string") {
+      problems.push(`pair gap ${i}: the entry has no string ids a and b`);
+      return;
+    }
+    for (const id of [p.a, p.b]) if (!ids.has(id)) problems.push(`${at}: the box ${id} is not in the input`);
+    if (p.a === p.b) problems.push(`${at}: the two ids are the same box`);
+    if (typeof p.gap !== "number" || !Number.isFinite(p.gap) || p.gap < 0) problems.push(`${at}: the gap ${String(p.gap)} is not a finite number of 0 or more`);
+    if (p.lanes !== undefined && (typeof p.lanes !== "number" || !Number.isInteger(p.lanes) || p.lanes < 0))
+      problems.push(`${at}: the lanes value ${String(p.lanes)} is not a whole number of 0 or more`);
+    const key = JSON.stringify(p.a < p.b ? [p.a, p.b] : [p.b, p.a]);
+    const first = seen.get(key);
+    if (first !== undefined) problems.push(`${at}: the pair is also pair gap ${first}`);
+    else seen.set(key, i);
+  });
   return problems;
 }

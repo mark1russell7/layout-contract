@@ -54,6 +54,13 @@ A meta option chooses between whole configs, or wraps them. Examples are a portf
 - In a product space, a meta option of one part takes members of that part. The stages of the other part do not change.
 - Two equal members are not good. Members with `ordered: false` are sorted by their `configId`.
 - A stage with only meta options is optional, because a config without a meta option exists.
+- The member rule can have a `pool`: a fixed list of member lists. Each entry is a list of whole configs of the space of the members.
+- With a `pool`, the members of a config are the members of one entry. An unordered rule compares the sorted `configId` values of the members.
+- The `pool` is part of the space, not of a config. Thus a `pool` does not change a `configId`.
+
+```json
+{ "id": "cell-portfolio", "params": [], "members": { "min": 11, "max": 11, "ordered": false, "pool": [[{ "space": "packing", "stages": {} }]] } }
+```
 
 ### Configs
 
@@ -97,8 +104,10 @@ A config can leave out a param. Then the param has its default. A config can als
 | `unknown` | A constraint or a named config has an unknown stage, option or param. |
 | `constraint` | A named config breaks a constraint. |
 | `shape` | The `supports.shape` of an option is empty, or has a kind that is not declared. |
+| `pool` | A `pool` is not a list of one or more member lists. A bad entry gives `members`, `duplicate` or the claim of its member. |
 
 `checkConfig(space, config)` checks one config. It also finds `missing` (a stage that is not optional, without an option), `inactive`, `param` (a value out of range), `members` and `depth`.
+It finds `pool` for a member list that is not an entry of the `pool` of its option.
 With `{ shapes }`, it also finds `shape`: a chosen option that does not support a kind of the input. `docs/SHAPES.md` tells the rules. The breaks of a named config of `checkSpace` have the name of the config in `inputs`.
 
 ## The size and the enumeration
@@ -109,7 +118,10 @@ With `{ shapes }`, it also finds `shape`: a chosen option that does not support 
 - An `enum` param has each value, and a `bool` param has 2 values.
 - The result has two counts. `base` counts the configs without a meta option. `meta` counts the configs with a meta option. Each count is a `bigint`.
 - When the meta count is more than `maxMeta` (default `10n ** 18n`), `meta` is `null`.
+- A meta option with a `pool` counts each entry one time. Without a `pool`, it counts each list of base configs with a good count.
+- An example is `cell-portfolio` of `packing`, with 1 list of 11 members. Without a `pool`, the meta count of `packing` at 3 levels is approximately 1.49e25. With the `pool`, it is approximately 1.72e15.
 - With `shapes`, `spaceSize` and `enumerateSpace` count only the options that support each kind. Without `shapes`, the result does not change.
+- With `shapes`, a `pool` keeps only the entries whose members support each kind. A meta option without such an entry does not count.
 
 `enumerateSpace(space, options)` gives configs in their canonical form:
 
@@ -118,6 +130,7 @@ With `{ shapes }`, it also finds `shape`: a chosen option that does not support 
 - A sample is deterministic for its seed. It needs no runtime dependency.
 - A sample draws again when a config breaks a constraint. After `maxTries` draws, it throws an `Error`.
 - The option `meta` is `skip` by default, so a sample has no meta option. With `sample`, a meta option draws its members from a base sample of its part.
+- A meta option with a `pool` draws one entry of its `pool`. The entries get equal strata.
 
 ## The product of two spaces
 
@@ -200,5 +213,5 @@ This prediction comes before `packing` and `highways` make their spaces. It uses
 
 The prediction also finds two gaps in the schema. The engines examine them in part 2:
 
-1. A meta option takes each config of its space as a member. The portfolios of both engines take members from a fixed table. A field `pool` of the member rule can hold the names of the table.
+1. A meta option takes each config of its space as a member. The portfolios of both engines take members from a fixed table. A field `pool` of the member rule can hold the names of the table. Version 0.2.14 adds `pool` as a list of member lists (L39).
 2. Some options take a function, for example the key of a grouping. The space gives each named function as one value of an `enum`.

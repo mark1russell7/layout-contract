@@ -46,6 +46,12 @@ export interface MemberRule {
   readonly min: number;
   readonly max: number;
   readonly ordered: boolean;
+  /**
+   * The member lists that the option permits. Each entry is a list of whole configs of the space of the members.
+   * Without `pool`, each list of base configs with a good count is a member list.
+   * With `pool`, a config of the option has the members of one entry, and `spaceSize` counts each entry one time.
+   */
+  readonly pool?: readonly (readonly StrategyConfig[])[];
 }
 
 /** The inputs that an option supports. A missing field supports each value. */
@@ -149,7 +155,7 @@ export interface SampleOptions extends ShapeFilter {
   /** The count of the configs, a whole number of 0 or more. */
   readonly n: number;
   readonly seed: number;
-  /** With `skip` (the default), the sample has no meta option. With `sample`, a meta option draws its members from base samples. */
+  /** With `skip` (the default), the sample has no meta option. With `sample`, a meta option draws its members from base samples, or one entry of its `pool`. */
   readonly meta?: "skip" | "sample";
   /** The largest count of option draws. The default is the larger value of 1000 and `100 * n`. */
   readonly maxTries?: number;
@@ -306,6 +312,9 @@ function optionProblems(stage: SpaceStage, o: StageOption): Problem[] {
     const { min, max, ordered } = o.members;
     if (!Number.isInteger(min) || !Number.isInteger(max) || min < 1 || min > max || typeof ordered !== "boolean")
       out.push(["members", `${at} has a member rule without whole counts 1 <= min <= max and a boolean ordered`]);
+    const pool: unknown = o.members.pool;
+    if (pool !== undefined && (!Array.isArray(pool) || pool.length === 0 || !pool.every((entry: unknown) => Array.isArray(entry))))
+      out.push(["pool", `${at} has a pool that is not a list of one or more member lists`]);
   }
   return out;
 }
@@ -422,14 +431,47 @@ function memberProblems(part: StrategySpace, rule: MemberRule, members: unknown,
     if (ids.has(id)) out.push(["duplicate", `the members ${ids.get(id)} and ${k} of ${at} are the same config ${id}`]);
     else ids.set(id, k);
   });
+  if (rule.pool !== undefined && out.length === 0) {
+    const key = memberKey(part, rule, members as readonly StrategyConfig[]);
+    if (!rule.pool.some((entry) => memberKey(part, rule, entry) === key))
+      out.push(["pool", `${at} has a member list that is not in its pool of ${rule.pool.length} ${rule.pool.length === 1 ? "list" : "lists"}`]);
+  }
   return out;
 }
+
+/** This function gives the key of a good member list: the `configId` of each member, sorted when the rule is not ordered. */
+function memberKey(part: StrategySpace, rule: MemberRule, members: readonly StrategyConfig[]): string {
+  const ids = members.map((m) => idOf(canonicalOf(part, m, true)));
+  if (!rule.ordered) ids.sort();
+  return ids.join(",");
+}
+
+/** This function gives the problems of the pool of a meta option of a good space. `part` is the space of the members. */
+function poolProblems(part: StrategySpace, rule: MemberRule, at: string): Problem[] {
+  const out: Problem[] = [];
+  const keys = new Map<string, number>();
+  const plain: MemberRule = { min: rule.min, max: rule.max, ordered: rule.ordered };
+  (rule.pool ?? []).forEach((entry, j) => {
+    const inner = memberProblems(part, plain, entry, `the pool entry ${j} of ${at}`);
+    out.push(...inner);
+    if (inner.length > 0) return;
+    const key = memberKey(part, rule, entry);
+    if (keys.has(key)) out.push(["duplicate", `the pool entries ${keys.get(key)} and ${j} of ${at} have the same members`]);
+    else keys.set(key, j);
+  });
+  return out;
+}
+
+/** This function tells if a member list fits a space: each member is a good config of the space. A shape filter removes options from the space. */
+const fits = (part: StrategySpace, entry: readonly StrategyConfig[]): boolean => entry.every((m) => configProblems(part, m, true).length === 0);
 
 const toBreaks = (problems: readonly Problem[], inputs: readonly string[] = []): ClaimBreak[] => problems.map(([claim, detail]) => ({ claim, detail, inputs }));
 
 /**
  * This function checks one config of a space. It gives one break for each problem. An empty list tells that the config is good.
  * The `claim` of a break is the kind of the problem, for example `missing`, `unknown`, `inactive`, `param`, `constraint`, `members` or `depth`.
+ *
+ * A member list that is not an entry of the `pool` of its option gives the claim `pool`.
  * With `shapes`, an option that does not support a kind of the list gives the claim `shape`. A member of a meta option gets the same check.
  */
 export function checkConfig(space: StrategySpace, config: StrategyConfig, options: ShapeFilter = {}): ClaimBreak[] {
@@ -439,6 +481,7 @@ export function checkConfig(space: StrategySpace, config: StrategyConfig, option
 /**
  * This function checks a space. It gives one break for each problem. An empty list tells that the space is good.
  * It finds duplicate names, empty ranges, defaults out of range, enums without values, bad log scales, unknown names and bad named configs.
+ * It also checks each entry of a `pool`: the count of its members, each member and a repeated entry.
  * The `inputs` of a break of a named config have the name of the config.
  */
 export function checkSpace(space: StrategySpace): ClaimBreak[] {
@@ -476,6 +519,9 @@ export function checkSpace(space: StrategySpace): ClaimBreak[] {
   if (space.parts !== undefined)
     for (const s of space.stages) if (partOf(space, s.name).prefix === "") out.push(["parts", `the stage ${s.name} is not a stage of a part`]);
   const breaks = toBreaks(out);
+  if (breaks.length > 0) return breaks;
+  for (const s of space.stages)
+    for (const o of s.options) if (o.members?.pool !== undefined) breaks.push(...toBreaks(poolProblems(partOf(space, s.name).space, o.members, `the option ${s.name}.${o.id}`)));
   if (breaks.length > 0) return breaks;
   for (const [name, config] of Object.entries(space.named ?? {}))
     breaks.push(...toBreaks(configProblems(space, config, false).map(([c, d]) => [c, `the named config ${name}: ${d}`] as const), [name]));
@@ -623,7 +669,7 @@ interface Combo {
 const optionIds = (choices: Choices): Map<string, string | null> => new Map([...choices].map(([k, o]) => [k, o?.id ?? null]));
 const keeps = (space: StrategySpace, choices: Choices): boolean => (space.constraints ?? []).every((c) => holds(c, optionIds(choices)));
 
-/** This function gives the count of the member lists of a meta option from `base` base configs, or `null` above `limit`. */
+/** This function gives the count of the member lists of a meta option without a pool from `base` base configs, or `null` above `limit`. */
 function memberLists(base: bigint, rule: MemberRule, limit: bigint): bigint | null {
   let sum = 0n;
   for (let m = rule.min; m <= rule.max; m++) {
@@ -692,7 +738,8 @@ function combos(space: StrategySpace, levels: number, meta: boolean, limit: bigi
     for (const o of s.options) {
       if (o.members === undefined) continue;
       const choices = new Map<string, StageOption | null>(stages.map((x) => [x.name, x === s ? o : null]));
-      if (keeps(space, choices)) out.push({ choices, base: false, weight: times(countOf(o), memberLists(base, o.members, limit), limit) });
+      const lists = o.members.pool === undefined ? memberLists(base, o.members, limit) : BigInt(o.members.pool.length);
+      if (keeps(space, choices)) out.push({ choices, base: false, weight: times(countOf(o), lists, limit) });
     }
   return out;
 }
@@ -700,6 +747,7 @@ function combos(space: StrategySpace, levels: number, meta: boolean, limit: bigi
 /**
  * This function gives the count of the grid points of a space, with `levels` levels for each numeric param.
  * It counts only the active params and the combinations that keep the constraints. It gives the meta configs apart.
+ * A meta option with a `pool` counts each entry of the pool one time.
  * With `shapes`, it counts only the options that support each kind of the list.
  */
 export function spaceSize(space: StrategySpace, options: SpaceSizeOptions): SpaceSize {
@@ -712,14 +760,22 @@ export function spaceSize(space: StrategySpace, options: SpaceSizeOptions): Spac
 /**
  * This function gives the space with only the options that support each shape kind of `shapes`. Without `shapes`, it gives the same space.
  * A stage can lose all of its options. Then the space has no config with that stage.
+ * A pool keeps only the entries whose members fit the smaller space. A meta option without such an entry goes out.
  */
 function restrict(space: StrategySpace, shapes: readonly ShapeKind[] | undefined): StrategySpace {
   if (shapes === undefined) return space;
-  return {
+  const kept: StrategySpace = {
     ...space,
     stages: space.stages.map((s) => ({ ...s, options: s.options.filter((o) => supportsShapes(o, shapes)) })),
     ...(space.parts === undefined ? {} : { parts: space.parts.map((p) => restrict(p, shapes)) }),
   };
+  const withPool = (s: SpaceStage, o: StageOption): StageOption[] => {
+    if (o.members?.pool === undefined) return [o];
+    const part = partOf(kept, s.name).space;
+    const pool = o.members.pool.filter((entry) => fits(part, entry));
+    return pool.length === 0 ? [] : [{ ...o, members: { ...o.members, pool } }];
+  };
+  return { ...kept, stages: kept.stages.map((s) => ({ ...s, options: s.options.flatMap((o) => withPool(s, o)) })) };
 }
 
 /** This function throws a `RangeError` for a list of shape kinds with a kind that is not declared. */
@@ -843,6 +899,14 @@ function sampleConfigs(space: StrategySpace, n: number, seed: number, meta: bool
         });
       }
       if (o.members === undefined) continue;
+      const fixed = o.members.pool;
+      if (fixed !== undefined) {
+        const r = stepRandom(seed, `pool-entry:${s.name}:${o.id}`);
+        permutation(users.length, r).forEach((stratum, j) => {
+          members[users[j]!]![k] = [...fixed[Math.min(fixed.length - 1, Math.floor(((stratum + r()) / users.length) * fixed.length))]!];
+        });
+        continue;
+      }
       const part = partOf(space, s.name).space;
       const poolSize = Math.max(n, 4 * o.members.max, 8);
       const seen = new Set<string>();
@@ -877,6 +941,7 @@ function sampleConfigs(space: StrategySpace, n: number, seed: number, meta: bool
  * - The mode `sample` gives `n` configs of a seeded Latin hypercube. The options of a stage get equal strata, and each active param gets its own strata.
  * - A sample draws again when a point breaks a constraint. After `maxTries` draws, it throws an `Error`. Two sampled configs can be equal.
  * - With `shapes`, only the options that support each kind of the list count. Without `shapes`, the result does not change.
+ * - A meta option with a `pool` gives only the entries of its pool. With `shapes`, only the entries whose members support each kind count.
  */
 export function enumerateSpace(space: StrategySpace, options: EnumerateOptions): StrategyConfig[] {
   assertSpace(space);
