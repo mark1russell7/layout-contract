@@ -182,6 +182,8 @@ interface RouteRun {
   readonly deterministic: boolean;
   readonly measures: Record<string, number>;
   readonly hard: Record<string, number>;
+  /** The time of each step of the route, in milliseconds, by the name of its measure. */
+  readonly times: Record<string, number>;
 }
 
 /** A router that did not run on an input, with the reason. */
@@ -208,19 +210,29 @@ function routerOf(name: string): Router {
   return asRouter(s);
 }
 
-/** This function routes one graph with one router and measures the result. `facts` is the function of `routeFacts` of the graph. */
-function routeOnce(name: string, graph: Graph, facts: (result: Result) => PortfolioFacts, fixture: string, repeat: number): RouteRun | RouteMiss {
+/**
+ * This function routes one graph with one router and measures the result. `facts` is the function of `routeFacts` of the graph.
+ * The result holds the time of each step in `times` (`time.bench.ms`, `time.facts.ms`, `time.measures.ms` and `time.hash.ms`).
+ */
+function routeOnce(name: string, graph: Graph, facts: (result: Result) => PortfolioFacts, fixture: string, repeat: number, now: () => number): RouteRun | RouteMiss {
   const router = routerOf(name);
   if (graph.nodes.length > (router.maxNodes ?? Infinity)) return { ok: false, reason: `The graph has ${graph.nodes.length} nodes, above the limit ${router.maxNodes} of the router.` };
   try {
+    const t0 = now();
     const { row, result } = benchRun(router, fixture, graph, repeat);
+    const t1 = now();
     const fact = factMeasures(facts(result));
+    const t2 = now();
     const hard: Record<string, number> = { "route.violations": row.violations, ...fact.hard };
     const keyed = routeMeasures(graph, result, row);
+    const t3 = now();
     const measures: Record<string, number> = { "route.ms": row.ms };
     for (const [key, value] of Object.entries(keyed)) measures[measureName(key)] = value;
     Object.assign(measures, fact.measures);
-    return { ok: true, result, hash: routeHash(result), ms: row.ms, deterministic: row.deterministic, measures: finite(measures), hard };
+    const hash = routeHash(result);
+    const t4 = now();
+    const times = { "time.bench.ms": t1 - t0, "time.facts.ms": t2 - t1, "time.measures.ms": t3 - t2, "time.hash.ms": t4 - t3 };
+    return { ok: true, result, hash, ms: row.ms, deterministic: row.deterministic, measures: finite(measures), hard, times };
   } catch (e) {
     return { ok: false, reason: `error: ${messageOf(e)}` };
   }
@@ -274,6 +286,7 @@ function fullOptions(entry: PackEntry): Record<string, unknown> {
  * - A strategy that does not support the cell, an error and a graph above the limit of a router give a record with `skipped`.
  * - The `hard` field holds the breaks of `checkHard` (`pack.*`) and of `checkProperties` (`route.*`).
  * - The measures hold `pack.*`, `route.*`, `joint.*`, the cap counts `route.cap.<cap>`, `route.mixed` and `joint.overflow.edges`.
+ * - The measures `time.*` hold the time of the steps after the pack, in milliseconds. `docs/JOINT-BENCH.md` ("The runner") tells each step.
  */
 export function runInput(input: LayoutInput, cell: Readonly<Record<string, unknown>> | undefined, options: RunOptions = {}): LayoutRecord[] {
   const packs = options.packs ?? PACK_ENTRIES;
@@ -285,7 +298,10 @@ export function runInput(input: LayoutInput, cell: Readonly<Record<string, unkno
   const target = input.container?.aspect ?? 1;
   const edgeCount = input.edges?.length ?? 0;
   const records: LayoutRecord[] = [];
-  const shared = new Map<string, { packed: PackedInput; facts: PlacementFacts; graph: Graph; check: (result: Result) => PortfolioFacts; routes: Map<string, RouteRun | RouteMiss> }>();
+  const shared = new Map<
+    string,
+    { packed: PackedInput; facts: PlacementFacts; graph: Graph; check: (result: Result) => PortfolioFacts; routes: Map<string, RouteRun | RouteMiss>; placementMs: number }
+  >();
 
   const factsOf = (entry: PackEntry, router: string) => ({
     stage: "joint" as const,
@@ -309,18 +325,20 @@ export function runInput(input: LayoutInput, cell: Readonly<Record<string, unkno
     const key = `${run.hash}:${JSON.stringify(run.output.moved)}`;
     let group = shared.get(key);
     if (group === undefined) {
+      const t0 = now();
       const packed = packedInput(input, run.output, entry.id);
       const boxes: readonly LayoutBox[] = packed.input.boxes;
       const edges: readonly LayoutEdge[] = packed.input.edges ?? [];
       const graph = inputGraph(packed.input as unknown as Parameters<typeof inputGraph>[0]);
-      group = { packed, facts: placementFacts(boxes, edges), graph, check: routeFacts(graph), routes: new Map() };
+      const facts = placementFacts(boxes, edges);
+      group = { packed, facts, graph, check: routeFacts(graph), routes: new Map(), placementMs: now() - t0 };
       shared.set(key, group);
     }
     const g = group;
     const routeOf = (name: string): RouteRun | RouteMiss => {
       let r = g.routes.get(name);
       if (r === undefined) {
-        r = routeOnce(name, g.graph, g.check, g.packed.input.id, repeat);
+        r = routeOnce(name, g.graph, g.check, g.packed.input.id, repeat, now);
         g.routes.set(name, r);
       }
       return r;
@@ -331,7 +349,9 @@ export function runInput(input: LayoutInput, cell: Readonly<Record<string, unkno
         records.push(skippedRecord(entry, router, route.reason));
         continue;
       }
+      const t0 = now();
       const joint = jointMeasures(g.facts, route.result.routes, edgeCount - g.packed.dropped, target);
+      const jointMs = now() - t0;
       const ms = run.ms + route.ms;
       const measures = finite({
         ...run.measures,
@@ -341,6 +361,9 @@ export function runInput(input: LayoutInput, cell: Readonly<Record<string, unkno
         "joint.overflow.edges": g.packed.dropped,
         "joint.routes": route.result.routes.length,
         "joint.ms": ms,
+        ...route.times,
+        "time.placement.ms": g.placementMs,
+        "time.joint.ms": jointMs,
       });
       records.push(
         toLayoutRecord(input, {
