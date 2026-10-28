@@ -35,11 +35,12 @@ The prediction comes before the code. The section "The score" gives the result.
 | Kind | Fields, relative to the box | `Region` kinds | Bounding box | Area | Inside a region | Overlap |
 |---|---|---|---|---|---|---|
 | `rect` | `w`, `h` | `rect` | yes | yes | yes (`rectInRegion`) | yes (`overlapOf`) |
-| `polygon` | `points`, `holes` (optional) | `polygon` | yes | declared | declared | declared |
-| `circle` | `cx`, `cy`, `r` | `circle` | yes | declared | declared | declared |
+| `polygon` | `points`, `holes` (optional) | `polygon` | yes | yes (`regionArea`) | declared | declared |
+| `circle` | `cx`, `cy`, `r` | `circle` | yes | yes (`regionArea`) | declared | declared |
 | `free` | `w`, `h`, `shape` (optional) | each kind | yes | declared | declared | declared |
 
 - "Declared" tells that the kind needs the operation, but this package does not supply it yet. No measure of the contract needs it today.
+- `polygon` and `circle` have their exact area since 0.2.16 (L57). The section "The area" tells the rules.
 - `free` tells that the contract knows only the bounding box `w` by `h` of the item. An ellipse is `free`.
 - A `polygon` can be concave. A measure that needs a convex polygon can add a flag `convex` at a later version.
 
@@ -66,10 +67,36 @@ Thus each input, record and hash of 0.2.12 stays the same.
 | `joint.straight.crossings` | each kind | It reads the centers of the bounding boxes. |
 | `joint.stability.mean`, `joint.stability.moved` | each kind | They read the positions and the width `W` of the bounding boxes. |
 | `joint.proxy.rank`, `joint.ms` | each kind | They read the ranks of lengths and the time. |
-| `no-overlap`, `in-container` | `rect` | They test the bounding boxes. For a different kind, the count is an upper bound, not the exact count. |
+| `no-overlap`, `in-container` | `rect`, and `safe` for `polygon`, `circle` and `free` | They test the bounding boxes. For a different kind, the count is an upper bound, not the exact count. |
 | `locked-kept`, `complete` | each kind | They read only the positions and the ids. |
 
 `PACK_HARD_RULES` gives the kinds of the 4 hard rules of a pack. A measure that supports only `rect` keeps its exact values.
+
+### The safe level (L57)
+
+`ShapeSupport.safe` lists the kinds with a safe count. On such a kind, the rule can count a break that is not real, but it does not miss a real break. Thus a safe count of 0 tells that the rule has no break.
+
+- A kind is in `shapes` (exact) or in `safe`, not in the two lists. `shapeSupportProblems(uses)` refuses a kind in the two lists, an unknown kind and a kind two times in one list.
+- `ruleLevel(rule, kind)` gives `exact`, `safe` or `none`. A rule without `shapes` is exact on `rect` (`DEFAULT_SHAPES`).
+- `no-overlap` and `in-container` are exact on `rect` and safe on `polygon`, `circle` and `free`. A shape is inside its bounding box, so the count of the bounding boxes is an upper bound.
+- By default, `checkShapes` refuses a safe kind, as before. With `{ level: "safe" }`, it accepts a safe kind. Use it only when the run claims that a rule has no break.
+- A break of a safe kind tells that the count is only safe.
+
+| Reader of `shapes` | Does it read `safe`? |
+|---|---|
+| `shapesOf` | No. It gives the exact kinds. |
+| `ruleLevel` | Yes. It is the one function that joins the two lists. |
+| `checkShapes` | Yes, through `ruleLevel`. The default level `exact` keeps each refusal of 0.2.15. |
+| `shapeSupportProblems` | Yes. It refuses an overlap of the two lists. |
+| `packages/joint`, `packages/site` | No file reads `ShapeSupport.shapes`, so they do not change. |
+
+### The area (L57)
+
+- `regionArea(region)` gives the exact area of a region. A `rect` gives `w * h`, a circle `PI * r * r` and an ellipse `PI * rx * ry`.
+- A polygon gives the absolute value of the shoelace formula, less the area of each hole. Thus the direction of a ring does not change the area.
+- `boxArea(box)` gives `regionArea` of `box.shape`, or `w * h` for a `rect` without a shape.
+- `boxArea` gives `undefined` for a box of the kind `free`, also with a shape. A box with an ellipse shape is `free` (`shapeKindOf`), so it gives `undefined`. This agrees with `SHAPE_KINDS`, where `free` has no area.
+- A box of the kind `polygon` or `circle` without a shape is a bad input. `boxArea` gives `undefined` for it.
 
 ## The strategy space
 
@@ -79,6 +106,17 @@ Thus each input, record and hash of 0.2.12 stays the same.
 - `checkConfig(space, config, { shapes })` gives the claim `shape` for each chosen option that does not support a kind of `shapes`. The members of a meta option get the same check.
 - `spaceSize` and `enumerateSpace` with `shapes` count only the options that support each kind. Without `shapes`, the result does not change.
 - `spaceShapeKinds(space)` gives the kinds of a space. The value comes from the options: a kind with at least one config without a meta option.
+
+### The member view (L57)
+
+A packer can pack each shape by its bounding box with a meta option. Then its members see only rectangles. `MemberRule.view: "bounds"` declares it.
+
+- With `view: "bounds"`, a shape filter checks the members with `["rect"]`. The meta option itself gets the kinds of the input.
+- The rule applies to `checkConfig`, `spaceSize`, `enumerateSpace` and the entries of a `pool`.
+- Without `shapes`, or with an empty list, the members get the same filter as before.
+- A sample with `meta: "sample"` can give meta configs when a stage has no option for the kind. Then the meta option replaces the stage.
+- `spaceShapeKinds` does not change, because it counts only the configs without a meta option.
+- `checkSpace` refuses another value of `view` with the claim `view`. Without `view`, nothing changes.
 
 ## The request to a packer
 

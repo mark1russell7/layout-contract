@@ -80,6 +80,34 @@ export function boundsOf(region: Region): Rect {
   }
 }
 
+/**
+ * This function gives the exact area of a region. A `rect` gives `w` by `h`, a circle gives `PI * r * r`, and an ellipse gives `PI * rx * ry`.
+ * A polygon gives the absolute value of the shoelace formula, less the area of each hole. A ring with fewer than 3 points has the area 0.
+ */
+export function regionArea(region: Region): number {
+  switch (region.kind) {
+    case "rect":
+      return region.w * region.h;
+    case "circle":
+      return Math.PI * region.r * region.r;
+    case "ellipse":
+      return Math.PI * region.rx * region.ry;
+    case "polygon":
+      return (region.holes ?? []).reduce((area, hole) => area - ringArea(hole), ringArea(region.points));
+  }
+}
+
+/** This function gives the area of one ring of a polygon: the absolute value of the shoelace formula. */
+function ringArea(ring: readonly (readonly [number, number])[]): number {
+  let twice = 0;
+  for (let i = 0; i < ring.length; i++) {
+    const [ax, ay] = ring[i]!;
+    const [bx, by] = ring[(i + 1) % ring.length]!;
+    twice += ax * by - bx * ay;
+  }
+  return Math.abs(twice) / 2;
+}
+
 /** This function gives the region moved by `dx` and `dy`. */
 export function translate(region: Region, dx: number, dy: number): Region {
   switch (region.kind) {
