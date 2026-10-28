@@ -8,6 +8,7 @@ The joint benchmark packs each input of a joint corpus, and then routes the pack
 - The routers are the 9 router strategies of `highways` 0.6.0, and the portfolio router `portfolio` of `highways` 0.6.0.
 - The joint-v2 run of 2026-10-28 used `packing` 0.2.6 and `highways` 0.5.1. Version 0.6.0 changes the default members of `portfolio`.
 - Thus the benchmark has 130 pairs. The runs before L32 had 120 pairs. `joint-v2` has 303 inputs, and `joint-v1` has 285 inputs.
+- The option `--lanes on` adds the 18 lane pairs of L13. Refer to "The lane pairs".
 
 The portfolio router is `portfolioRouter()` with its defaults: the rule `collection`, the cap 1.5 and the order `fit`. Its default is deterministic. Above 40 nodes, it uses only `shared`.
 
@@ -56,6 +57,86 @@ An overflow box has no position, so the router cannot route its edges.
 - `joint.overflow.edges` is the count of the dropped edges.
 - The joint measures use only the placed boxes and the routed edges.
 - The analysis splits the joint measures of its picks by an overflow of 0 and an overflow above 0.
+
+## The lane pairs
+
+The lane pairs are the joint strategy of L13, the routing-aware gaps. They size each gap from the routes that use it. The default run has no lane pairs. The option `--lanes on` of `pnpm bench run` and `pnpm bench plan` adds them, and the input `lanes` of `joint-bench.yml` gives that option.
+
+A side with k lanes needs 2 clearances and k - 1 lane spaces: `laneNeed(k) = 2 * 5 + (k - 1) * 4`. 1 lane needs 10 units, 3 lanes need 18 units, and the cap of 8 lanes gives 38 units.
+
+- The clearance 5 is the corner margin of the routers of `highways`. The lane space 4 is the lane width of `shared` and of `roomDemand`.
+- In the corpus, the space between two boxes is 2 margins and 1 gap. It is 0 for `stress`, 10 for `gap`, 20 for `margin` and 15 for `both`.
+- Thus a side of `gap` is too narrow for 2 lanes or more. A side of `both` is too narrow for 3 lanes, and a side of `margin` for 4 lanes.
+
+### The steps of a lane pair
+
+A lane pair has a variant, a base pack entry and a router. Its id is `<variant>.<pack entry>.<router>+<router>`, for example `lanes-sides.rows.corners+corners`. The base pair is `<pack entry>+<router>`.
+
+1. The runner packs the input with the base pack entry, and routes it with the router. These are the pack and the routes of the base pair.
+2. `sideLanes` counts the lanes along each side of each placed box. The strip of a side reaches to the nearest box that faces it, and at least 10 units out.
+3. A route segment counts for a side when it runs along the side in the strip. The count of a side is the largest count of routes at one place of the side.
+4. `laneMargins` gives each side the margin `(need - gap) / 2`, so that 2 facing sides together give the need. A margin does not get smaller than the margin of the input.
+5. The runner packs the input again with the new margins, and routes it again with the router. A variant with 2 passes does steps 2 to 5 two times.
+6. The record holds the last pack and the last routes. The runner scores the pack against the input with the old margins, so `pack.fill` and the checks compare with the base pair.
+
+The 3 variants:
+
+| Variant | Margins | Passes | Why |
+|---|---|---|---|
+| `lanes-max` | Each box gets 1 margin for its 4 sides: the margin of its side with the largest need. | 1 | The simplest form: the margin of each item of `packing` as one number. |
+| `lanes-sides` | Each side gets its own margin, turned with the box (`Sides` of `packing`). | 1 | The space goes only to the sides with lanes, so the fill drops less. |
+| `lanes-sides2` | The same as `lanes-sides`. | 2 | The second pack moves the boxes, and new neighbors make new channels. The second pass counts these channels. |
+
+The base pack entries are `rows`, `maxrects-cp` and `select`, and the routers are `corners` and `portfolio`. Thus `laneEntries()` gives 3 × 3 × 2 = 18 lane pairs.
+
+- `rows+portfolio` and `select+portfolio` are the 2 baselines. `maxrects-cp+corners` is the best pair of L32. Each of these pairs has 3 lane pairs.
+- A box with no lanes keeps its margin. When no side gets a larger margin, the lane pair has the output hash of its base pair.
+
+The records of a lane pair add these measures:
+
+| Measure | Value |
+|---|---|
+| `lanes.short.base` | The count of the sides that are narrower than the need of their lanes, in the layout of the base pair |
+| `lanes.short` | The same count in the layout of the lane pair, with its own routes |
+| `lanes.max.base`, `lanes.max` | The largest lane count of a side, in the 2 layouts |
+| `lanes.margin` | The mean growth of the margin of each side of each box, in units |
+| `time.lanes.ms` | The time of the lane counts and the margins, in milliseconds |
+
+`pack.ms` is the sum of the pack times of the passes. `joint.ms` and `ms` are the total time of all packs, routes and lane counts. The field `options.lanes` of the record gives the variant, the base pair and the constants.
+
+### What packing and highways let the lane pairs do today
+
+- `packing` gives each item its own margin, as 1 number or as 4 sides (`Sides`). A turn of 90 degrees turns the sides. The variant `lanes-sides` uses this.
+- `packing` has 1 gap for all items. It has no gap for one pair of items and no space for one channel.
+- Thus a lane need moves with a box side, not with a channel. Two boxes on opposite sides of a channel each get half the need, also when only one box needs it.
+- The routers of `highways` 0.8.1 do not read the margins. They see only the placed boxes. Thus a lane pair changes only the positions of the boxes.
+- The room module of `highways` (`roomDemand`, `levelRoom`, `gapLaneCounts`) counts the lanes of its own links in its own gaps, and moves the nodes. It does not count the lanes of a list of routes by box side. Thus `sideLanes` of the joint package does this count.
+- No rule of `checkProperties` measures the room of a lane. A gain can come only through `no-pass-through`, the cap, the overflow and the fill.
+
+The request text for `packing`:
+
+> Request for `packing`: add an option for the space between two items, or for the space of one channel. The joint benchmark of `layout-contract` (L13) counts the routes in each gap after a first pack. Today it can give a margin only to each side of an item. Thus a channel that needs space gives it to both boxes, and the fill drops more than necessary. The option takes pairs of item ids with a space, or a list of channels with a space. A pair without an entry keeps the global gap.
+
+### The lane pairs in the analysis
+
+The lane pairs are pairs of the analysis, as each other pair. They join the floor, the oracle, the ranking and the portfolios. Thus a lane pair can move the floor, and the misses of the other pairs can go up.
+
+- The field `lanes` of the report gives each lane pair against its base pair, for the inputs of the headline and for the stress inputs. The section "The lane pairs" of `report.md` shows it.
+- Each row gives the skipped records, the same output hashes, the broken records and the breaks of `no-pass-through`, and the overflow.
+- Each row also gives the mean `joint.fill`, `pack.fill` and `joint.ms`, and the lane measures.
+- The default compare of `pnpm bench analyze` adds each lane pair against its base pair. The default of `--oracle-without` is the lane pack entries when the records have lane pairs.
+- When the records have lane pairs, `pnpm bench analyze` also writes `report-without-lanes.json` and `report-without-lanes.md`. These reports remove the lane pairs. Their misses compare with the runs before L13.
+- The fields `through`, `fillBySpacing` and `times` do not count the lane pairs. Thus they compare with the runs before L13.
+- `fit-cost.mjs` divides each time by the 130 pairs of the default run. Do not fit the cost model from a run with the lane pairs.
+
+The plan gives each lane pass the cost of 3 pairs: 2 packs, 1 route and 1 lane count (`LANE_PASS_COST`). Thus the 18 lane pairs have the cost of 72 pairs, and the plan has the cost of 202 pairs.
+
+| Plan at 64 shards | All shards | The most costly shard |
+|---|---|---|
+| The default run, 130 pairs | 301.6 minutes | 16.1 minutes |
+| `--lanes on`, 130 pairs and 18 lane pairs | 468.7 minutes | 25.0 minutes |
+
+The cost of 3 pairs for each pass is high on purpose. The first pass uses the pack and the routes of the base pair again. Only the last pass routes as a pair of the default run, with 2 timed routes and the facts. Thus a lane pair with 1 pass costs approximately 1 pair and 2 packs, and the real time is likely less than the plan.
 
 ## The cells of highways
 
@@ -689,3 +770,70 @@ On the subset of 207 inputs, the headline cell gives `select+portfolio` 131 miss
 - The table of `select` comes from `packing` 0.2.16. A new table needs a new run.
 - The verdicts of S2 and S5 to S8 come from the job `reanalyze` of the run 40746401999. The job `analyze` of the run 40743187036 used the code before the options of the claims.
 - The cost model of the shards comes from this run. Refer to "The shards".
+
+## The prediction for routing-aware gaps (L13)
+
+This prediction comes before the full run with the lane pairs: `joint-v2`, 303 inputs, 3 seeds, 64 shards and the input `lanes`. The verdicts come from the 2 reports and the shard logs, by hand. The entries stay the same after the run.
+
+The run has 2 changes from the run 40743187036 of L32:
+
+- The runner has the 18 lane pairs of "The lane pairs". Thus the run has 148 pairs.
+- The lockfile has `packing` 0.2.17, and L32 used 0.2.16. `highways` stays 0.8.1.
+
+The cells of the claims are the headline cell (the rule `all`, the cap 1.25, 222 inputs) and the stress cell with the same rule and cap (81 inputs). The full report is `report.json`, with the lane pairs. The old report is `report-without-lanes.json`.
+
+### The claims
+
+| Id | Confidence | Claim |
+|---|---|---|
+| G1 | 0.9 | No lane record is skipped when the record of its base pair is not skipped. Each row of `lanes` has 0 skipped records. |
+| G2 | 0.75 | In the headline cell of the old report, `rows+portfolio` misses the floor on 142 to 148 inputs, `select+portfolio` on 138 to 144, and the best pair is `maxrects-cp+corners` with 39 to 45 misses. L32 gave 145, 141 and 42. |
+| G3 | 0.9 | In the headline cell and in the stress cell, `rows+portfolio` and `select+portfolio` have at least as many misses in the full report as in the old report. |
+| G4 | 0.8 | In the stress cell, each of the 6 lane pairs of `lanes-max` has fewer broken records of `no-pass-through` than its base pair. |
+| G5 | 0.4 | In the stress cell, each of the 6 lane pairs of `lanes-sides` has at least 10% fewer broken records of `no-pass-through` than its base pair. |
+| G6 | 0.55 | In the stress cell, `lanes-sides2` has fewer breaks of `no-pass-through` than `lanes-sides`, for at least 4 of the 6 pairs of a pack entry and a router. |
+| G7 | 0.75 | In the headline cell, each of the 18 lane pairs has a lower mean `joint.fill` than its base pair. |
+| G8 | 0.65 | In the headline cell of the full report, each of the 18 lane pairs misses the floor on more inputs than its base pair. |
+| G9 | 0.7 | In the headline cell of the full report, the best pair is `maxrects-cp+corners`, not a lane pair. |
+| G10 | 0.3 | In the headline cell of the full report, a lane pair of `portfolio` misses the floor on fewer inputs than `rows+portfolio` and than `select+portfolio`. |
+| G11 | 0.55 | In the stress cell of the full report, the best pair is a lane pair of `lanes-max`. |
+| G12 | 0.7 | Each shard takes less than 25 minutes on its inputs. The plan gives 25.0 minutes to the most costly shard, and L32 took 17.1 minutes. |
+
+### The reasons for the confidences
+
+In L32, 8 of 11 claims held. The claims that came from the code held. The 3 misses (S5, S8 and S9) were risky claims of a gain over a strong pair. Thus the claims from the code get 0.9, and the claims of a gain get 0.3 to 0.55. The mean confidence of the claims above is 0.67. Thus approximately 8 of the 12 claims hold, if the confidences are correct.
+
+- G1 comes from the code. A lane pass uses the same pack entry and router as its base pair, and both routers have no node limit. Only an error of `packing` with the new margins gives a skipped record.
+- G2 is a check of `packing` 0.2.17. The ranges permit a small change of the packs. In L32, `highways` 0.8.1 and `packing` 0.2.16 changed no number of the old pairs.
+- G3 comes from the code. A new pair can only make the floor of an input better or keep it. Thus the misses of a pair do not go down.
+- G4: in the stress cell, the boxes touch, and 926 of 936 records with routes broke `no-pass-through` in joint-v2. `lanes-max` gives each box with a lane a margin of 5 units or more on each side.
+- G4 is not 0.9. A margin of 10 on each box gave 0 breaks on `oversize`, and the margin of `lanes-max` can be smaller. A box without a counted lane keeps the margin 0.
+- G5 is a risky claim. `lanes-sides` gives space only to the sides with lanes. The second pack moves the boxes, and new sides touch. On the smoke input of the stress cell, `lanes-sides` gave more breaks than its base pair for `rows`.
+- G6: the second pass counts the lanes in the layout of the first pass, and the margins only grow. On the smoke input, `lanes-sides2` cut the breaks for 2 of 6 pairs and kept them for 3. Thus the claim is near an even chance.
+- G7: a margin only grows, so the boxes take more area. In a fixed container, the larger boxes overflow more, and an overflow box leaves the fill. A different pack can fill better by chance, so the claim is not 0.9.
+- G8 is the cost of the larger gaps. On most headline inputs, the hard level and the excess area tie, and `joint.fill` decides. The lane pairs fill less there. A gain comes only where the wider channels cut the routes above the cap.
+- G9: `maxrects-cp+corners` led by 23 misses in L32. Its 3 lane pairs fill less (G7). The floor moves for all pairs, so the lead stays.
+- G10 is a risky claim of a gain over the baselines. `portfolio` uses only `shared` above 40 nodes, and `shared` bundles its routes in lanes. Wider channels can cut its routes above the cap. But the lower fill loses on the other inputs (G8).
+- G11 is a risky claim. The hard level decides most picks of the stress cell, and `lanes-max` cuts the breaks (G4). But a margin in a fixed container gives overflow, and the best pair of L32 is `shelf-first-input+corners`, which has no lane pair.
+- G12: the plan of 25.0 minutes counts 3 pairs for each lane pass, which is more than the real cost. On the smoke input, a lane pair took 1.2 to 3.1 times the time of its base pair. The longest shard of L32 took 17.1 minutes. 18 lane pairs at 2 pairs each give approximately 17.1 × 166 / 130 = 21.8 minutes.
+
+### The numbers of the claims
+
+The job `analyze` of the run gives both reports in the artifact `joint-report`. A manual run with the input `records-run` gives them again from the records.
+
+| Id | Field | Section of the Markdown report |
+|---|---|---|
+| G1 | `lanes[].skipped` of `report.json` | The lane pairs |
+| G2 | `baselines` and `best` of the headline cell of `report-without-lanes.json` | The baseline rows+portfolio, and the cells |
+| G3 | `baselines` of the headline cell and of the stress cell, in both reports | The baseline rows+portfolio |
+| G4, G5 | `lanes[]` with the scope `stress`: `lane.broken` and `baseSide.broken` | The lane pairs |
+| G6 | `lanes[]` with the scope `stress`: `lane.breaks` of `lanes-sides2` and of `lanes-sides` | The lane pairs |
+| G7 | `lanes[]` with the scope `headline`: `lane.fill` and `baseSide.fill` | The lane pairs |
+| G8 | `compare` of the headline cell of `report.json`: `missesA` and `missesB` of each lane pair and its base pair | The pairwise comparisons |
+| G9 | `best.pair` of the headline cell of `report.json` | The cells |
+| G10 | `compare` of the headline cell of `report.json`: `missesA` of the lane pairs of `portfolio`, and `baselines` | The pairwise comparisons |
+| G11 | `best.pair` of the stress cell with the rule `all` and the cap 1.25, in `report.json` | The stress cell |
+| G12 | `shardTimes`: the step `Run one shard` of each shard | The shard times |
+
+- The rows of `lanes` do not depend on the rule or the cap. Thus G4 to G7 use one row for each lane pair and scope.
+- The report has each number of the claims. The rows of `lanes` do not split the inputs by the value of `spacing`. A claim for one value of `spacing` needs a new field.

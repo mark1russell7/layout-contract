@@ -229,7 +229,7 @@ export function sideLanes(graph: Graph, routes: readonly Route[], ids?: Readonly
   return out;
 }
 
-/** This function counts the sides that are too narrow for their lanes: a node faces the side, and the width is less than `laneNeed` of its lanes. */
+/** This function counts the sides that are too narrow for their lanes. A node faces such a side, and its width is less than `laneNeed` of its lanes. */
 export function shortSides(lanes: ReadonlyMap<string, BoxLanes>, options: LaneOptions = {}): number {
   let n = 0;
   for (const sides of lanes.values())
@@ -263,7 +263,7 @@ function marginOf(s: Sides): Margin | undefined {
 }
 
 /**
- * This function gives the boxes with the margins that the lanes need. A margin never becomes smaller.
+ * This function gives the boxes with the margins that the lanes need. A margin does not become smaller.
  *
  * - The need of a side with `k` lanes is `laneNeed(k)`. The two boxes of a channel share it, with the gap: each side gets `(need - gap) / 2`.
  * - With `sides`, each side of each placed box gets its own margin. The margin turns with the box.

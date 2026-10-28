@@ -516,7 +516,7 @@ export interface LaneRow {
   /** `headline`: the inputs outside the stress cell. `stress`: the stress inputs. */
   readonly scope: "headline" | "stress";
   readonly inputs: number;
-  /** The count of the inputs where the base pair has a record that is not skipped, and the lane pair has no record or a skipped record. */
+  /** The count of the inputs where the base pair has a record, and the lane pair has no record or a skipped record. A skipped base record does not count. */
   readonly skipped: number;
   /** The count of the inputs where the lane pair has the output hash of the base pair. */
   readonly same: number;
