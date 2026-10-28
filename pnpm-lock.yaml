@@ -213,7 +213,7 @@ importers:
         version: link:../layout-contract
       '@mark1russell7/packing':
         specifier: ^0.2.14
-        version: 0.2.16
+        version: 0.2.17
     devDependencies:
       '@mark1russell7/cue':
         specifier: ^1.0.2
@@ -465,12 +465,16 @@ packages:
   '@mark1russell7/highways@0.8.1':
     resolution: {integrity: sha512-jL3n3yCrKeG3+wixHX5wskwea8nDnZDZ+UwRsySQtBfYiKj0BlIh+iwDNwtclEwX3x663C/r4b50soraIYjh4A==}
 
+  '@mark1russell7/layout-contract@0.2.12':
+    resolution: {integrity: sha512-l2GYMp5c4Sa2ddKBWNXOMZIYx1Uf1+ROYhnpcWm1l1WU6KF3GiwxvMC0ObmlHt/YlsHScfoBvL2BtF72rY6Svw==}
+    engines: {node: '>=22.12'}
+
   '@mark1russell7/layout-contract@0.2.8':
     resolution: {integrity: sha512-HcSw08uMIHf0M/BdHa1JbrN3XNb3OHl6q1J3Ql9OwcmgWMSlOmz4wajMPcZLP0GugewqCRmwKNckARF6FxaJjg==}
     engines: {node: '>=22.12'}
 
-  '@mark1russell7/packing@0.2.16':
-    resolution: {integrity: sha512-HQQrjG3/9tkTsAcjphtSAa0GKimSMlv8mL1SJclwlbJwyCpnbQ76I+iZclERdzENxiO7vu360qtBiVAaKm6TGA==}
+  '@mark1russell7/packing@0.2.17':
+    resolution: {integrity: sha512-oIDTz9zq76Fe6fETCAt2eLbK5EeQ4hpgOhsbs30mR1qQVtPZIbnEqhyV/UQfutYQuzcBqg6Fb7NtrFb5T7ahiw==}
     engines: {node: '>=22.12'}
 
   '@mark1russell7/ste-lint@0.1.1':
@@ -1632,11 +1636,13 @@ snapshots:
     dependencies:
       '@mark1russell7/layout-contract': 0.2.8
 
+  '@mark1russell7/layout-contract@0.2.12': {}
+
   '@mark1russell7/layout-contract@0.2.8': {}
 
-  '@mark1russell7/packing@0.2.16':
+  '@mark1russell7/packing@0.2.17':
     dependencies:
-      '@mark1russell7/layout-contract': 0.2.8
+      '@mark1russell7/layout-contract': 0.2.12
 
   '@mark1russell7/ste-lint@0.1.1':
     dependencies:
