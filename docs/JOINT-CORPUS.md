@@ -59,6 +59,7 @@ Each edge has the id `e<k>`, in the order of the edges. Its `data.collection` is
 
 - `flat`: each box gets the group `g<c>` of its cluster `c`, in `group` and in `data.group`. The grouping rule `keys` of `highways` reads `data.group`.
 - `nested`: `group` is `g<c>`, and `data.group` is the path `G<floor(c / 4)>/g<c>`. Thus 4 clusters make one large group.
+- The rule `keys` of `highways` reads `data.group` as one key now. Thus a `nested` cell gives the same groups as a `flat` cell in `highways`. A new option of `keys` splits the path at `/`.
 - `sides`: each end of an edge gets its own port, with a random side and no position. The port of the source is `<edge id>.s`, and the port of the target is `<edge id>.t`.
 - `fixed`: each box gets a fixed port `out` with a chance of 0.2. The port has a random side and a random position on that side, rounded to 3 decimals.
 - The edges from a box with the port `out` use that port as their `sourcePort`. A fixed port has `x` and `y` relative to the box, thus a pack does not change it.
