@@ -4,7 +4,7 @@
 # and private members. The command `api-report check` compares this file with the built .d.ts files.
 # To accept a change of the API, start the build, then `api-report update`, and review the diff.
 
-## . (build/index.d.ts): 161 names
+## . (build/index.d.ts): 163 names
 
 ClaimBreak: build/index.d.ts#ClaimBreak
 ContainerTest: build/index.d.ts#ContainerTest
@@ -100,12 +100,14 @@ VERDICT_EXACT_MAX: build/index.d.ts#VERDICT_EXACT_MAX
 VERDICT_RUNS: build/index.d.ts#VERDICT_RUNS
 VERDICT_SEED: build/index.d.ts#VERDICT_SEED
 Verdict: build/index.d.ts#Verdict
+VerdictBreadth: build/index.d.ts#VerdictBreadth
 VerdictInterval: build/index.d.ts#VerdictInterval
 VerdictLabel: build/index.d.ts#VerdictLabel
 VerdictOptions: build/index.d.ts#VerdictOptions
 VerdictPermutation: build/index.d.ts#VerdictPermutation
 VerdictRecord: build/index.d.ts#VerdictRecord
 VerdictResult: build/index.d.ts#VerdictResult
+VerdictScope: build/index.d.ts#VerdictScope
 VerdictSide: build/index.d.ts#VerdictSide
 VerdictSignTest: build/index.d.ts#VerdictSignTest
 applyPack: build/index.d.ts#applyPack
@@ -814,6 +816,13 @@ export declare const VERDICT_SEED = 1;
 ### build/index.d.ts#Verdict
 export type Verdict = "better" | "worse" | "tie";
 
+### build/index.d.ts#VerdictBreadth
+export interface VerdictBreadth {
+  readonly against: number;
+  readonly of: number;
+  readonly ties: number;
+}
+
 ### build/index.d.ts#VerdictInterval
 export interface VerdictInterval {
   readonly mean: number;
@@ -865,8 +874,14 @@ export interface VerdictResult {
   readonly signTest: VerdictSignTest;
   readonly agree: boolean;
   readonly label: VerdictLabel;
+  readonly scope: VerdictScope;
+  readonly breadth: VerdictBreadth;
+  readonly summary: string;
   readonly dropped: readonly string[];
 }
+
+### build/index.d.ts#VerdictScope
+export type VerdictScope = "these families";
 
 ### build/index.d.ts#VerdictSide
 export type VerdictSide<R extends VerdictRecord = VerdictRecord> = string | ((record: R) => boolean);
