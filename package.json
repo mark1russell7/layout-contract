@@ -10,7 +10,7 @@
   "scripts": {
     "package": "template package",
     "template": "template repo",
-    "test": "pnpm -r run test && pnpm run test:release && pnpm run test:ai-review",
+    "test": "pnpm -r run test && pnpm run test:release && pnpm run test:ai-review && node scripts/check-shared.mjs",
     "test:release": "node --test \"scripts/release/*.test.mjs\"",
     "test:ai-review": "node --test \"scripts/ai-review/*.test.mjs\"",
     "typecheck": "pnpm -r run typecheck",
