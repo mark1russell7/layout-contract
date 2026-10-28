@@ -6,6 +6,7 @@ A joint input has boxes and edges, but no positions. The packer places the boxes
 - `edgeStep` of this package adds the edges, the groups and the ports to the base input.
 - The joint corpus `joint-v1` has 2 pairwise covering arrays over the 10 dimensions of the cells, with the seeds 1 to 3.
 - The joint corpus `joint-v2` adds the step `spacing` and its dimension `spacing`. Thus its cells have 11 dimensions.
+- The families of the joint corpora are on the shared family registry of `docs/CORPUS.md`. The manifests do not change.
 - The decision is `d14` of the tracker of `layout-stack`.
 
 ## The step `edges` (version 1)

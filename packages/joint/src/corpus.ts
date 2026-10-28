@@ -1,7 +1,8 @@
-import { documentHash, EDGE_STEP_VERSION, edgeStep, type EdgeStepParams, type LayoutInput } from "@mark1russell7/layout-contract";
+import { documentHash, EDGE_STEP_VERSION, type EdgeStepParams, type LayoutInput } from "@mark1russell7/layout-contract";
 import { generator, type CorpusCell, type GeneratorParams } from "@mark1russell7/packing";
 import { pairwise, type Dimensions, type Row } from "./pairwise.ts";
-import { spacingParams, spacingStep, SPACINGS, SPACING_STEP_VERSION, type Spacing, type SpacingParams } from "./spacing.ts";
+import { jointRegistry } from "./families.ts";
+import { spacingParams, SPACINGS, SPACING_STEP_VERSION, type Spacing, type SpacingParams } from "./spacing.ts";
 
 /** The name of the first corpus. Each input has it in `set`. It is frozen: the stress set of d7. */
 export const SET = "joint-v1";
@@ -232,7 +233,7 @@ export const JOINT_V2_CLAIMS: CorpusClaims = Object.freeze({
 
 /**
  * This function gives a corpus: `joint-v1` (the default) or `joint-v2`. The same version of the packages gives the same files, byte for byte.
- * For each spec and seed, the generator of `packing` gives the base input, and `edgeStep` adds the edges with the same seed.
+ * For each spec and seed, the family of `jointRegistry` gives the input: the generator of `packing`, then `edgeStep` with the same seed.
  * In `joint-v2`, `spacingStep` then sets the margins and the gap, and the part `.sp-<spacing>` ends the family.
  * The id is `<set>/<family>/s<seed>`. The family is the family of `packing` and the part of the edges.
  */
@@ -241,6 +242,7 @@ export function jointCorpus(set: JointSet = SET): JointCorpus {
   const inputs: LayoutInput[] = [];
   const entries: JointEntry[] = [];
   const ids = new Set<string>();
+  const registry = jointRegistry(set);
   for (const spec of specs) {
     const gen = generator(spec.generator);
     const edges = spec.steps[0].params;
@@ -254,16 +256,11 @@ export function jointCorpus(set: JointSet = SET): JointCorpus {
       ...(spacing === undefined ? {} : { spacing }),
     };
     for (const seed of spec.seeds) {
-      const base = gen.generate(seed, spec.params, set);
-      const family = `${base.family}.${edgeFamily(edges)}${spacing === undefined ? "" : `.sp-${spacing}`}`;
-      const id = `${set}/${family}/s${seed}`;
-      if (ids.has(id)) throw new RangeError(`The corpus has 2 inputs with the id "${id}".`);
-      ids.add(id);
-      const withEdges = edgeStep(base, edges, seed);
-      const stepped: LayoutInput = { ...(spacing === undefined ? withEdges : spacingStep(withEdges, { spacing }, seed)), id, family };
-      const file: LayoutInput = { ...stepped, hash: hashOf(stepped) };
+      const file = registry.generate(spec.generator, seed, { ...spec.params, ...edges, ...(spacing === undefined ? {} : { spacing }) }, { set });
+      if (ids.has(file.id)) throw new RangeError(`The corpus has 2 inputs with the id "${file.id}".`);
+      ids.add(file.id);
       inputs.push(file);
-      entries.push({ id, hash: file.hash!, cell, ...(spacing === "stress" ? { stress: true as const } : {}) });
+      entries.push({ id: file.id, hash: file.hash!, cell, ...(spacing === "stress" ? { stress: true as const } : {}) });
     }
   }
   const manifest: JointManifest = { schema: "layout-corpus/1", corpus: set, ...(set === SET ? {} : { claims: JOINT_V2_CLAIMS }), specs, inputs: entries };

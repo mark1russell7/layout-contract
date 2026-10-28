@@ -1,4 +1,5 @@
 export * from "./corpus.ts";
+export * from "./families.ts";
 export * from "./coverage.ts";
 export * from "./pairwise.ts";
 export * from "./spacing.ts";
