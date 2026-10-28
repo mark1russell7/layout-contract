@@ -10,8 +10,10 @@ export interface AnalysisInput {
   readonly spec: string;
   /** The board kind: the generator of the input, for example `rect-grid` or `gallery`. */
   readonly kind: string;
-  /** The cell of the input in the manifest. The analysis reads `containerSize` and `count`. */
+  /** The cell of the input in the manifest. The analysis reads `containerSize`, `count` and `spacing`. */
   readonly cell: Readonly<Record<string, string>>;
+  /** This value is true for an input of the stress cell of `joint-v2`: no margins and gap 0. The headline numbers do not use these inputs. */
+  readonly stress?: boolean;
 }
 
 /** The two rules of the cells of `highways`. Under `collection`, a shared segment with 2 collections is a hard break. */
@@ -82,6 +84,40 @@ export interface AnalysisOptions {
   readonly caps?: readonly number[];
   /** The parts of the ids of the inputs that must give no routes. The default is the fixed cases `empty` and `one`. */
   readonly quiet?: readonly string[];
+  /** The set of predictions that the report checks. The default is `joint-v1`. */
+  readonly predictions?: "joint-v1" | "joint-v2";
+}
+
+/** The routers of the prediction Q2 of `joint-v2`. */
+export const CLEAN_ROUTERS: readonly string[] = Object.freeze(["corners", "sections", "shared"]);
+
+/** The headline cell of the predictions: the rule `all` with the cap 1.25, as in the result of the first run. */
+export const HEADLINE: { readonly rule: "all"; readonly cap: number } = Object.freeze({ rule: "all", cap: 1.25 });
+
+/** The oracle gain of the headline cell of the first run on `joint-v1`. */
+export const V1_GAIN = 0.445;
+
+/** The best single pair of the headline cell of the first run on `joint-v1`. */
+export const V1_BEST = "shelf+corners";
+
+/** The counts of the breaks of `no-pass-through` of one router on the inputs of one value of spacing. */
+export interface ThroughCount {
+  readonly spacing: string;
+  readonly router: string;
+  /** The count of the records with one route or more. */
+  readonly routed: number;
+  /** The count of the records with one break of `no-pass-through` or more. */
+  readonly broken: number;
+  /** The sum of the breaks over the records. */
+  readonly breaks: number;
+  /** The count of the broken records by cause: `overlap` (the pack has an overlap), `overflow` (the pack has overflow) or `router`. */
+  readonly causes: Readonly<Record<string, number>>;
+}
+
+/** The report of the stress cell: the same cells as the headline, over the stress inputs only. */
+export interface StressReport {
+  readonly inputs: number;
+  readonly cells: readonly CellReport[];
 }
 
 /** One step of the pack ranking. */
@@ -194,6 +230,12 @@ export interface Report {
   readonly thinKinds: readonly { readonly kind: string; readonly inputs: number }[];
   readonly thinKindSizes: readonly { readonly kind: string; readonly inputs: number }[];
   readonly quiet: readonly QuietCheck[];
+  /** The count of the breaks of `no-pass-through` for each value of spacing and each router, over all inputs. */
+  readonly through: readonly ThroughCount[];
+  /** The report of the stress inputs. It is absent when the corpus has no stress input. */
+  readonly stress?: StressReport;
+  /** The mean `pack.fill` over the pack records of each value of spacing. */
+  readonly fillBySpacing: Readonly<Record<string, number>>;
   readonly predictions: readonly PredictionCheck[];
 }
 
@@ -588,16 +630,127 @@ export function checkPredictions(report: Omit<Report, "predictions">): Predictio
   ];
 }
 
+/** This function gives the router of a pair id. */
+export function routerOfPair(pair: string): string {
+  const at = pair.indexOf(PAIR_SEPARATOR);
+  return at < 0 ? pair : pair.slice(at + 1);
+}
+
+/** This function gives the cause of a break of `no-pass-through` in a record: a fault of the pack, or of the router. */
+function causeOf(record: LayoutRecord): string {
+  if ((record.hard["pack.no-overlap"] ?? 0) > 0) return "overlap";
+  if ((record.measures["pack.overflow"] ?? 0) > 0) return "overflow";
+  return "router";
+}
+
+/** This function counts the breaks of `no-pass-through` for each value of spacing and each router. An input with no value has the value `none`. */
+export function throughCounts(records: readonly LayoutRecord[], inputs: readonly AnalysisInput[]): ThroughCount[] {
+  const spacing = new Map(inputs.map((i) => [i.id, i.cell["spacing"] ?? "none"]));
+  const out = new Map<string, { spacing: string; router: string; routed: number; broken: number; breaks: number; causes: Record<string, number> }>();
+  for (const r of records) {
+    const sp = spacing.get(r.input);
+    if (sp === undefined || r.skipped !== undefined || (r.measures["joint.routes"] ?? 0) <= 0) continue;
+    const router = routerOfPair(r.strategy);
+    const key = `${sp}\u0000${router}`;
+    const c = out.get(key) ?? { spacing: sp, router, routed: 0, broken: 0, breaks: 0, causes: {} };
+    c.routed += 1;
+    const n = r.hard["route.no-pass-through"] ?? 0;
+    if (n > 0) {
+      c.broken += 1;
+      c.breaks += n;
+      const cause = causeOf(r);
+      c.causes[cause] = (c.causes[cause] ?? 0) + 1;
+    }
+    out.set(key, c);
+  }
+  return [...out.values()].sort((a, b) => (a.spacing < b.spacing ? -1 : a.spacing > b.spacing ? 1 : a.router < b.router ? -1 : a.router > b.router ? 1 : 0));
+}
+
+/** This function gives the mean `pack.fill` of the pack records of each value of spacing. A pack record is the first record of each pack entry on an input. */
+function fillOf(index: RecordIndex, inputs: readonly AnalysisInput[]): Record<string, number> {
+  const values = new Map<string, number[]>();
+  for (const i of inputs) {
+    const sp = i.cell["spacing"] ?? "none";
+    for (const r of index.pack.get(i.id)?.values() ?? []) {
+      const v = r.measures["pack.fill"];
+      if (typeof v === "number" && Number.isFinite(v)) values.set(sp, [...(values.get(sp) ?? []), v]);
+    }
+  }
+  return Object.fromEntries([...values].sort((a, b) => (a[0] < b[0] ? -1 : 1)).map(([sp, v]) => [sp, mean(v)]));
+}
+
+/** This function gives the verdict of each prediction for `joint-v2` of `docs/JOINT-BENCH.md` from a report. */
+export function checkPredictionsV2(report: Omit<Report, "predictions">): PredictionCheck[] {
+  const cells = report.cells;
+  const head = cells.find((c) => c.rule === HEADLINE.rule && c.cap === HEADLINE.cap);
+  const share = (c: CellReport, k: number): number => c.portfolios.find((p) => p.k === k)?.share.mean ?? Number.NaN;
+  const stress = report.through.filter((t) => t.spacing === "stress");
+  const stressOk = stress.length > 0 && stress.every((t) => t.broken === t.routed);
+  const clean = report.through.filter((t) => t.spacing !== "stress" && CLEAN_ROUTERS.includes(t.router));
+  const routerBreaks = clean.reduce((n, t) => n + (t.causes["router"] ?? 0), 0);
+  const causes: Record<string, number> = {};
+  for (const t of clean) for (const [k, v] of Object.entries(t.causes)) causes[k] = (causes[k] ?? 0) + v;
+  const below = cells.filter((c) => c.oracle.gain.mean < V1_GAIN).length;
+  const above = cells.filter((c) => c.oracle.gain.lo > 0).length;
+  const k3 = cells.filter((c) => share(c, 3) >= 0.6).length;
+  const fill = report.fillBySpacing;
+  const loose = cells.find((c) => c.rule === "all" && c.cap === Math.max(...cells.map((x) => x.cap)));
+  const changed = loose === undefined ? 0 : cells.filter((c) => c !== loose && (c.best.pair !== loose.best.pair || Math.abs(c.oracle.score - loose.oracle.score) > 0.005)).length;
+  const causeText = Object.keys(causes).length === 0 ? "none" : Object.entries(causes).map(([k, v]) => `${k} ${v}`).join(", ");
+  return [
+    {
+      id: "Q1",
+      held: stressOk,
+      detail: stress.map((t) => `${t.router} ${t.broken} of ${t.routed}`).join(", ") || "There is no stress record with routes.",
+    },
+    {
+      id: "Q2",
+      held: clean.length > 0 && routerBreaks === 0,
+      detail: `The broken records of ${CLEAN_ROUTERS.join(", ")} outside the stress cell, by cause: ${causeText}.`,
+    },
+    {
+      id: "Q3",
+      held: below === cells.length && above * 2 > cells.length,
+      detail: `The gain is below ${V1_GAIN} in ${below} of ${cells.length} cells, and its interval is above 0 in ${above} cells.`,
+    },
+    {
+      id: "Q4",
+      held: head !== undefined && !head.best.members.includes(V1_BEST),
+      detail: head === undefined ? "There is no headline cell." : `The best pair of the cell ${HEADLINE.rule} ${HEADLINE.cap} is ${head.best.pair}.`,
+    },
+    {
+      id: "Q5",
+      held: k3 * 2 > cells.length,
+      detail: `k = 3 gets at least 60% of the oracle gain in ${k3} of ${cells.length} cells.`,
+    },
+    {
+      id: "Q6",
+      held: fill["margin"] !== undefined && fill["gap"] !== undefined && fill["margin"] < fill["gap"],
+      detail: `The mean pack.fill is ${Object.entries(fill).map(([k, v]) => `${v.toFixed(3)} for ${k}`).join(", ")}.`,
+    },
+    {
+      id: "Q7",
+      held: changed >= 2,
+      detail: `${changed} cells have a best pair or an oracle score that differs from the cell all ${loose?.cap ?? "-"}.`,
+    },
+  ];
+}
+
 /**
  * This function analyzes the records of a joint run. It is pure: the same records and inputs give the same report.
  *
  * - It ranks the pack entries over all inputs and for each `containerSize`.
  * - For each cell of a rule and a cap, it finds the best single pair, the oracle and the greedy portfolios.
  * - Pairs with the same output hash on each input make one output group. A group counts as one candidate.
+ * - The headline numbers use only the inputs outside the stress cell. The field `stress` holds the cells of the stress inputs.
  */
-export function analyze(records: readonly LayoutRecord[], inputs: readonly AnalysisInput[], options: AnalysisOptions = {}): Report {
+export function analyze(records: readonly LayoutRecord[], allInputs: readonly AnalysisInput[], options: AnalysisOptions = {}): Report {
   const opts = { resamples: options.resamples ?? 1000, seed: options.seed ?? 1, sizes: options.sizes ?? PORTFOLIO_SIZES };
   const caps = options.caps ?? CAPS;
+  const inputs = allInputs.filter((i) => i.stress !== true);
+  const stressInputs = allInputs.filter((i) => i.stress === true);
+  const through = throughCounts(records, allInputs);
+  const allIds = new Set(allInputs.map((i) => i.id));
   const known = new Set(inputs.map((i) => i.id));
   const used = records.filter((r) => known.has(r.input));
   const index = indexRecords(used);
@@ -633,6 +786,7 @@ export function analyze(records: readonly LayoutRecord[], inputs: readonly Analy
 
   const cells: CellReport[] = [];
   if (groups.length > 0) for (const rule of RULES) for (const cap of caps) cells.push(cellReport(index, inputs, groups, rule, cap, bestPack, opts));
+  const stress = stressReport(records, stressInputs, caps, bestPack, opts);
 
   const quiet = (options.quiet ?? ["edge-cases.empty", "edge-cases.one"]).flatMap((part) =>
     inputs
@@ -655,8 +809,30 @@ export function analyze(records: readonly LayoutRecord[], inputs: readonly Analy
     thinKinds: thinBy(inputs, (i) => i.kind),
     thinKindSizes: thinBy(inputs, (i) => `${i.kind} ${i.cell["containerSize"] ?? "none"}`),
     quiet,
+    through,
+    ...(stress === undefined ? {} : { stress }),
+    fillBySpacing: fillOf(indexRecords(records.filter((r) => allIds.has(r.input))), allInputs),
   };
-  return { ...base, predictions: checkPredictions(base) };
+  return { ...base, predictions: options.predictions === "joint-v2" ? checkPredictionsV2(base) : checkPredictions(base) };
+}
+
+/** This function gives the cells of the stress inputs, with the pack entry of the headline as the best pack. */
+function stressReport(
+  records: readonly LayoutRecord[],
+  inputs: readonly AnalysisInput[],
+  caps: readonly number[],
+  bestPack: string,
+  opts: Required<Pick<AnalysisOptions, "resamples" | "seed" | "sizes">>,
+): StressReport | undefined {
+  if (inputs.length === 0) return undefined;
+  const known = new Set(inputs.map((i) => i.id));
+  const index = indexRecords(records.filter((r) => known.has(r.input)));
+  const hashes: Record<string, string[]> = {};
+  for (const pair of index.pairs) hashes[pair] = inputs.map((i) => index.at.get(i.id)?.get(pair)?.outputHash ?? "skipped");
+  const groups = index.pairs.length === 0 ? [] : outputGroups(hashes);
+  const cells: CellReport[] = [];
+  if (groups.length > 0) for (const rule of RULES) for (const cap of caps) cells.push(cellReport(index, inputs, groups, rule, cap, bestPack, opts));
+  return { inputs: inputs.length, cells };
 }
 
 /** This function writes a number with 3 decimals, or a dash for a value that is not finite. */
@@ -703,6 +879,19 @@ export function reportMarkdown(report: Report): string {
   for (const r of report.packs) lines.push(`| ${r.scope} | ${r.inputs} | ${r.order.map((s) => `${s.id} (${f3(s.excessArea)}, ${f3(s.fill)})`).join(", ")} | ${r.order[0]?.thin ? `yes (${f3(r.order[0].cleanShare)})` : "no"} |`);
   lines.push("", "### Overflow by container size", "", "| Container size | Inputs | Inputs with overflow |", "|---|---|---|");
   for (const [size, f] of Object.entries(report.overflow.byContainerSize)) lines.push(`| ${size} | ${f.inputs} | ${f.overflowing} |`);
+  if (report.through.length > 0) {
+    lines.push("", "### The breaks of no-pass-through by spacing", "", "| Spacing | Router | Records with routes | Broken records | Breaks | Causes |", "|---|---|---|---|---|---|");
+    for (const t of report.through) lines.push(`| ${t.spacing} | ${t.router} | ${t.routed} | ${t.broken} | ${t.breaks} | ${Object.entries(t.causes).map(([k, v]) => `${k} ${v}`).join(", ") || "-"} |`);
+  }
+  const fill = Object.entries(report.fillBySpacing);
+  if (fill.length > 0) lines.push("", "### The pack fill by spacing", "", fill.map(([k, v]) => `- ${k}: ${f3(v)}`).join("\n"));
+  if (report.stress !== undefined) {
+    lines.push("", `### The stress cell (${report.stress.inputs} inputs)`, "", "| Rule | Cap | Best pair | Misses | Score | Oracle | Gain | k = 3 share | k = 8 share |", "|---|---|---|---|---|---|---|---|---|");
+    for (const c of report.stress.cells) {
+      const k = (n: number): string => interval(c.portfolios.find((p) => p.k === n)?.share);
+      lines.push(`| ${c.rule} | ${c.cap} | ${c.best.pair} | ${c.best.misses} | ${f3(c.best.score)} | ${f3(c.oracle.score)} | ${interval(c.oracle.gain)} | ${k(3)} | ${k(8)} |`);
+    }
+  }
   lines.push("", "### Thin board kinds", "");
   lines.push(report.thinKinds.length === 0 ? "Each board kind has 10 inputs or more." : report.thinKinds.map((t) => `- ${t.kind}: ${t.inputs} inputs`).join("\n"));
   lines.push("", report.thinKindSizes.length === 0 ? "Each board kind has 10 inputs or more for each container size." : `By container size: ${report.thinKindSizes.map((t) => `${t.kind} (${t.inputs})`).join(", ")}.`, "");

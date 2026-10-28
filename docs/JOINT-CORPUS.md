@@ -5,6 +5,7 @@ A joint input has boxes and edges, but no positions. The packer places the boxes
 - The base of a joint input is an input of a generator of `packing` (`docs/FORMAT.md` of `packing`).
 - `edgeStep` of this package adds the edges, the groups and the ports to the base input.
 - The joint corpus `joint-v1` has 2 pairwise covering arrays over the 10 dimensions of the cells, with the seeds 1 to 3.
+- The joint corpus `joint-v2` adds the step `spacing` and its dimension `spacing`. Thus its cells have 11 dimensions.
 - The decision is `d14` of the tracker of `layout-stack`.
 
 ## The step `edges` (version 1)
@@ -28,6 +29,47 @@ The parameters:
 | `hubBy` | `area`, `random` | `area` |
 
 `hubs` is not a value of `LayoutCell.edgeShape` yet. It becomes a value at the next breaking change of the contract.
+
+## The step `spacing` (version 1)
+
+`spacingStep(input, { spacing }, seed)` of `packages/joint/src/spacing.ts` gives a new input. The input does not change. The step is in the joint package, not in the contract.
+
+- The step removes each margin of the boxes. Then it sets the margin of each box and the gap of the input from the value of `spacing`.
+- It sets `margin` only when the margin is above 0. It always sets `gap`, also to 0.
+- It appends its stamp `{ name: "spacing", version: 1, params: { spacing, margin, gap }, seed }` to `steps`.
+- It removes `hash`, as each step does.
+
+| `spacing` | Margin of each box | Gap | Space between two boxes | Space between a box and an obstacle |
+|---|---|---|---|---|
+| `stress` | 0 | 0 | 0 | 0 |
+| `gap` | 0 | 10 | 10 | 5 |
+| `margin` | 10 | 0 | 20 | 10 |
+| `both` | 5 | 5 | 15 | 7.5 |
+
+### The reasons of the values
+
+The values come from the router of `highways` and from the frame of `packing` 0.2.6. Decision `d3` tells the meaning of the margin and the gap.
+
+- The router puts its corners 5 units from each bare box: this is its option `margin`, with the default 5.
+- The router drops a corner inside another box with the pad 2.5. It examines each segment with the same pad.
+- Thus a channel between two boxes needs 7.5 units or more. A corner 5 units from box A must be 2.5 units or more from box B.
+- The route clearance `ROUTE_CLEARANCE` is 10: two times the corner margin. Then the two corner lines meet in one middle line, 5 units from each box.
+- The frame of `packing` grows each box by its margin and half the gap. It grows each obstacle by half the gap.
+- Thus two placed boxes are 2m + g apart, and a box is m + g/2 from an obstacle. The border space is m + inset.
+- Each pack strategy (`rows`, `skyline`, `shelf` and `maxrects`) uses this frame. The test `spacing.test.ts` measures the spaces of each pack entry.
+
+Thus the values are these:
+
+- `stress` is the stress cell of decision `d7`: margin 0 and gap 0. The rule `no-pass-through` fails there.
+- `gap` puts the full clearance into the gap. It has no margins.
+- `margin` puts the full clearance into the margin of each box. It has the gap 0.
+- `both` puts half of the clearance into each.
+
+Some facts of the values:
+
+- The router of `highways` 0.5.1 ignores the margin of a box, the gap, the inset and the container. It sees only the bare boxes.
+- The value `gap` leaves only 5 units between a box and an obstacle. This is less than the 7.5 units of a channel.
+- The value `margin` gives 20 units between two boxes, two times the space of `gap`. Thus its fill is lower for 2 reasons, not only at the border.
 
 ## The order of the random numbers
 
@@ -120,3 +162,30 @@ Thus the corpus has 95 specs (55, 37 and 3) and 285 inputs.
 - The cell has the values of `packing`, with the 4 dimensions of the edges. Its `edgeShape` can be `hubs`.
 - The test of the package compares the corpus with the manifest. After a change of the corpus, write the manifest again with the script `corpus` of the package.
 - The joint runner comes later. It uses `packing` and `highways` from npm, and CI starts the benchmark.
+
+## The corpus `joint-v2`
+
+`jointCorpus("joint-v2")` gives the second corpus. The corpus `joint-v1` stays frozen: its manifest, its inputs and its tests do not change.
+
+- The specs are the specs of `joint-v1`, with `spacing` as the 11th dimension of the 2 arrays.
+- The function `pairwise` makes each array again, with the same seed. The test gets a share of 1 for each array.
+- `spacing` is a dimension of the cell types of the joint package, not of `LayoutCell` of the contract.
+- After `edgeStep`, the step `spacing` sets the margins and the gap of each input. The hash comes from the file after the 2 steps.
+
+| Array | Dimensions | Rows |
+|---|---|---|
+| `grid` | the 9 dimensions of `joint-v1`, and `spacing` 4 | 59 |
+| `ui` | the 6 dimensions of `joint-v1`, and `spacing` 4 | 36 |
+
+- The fixed cases `empty` and `one` have the value `both`. They give no routes, so 1 value is sufficient.
+- The fixed case `oversize` has each of the 4 values.
+- Thus the corpus has 101 specs (59, 36 and 6) and 303 inputs.
+- 81 inputs have the value `stress`, 78 `gap`, 66 `margin` and 78 `both`.
+
+### The files of `joint-v2`
+
+- The id of an input is `joint-v2/<family>/s<seed>`. The family of `joint-v1` gets the part `.sp-<spacing>`.
+- The manifest is `packages/joint/corpus/joint-v2/corpus.json`. Each spec has the stamps of the steps `edges` and `spacing`.
+- Each entry of the stress cell has the field `stress: true`. The cell of each entry has the value `spacing`.
+- The manifest has the field `claims`. The section "The corpus check" of `docs/JOINT-BENCH.md` tells the claims.
+- The script `corpus` of the package writes the manifests of the 2 corpora. `pnpm corpus joint-v2` writes only `joint-v2`.

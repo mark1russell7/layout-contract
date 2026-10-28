@@ -1,7 +1,7 @@
 import type { LayoutInput } from "@mark1russell7/layout-contract";
 import { describe, expect, it } from "vitest";
 import { insideLength, jointMeasures, placementFacts, segmentsCross, spearman } from "./joint-measures.ts";
-import { capBreaks, jointHash, mixedSegments, packedInput, packInputOf, PACK_ENTRIES, pairId, ROUTERS, runInput, shardOf } from "./runner.ts";
+import { factMeasures, jointHash, packedInput, packInputOf, PACK_ENTRIES, pairId, PORTFOLIO_ROUTER, ROUTERS, runInput, shardOf } from "./runner.ts";
 
 const fixed = (w: number, h: number) => ({ fixed: "size" as const, w, h });
 
@@ -106,10 +106,11 @@ describe("runInput", () => {
 });
 
 describe("the parts of the runner", () => {
-  it("lists 12 pack entries and the 9 routers", () => {
+  it("lists 12 pack entries and the 10 routers", () => {
     expect(PACK_ENTRIES).toHaveLength(12);
-    expect(ROUTERS).toHaveLength(9);
+    expect(ROUTERS).toHaveLength(10);
     expect(ROUTERS).toContain("corners");
+    expect(ROUTERS.at(-1)).toBe(PORTFOLIO_ROUTER);
     expect(pairId("rows", "corners")).toBe("rows+corners");
   });
 
@@ -133,19 +134,12 @@ describe("the parts of the runner", () => {
     expect(jointHash("a", "b")).not.toBe(jointHash("b", "a"));
   });
 
-  it("counts the routes above each cap against the base routes", () => {
-    const base = [{ edge: "e", points: [{ x: 0, y: 0 }, { x: 10, y: 0 }] }];
-    const long = [{ edge: "e", points: [{ x: 0, y: 0 }, { x: 0, y: 6 }, { x: 10, y: 6 }, { x: 10, y: 0 }] }];
-    expect(capBreaks(long, base)).toEqual({ "route.cap.1.1": 1, "route.cap.1.25": 1, "route.cap.1.5": 1 });
-    expect(capBreaks(base, base)).toEqual({ "route.cap.1.1": 0, "route.cap.1.25": 0, "route.cap.1.5": 0 });
-    expect(capBreaks(long, undefined)["route.cap.1.1"]).toBe(0);
-  });
-
-  it("counts the shared segments with 2 collections", () => {
-    const edge = (id: string, collection?: string) => ({ id, source: { node: "a" }, target: { node: "b" }, ...(collection === undefined ? {} : { data: { collection } }) });
-    const graph = { nodes: [], edges: [edge("e0", "x"), edge("e1", "x"), edge("e2", "y"), edge("e3")] };
-    const run = (edges: string[]) => ({ id: edges.join(), key: "k", edges, points: [] });
-    expect(mixedSegments(graph, { routes: [], runs: [run(["e0", "e1"]), run(["e0", "e2"]), run(["e3"])] })).toBe(1);
+  it("writes the facts of portfolioFacts as the cap counts, route.mixed and the hard counts", () => {
+    const facts = { hard: { "no-pass-through": 2, complete: 0 }, over: (cap: number) => (cap < 1.2 ? 3 : 0), mixed: 1 };
+    expect(factMeasures(facts)).toEqual({
+      measures: { "route.cap.1.1": 3, "route.cap.1.25": 0, "route.cap.1.5": 0, "route.mixed": 1 },
+      hard: { "route.no-pass-through": 2 },
+    });
   });
 
   it("gives each input to one shard", () => {
