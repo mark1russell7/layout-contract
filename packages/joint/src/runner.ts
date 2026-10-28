@@ -562,6 +562,8 @@ export function runInput(input: LayoutInput, cell: Readonly<Record<string, unkno
   }
 
   // The iteration pairs of L11. Each pack entry and router has one chain of rounds. The round caps of its iteration pairs read prefixes of the chain.
+  // The iteration pairs use the lane options of the run. An iteration entry has no options of its own.
+  const laneOpts = runLane;
   const floor = options.iterFloor ?? ITER_FLOOR_SPACE;
   const inputIds = new Set(input.boxes.map((b) => b.id));
   const chains = new Map<string, IterChain | { readonly ok: false; readonly reason: string }>();
