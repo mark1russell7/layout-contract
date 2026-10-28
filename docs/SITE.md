@@ -100,3 +100,20 @@ W5 and W6 are the risky claims. The tables, the long pair names and the strategy
 | W4 | held (local) | A joint file without its fields and a file with broken JSON each stopped the build with exit code 1. |
 | W5 | open | The local checks start no browser. |
 | W6 | open | CI starts after the push. |
+
+## The prediction for the joint compare and the playground
+
+This prediction comes before the code of roadmap item L43. Before this prediction, we read the registries of the engines and timed 2 inputs in Node.
+
+| Id | Confidence | Claim |
+|---|---|---|
+| J1 | 0.7 | The full compare of 130 pairs on a 100-box input of `joint-v2` finishes in less than 8 seconds in a desktop browser. |
+| J2 | 0.5 | The new pages and their worker add less than 300 KB of JavaScript after gzip. |
+| J3 | 0.9 | The joint runner operates in a browser bundle after one change: `runEnv` moves to a Node file. `packages/layout-contract` does not change. |
+| J4 | 0.85 | The completeness test finds 3 strategies of `packing` that the bench does not use: `push`, `portfolio` and `aspect-fit`. It finds no such router. |
+| J5 | 0.45 | The spaces that the site makes from the registries pass `checkSpace` at the first test run, with no fix. |
+| J6 | 0.8 | Each declared option has a control. At least 85% of the controls set a value. The other controls show a fixed value, for example a function. |
+| J7 | 0.6 | The records of the new pair-by-pair runner are the same as the records of `runInput`, so the parity tests pass with no change. |
+| J8 | 0.4 | The CI of the pull request passes on the first push, with no fix commit. |
+
+J2, J5 and J8 are the risky claims. The size of `highways` is the risk of J2: its build is 945 KB before minification. The special values of `highways` (for example `Infinity`) are the risk of J5.
