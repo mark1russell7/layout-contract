@@ -1,5 +1,4 @@
-import { createHash } from "node:crypto";
-import { EDGE_STEP_VERSION, edgeStep, type EdgeStepParams, type LayoutInput } from "@mark1russell7/layout-contract";
+import { documentHash, EDGE_STEP_VERSION, edgeStep, type EdgeStepParams, type LayoutInput } from "@mark1russell7/layout-contract";
 import { generator, type CorpusCell, type GeneratorParams } from "@mark1russell7/packing";
 import { pairwise, type Dimensions, type Row } from "./pairwise.ts";
 
@@ -138,24 +137,9 @@ export function edgeFamily(edges: EdgeParams): string {
   return `e-${edges.edgeDensity}.${edges.edgeShape}.${edges.groups}.${edges.ports}`;
 }
 
-/**
- * This function gives the canonical form of a value: sorted keys and no whitespace, with the numbers of `JSON.stringify`.
- * A key with the value `undefined` is not in the form.
- */
-export function canonicalJson(value: unknown): string {
-  if (value === null || typeof value !== "object") return JSON.stringify(value) ?? "null";
-  if (Array.isArray(value)) return `[${value.map((v: unknown) => (v === undefined ? "null" : canonicalJson(v))).join(",")}]`;
-  const o = value as Record<string, unknown>;
-  const keys = Object.keys(o)
-    .filter((k) => o[k] !== undefined)
-    .sort();
-  return `{${keys.map((k) => `${JSON.stringify(k)}:${canonicalJson(o[k])}`).join(",")}}`;
-}
-
-/** This function gives the hash of an input file: the first 16 hex characters of the SHA-256 of its canonical form without `hash`. */
+/** This function gives the hash of an input file. It is `documentHash` of `@mark1russell7/layout-contract`. */
 export function hashOf(file: LayoutInput): string {
-  const { hash: _hash, ...rest } = file;
-  return createHash("sha256").update(canonicalJson(rest), "utf8").digest("hex").slice(0, 16);
+  return documentHash(file);
 }
 
 /**

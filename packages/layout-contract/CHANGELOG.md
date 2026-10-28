@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.2.5
+
+- `outputHash(value, options)` gives the first 16 hex characters of the SHA-256 of the canonical JSON of an output. Each number goes to the grid of `RECORD_EPS` first.
+- The option `grid` (`HashOptions`) sets the step of the grid. The value `0` keeps the exact numbers. A number that is not finite causes a `RangeError`.
+- `documentHash` gives the input hash of `docs/FORMAT.md` of `packing`. `sha256Hex` and `canonicalJson` are its parts, with no runtime dependencies.
+- `outputGroups` puts the candidates with equal output hashes on each decision input in one `OutputGroup`. `exercised` tells if a candidate has an effect.
+- `docs/PROMOTION.md` tells the two promotion guards. They are the same in `packing` and `highways`.
+
 ## 0.2.4
 
 - `rectInRegion(region, rect)` tells if all of a rectangle is inside a region and not over a hole. A polygon can be concave.
