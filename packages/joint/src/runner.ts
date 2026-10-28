@@ -695,7 +695,7 @@ export function* pairRuns(input: LayoutInput, cell: Readonly<Record<string, unkn
 }
 
 /**
- * This function runs each pair of a pack entry and a router on one input, and gives one `layout-record/1` for each pair.
+ * This function packs and routes one input with each pair of a pack entry and a router. It gives one `layout-record/1` for each pair.
  *
  * - The runner packs the input, drops the overflow boxes and their edges, and routes the placed boxes.
  * - Pack entries with the same output share the routes of each router.

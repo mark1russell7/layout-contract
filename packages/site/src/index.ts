@@ -5,6 +5,7 @@ import jointText from "../content/joint.md?raw";
 import leadText from "../content/lead.md?raw";
 import spaceText from "../content/space.md?raw";
 import sweepText from "../content/sweep.md?raw";
+import { initBuild, initTheme } from "./chrome.ts";
 import { checkJoint, checkNews, checkSpaceFile, type JointData, type NewsData, type SpaceFile } from "./data.ts";
 import { renderJoint } from "./joint.ts";
 import { renderNews } from "./news.ts";
@@ -48,27 +49,11 @@ if (problems.length > 0) {
   box.innerHTML = `<strong>Some data files are not good:</strong><ul>${problems.map((p) => `<li>${esc(p)}</li>`).join("")}</ul>`;
 }
 
-byId("build").textContent = `Built ${__BUILD__.date} from commit ${__BUILD__.sha}.`;
-
-// The theme: auto (the setting of the system), light or dark. The page keeps the choice.
-const THEMES = ["auto", "light", "dark"] as const;
-type Theme = (typeof THEMES)[number];
-const themeButton = byId<HTMLButtonElement>("theme");
-const applyTheme = (theme: Theme): void => {
-  if (theme === "auto") delete document.documentElement.dataset["theme"];
-  else document.documentElement.dataset["theme"] = theme;
-  themeButton.textContent = `Theme: ${theme}`;
-};
-let theme: Theme = THEMES.find((t) => t === localStorage.getItem("theme")) ?? "auto";
-applyTheme(theme);
-themeButton.addEventListener("click", () => {
-  theme = THEMES[(THEMES.indexOf(theme) + 1) % THEMES.length]!;
-  localStorage.setItem("theme", theme);
-  applyTheme(theme);
-});
+initBuild();
+initTheme();
 
 // The navigation marks the section on the screen.
-const links = [...document.querySelectorAll<HTMLAnchorElement>(".nav a")];
+const links = [...document.querySelectorAll<HTMLAnchorElement>(".nav a")].filter((a) => a.getAttribute("href")?.startsWith("#") === true);
 const observer = new IntersectionObserver(
   (entries) => {
     for (const e of entries) {

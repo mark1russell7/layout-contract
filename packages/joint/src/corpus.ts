@@ -146,7 +146,7 @@ export interface JointCorpus {
 }
 
 /** This function gives the full parameters of `edgeStep` of a row. */
-function edgesOf(row: Row): EdgeParams {
+export function jointEdgesOf(row: Row): EdgeParams {
   return {
     edgeDensity: row["edgeDensity"] as EdgeParams["edgeDensity"],
     edgeShape: row["edgeShape"] as EdgeParams["edgeShape"],
@@ -184,12 +184,12 @@ export function jointSpecs(set: JointSet = SET): JointSpec[] {
       "grid",
       "rect-grid",
       { containerSize: row["containerSize"]!, containerShape: row["containerShape"]!, obstacles: row["obstacles"]!, sizes: row["sizes"]!, count: COUNTS[row["count"]!]! },
-      edgesOf(row),
+      jointEdgesOf(row),
       spacingOf(row),
     ),
   );
-  const ui = pairwise(dims.ui, ARRAY_SEED).map((row) => jointSpecOf("ui", row["family"]!, { containerSize: row["containerSize"]! }, edgesOf(row), spacingOf(row)));
-  const fixedEdges = edgesOf({ edgeDensity: "medium", edgeShape: "random", groups: "none", ports: "free" });
+  const ui = pairwise(dims.ui, ARRAY_SEED).map((row) => jointSpecOf("ui", row["family"]!, { containerSize: row["containerSize"]! }, jointEdgesOf(row), spacingOf(row)));
+  const fixedEdges = jointEdgesOf({ edgeDensity: "medium", edgeShape: "random", groups: "none", ports: "free" });
   const fixed = FIXED_CASES.flatMap((c) =>
     set === SET ? [jointSpecOf("fixed", "edge-cases", { case: c }, fixedEdges)] : FIXED_SPACINGS[c]!.map((s) => jointSpecOf("fixed", "edge-cases", { case: c }, fixedEdges, s)),
   );

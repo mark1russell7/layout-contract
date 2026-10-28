@@ -67,6 +67,31 @@ Add the item at the top of `items` in `packages/site/data/news.json`. Take the d
 
 The items L35 and L36 add a data folder for the sweep results, its check in `src/data.ts`, and the section. Until then, the section shows no data.
 
+## The joint pages
+
+The site has two more pages: `compare.html` and `playground.html`. Both use the joint runner of the benchmark in a Web Worker, one pair at a time. The page stays responsive, and the button "Stop" ends the worker.
+
+- **Compare all pairs:** pick one input, then the packers and the routers. All are on by default. The page draws each pair, with its verdict of the floor, its score, `joint.fill`, the pass-through count, the overflow and the time. The order is the order of the benchmark: the fewest misses, then the highest score.
+- **Playground:** pick any packer and any router, and set each option. The page shows the config id of the joint config and the record of the pair.
+
+The compare takes inputs of up to 100 boxes. The playground takes each input, and it shows a warning above 100 boxes.
+
+### Where the lists come from
+
+The Vite plugin `jointCatalog` makes the module `virtual:joint-catalog` at build time. A new strategy or option of an engine shows up after the next build, with no change of the site.
+
+| List | Source |
+|---|---|
+| The packers | `strategies` and `composites` of `@mark1russell7/packing`. The bench entries are `PACK_ENTRIES` of `@layout-contract/joint`. Each other strategy gets one entry, marked "not in the bench". |
+| The routers | `listStrategies(STRATEGIES, "router")` of `@mark1russell7/highways`, then `portfolio`. They are `ROUTERS` of the joint benchmark. |
+| The options of a router | The field `schema` of each strategy, with `optionDefaults`. `portfolio` has no schema, so the site makes one from `PORTFOLIO_RULES`, `PORTFOLIO_CAPS`, `PORTFOLIO_KS_API` and `PORTFOLIO_HASHES`. |
+| The options of a packer | The field `defaults` of each strategy. `packing` declares no schema, so the site makes a range from each default and tags it "site range". `PACK_EXTRAS` in `src/engines.ts` lists the options without a default. |
+| The inputs | `jointCorpus("joint-v2")`. The build compares each hash with the committed manifest. |
+
+The spaces come from `packSpace` and `routeSpace` when an engine exports them. Until then, the site makes the two spaces from the lists. The joint space is `productSpace(pack, route, "joint")`.
+
+The test `src/completeness.test.ts` fails when a strategy, a router or an option has no place on the pages.
+
 ## Local commands
 
 From the root of the repository:
@@ -117,3 +142,16 @@ This prediction comes before the code of roadmap item L43. Before this predictio
 | J8 | 0.4 | The CI of the pull request passes on the first push, with no fix commit. |
 
 J2, J5 and J8 are the risky claims. The size of `highways` is the risk of J2: its build is 945 KB before minification. The special values of `highways` (for example `Infinity`) are the risk of J5.
+
+### The local scores of the joint prediction
+
+| Id | Score | Facts |
+|---|---|---|
+| J1 | open | The local checks start no browser. In Node, the built worker did 160 pairs on the preset "bundled" (100 boxes) in 7.7 seconds. The 130 bench pairs on a corpus input of 100 boxes took 2.4 seconds. |
+| J2 | held (local) | After gzip, the worker is 143 KB, the catalog 16 KB, the compare page 4 KB and the playground 6 KB. A shared chunk is 21 KB. The total is less than 200 KB. |
+| J3 | held | `runEnv` moved to `src/env.ts`. The new entry `@layout-contract/joint/browser` does not export it, `plan.ts` or `split.ts`. `packages/layout-contract` did not change. |
+| J4 | held | The extra packers are `push`, `portfolio` and `aspect-fit(select)`. Each router of `highways` is a bench router. |
+| J5 | held | The two spaces and the joint space passed `checkSpace` at the first probe, with no fix. |
+| J6 | held | Each declared option has a control. 103 of the 117 controls set a value (88%): 101 params and the 2 controls of the wrapped strategy. 14 controls show a fixed value: a function, a list or an object. |
+| J7 | held | The parity tests of `packages/joint` passed with no change. A new test compares `pairRuns` with `runInput`. |
+| J8 | open | CI starts after the push. |
