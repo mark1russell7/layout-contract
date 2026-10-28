@@ -2,13 +2,15 @@
 
 ## 0.2.1
 
+The first version on npm. The versions 0.2.0 and 0.1.0 are only in git. npm does not have them.
+
 - A record can have `outputHash`, the hash of the output of the stage. A reader compares two runs with one field.
 - A record can have `msRuns`, the time of each timed repeat. `ms` is their median.
 - A record can have `env` (`RunEnv`), the facts of the computer of the run.
 
 ## 0.2.0
 
-The first version on npm. The version 0.1.0 is only in git, at commit `52fefbb`. npm does not have it.
+This version is only in git, at commit `710ec51`. npm does not have it. The version 0.1.0 is only in git, at commit `52fefbb`.
 
 - The type-fit tests of `highways` (highways#82) and `packing` (packing#21) found gaps. This version closes the gaps of the contract.
 - `Port.side` and `LayoutInput.container` are optional. A record must have `LayoutRecord.ms`.
