@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.2.2
+
+- `compareMeasure(candidate, baseline, spec)` gives `better`, `worse` or `tie` for one measure on one input. A change of at most `max(RECORD_EPS, minEffect)` is a tie. The test is symmetric, and a tie is not better.
+- `MeasureSpec` has the field `minEffect`: an absolute change, or `{ rel }`, a share of the larger of the two values. Each joint guard in `JOINT_MEASURES` has a value. `minEffectOf` gives the threshold.
+
 ## 0.2.1
 
 The first version on npm. The versions 0.2.0 and 0.1.0 are only in git. npm does not have them.

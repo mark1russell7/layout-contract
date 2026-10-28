@@ -13,7 +13,7 @@ The package has no runtime dependencies.
 | The packer | `PackInput`, `toPackInput`, `Placement`, `PackOutput`, `StageTrace`, `applyPack` |
 | The record `layout-record/1` | `LayoutRecord`, `Stage`, `Supports`, `RunFacts`, `RunEnv`, `toLayoutRecord` |
 | The strategies | `StrategyInfo` |
-| The measures | `MeasureSpec`, `Direction`, `JointMeasureId`, `JOINT_MEASURES`, `JOINT_MOVED_MIN` |
+| The measures | `MeasureSpec`, `Direction`, `JointMeasureId`, `JOINT_MEASURES`, `JOINT_MOVED_MIN`, `Verdict`, `compareMeasure`, `minEffectOf` |
 | The turn | `turnBox`, `turnPort`, `turnMargin`, `turnRegion`, `turnSide`, `turnPoint` |
 | The tolerances | `EPS`, `RECORD_EPS`, `Tolerance`, `DEFAULT_TOLERANCE` |
 | The hard rules | `countOverlaps`, `countObstacleHits`, `regionHitsRect`, `countOutside`, `countPortsOffBorder`, `packHard`, `PackHard`, `placedRect`, `checkInput` |

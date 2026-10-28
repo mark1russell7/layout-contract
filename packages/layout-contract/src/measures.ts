@@ -1,3 +1,5 @@
+import { RECORD_EPS } from "./tolerance.ts";
+
 /** The direction of a measure: the side of the better values. */
 export type Direction = "lower" | "higher";
 
@@ -20,6 +22,11 @@ export interface MeasureSpec<Id extends string = string> {
   readonly floor?: number;
   /** The absolute tolerance at the floor. */
   readonly tol?: number;
+  /**
+   * The smallest change that counts as better or worse. A number is an absolute change. `{ rel }` is a share of the larger of the two values.
+   * `docs/JOINT-MEASURES.md` gives the reason of each joint value.
+   */
+  readonly minEffect?: number | { readonly rel: number };
   /** The role of the measure in the joint selector. */
   readonly role?: "guard" | "change-guard" | "diagnostic" | "time";
 }
@@ -38,16 +45,44 @@ export type JointMeasureId =
 
 /** The specs of the joint measures, in the order of `docs/JOINT-MEASURES.md`. */
 export const JOINT_MEASURES: readonly MeasureSpec<JointMeasureId>[] = Object.freeze([
-  { id: "joint.fill", unit: "0 to 1", direction: "higher", min: 0, max: 1, floor: 1, role: "guard" },
-  { id: "joint.aspectError", unit: "natural log", direction: "lower", min: 0, max: Infinity, floor: 0, tol: 0.01, role: "guard" },
-  { id: "joint.spill", unit: "0 to 1", direction: "lower", min: 0, max: 1, floor: 0, tol: 0.001, role: "guard" },
-  { id: "joint.straight.crossings", unit: "count", direction: "lower", min: 0, max: Infinity, floor: 0, tol: 0, role: "guard" },
-  { id: "joint.straight.length", unit: "S for each edge", direction: "lower", min: 0, max: Infinity, floor: 0, tol: 0.01, role: "guard" },
-  { id: "joint.stability.mean", unit: "W", direction: "lower", min: 0, max: Infinity, floor: 0, tol: 0.005, role: "change-guard" },
-  { id: "joint.stability.moved", unit: "0 to 1", direction: "lower", min: 0, max: 1, floor: 0, tol: 0.02, role: "change-guard" },
+  { id: "joint.fill", minEffect: 0.001, unit: "0 to 1", direction: "higher", min: 0, max: 1, floor: 1, role: "guard" },
+  { id: "joint.aspectError", minEffect: 0.01, unit: "natural log", direction: "lower", min: 0, max: Infinity, floor: 0, tol: 0.01, role: "guard" },
+  { id: "joint.spill", minEffect: 0.001, unit: "0 to 1", direction: "lower", min: 0, max: 1, floor: 0, tol: 0.001, role: "guard" },
+  { id: "joint.straight.crossings", minEffect: 0, unit: "count", direction: "lower", min: 0, max: Infinity, floor: 0, tol: 0, role: "guard" },
+  { id: "joint.straight.length", minEffect: 0.01, unit: "S for each edge", direction: "lower", min: 0, max: Infinity, floor: 0, tol: 0.01, role: "guard" },
+  { id: "joint.stability.mean", minEffect: 0.005, unit: "W", direction: "lower", min: 0, max: Infinity, floor: 0, tol: 0.005, role: "change-guard" },
+  { id: "joint.stability.moved", minEffect: 0.02, unit: "0 to 1", direction: "lower", min: 0, max: 1, floor: 0, tol: 0.02, role: "change-guard" },
   { id: "joint.proxy.rank", unit: "-1 to 1", direction: "higher", min: -1, max: 1, role: "diagnostic" },
   { id: "joint.ms", unit: "milliseconds", direction: "lower", min: 0, max: Infinity, role: "time" },
 ] as const);
 
 /** The threshold of `joint.stability.moved`, in widths `W` of the base. */
 export const JOINT_MOVED_MIN = 0.01;
+
+/** The result of a compare of a candidate with a baseline on one measure. A tie is not better. */
+export type Verdict = "better" | "worse" | "tie";
+
+/**
+ * This function gives the smallest change of a measure that counts between the values `a` and `b`.
+ * The value is `max(RECORD_EPS, minEffect)`, or `max(RECORD_EPS, rel * max(|a|, |b|))` for a relative `minEffect`.
+ * The larger value makes the threshold the same after a swap of `a` and `b`.
+ */
+export function minEffectOf(spec: Pick<MeasureSpec, "minEffect">, a = 0, b = 0): number {
+  const m = spec.minEffect ?? 0;
+  const t = typeof m === "number" ? m : m.rel * Math.max(Math.abs(a), Math.abs(b));
+  return Math.max(RECORD_EPS, Number.isFinite(t) ? t : 0);
+}
+
+/**
+ * This function compares the value `candidate` with the value `baseline` of one measure on one input.
+ * A change of at most `minEffectOf(spec, candidate, baseline)` is a tie. The test is symmetric: a swap of the two values swaps better and worse.
+ * Two equal values are a tie, also two infinite values. A value `NaN` is an error.
+ */
+export function compareMeasure(candidate: number, baseline: number, spec: Pick<MeasureSpec, "direction" | "minEffect">): Verdict {
+  if (Number.isNaN(candidate) || Number.isNaN(baseline)) throw new RangeError("compareMeasure: a value is NaN");
+  if (candidate === baseline) return "tie";
+  const delta = candidate - baseline;
+  if (!(Math.abs(delta) > minEffectOf(spec, candidate, baseline))) return "tie";
+  const better = spec.direction === "lower" ? delta < 0 : delta > 0;
+  return better ? "better" : "worse";
+}

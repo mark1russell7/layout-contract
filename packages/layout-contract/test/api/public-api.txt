@@ -4,7 +4,7 @@
 # and private members. The command `api-report check` compares this file with the built .d.ts files.
 # To accept a change of the API, start the build, then `api-report update`, and review the diff.
 
-## . (build/index.d.ts): 58 names
+## . (build/index.d.ts): 61 names
 
 DEFAULT_TOLERANCE: build/index.d.ts#DEFAULT_TOLERANCE
 Direction: build/index.d.ts#Direction
@@ -42,15 +42,18 @@ StageTrace: build/index.d.ts#StageTrace
 StrategyInfo: build/index.d.ts#StrategyInfo
 Supports: build/index.d.ts#Supports
 Tolerance: build/index.d.ts#Tolerance
+Verdict: build/index.d.ts#Verdict
 applyPack: build/index.d.ts#applyPack
 boundsOf: build/index.d.ts#boundsOf
 checkInput: build/index.d.ts#checkInput
+compareMeasure: build/index.d.ts#compareMeasure
 countObstacleHits: build/index.d.ts#countObstacleHits
 countOutside: build/index.d.ts#countOutside
 countOverlaps: build/index.d.ts#countOverlaps
 countPortsOffBorder: build/index.d.ts#countPortsOffBorder
 grow: build/index.d.ts#grow
 marginSides: build/index.d.ts#marginSides
+minEffectOf: build/index.d.ts#minEffectOf
 overlapOf: build/index.d.ts#overlapOf
 packHard: build/index.d.ts#packHard
 placedRect: build/index.d.ts#placedRect
@@ -210,6 +213,9 @@ export interface MeasureSpec<Id extends string = string> {
   readonly family?: string;
   readonly floor?: number;
   readonly tol?: number;
+  readonly minEffect?: number | {
+    readonly rel: number;
+  };
   readonly role?: "guard" | "change-guard" | "diagnostic" | "time";
 }
 
@@ -367,6 +373,9 @@ export interface Tolerance {
   readonly through: number;
 }
 
+### build/index.d.ts#Verdict
+export type Verdict = "better" | "worse" | "tie";
+
 ### build/index.d.ts#applyPack
 export declare function applyPack(input: LayoutInput, output: PackOutput): LayoutInput;
 
@@ -375,6 +384,9 @@ export declare function boundsOf(region: Region): Rect;
 
 ### build/index.d.ts#checkInput
 export declare function checkInput(input: LayoutInput): readonly string[];
+
+### build/index.d.ts#compareMeasure
+export declare function compareMeasure(candidate: number, baseline: number, spec: Pick<MeasureSpec, "direction" | "minEffect">): Verdict;
 
 ### build/index.d.ts#countObstacleHits
 export declare function countObstacleHits(boxes: readonly LayoutBox[], obstacles: readonly Obstacle[] | undefined, tolerance?: number): number;
@@ -393,6 +405,9 @@ export declare function grow(rect: Rect, margin: Margin | undefined): Rect;
 
 ### build/index.d.ts#marginSides
 export declare function marginSides(margin: Margin | undefined): Sides;
+
+### build/index.d.ts#minEffectOf
+export declare function minEffectOf(spec: Pick<MeasureSpec, "minEffect">, a?: number, b?: number): number;
 
 ### build/index.d.ts#overlapOf
 export declare function overlapOf(a: Rect, b: Rect): {

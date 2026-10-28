@@ -10,17 +10,17 @@ A joint run packs an input, and then routes the edges of the same input. The `jo
 
 ## The table
 
-| Name | Unit | Better | Floor | Tol | Role |
-|---|---|---|---|---|---|
-| `joint.fill` | 0 to 1 | higher | 1 | none | guard |
-| `joint.aspectError` | natural log | lower | 0 | 0.01 | guard |
-| `joint.spill` | 0 to 1 | lower | 0 | 0.001 | guard |
-| `joint.straight.crossings` | count | lower | 0 | 0 | guard |
-| `joint.straight.length` | `S` for each edge | lower | 0 | 0.01 | guard |
-| `joint.stability.mean` | `W` | lower | 0 | 0.005 | guard on change pairs |
-| `joint.stability.moved` | 0 to 1 | lower | 0 | 0.02 | guard on change pairs |
-| `joint.proxy.rank` | -1 to 1 | higher | none | none | diagnostic |
-| `joint.ms` | milliseconds | lower | none | none | time |
+| Name | Unit | Better | Floor | Tol | Min effect | Role |
+|---|---|---|---|---|---|---|
+| `joint.fill` | 0 to 1 | higher | 1 | none | 0.001 | guard |
+| `joint.aspectError` | natural log | lower | 0 | 0.01 | 0.01 | guard |
+| `joint.spill` | 0 to 1 | lower | 0 | 0.001 | 0.001 | guard |
+| `joint.straight.crossings` | count | lower | 0 | 0 | 0 | guard |
+| `joint.straight.length` | `S` for each edge | lower | 0 | 0.01 | 0.01 | guard |
+| `joint.stability.mean` | `W` | lower | 0 | 0.005 | 0.005 | guard on change pairs |
+| `joint.stability.moved` | 0 to 1 | lower | 0 | 0.02 | 0.02 | guard on change pairs |
+| `joint.proxy.rank` | -1 to 1 | higher | none | none | none | diagnostic |
+| `joint.ms` | milliseconds | lower | none | none | none | time |
 
 ## The definitions
 
@@ -36,6 +36,17 @@ A joint run packs an input, and then routes the edges of the same input. The `jo
 - `route.stability.moved` counts a route as moved above 1 unit of the board. Thus on a large board, `joint.stability.moved` and `route.stability.moved` are different.
 - `joint.proxy.rank` is the Spearman rank correlation, over the edges, between the straight length and the length of the route. A value near 1 tells that `joint.straight.length` is a good proxy for the length of the routes. Then a packer can optimize the proxy.
 - `joint.ms` is the time of the pack plus the time of the route, in milliseconds. The time test of the promotion rule uses it.
+
+## The minimum effects
+
+`compareMeasure` of this package gives `better`, `worse` or `tie` for one measure on one input. A change of at most `max(RECORD_EPS, minEffect)` is a tie, and a tie is not better. The tie applies only to the classification of each input: the sign test, the wins and the flips. The tests of the median, the tail and the bootstrap read the raw values.
+
+- `joint.fill` and `joint.spill` (0.001): a share of 0.001 is the precision of a written file of 1000 boxes.
+- `joint.aspectError` (0.01): the same value as `pack.aspectError`, so the two aspects compare.
+- `joint.straight.crossings` (0): a count. The threshold is `RECORD_EPS`, so a change of 1 counts.
+- `joint.straight.length` (0.01): 1% of the side of a mean box. A smaller change does not change the routes.
+- `joint.stability.mean` (0.005) and `joint.stability.moved` (0.02): the same values as their `tol` and as the twins of `pack.stability.*`.
+- `joint.proxy.rank` and `joint.ms` have no minimum effect. The selector does not test the diagnostic, and the time test uses its own ratio.
 
 ## The roles
 
