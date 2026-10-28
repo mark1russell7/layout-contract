@@ -292,7 +292,16 @@ Q2 failed for the spacings with one part only:
 | `gap` | 17 | 19 | 17 | 837 |
 | `margin` | 8 | 14 | 8 | 756 |
 
-The value `gap` leaves 5 units between a box and an obstacle, below the channel of 7.5. The value `margin` gives 20 units between boxes, but 10 units to an obstacle. Thus only `both` gives the router enough space. `plugs` and `straight` break the rule on almost each record, because they draw straight lines.
+The broken records of `corners` and `shared` are the same records: 17 for `gap` and 8 for `margin`. The broken records of `sections` hold them, and 2 more for `gap`. `plugs` and `straight` break the rule on almost each record, because they draw straight lines.
+
+A correction (2026-10-28): an earlier text gave the cause as a gap of 5 units, below the channel of 7.5. The rebuild of the 84 broken records shows a different fact:
+
+- The distance from each box that a route passes to its nearest box is the spacing of the cell. It is 10 for `gap`, 20 for `margin` and 15 for `both`. Each value is wider than the channel.
+- In the cells `gap` and `margin`, most of the boxes that a route passes are `extremeAspect` slivers, 1.3 to 4 units thick.
+- Most first breaks are on the first segment out of the source box. Some routes pass an obstacle.
+- 16 of the 17 records of `gap` come from 1 spec with slivers: `rect-grid.freeHeight.circle.corridors.extremeAspect`.
+
+Thus a thin box between two lanes is the likely cause. The work item CLEARANCE-GAP of `highways` examines it.
 
 Q6 compares cells with different mixes of inputs. Thus a part of the difference in fill comes from the mix, not from the margin.
 
@@ -343,3 +352,39 @@ The joint-v2 run held 5 of its 7 claims. The 2 misses were claims about the rout
 | R9 | 0.75 | The greedy portfolio with k = 3 gets at least 60% of the oracle gain in each of the 6 cells. |
 
 R4 gives the number with the hard tail. R5 shows the effect of the new versions alone. R7 and R8 are the risky claims.
+
+## The result of the L28 run
+
+The run [40685494092](https://github.com/mark1russell7/layout-contract/actions/runs/40685494092) of 2026-10-28 used the commit `e54d81f`. It used `highways` 0.6.0 and `packing` 0.2.10, with 64 shards and 120 pairs.
+
+All 303 inputs have records, 36360 records in total. The line "Records: 26640" of the report counts only the 222 inputs outside the stress cell.
+
+### The verdicts
+
+| Id | Confidence | Held | Facts |
+|---|---|---|---|
+| R1 | 0.85 | yes | 303 of 303 inputs have records. Analyze passed without `--allow-missing`. |
+| R2 | 0.9 | yes | No record breaks `pack.no-overlap`, with each pack. |
+| R3 | 0.65 | yes | `corners` has 0 broken records for `both`, 17 for `gap` and 8 for `margin`. These are the same counts as in the joint-v2 run. |
+| R4 | 0.6 | yes | The oracle gain of the headline cell on 222 inputs is 0.217 [0.168, 0.269]. |
+| R5 | 0.55 | yes | On the subset of 207 inputs, the gain is 0.210 [0.164, 0.260]. The joint-v2 run gave 0.196. |
+| R6 | 0.5 | yes | The best pair of the headline cell is `maxrects-cp+corners`. |
+| R7 | 0.45 | no | The 3 shards of the dense spec took 85, 87 and 93 minutes. The plan predicted 21.8 minutes. |
+| R8 | 0.4 | no | The oracle gain at the count 1k is 0.103 [0.053, 0.159]. |
+| R9 | 0.75 | yes | The share of k = 3 is 0.653 to 0.771 in the 6 cells. |
+
+7 of 9 claims held. The 2 risky claims failed.
+
+### What the result shows
+
+- The hard tail changes the headline only a little. The 15 new inputs outside the stress cell move the gain from 0.210 to 0.217.
+- The dense spec with hubs adds no gain at the count 1k, and no break of `corners`.
+- The new versions alone move the gain on the subset from 0.196 to 0.210. The interval of joint-v2 holds this value.
+- The dense spec takes approximately 45 seconds for each pair. The faster exact search of `highways` 0.6.0 did not make it fast. The cost model of the plan underestimates it by a factor of 4.
+- The headline cell has 42 misses, against 55 in joint-v2. The stress cell keeps `shelf-first-input+corners` as its best pair, with a gain of 0.368.
+
+### The scope of the result
+
+- The output hashes of `shared` and `sections` depend on the major version of Node. The order of the lanes in a run differs between Node 24 and Node 26. No route point moves, so the break counts do not change (`highways` #129).
+- The CI of the benchmark uses Node 26. Thus the records of joint-v2 and of this run compare with each other. `highways` 0.8.0 fixes the lane order, and the hashes of these 2 routers change one time.
+- The cause of the breaks through the slivers is open. See the correction under the result of the joint-v2 run.
