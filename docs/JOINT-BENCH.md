@@ -402,3 +402,15 @@ All 303 inputs have records, 36360 records in total. The line "Records: 26640" o
 - The output hashes of `shared` and `sections` depend on the major version of Node. The order of the lanes in a run differs between Node 24 and Node 26. No route point moves, so the break counts do not change (`highways` #129).
 - The CI of the benchmark uses Node 26. Thus the records of joint-v2 and of this run compare with each other. `highways` 0.8.0 fixes the lane order, and the hashes of these 2 routers change one time.
 - The cause of the breaks through the slivers is open. See the correction under the result of the joint-v2 run.
+
+## The prediction for the sequential baseline (L10)
+
+The baseline is the default pack and the default router in sequence: `rows+portfolio`. Each co-optimization idea gets a score against it, on the same corpus and seeds. The first numbers come from the records of the run 40685494092, with no new run. This prediction comes before the analysis of the baseline.
+
+| Id | Confidence | Claim |
+|---|---|---|
+| B1 | 0.7 | In the headline cell, the baseline has more misses than the best pair, which has 42. |
+| B2 | 0.5 | In the headline cell, the score of the best pair is higher than the score of the baseline by 0.05 or more. |
+| B3 | 0.55 | In the headline cell, the oracle score is higher than the score of the baseline by 0.25 or more. |
+| B4 | 0.4 | In the stress cell with the cap 1.25, the score of the best pair is higher than the score of the baseline by 0.1 or more. |
+| B5 | 0.75 | In each of the 6 cells, the greedy portfolio with k = 3 has a higher score than the baseline on the held-out seeds. |
