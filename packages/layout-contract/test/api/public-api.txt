@@ -4,7 +4,7 @@
 # and private members. The command `api-report check` compares this file with the built .d.ts files.
 # To accept a change of the API, start the build, then `api-report update`, and review the diff.
 
-## . (build/index.d.ts): 209 names
+## . (build/index.d.ts): 211 names
 
 CORPUS_DIMENSIONS: build/index.d.ts#CORPUS_DIMENSIONS
 CellsOptions: build/index.d.ts#CellsOptions
@@ -67,6 +67,7 @@ PACK_HARD_RULES: build/index.d.ts#PACK_HARD_RULES
 PackHard: build/index.d.ts#PackHard
 PackInput: build/index.d.ts#PackInput
 PackOutput: build/index.d.ts#PackOutput
+PairGap: build/index.d.ts#PairGap
 ParamKind: build/index.d.ts#ParamKind
 ParamValue: build/index.d.ts#ParamValue
 ParamWhen: build/index.d.ts#ParamWhen
@@ -140,6 +141,7 @@ VerdictSignTest: build/index.d.ts#VerdictSignTest
 applyPack: build/index.d.ts#applyPack
 boundsOf: build/index.d.ts#boundsOf
 canonicalConfig: build/index.d.ts#canonicalConfig
+canonicalInput: build/index.d.ts#canonicalInput
 canonicalJson: build/index.d.ts#canonicalJson
 checkConfig: build/index.d.ts#checkConfig
 checkDeclared: build/index.d.ts#checkDeclared
@@ -515,6 +517,7 @@ export interface LayoutInput {
   readonly step?: number;
   readonly container?: LayoutContainer;
   readonly gap?: number;
+  readonly pairGaps?: readonly PairGap[];
   readonly boxes: readonly LayoutBox[];
   readonly edges?: readonly LayoutEdge[];
   readonly obstacles?: readonly Obstacle[];
@@ -581,6 +584,7 @@ export interface MemberRule {
   readonly min: number;
   readonly max: number;
   readonly ordered: boolean;
+  readonly pool?: readonly (readonly StrategyConfig[])[];
 }
 
 ### build/index.d.ts#MemberStatus
@@ -639,6 +643,7 @@ export interface PackInput {
   readonly items: readonly Item[];
   readonly obstacles?: readonly Obstacle[];
   readonly gap?: number;
+  readonly pairGaps?: readonly PairGap[];
 }
 
 ### build/index.d.ts#PackOutput
@@ -655,6 +660,14 @@ export interface PackOutput {
     readonly y: number;
   }[];
   readonly trace?: readonly StageTrace[];
+}
+
+### build/index.d.ts#PairGap
+export interface PairGap {
+  readonly a: string;
+  readonly b: string;
+  readonly gap: number;
+  readonly lanes?: number;
 }
 
 ### build/index.d.ts#ParamKind
@@ -1107,6 +1120,9 @@ export declare function boundsOf(region: Region): Rect;
 
 ### build/index.d.ts#canonicalConfig
 export declare function canonicalConfig(space: StrategySpace, config: StrategyConfig): StrategyConfig;
+
+### build/index.d.ts#canonicalInput
+export declare function canonicalInput<T extends LayoutInput>(input: T): T;
 
 ### build/index.d.ts#canonicalJson
 export declare function canonicalJson(value: unknown): string;

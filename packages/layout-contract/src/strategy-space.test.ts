@@ -15,6 +15,7 @@ import {
   splitConfig,
   STRATEGY_SPACE_SCHEMA,
   type OptionSupports,
+  type StageOption,
   type StrategyConfig,
   type StrategySpace,
 } from "./index.ts";
@@ -411,5 +412,122 @@ describe("shape kinds of the options (L46)", () => {
     expect(spaceSize(joint, { levels: 1, shapes: ["circle"] }).base).toBe(6n * spaceSize(route, { levels: 1 }).base);
     expect(enumerateSpace(joint, { mode: "grid", levels: 1, shapes: ["circle"] })).toHaveLength(24);
     expect(spaceShapeKinds(joint)).toEqual(["rect", "circle"]);
+  });
+});
+
+describe("the pool of a meta option (L39)", () => {
+  // A model of cell-portfolio of packing: one fixed list of 11 members, unordered, with a param of 3 values.
+  const grid = enumerateSpace(pack, { mode: "grid", levels: 3 });
+  const eleven = grid.slice(0, 11);
+  const cellPortfolio = (pool?: readonly (readonly StrategyConfig[])[]): StageOption => ({
+    id: "cell-portfolio",
+    params: [{ name: "k", kind: "enum", values: ["cell", 2, 3], default: "cell" }],
+    members: { min: 11, max: 11, ordered: false, ...(pool === undefined ? {} : { pool }) },
+  });
+  const withCell = (option: StageOption, from: StrategySpace = pack): StrategySpace => ({
+    ...from,
+    stages: from.stages.map((s) => (s.name === "combine" ? { ...s, options: [...s.options, option] } : s)),
+  });
+  const pooled = withCell(cellPortfolio([eleven]));
+  const open = withCell(cellPortfolio());
+  const cellConfig = (members: readonly StrategyConfig[], k: string | number = "cell"): StrategyConfig => ({
+    space: "pack",
+    stages: { combine: { option: "cell-portfolio", params: { k }, members } },
+  });
+  const choose = (n: bigint, k: bigint): bigint => {
+    let out = 1n;
+    for (let i = 0n; i < k; i++) out = (out * (n - i)) / (i + 1n);
+    return out;
+  };
+
+  it("keeps each configId: the pool is not part of a config or of its id", () => {
+    expect(checkSpace(pooled)).toEqual([]);
+    expect(configId(pooled, maxrectsCp)).toBe(PINNED);
+    expect(configId(pooled, pack.named!["portfolio-k2"]!)).toBe(configId(pack, pack.named!["portfolio-k2"]!));
+    expect(configId(pooled, cellConfig(eleven))).toBe(configId(open, cellConfig(eleven)));
+    expect(configId(pooled, cellConfig([...eleven].reverse()))).toBe(configId(pooled, cellConfig(eleven)));
+  });
+
+  it("counts the option once for each pool entry: a pool of 1 list gives the multiplier 1", () => {
+    const portfolio = spaceSize(pack, { levels: 3 }).meta!;
+    expect(spaceSize(pooled, { levels: 3 })).toEqual({ base: 216n, meta: portfolio + 3n * 1n });
+    expect(spaceSize(open, { levels: 3, maxMeta: 10n ** 30n }).meta).toBe(portfolio + 3n * choose(216n, 11n));
+    const two = withCell(cellPortfolio([eleven, grid.slice(11, 22)]));
+    expect(spaceSize(two, { levels: 3 }).meta).toBe(portfolio + 3n * 2n);
+    expect(spaceSize(pooled, { levels: 3, maxMeta: portfolio }).meta).toBeNull();
+  });
+
+  it("refuses a member list that is not in the pool, in any order of an unordered rule", () => {
+    expect(checkConfig(pooled, cellConfig(eleven))).toEqual([]);
+    expect(checkConfig(pooled, cellConfig([...eleven].reverse(), 2))).toEqual([]);
+    const other = checkConfig(pooled, cellConfig([...eleven.slice(1), grid[11]!]));
+    expect(other.map((b) => [b.claim, b.detail])).toEqual([["pool", "the option combine.cell-portfolio has a member list that is not in its pool of 1 list"]]);
+    expect(checkConfig(pooled, cellConfig(eleven.slice(1))).map((b) => b.claim)).toEqual(["members"]);
+    expect(checkConfig(open, cellConfig([...eleven.slice(1), grid[11]!]))).toEqual([]);
+  });
+
+  it("keeps the order of the members in an ordered pool", () => {
+    const ordered = withCell({ ...cellPortfolio(), members: { min: 2, max: 2, ordered: true, pool: [[maxrectsCp, shelfFirst]] } });
+    expect(checkSpace(ordered)).toEqual([]);
+    expect(checkConfig(ordered, cellConfig([maxrectsCp, shelfFirst]))).toEqual([]);
+    expect(checkConfig(ordered, cellConfig([shelfFirst, maxrectsCp])).map((b) => b.claim)).toEqual(["pool"]);
+  });
+
+  it("finds a bad pool in checkSpace", () => {
+    const of = (pool: unknown): string[][] => checkSpace(withCell(cellPortfolio(pool as StrategyConfig[][]))).map((b) => [b.claim, b.detail]);
+    expect(of([])).toEqual([["pool", "the option combine.cell-portfolio has a pool that is not a list of one or more member lists"]]);
+    expect(of([eleven, 3])).toEqual([["pool", "the option combine.cell-portfolio has a pool that is not a list of one or more member lists"]]);
+    expect(of([eleven.slice(1)])).toEqual([["members", "the pool entry 0 of the option combine.cell-portfolio has 10 members, not 11 to 11"]]);
+    expect(of([eleven, [...eleven].reverse()])).toEqual([["duplicate", "the pool entries 0 and 1 of the option combine.cell-portfolio have the same members"]]);
+    const bad = [...eleven.slice(1), { space: "pack", stages: { order: { option: "area" }, placement: { option: "guillotine" } } }];
+    expect(of([bad]).map((b) => b[0])).toEqual(["unknown"]);
+    expect(of([[...eleven.slice(1), eleven[0]!]])).toEqual([]);
+  });
+
+  it("gives only pool entries in a sample, and no meta option in a grid", () => {
+    const two = withCell(cellPortfolio([eleven, grid.slice(11, 22)]));
+    const keys = new Set([eleven, grid.slice(11, 22)].map((e) => e.map((m) => configId(pack, m)).sort().join(",")));
+    const sample = enumerateSpace(two, { mode: "sample", n: 60, seed: 4, meta: "sample" });
+    expect(enumerateSpace(two, { mode: "sample", n: 60, seed: 4, meta: "sample" })).toEqual(sample);
+    const cells = sample.filter((c) => c.stages["combine"]?.option === "cell-portfolio");
+    expect(cells.length).toBeGreaterThan(1);
+    const seen = new Set<string>();
+    for (const c of cells) {
+      expect(checkConfig(two, c)).toEqual([]);
+      const key = c.stages["combine"]!.members!.map((m) => configId(pack, m)).join(",");
+      expect(keys.has(key)).toBe(true);
+      seen.add(key);
+    }
+    expect(seen.size).toBe(2);
+    expect(enumerateSpace(two, { mode: "grid", levels: 3 })).toEqual(grid);
+  });
+
+  it("applies the shape filter to the members of each pool entry", () => {
+    const shaped: StrategySpace = {
+      ...pack,
+      stages: pack.stages.map((s) => ({
+        ...s,
+        options: s.options.map((o) => (s.name !== "placement" ? o : { ...o, supports: { shape: o.id === "maxrects" ? ["rect"] : ["rect", "circle"] } })),
+      })),
+    };
+    const circles = enumerateSpace(shaped, { mode: "grid", levels: 3, shapes: ["circle"] });
+    expect(circles).toHaveLength(36);
+    const round = circles.slice(0, 11);
+    const space = withCell(cellPortfolio([round, eleven]), shaped);
+    expect(checkSpace(space)).toEqual([]);
+    // circle: 36 base configs. portfolio: C(36, 2) + C(36, 3) = 7770. cell-portfolio: 3 params x 1 entry that fits.
+    expect(spaceSize(space, { levels: 3, shapes: ["circle"] })).toEqual({ base: 36n, meta: 7770n + 3n });
+    expect(spaceSize(space, { levels: 3 }).meta).toBe(spaceSize(pack, { levels: 3 }).meta! + 3n * 2n);
+    expect(spaceSize(space, { levels: 3, shapes: ["polygon"] })).toEqual({ base: 0n, meta: 0n });
+    const sample = enumerateSpace(space, { mode: "sample", n: 40, seed: 2, meta: "sample", shapes: ["circle"] });
+    const cells = sample.filter((c) => c.stages["combine"]?.option === "cell-portfolio");
+    expect(cells.length).toBeGreaterThan(0);
+    for (const c of cells) {
+      expect(checkConfig(space, c, { shapes: ["circle"] })).toEqual([]);
+      expect(c.stages["combine"]!.members!.every((m) => m.stages["placement"]!.option === "shelf")).toBe(true);
+    }
+    const breaks = checkConfig(space, cellConfig(eleven), { shapes: ["circle"] });
+    expect(breaks.length).toBeGreaterThan(0);
+    expect(breaks.every((b) => b.claim === "shape")).toBe(true);
   });
 });

@@ -1,5 +1,5 @@
 import { boundsOf, grow, overlapOf, type Rect, type Region } from "./geometry.ts";
-import type { LayoutBox, LayoutInput, Obstacle } from "./input.ts";
+import type { LayoutBox, LayoutInput, Obstacle, PairGap } from "./input.ts";
 import { applyPack, type PackOutput } from "./output.ts";
 import { SHAPE_KIND_IDS, shapeKindProblem, type ShapeSupport } from "./shapes.ts";
 import { DEFAULT_TOLERANCE, EPS, RECORD_EPS } from "./tolerance.ts";
@@ -318,6 +318,7 @@ export function packHard(input: LayoutInput, output: PackOutput, tolerance: numb
 /**
  * This function gives the problems of an input file. An empty list tells that the file is good.
  * A problem is a bad input, not a break of a hard rule. Thus an engine refuses the input.
+ * In `pairGaps`, an unknown box, a pair of one box, a repeated pair in either order, a bad `gap` and bad `lanes` are problems.
  */
 export function checkInput(input: LayoutInput): readonly string[] {
   const problems: string[] = [];
@@ -334,5 +335,31 @@ export function checkInput(input: LayoutInput): readonly string[] {
   for (const edge of input.edges ?? []) {
     if (!ids.has(edge.source) || !ids.has(edge.target)) problems.push(`edge ${edge.id}: a box of the edge is not in the input`);
   }
+  problems.push(...pairGapProblems(input.pairGaps, ids));
+  return problems;
+}
+
+/** This function gives the problems of the `pairGaps` of an input. `ids` has the ids of the boxes. */
+function pairGapProblems(pairGaps: LayoutInput["pairGaps"], ids: ReadonlySet<string>): string[] {
+  if (pairGaps === undefined) return [];
+  if (!Array.isArray(pairGaps)) return ["pairGaps: the value is not a list"];
+  const problems: string[] = [];
+  const seen = new Map<string, number>();
+  pairGaps.forEach((p: PairGap, i) => {
+    const at = `pair gap ${i} (${String(p?.a)}, ${String(p?.b)})`;
+    if (typeof p !== "object" || p === null || typeof p.a !== "string" || typeof p.b !== "string") {
+      problems.push(`pair gap ${i}: the entry has no string ids a and b`);
+      return;
+    }
+    for (const id of [p.a, p.b]) if (!ids.has(id)) problems.push(`${at}: the box ${id} is not in the input`);
+    if (p.a === p.b) problems.push(`${at}: the two ids are the same box`);
+    if (typeof p.gap !== "number" || !Number.isFinite(p.gap) || p.gap < 0) problems.push(`${at}: the gap ${String(p.gap)} is not a finite number of 0 or more`);
+    if (p.lanes !== undefined && (typeof p.lanes !== "number" || !Number.isInteger(p.lanes) || p.lanes < 0))
+      problems.push(`${at}: the lanes value ${String(p.lanes)} is not a whole number of 0 or more`);
+    const key = JSON.stringify(p.a < p.b ? [p.a, p.b] : [p.b, p.a]);
+    const first = seen.get(key);
+    if (first !== undefined) problems.push(`${at}: the pair is also pair gap ${first}`);
+    else seen.set(key, i);
+  });
   return problems;
 }

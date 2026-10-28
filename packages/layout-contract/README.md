@@ -10,7 +10,7 @@ The package has no runtime dependencies.
 |---|---|
 | Geometry | `Point`, `Rect`, `Region`, `Side`, `Sides`, `Margin`, `marginSides`, `grow`, `boundsOf`, `translate`, `overlapOf` |
 | The shape kinds | `ShapeKind`, `SHAPE_KINDS`, `SHAPE_KIND_IDS`, `ShapeKindSpec`, `ShapeGeometry`, `DEFAULT_SHAPES`, `ShapeSupport`, `isShapeKind`, `shapeKindOf`, `shapeKindsOf`, `itemShapeOf`, `shapeKindProblem`, `shapesOf`, `checkShapes` |
-| The input `layout-input/1` | `LayoutInput`, `LayoutBox` (`Item` for the packer), `Port`, `LayoutEdge`, `LayoutContainer`, `Obstacle`, `LayoutCell`, `LayoutGenerator` |
+| The input `layout-input/1` | `LayoutInput`, `LayoutBox` (`Item` for the packer), `Port`, `LayoutEdge`, `LayoutContainer`, `Obstacle`, `LayoutCell`, `LayoutGenerator`, `PairGap`, `canonicalInput` |
 | The packer | `PackInput`, `toPackInput`, `Placement`, `PackOutput`, `StageTrace`, `applyPack` |
 | The record `layout-record/1` | `LayoutRecord`, `Stage`, `Supports`, `RunFacts`, `RunEnv`, `toLayoutRecord` |
 | The strategies | `StrategyInfo` |
@@ -36,6 +36,12 @@ The package has no runtime dependencies.
 - **The turn.** A turn is 90 degrees clockwise, with the y axis down. A point (`px`, `py`) of a box of height `h` goes to (`h - py`, `px`). Each side moves one step clockwise. The router gets the turned box and ports, and does not read `turn`.
 - **The margin.** A margin is a ring around a box. No other box and no route enters it. A route from a port of the box crosses the ring at a right angle.
 - **The gap.** The gap is the free space between two boxes with their margins. Routes use it. Two boxes are `mA + gap + mB` apart.
+- **The pair gaps.** `pairGaps` gives a minimum distance to some pairs of boxes: `{ a, b, gap, lanes? }`. For its pair, the `gap` of an entry replaces `mA + gap + mB`.
+  - The order of `a` and `b` has no meaning. A pair without an entry keeps its margins and the global `gap`.
+  - `lanes` is the count of the channels that the gap has space for. It is information only.
+  - `checkInput` refuses an unknown box, a pair of one box, a repeated pair in either order, a negative or infinite `gap` and bad `lanes`.
+  - `canonicalInput` puts `a` before `b` in each pair and sorts the list. `documentHash` uses this form, so an input without `pairGaps` keeps its hash.
+  - The hard rule `no-overlap` does not read `pairGaps` in 0.2.14. It counts the boxes with their margins.
 - **The ports.** A port can have a side. Without a side, the router picks the side. A fixed port has `x` and `y` on the border of the box, relative to its top-left corner.
 - **The hard rules of a pack.** `no-overlap` counts the pairs of boxes and the pairs of a box and an obstacle. A locked box without a placement, or with a move of more than `RECORD_EPS`, breaks `locked-kept`. `checkInput` refuses a locked box without a position. Another box without a placement and not in `overflow` breaks `complete`.
 - **The container rule.** `in-container` counts each box that goes out of the container made smaller by `inset`. The box counts with its margin. By default, a shaped container counts as its bounding box.

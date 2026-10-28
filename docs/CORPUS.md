@@ -94,6 +94,7 @@ The rules of the registry:
 7. `boundaryCells(name)` gives the defaults and each end of each range. A dimension with `when` gets the first value of its `when` at each end. The other dimensions keep their defaults.
 8. `rngOf(name)(seed, dims)` gives the stream of an input. A test of each family pins its first values.
 9. `cellOf(name, dims, version)` gives the `kind` `<name>@<version>` of `familyKind`, for example `rect-grid@2`. Thus the cells of two versions do not share a key.
+   `generate`, `resolve`, `cellOf` and `rngOf` accept a cell of `cellOf` as `dims`. They ignore a `kind` of the family, and refuse another `kind`.
 10. `familyBy()` gives the map form of `FamilyBy` for the cells of `cellOf`, with one entry for each version. `DEFAULT_FAMILY_BY` is `{ "*": [] }`: the key is the kind alone.
 
 The test `families.test.ts` pins the first 8 values of `mulberry32(0)` as whole numbers of 32 bits: 1144304738, 1416247, 958946056, 627933444, 2007157716, 2340967985, 2642484575 and 2787370982. The generators of `highways` give the same stream. `highways` adds a test that pins the 8 values.

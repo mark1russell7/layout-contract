@@ -1,3 +1,4 @@
+import { canonicalInput, type LayoutInput } from "./input.ts";
 import { RECORD_EPS } from "./tolerance.ts";
 import { utf8 } from "./utf8.ts";
 
@@ -131,10 +132,11 @@ export function outputHash(value: unknown, options: HashOptions = {}): string {
 /**
  * This function gives the hash of a document. It uses the rule of `outputHash`, but the form does not include the field `hash` of the document.
  * With the default grid, it is the input hash of `docs/FORMAT.md` of `packing`.
+ * A document with the schema `layout-input/1` goes through `canonicalInput` first. Thus the order of its `pairGaps` does not change the hash.
  */
 export function documentHash(doc: object, options: HashOptions = {}): string {
-  const { hash: _hash, ...rest } = doc as { readonly hash?: unknown };
-  return outputHash(rest, options);
+  const { hash: _hash, ...rest } = doc as { readonly hash?: unknown; readonly schema?: unknown };
+  return outputHash(rest.schema === "layout-input/1" ? canonicalInput(rest as unknown as LayoutInput) : rest, options);
 }
 
 /** One output group: the candidates with the same output hash on each decision input. */

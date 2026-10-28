@@ -86,6 +86,19 @@ export interface LayoutGenerator {
   readonly seed: number;
 }
 
+/**
+ * One minimum distance between two boxes (`a` and `b`). It replaces the two margins of the boxes for this pair, and the global `gap`.
+ * The order of `a` and `b` has no meaning. A pair without an entry keeps the margins and the `gap`.
+ */
+export interface PairGap {
+  readonly a: string;
+  readonly b: string;
+  /** The minimum distance between the two boxes, in units: a finite number of 0 or more. */
+  readonly gap: number;
+  /** The count of the channels that the gap has space for. It is information only: a whole number of 0 or more. */
+  readonly lanes?: number;
+}
+
 /** The cell of an input in the taxonomy: one value for each dimension. The dimensions are in `docs/FORMAT.md` of `packing`. */
 export interface LayoutCell {
   readonly containerSize?: "fixed" | "freeHeight" | "freeWidth" | "freeAspect" | "freeArea";
@@ -124,6 +137,8 @@ export interface LayoutInput {
   readonly container?: LayoutContainer;
   /** The free space between two boxes with their margins. Routes use it. */
   readonly gap?: number;
+  /** The distances of some pairs of boxes. An entry replaces the margins and the `gap` for its pair. `canonicalInput` sorts the list. */
+  readonly pairGaps?: readonly PairGap[];
   readonly boxes: readonly LayoutBox[];
   readonly edges?: readonly LayoutEdge[];
   readonly obstacles?: readonly Obstacle[];
@@ -141,6 +156,7 @@ export interface PackInput {
   readonly items: readonly Item[];
   readonly obstacles?: readonly Obstacle[];
   readonly gap?: number;
+  readonly pairGaps?: readonly PairGap[];
 }
 
 /** This function gives the packer input of a file. An input without a container gets `{ fixed: "none" }`, so the packer picks the size. */
@@ -150,5 +166,22 @@ export function toPackInput(input: LayoutInput): PackInput {
     items: input.boxes,
     ...(input.obstacles === undefined ? {} : { obstacles: input.obstacles }),
     ...(input.gap === undefined ? {} : { gap: input.gap }),
+    ...(input.pairGaps === undefined ? {} : { pairGaps: input.pairGaps }),
   };
+}
+
+/** This function compares two strings by their UTF-16 code units, as `Array.prototype.sort` does without a compare function. */
+const byCode = (x: string, y: string): number => (x < y ? -1 : x > y ? 1 : 0);
+
+/**
+ * This function gives the canonical form of an input. `documentHash` uses it for each `layout-input/1` document.
+ * Each pair of `pairGaps` gets `a` before `b`, and the list is sorted by `a` and then by `b`.
+ * An input without `pairGaps` is the same object, so its hash does not change.
+ */
+export function canonicalInput<T extends LayoutInput>(input: T): T {
+  if (!Array.isArray(input.pairGaps)) return input;
+  const pairGaps = input.pairGaps
+    .map((p): PairGap => (byCode(p.a, p.b) > 0 ? { ...p, a: p.b, b: p.a } : p))
+    .sort((x, y) => byCode(x.a, y.a) || byCode(x.b, y.b));
+  return { ...input, pairGaps };
 }
