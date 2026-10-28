@@ -4,7 +4,7 @@ A joint input has boxes and edges, but no positions. The packer places the boxes
 
 - The base of a joint input is an input of a generator of `packing` (`docs/FORMAT.md` of `packing`).
 - `edgeStep` of this package adds the edges, the groups and the ports to the base input.
-- The joint corpus `joint-v1` has a pairwise covering array over the 14 dimensions of the cells, with the seeds 1 to 3.
+- The joint corpus `joint-v1` has 2 pairwise covering arrays over the 10 dimensions of the cells, with the seeds 1 to 3.
 - The decision is `d14` of the tracker of `layout-stack`.
 
 ## The step `edges` (version 1)
@@ -76,8 +76,47 @@ The base input of the test has 40 boxes from the step `boxes`, with `w = int(r, 
 
 ## The corpus `joint-v1`
 
-- The base inputs come from `rect-grid` and the families `gallery`, `dashboard`, `cards` and `word-cloud` of `packing` 0.2.1 or later.
-- The covering array covers each pair of values of the 14 dimensions: the 10 dimensions of `packing` and the 4 dimensions of the edges.
-- Each input has at most 1000 boxes, unless its cell asks for more.
-- The cases `empty`, `one` and `oversize` of `edge-cases` are fixed inputs outside the covering array. They give no routes.
-- The joint runner is a private package of this repository. It uses `packing` and `highways` from npm, and the benchmark runs in CI.
+The private package `packages/joint` makes the corpus. Its function `jointCorpus()` gives the manifest and the input files.
+
+- The base inputs come from `rect-grid`, `gallery`, `dashboard`, `cards`, `word-cloud` and `edge-cases` of `packing` 0.2.1 or later.
+- `edgeStep` adds the edges to each base input, with the seed of the base input.
+- The cell of a joint input has 10 dimensions: the 6 dimensions of `packing` and the 4 dimensions of the edges.
+- The dimensions of `packing` are `containerSize`, `containerShape`, `obstacles`, `sizes`, `count` and `mode`. `mode` has only the value `offline`.
+- The dimensions of the edges are `edgeDensity`, `edgeShape`, `groups` and `ports`. `edgeShape` has the 7 shapes of `edgeStep`, with `hubs`.
+- Each input has at most 1000 boxes.
+
+### The arrays
+
+A pairwise covering array has each pair of values of 2 different dimensions in one row or more. Each row is one spec, with the seeds 1, 2 and 3.
+
+| Array | Generators | Dimensions and their counts of values | Rows |
+|---|---|---|---|
+| `grid` | `rect-grid` | `containerSize` 5, `containerShape` 6, `obstacles` 7, `sizes` 6, `count` 3, `edgeDensity` 3, `edgeShape` 7, `groups` 3, `ports` 3 | 55 |
+| `ui` | `gallery`, `dashboard`, `cards`, `word-cloud` | the family 4, `containerSize` 5, `edgeDensity` 3, `edgeShape` 7, `groups` 3, `ports` 3 | 37 |
+
+- The function `pairwise` of the package makes each array with a greedy AETG algorithm. Its random numbers come from the step `pairwise` of the seed 1.
+- For each row, the algorithm makes 50 candidate rows and keeps the row that covers the most new pairs.
+- The least possible count of rows is 49 for `grid` (7 obstacle layouts by 7 edge shapes) and 35 for `ui`.
+- The counts of `grid` are 10, 100 and 1000. The count 1 gives no routes, and 10000 boxes are more than the limit.
+- Each family of `ui` has its default count: 10 for `dashboard`, and 100 for the other families.
+- `mode` has one value, thus the arrays do not include it.
+- The function `coverage` gives the pairs of a set of cells, the covered pairs and the share. The test gets a share of 1 for each array.
+
+### The fixed inputs
+
+- The cases `empty`, `one` and `oversize` of `edge-cases` are fixed inputs outside the arrays. `empty` and `one` give no routes.
+- Their edges have `edgeShape` `random` and `edgeDensity` `medium`, with the groups `none` and the ports `free`.
+
+Thus the corpus has 95 specs (55, 37 and 3) and 285 inputs.
+
+### The files
+
+- The id of an input is `joint-v1/<family>/s<seed>`, and its `set` is `joint-v1`.
+- The family is the family of `packing` and the part of the edges: `e-<edgeDensity>.<edgeShape>.<groups>.<ports>`.
+- An example of a family is `rect-grid.fixed.rect.wall.uniform.n100.e-medium.clustered.flat.sides`.
+- The hash comes from the file after `edgeStep`, as in the section "The pinned hashes".
+- The manifest `packages/joint/corpus/joint-v1/corpus.json` has the format `layout-corpus/1`. Each spec has its array, its generator, its full parameters, the stamp of the step `edges` and its seeds.
+- `inputs` of the manifest has the id, the hash and the cell of each input. The input files do not have the cell, as in `packing`.
+- The cell has the values of `packing`, with the 4 dimensions of the edges. Its `edgeShape` can be `hubs`.
+- The test of the package compares the corpus with the manifest. After a change of the corpus, write the manifest again with the script `corpus` of the package.
+- The joint runner comes later. It uses `packing` and `highways` from npm, and CI starts the benchmark.

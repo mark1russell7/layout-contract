@@ -203,6 +203,28 @@ importers:
         specifier: ^7.0.2
         version: 7.0.2
 
+  packages/joint:
+    dependencies:
+      '@mark1russell7/layout-contract':
+        specifier: workspace:*
+        version: link:../layout-contract
+      '@mark1russell7/packing':
+        specifier: ^0.2.1
+        version: 0.2.1
+    devDependencies:
+      '@mark1russell7/cue':
+        specifier: ^1.0.2
+        version: 1.0.2
+      '@types/node':
+        specifier: ^26.6.4
+        version: 26.6.5
+      typescript:
+        specifier: ^7.0.2
+        version: 7.0.2
+      vitest:
+        specifier: ^5.0.3
+        version: 5.0.5(@types/node@26.6.5)(vite@8.3.5(@types/node@26.6.5)(esbuild@0.28.2)(tsx@4.23.15))
+
   packages/layout-contract:
     devDependencies:
       '@mark1russell7/cue':
@@ -436,6 +458,14 @@ packages:
     resolution: {integrity: sha512-ketUJQeJ4eLSmw0X3NpWrGHxXVg30MpMfw/wYdzlpwf7J94BQmmOM80VuGL4OPC4tXczmTj5LWxNdM7NoQKgeA==}
     engines: {node: '>=22'}
     hasBin: true
+
+  '@mark1russell7/layout-contract@0.2.3':
+    resolution: {integrity: sha512-eodi6RkxhOcueXRh60lgl3dNmy1ysD5WuikMGmYUQ3edk5xaeSJC/s3d0qhvP9ASuh/rVc44Yy+phu3b2YaI8Q==}
+    engines: {node: '>=22.12'}
+
+  '@mark1russell7/packing@0.2.1':
+    resolution: {integrity: sha512-kZTf4h0VfWbrszUvbZP9y1uD4SqkzsxD+hHDcuL0zNyk2FoSvf7Yd85CJIAIk+sf88GnJEgXCFgKeVrvp6PpYA==}
+    engines: {node: '>=22.12'}
 
   '@mark1russell7/ste-lint@0.1.1':
     resolution: {integrity: sha512-NXRB3PimE1PfXT+SuGZAEXt35EdWAXQMd4Dyn6Ep+6Yzf7YBvpHN0+xo4vHpYhmg3CHNGuNvCmspLodXi8/JQg==}
@@ -1591,6 +1621,12 @@ snapshots:
   '@mark1russell7/conventions@0.3.1': {}
 
   '@mark1russell7/cue@1.0.2': {}
+
+  '@mark1russell7/layout-contract@0.2.3': {}
+
+  '@mark1russell7/packing@0.2.1':
+    dependencies:
+      '@mark1russell7/layout-contract': 0.2.3
 
   '@mark1russell7/ste-lint@0.1.1':
     dependencies:
