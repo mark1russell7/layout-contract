@@ -11,7 +11,9 @@ import {
   dimensionAt,
   dimensionUnit,
   EDGES_STEP,
+  familyKind,
   levelsOf,
+  RECT_SCATTERED,
   resolveDimensions,
   sharedDimension,
   type CorpusDimension,
@@ -22,8 +24,9 @@ import {
 import { documentHash } from "./hash.ts";
 import type { LayoutInput } from "./input.ts";
 import { mulberry32, randomInt, stepRandom } from "./random.ts";
+import { SHAPE_KIND_IDS } from "./shapes.ts";
 
-/** The first 8 values of `mulberry32(0)` as whole numbers of 32 bits. `highways` pins the same values. */
+/** The first 8 values of `mulberry32(0)` as whole numbers of 32 bits. `highways` adds a test that pins the same values. */
 const SEED0_U32 = [1144304738, 1416247, 958946056, 627933444, 2007157716, 2340967985, 2642484575, 2787370982];
 
 const u32 = (r: () => number, n: number): number[] => Array.from({ length: n }, () => r() * 4294967296);
@@ -155,6 +158,7 @@ describe("register", () => {
     expect(() => createFamilyRegistry([bad([KIND_DIMS[0]!, { ...KIND_DIMS[2]!, when: { param: "layout", in: ["grid"] } }])])).toThrow(/does not have/);
     expect(() => createFamilyRegistry([bad([KIND_DIMS[0]!], ["nodes"])])).toThrow(/familyBy dimension "nodes"/);
     expect(() => createFamilyRegistry([bad([{ ...KIND_DIMS[0]!, name: "kind" }])])).toThrow(/reserved/);
+    expect(() => createFamilyRegistry([bad(KIND_DIMS, ["locality"])])).toThrow(/familyBy dimension "locality" has a when/);
   });
 });
 
@@ -178,18 +182,30 @@ describe("the dimensions with when", () => {
     reg.generate("graph", 1, { layout: "clustered", locality: 0.9 });
     expect(seen[0]!["locality"]).toBe(0.65);
     expect(seen[1]!["locality"]).toBe(0.9);
-    expect(reg.cellOf("graph", { layout: "uniform", locality: 0.9 })).toEqual({ kind: "graph", layout: "uniform", nodes: 10 });
-    expect(reg.cellOf("graph", { layout: "clustered", locality: 0.9 })).toEqual({ kind: "graph", layout: "clustered", nodes: 10, locality: 0.9 });
+    expect(reg.cellOf("graph", { layout: "uniform", locality: 0.9 })).toEqual({ kind: "graph@1", layout: "uniform", nodes: 10 });
+    expect(reg.cellOf("graph", { layout: "clustered", locality: 0.9 })).toEqual({ kind: "graph@1", layout: "clustered", nodes: 10, locality: 0.9 });
   });
 });
 
 describe("the family keys", () => {
   it("give the map form of FamilyBy with the cells of cellOf", () => {
     const reg = createFamilyRegistry<unknown>([boxFamily(), kindFamily()]);
-    expect(reg.familyBy()).toEqual({ boxes: [], graph: ["layout"] });
-    expect(familyOf(reg.cellOf("boxes"), reg.familyBy())).toBe("boxes");
-    expect(familyOf(reg.cellOf("boxes"), DEFAULT_FAMILY_BY)).toBe("boxes");
-    expect(familyOf(reg.cellOf("graph", { layout: "hubs" }), reg.familyBy())).toBe("graph/hubs");
+    expect(reg.familyBy()).toEqual({ "boxes@1": [], "graph@1": ["layout"] });
+    expect(familyOf(reg.cellOf("boxes"), reg.familyBy())).toBe("boxes@1");
+    expect(familyOf(reg.cellOf("boxes"), DEFAULT_FAMILY_BY)).toBe("boxes@1");
+    expect(familyOf(reg.cellOf("graph", { layout: "hubs" }), reg.familyBy())).toBe("graph@1/hubs");
+    for (const layout of ["uniform", "clustered", "hubs"]) expect(() => familyOf(reg.cellOf("graph", { layout }), reg.familyBy())).not.toThrow();
+  });
+
+  it("give each version of a family its own kind and its own familyBy", () => {
+    const v1 = { ...kindFamily(), familyBy: [] };
+    const v2 = { ...kindFamily(), version: 2, familyBy: ["nodes"] };
+    const reg = createFamilyRegistry<unknown>([v1, v2]);
+    expect(familyKind("graph", 2)).toBe("graph@2");
+    expect(reg.familyBy()).toEqual({ "graph@1": [], "graph@2": ["nodes"] });
+    const a = familyOf(reg.cellOf("graph", { nodes: 100 }, 1), reg.familyBy());
+    const b = familyOf(reg.cellOf("graph", { nodes: 100 }, 2), reg.familyBy());
+    expect([a, b]).toEqual(["graph@1", "graph@2/100"]);
   });
 });
 
@@ -212,15 +228,20 @@ describe("the ranges and the scales", () => {
     expect(cells[0]).toEqual({ layout: "uniform", nodes: 10, locality: 0.65, hubSkew: 3 });
     expect(cells.map((c) => c["nodes"])).toContain(2);
     expect(cells.map((c) => c["nodes"])).toContain(400);
-    // locality and hubSkew are inactive at the default kind, so their ends give the default cell.
-    expect(cells.length).toBe(3);
+    // Each end of locality gets the layout clustered, and each end of hubSkew gets the layout hubs.
+    const has = (want: DimensionValues): boolean => cells.some((c) => Object.entries(want).every(([k, v]) => c[k] === v));
+    expect(has({ layout: "clustered", locality: 0 })).toBe(true);
+    expect(has({ layout: "clustered", locality: 1 })).toBe(true);
+    expect(has({ layout: "hubs", hubSkew: 1 })).toBe(true);
+    expect(has({ layout: "hubs", hubSkew: 5 })).toBe(true);
+    expect(cells.length).toBe(7);
   });
 
   it("has each dimension of L45 in the shared table, with a good default", () => {
     for (const name of ["count", "sizes", "aspect", "groups", "density", "obstacles", "containerShape", "containerSize", "edgeDensity", "edgeShape", "ports", "spacing", "shape"]) {
       expect(CORPUS_DIMENSIONS[name], name).toBeDefined();
     }
-    expect(CORPUS_DIMENSIONS["shape"]!.values).toEqual(["rect"]);
+    expect(CORPUS_DIMENSIONS["shape"]!.values).toEqual(SHAPE_KIND_IDS);
     expect(() => resolveDimensions(Object.values(CORPUS_DIMENSIONS))).not.toThrow();
     for (const d of Object.values(CORPUS_DIMENSIONS)) expect(d.engines.length, d.name).toBeGreaterThan(0);
   });
@@ -278,5 +299,32 @@ describe("browser safety", () => {
         expect(NODE_GLOBAL.test(code), f).toBe(false);
       }
     }
+  });
+});
+
+describe("EDGES_STEP", () => {
+  it("refuses a missing or a bad value of a dimension when a caller uses apply with no registry", () => {
+    const input = boxFamily().generate(1, { count: 5 }, { rng: DEFAULT_RNG, random: DEFAULT_RNG(1) });
+    const good = { edgeDensity: "dense", edgeShape: "hubs", groups: "flat", ports: "sides", hubBy: "area" };
+    expect(EDGES_STEP.apply(input, 1, good)).toEqual(edgeStep(input, { edgeDensity: "dense", edgeShape: "hubs", groups: "flat", ports: "sides", hubBy: "area" }, 1));
+    expect(() => EDGES_STEP.apply(input, 1, { ...good, edgeShape: "star" })).toThrow(/"edgeShape" is bad/);
+    const { ports: _ports, ...noPorts } = good;
+    expect(() => EDGES_STEP.apply(input, 1, noPorts)).toThrow(/"ports" is bad: the value is missing/);
+  });
+});
+
+/** The hashes of `rect-scattered` of `packing` 0.2.17, with 40 boxes and the set `xcheck-v1`, for the seeds 1, 2 and 3. */
+const RECT_SCATTERED_HASHES = ["f5f5c51d1560e41c", "cfd6ef0ef232aaa3", "d1638f2406360b2e"];
+
+describe("the family rect-scattered", () => {
+  it("gives the pinned hashes of packing, with the default count 40 and the default set xcheck-v1", () => {
+    const reg = createFamilyRegistry([RECT_SCATTERED]);
+    expect([1, 2, 3].map((seed) => reg.generate("rect-scattered", seed).hash)).toEqual(RECT_SCATTERED_HASHES);
+    const one = reg.generate("rect-scattered", 1);
+    expect(one.id).toBe("xcheck-v1/rect-scattered/s1");
+    expect(one.generator?.params).toEqual({ count: 40 });
+    expect(reg.generate("rect-scattered", 1, {}, { set: "s" }).id).toBe("s/rect-scattered/s1");
+    expect(RECT_SCATTERED.dimensions.map((d) => d.name)).toEqual(["count"]);
+    expect(RECT_SCATTERED.crossEngine).toBe("exact");
   });
 });

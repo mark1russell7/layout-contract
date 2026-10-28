@@ -3,8 +3,9 @@
 import type { FamilyBy } from "./corpus.ts";
 import { edgeStep, type EdgeStepParams } from "./edges.ts";
 import { documentHash } from "./hash.ts";
-import type { LayoutInput } from "./input.ts";
-import { mulberry32 } from "./random.ts";
+import type { LayoutInput, Obstacle } from "./input.ts";
+import { mulberry32, randomInt, stepRandom } from "./random.ts";
+import { SHAPE_KIND_IDS } from "./shapes.ts";
 import { paramActive, paramLevels, paramProblem, paramValue, type ParamValue, type SpaceParam } from "./strategy-space.ts";
 
 /**
@@ -68,7 +69,7 @@ export interface CorpusFamily<O = LayoutInput> {
   readonly rng?: RngFactory;
   /** This function gives the seed of `context.random` from the input seed and the full dimension values. The default gives the input seed. */
   readonly rngSeed?: (seed: number, dims: DimensionValues) => number;
-  /** The dimensions of the family key of `familyBy`, after the name of the family. The default is no dimension. */
+  /** The dimensions of the family key of `familyBy`, after the kind of the cell. A dimension with `when` is not permitted. The default is no dimension. */
   readonly familyBy?: readonly string[];
   /** This function gives the input of a seed. `dims` has a value for each dimension, also for an inactive dimension. */
   generate(seed: number, dims: DimensionValues, context: GenerateContext): O;
@@ -91,8 +92,13 @@ export interface CellsOptions {
   readonly levels?: Readonly<Record<string, readonly ParamValue[]>>;
 }
 
-/** The cell of an input of a registry: the name of its family in `kind`, and the value of each active dimension. */
+/** The cell of an input of a registry: `<name>@<version>` of its family in `kind` (`familyKind`), and the value of each active dimension. */
 export type RegistryCell = Readonly<Record<string, ParamValue>> & { readonly kind: string };
+
+/** This function gives the `kind` of the cells of a version of a family: `<name>@<version>`, for example `rect-grid@2`. Thus two versions do not share a family key. */
+export function familyKind(name: string, version: number): string {
+  return `${name}@${version}`;
+}
 
 /** A registry of families. An import registers nothing: a host makes a registry from the lists of families of the engines. */
 export interface FamilyRegistry<O = LayoutInput> {
@@ -106,21 +112,21 @@ export interface FamilyRegistry<O = LayoutInput> {
   resolve(name: string, dims?: Readonly<Record<string, ParamValue>>, version?: number): DimensionValues;
   /** This method gives the input of a seed. The output is the output of the family, with no change. */
   generate(name: string, seed: number, dims?: Readonly<Record<string, ParamValue>>, options?: GenerateOptions): O;
-  /** This method gives the cell of an input: the name of the family and the value of each active dimension. */
+  /** This method gives the cell of an input: the `familyKind` of the family version and the value of each active dimension. */
   cellOf(name: string, dims?: Readonly<Record<string, ParamValue>>, version?: number): RegistryCell;
   /** This method gives the full dimension values of each cell of a sweep, without the dead combinations of `when`. */
   cells(name: string, options?: CellsOptions): Generator<DimensionValues>;
   /** This method gives the count of the cells of `cells`. It makes no input. */
   cellCount(name: string, options?: CellsOptions): number;
-  /** This method gives the defaults, and each end of each numeric range with the other dimensions at their defaults. */
+  /** This method gives the defaults, and each end of each numeric range. The dimensions that a `when` needs get its first value. The other dimensions keep their defaults. */
   boundaryCells(name: string, version?: number): DimensionValues[];
   /** This method gives the random source of an input: the stream that `generate` gets in `context.random`. */
   rngOf(name: string, version?: number): (seed: number, dims?: Readonly<Record<string, ParamValue>>) => () => number;
-  /** This method gives the map form of `FamilyBy` for the cells of `cellOf`: the name of each family, with its `familyBy`. */
+  /** This method gives the map form of `FamilyBy` for the cells of `cellOf`: the `familyKind` of each family version, with its own `familyBy`. */
   familyBy(): FamilyBy;
 }
 
-/** The default key of a family in a manifest: the name of the family alone. It is the map form of `FamilyBy` with the entry `"*"`. */
+/** The default key of a family in a manifest: the kind of the cell alone. It is the map form of `FamilyBy` with the entry `"*"`. */
 export const DEFAULT_FAMILY_BY: FamilyBy = Object.freeze({ "*": Object.freeze([]) as readonly string[] });
 
 /** This function gives an `enum` dimension. */
@@ -163,8 +169,7 @@ export const CORPUS_DIMENSIONS: Readonly<Record<string, CorpusDimension>> = Obje
   obstacles: choice("obstacles", ["none", "center", "scattered", "wall", "corridors", "touching", "edge"], "none", "The layout of the fixed obstacles.", [P, J]),
   containerSize: choice("containerSize", ["fixed", "freeHeight", "freeWidth", "freeAspect", "freeArea"], "fixed", "The sides of the container that the engine can change.", [P, J]),
   containerShape: choice("containerShape", ["rect", "convex", "polygon", "circle", "ellipse", "holes"], "rect", "The kind of the shape of the container.", [P, J]),
-  // TODO(L46): use the type `ShapeKind` and its values "rect", "polygon", "circle" and "free" when L46 adds them.
-  shape: choice("shape", ["rect"], "rect", "The shape kind of each item. L46 adds the kinds polygon, circle and free.", [P]),
+  shape: choice("shape", SHAPE_KIND_IDS, "rect", "The shape kind of each item: a `ShapeKind` of `shapes.ts`.", [P]),
   order: choice("order", ["free", "soft"], "free", "The reading order of the items: no order, or a rank on each item.", [P]),
   groups: choice("groups", ["none", "flat", "nested"], "none", "The groups of the items: no groups, one level, or groups in groups.", [H, J]),
   edgeDensity: choice("edgeDensity", ["sparse", "medium", "dense"], "medium", "The mean count of the edges of each item: 0.5, 1.5 or 4.", [H, J]),
@@ -324,6 +329,18 @@ function sweepLevels(dimensions: readonly CorpusDimension[], options: CellsOptio
   });
 }
 
+/** This function gives the values that make a dimension active: the first value of its `when`, and the values that make that dimension active. */
+function activation(dimensions: readonly CorpusDimension[], dim: CorpusDimension): Record<string, ParamValue> {
+  const out: Record<string, ParamValue> = {};
+  let d: CorpusDimension | undefined = dim;
+  while (d?.when !== undefined) {
+    const param: string = d.when.param;
+    out[param] = d.when.in[0]!;
+    d = dimensions.find((q) => q.name === param);
+  }
+  return out;
+}
+
 /** This function throws a `RangeError` when a seed is not a whole number of 0 or more. */
 function checkSeed(seed: number): void {
   if (!Number.isSafeInteger(seed) || seed < 0) throw new RangeError(`The seed is a whole number of 0 or more, not ${seed}.`);
@@ -351,8 +368,12 @@ export function createFamilyRegistry<O = LayoutInput>(families: Iterable<CorpusF
       if (list.some((f) => f.name === family.name && f.version === family.version)) throw new RangeError(`${label(family)} is in the registry already.`);
       const problems = dimensionProblems(family.dimensions);
       const names = family.dimensions.map((d) => d.name);
-      if (names.includes("kind")) problems.push('the dimension name "kind" is reserved: the cell of `cellOf` has the name of the family in `kind`');
-      for (const key of family.familyBy ?? []) if (!names.includes(key)) problems.push(`the familyBy dimension "${key}" is not a dimension of the family`);
+      if (names.includes("kind")) problems.push('the dimension name "kind" is reserved: the cell of `cellOf` has the `familyKind` of the family in `kind`');
+      for (const key of family.familyBy ?? []) {
+        const d = family.dimensions.find((q) => q.name === key);
+        if (d === undefined) problems.push(`the familyBy dimension "${key}" is not a dimension of the family`);
+        else if (d.when !== undefined) problems.push(`the familyBy dimension "${key}" has a when, so a cell without it has no family key`);
+      }
       if (problems.length > 0) throw new RangeError(`${label(family)} is not good: ${problems.join("; ")}.`);
       list.push(family);
       return registry;
@@ -372,7 +393,7 @@ export function createFamilyRegistry<O = LayoutInput>(families: Iterable<CorpusF
     },
     cellOf(name, dims, version) {
       const f = find(name, version);
-      return { kind: f.name, ...activeValues(f.dimensions, resolveDimensions(f.dimensions, dims, label(f))) };
+      return { kind: familyKind(f.name, f.version), ...activeValues(f.dimensions, resolveDimensions(f.dimensions, dims, label(f))) };
     },
     *cells(name, options = {}) {
       const f = find(name, options.version);
@@ -391,7 +412,7 @@ export function createFamilyRegistry<O = LayoutInput>(families: Iterable<CorpusF
         if (d.kind !== "int" && d.kind !== "real") continue;
         for (const end of [d.min, d.max]) {
           if (end === undefined) continue;
-          const cell = resolveDimensions(f.dimensions, { [d.name]: end }, label(f));
+          const cell = resolveDimensions(f.dimensions, { ...activation(f.dimensions, d), [d.name]: end }, label(f));
           const key = JSON.stringify(cell);
           if (!seen.has(key)) {
             seen.add(key);
@@ -410,7 +431,7 @@ export function createFamilyRegistry<O = LayoutInput>(families: Iterable<CorpusF
     },
     familyBy() {
       const out: Record<string, readonly string[]> = {};
-      for (const f of list) if (!Object.hasOwn(out, f.name)) out[f.name] = [...(f.familyBy ?? [])];
+      for (const f of list) out[familyKind(f.name, f.version)] = [...(f.familyBy ?? [])];
       return out;
     },
   };
@@ -495,6 +516,24 @@ export function composeFamily(base: CorpusFamily<LayoutInput>, steps: readonly C
 /** The dimensions of `EDGES_STEP`: the parameters of `edgeStep`, from the shared table. */
 const EDGE_DIMENSIONS: readonly CorpusDimension[] = Object.freeze(["edgeDensity", "edgeShape", "groups", "ports", "hubBy"].map((n) => CORPUS_DIMENSIONS[n]!));
 
+/** This function gives the parameters of `edgeStep` from the values of the dimensions. It throws a `RangeError` for a missing or a bad value. */
+function edgeParams(d: DimensionValues): EdgeStepParams {
+  const text = (name: string): string => {
+    const dim = EDGE_DIMENSIONS.find((q) => q.name === name)!;
+    const value = Object.hasOwn(d, name) ? d[name] : undefined;
+    const bad = value === undefined ? "the value is missing" : paramProblem(dim, value);
+    if (bad !== undefined || typeof value !== "string") throw new RangeError(`EDGES_STEP: the dimension "${name}" is bad: ${bad ?? "it is not text"}.`);
+    return value;
+  };
+  return {
+    edgeDensity: text("edgeDensity") as EdgeStepParams["edgeDensity"],
+    edgeShape: text("edgeShape") as EdgeStepParams["edgeShape"],
+    groups: text("groups") as NonNullable<EdgeStepParams["groups"]>,
+    ports: text("ports") as NonNullable<EdgeStepParams["ports"]>,
+    hubBy: text("hubBy") as NonNullable<EdgeStepParams["hubBy"]>,
+  };
+}
+
 /**
  * The step `edges` of `edgeStep` (version 1), as a corpus step. Its family part is `e-<edgeDensity>.<edgeShape>.<groups>.<ports>`.
  * The value `random` of `hubBy` adds the part `.hub-random`.
@@ -508,5 +547,61 @@ export const EDGES_STEP: CorpusStep = Object.freeze({
   seeding: "stepRandom(seed, step) for the steps edges and ports.",
   crossEngine: "libm-dependent",
   familyPart: (d: DimensionValues) => `e-${d["edgeDensity"]}.${d["edgeShape"]}.${d["groups"]}.${d["ports"]}${d["hubBy"] === "random" ? ".hub-random" : ""}`,
-  apply: (input: LayoutInput, seed: number, d: DimensionValues) => edgeStep(input, d as unknown as EdgeStepParams, seed),
+  apply: (input: LayoutInput, seed: number, d: DimensionValues) => edgeStep(input, edgeParams(d), seed),
+});
+
+/** The set of `RECT_SCATTERED` when the caller gives no set. */
+const XCHECK_SET = "xcheck-v1";
+
+/**
+ * The shared family `rect-scattered`, version 1: a fixed rectangle container, rectangle obstacles at random places and boxes without positions.
+ * It is the one copy of the generator of `docs/FORMAT.md` of `packing`. Its input is the input of `packing`, byte for byte.
+ * The steps `container`, `obstacles` and `boxes` each have a stream of `stepRandom`. Each value is a whole number, so the family is `exact`.
+ */
+export const RECT_SCATTERED: CorpusFamily<LayoutInput> = Object.freeze({
+  name: "rect-scattered",
+  version: 1,
+  owner: "layout-contract",
+  meaning: "Rectangle obstacles at random places in a fixed rectangle container, and boxes of random sizes.",
+  dimensions: Object.freeze([sharedDimension("count", { default: 40 })]),
+  seeding: "stepRandom(seed, container) gives w and h. stepRandom(seed, obstacles) gives n, then ow, oh, x and y of each obstacle. stepRandom(seed, boxes) gives bw and bh of each box.",
+  crossEngine: "exact",
+  generate(seed: number, dims: DimensionValues, context: GenerateContext): LayoutInput {
+    const count = dims["count"];
+    if (typeof count !== "number" || !Number.isInteger(count) || count < 0) throw new RangeError(`rect-scattered: the count is a whole number of 0 or more, not ${String(count)}.`);
+    const set = context.set ?? XCHECK_SET;
+    let r = stepRandom(seed, "container");
+    const w = randomInt(r, 600, 1000);
+    const h = randomInt(r, 400, 800);
+    r = stepRandom(seed, "obstacles");
+    const n = randomInt(r, 3, 8);
+    const obstacles: Obstacle[] = [];
+    for (let i = 0; i < n; i++) {
+      const ow = randomInt(r, 40, 160);
+      const oh = randomInt(r, 40, 160);
+      const x = randomInt(r, 0, w - ow);
+      const y = randomInt(r, 0, h - oh);
+      obstacles.push({ id: `o${i}`, region: { kind: "rect", x, y, w: ow, h: oh } });
+    }
+    r = stepRandom(seed, "boxes");
+    const boxes = Array.from({ length: count }, (_, i) => {
+      const bw = randomInt(r, 20, 120);
+      const bh = randomInt(r, 20, 80);
+      return { id: `b${i}`, w: bw, h: bh };
+    });
+    const body: LayoutInput = {
+      schema: "layout-input/1",
+      id: `${set}/rect-scattered/s${seed}`,
+      set,
+      family: "rect-scattered",
+      seed,
+      source: "made-up",
+      generator: { name: "rect-scattered", version: 1, params: { count }, seed },
+      container: { w, h, fixed: "size" },
+      obstacles,
+      boxes,
+      edges: [],
+    };
+    return { ...body, hash: documentHash(body) };
+  },
 });

@@ -27,6 +27,16 @@ export const JOINT_BASES: readonly string[] = Object.freeze(["rect-grid", "galle
  */
 const CROSS_ENGINE: Readonly<Record<string, CrossEngine>> = Object.freeze({ "rect-grid": "libm-dependent" });
 
+/** This function gives the params of a generator of `packing`: text and numbers only. It throws a `RangeError` for a value of another type. */
+function generatorParams(name: string, dims: DimensionValues): Record<string, string | number> {
+  const out: Record<string, string | number> = {};
+  for (const [key, value] of Object.entries(dims)) {
+    if (typeof value !== "string" && typeof value !== "number") throw new RangeError(`The generator "${name}" of packing has no parameter "${key}" of the type ${typeof value}.`);
+    out[key] = value;
+  }
+  return out;
+}
+
 /**
  * This function gives a family of the registry for a generator of `packing`. The dimensions are the parameters of the generator.
  * A parameter of the shared table gets its dimension, with the default and the values of the generator. `generate` starts the generator with no other change.
@@ -37,7 +47,10 @@ export function packingFamily(gen: CorpusGenerator): CorpusFamily<LayoutInput> {
   const dimensions = Object.entries(gen.defaults).map(([name, value]): CorpusDimension => {
     const allowed = values[name];
     if (Object.hasOwn(CORPUS_DIMENSIONS, name)) return sharedDimension(name, { default: value, ...(allowed === undefined ? {} : { values: [...allowed] }) });
-    return { name, kind: "enum", values: [...(allowed ?? [value])], default: value, meaning: `The parameter "${name}" of the generator "${gen.name}" of packing.`, engines: ["packing"] };
+    const meaning = `The parameter "${name}" of the generator "${gen.name}" of packing.`;
+    if (allowed !== undefined || typeof value !== "number") return { name, kind: "enum", values: [...(allowed ?? [value])], default: value, meaning, engines: ["packing"] };
+    // TODO(k73): packing declares the range of each numeric parameter. Until then, the range has the default only.
+    return { name, kind: Number.isInteger(value) ? "int" : "real", min: value, max: value, default: value, meaning, engines: ["packing"] };
   });
   return Object.freeze({
     name: gen.name,
@@ -47,7 +60,7 @@ export function packingFamily(gen: CorpusGenerator): CorpusFamily<LayoutInput> {
     dimensions,
     seeding: "stepRandom(seed, step) for the steps container, obstacles and boxes, as in docs/FORMAT.md of packing.",
     crossEngine: CROSS_ENGINE[gen.name] ?? "exact",
-    generate: (seed: number, dims: DimensionValues, context: { readonly set?: string }) => gen.generate(seed, dims as Record<string, string | number>, context.set),
+    generate: (seed: number, dims: DimensionValues, context: { readonly set?: string }) => gen.generate(seed, generatorParams(gen.name, dims), context.set),
   });
 }
 

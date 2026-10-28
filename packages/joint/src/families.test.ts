@@ -1,6 +1,6 @@
 import { readFileSync } from "node:fs";
-import { DEFAULT_RNG, edgeStep, type LayoutInput } from "@mark1russell7/layout-contract";
-import { generator } from "@mark1russell7/packing";
+import { createFamilyRegistry, DEFAULT_RNG, edgeStep, RECT_SCATTERED, type LayoutInput } from "@mark1russell7/layout-contract";
+import { generator, rectScattered } from "@mark1russell7/packing";
 import { describe, expect, it } from "vitest";
 import { edgeFamily, hashOf, jointSpecs, SETS, type JointSet, type JointSpec } from "./corpus.ts";
 import { JOINT_BASES, jointRegistry, packingFamily } from "./families.ts";
@@ -58,6 +58,24 @@ describe("the joint families on the shared registry", () => {
     }
     expect(packingFamily(generator("gallery")).crossEngine).toBe("exact");
     expect(packingFamily(generator("rect-grid")).crossEngine).toBe("libm-dependent");
+  });
+
+  it("refuse a value that is not text or a number for a generator of packing", () => {
+    const fam = packingFamily(generator("gallery"));
+    const context = { rng: DEFAULT_RNG, random: DEFAULT_RNG(1) };
+    const dims = Object.fromEntries(fam.dimensions.map((d) => [d.name, d.default]));
+    expect(() => fam.generate(1, { ...dims, count: true }, context)).toThrow(/of the type boolean/);
+  });
+
+  it("give with RECT_SCATTERED of the contract the input of rect-scattered of packing, byte for byte", () => {
+    const reg = createFamilyRegistry([RECT_SCATTERED]);
+    expect(reg.family("rect-scattered").dimensions.map((d) => [d.name, d.default])).toEqual(Object.entries(rectScattered.defaults));
+    for (const count of [0, 1, 40, 500]) {
+      for (const seed of [0, 1, 2, 3, 7, 42, 1000, 2 ** 31]) {
+        expect(JSON.stringify(reg.generate("rect-scattered", seed, { count }))).toBe(JSON.stringify(rectScattered.generate(seed, { count })));
+        expect(JSON.stringify(reg.generate("rect-scattered", seed, { count }, { set: "corpus-v1" }))).toBe(JSON.stringify(rectScattered.generate(seed, { count }, "corpus-v1")));
+      }
+    }
   });
 
   it("use no API of Node in families.ts, spacing.ts and pairwise.ts", () => {

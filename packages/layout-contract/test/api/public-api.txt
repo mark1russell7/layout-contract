@@ -4,7 +4,7 @@
 # and private members. The command `api-report check` compares this file with the built .d.ts files.
 # To accept a change of the API, start the build, then `api-report update`, and review the diff.
 
-## . (build/index.d.ts): 207 names
+## . (build/index.d.ts): 209 names
 
 CORPUS_DIMENSIONS: build/index.d.ts#CORPUS_DIMENSIONS
 CellsOptions: build/index.d.ts#CellsOptions
@@ -82,6 +82,7 @@ PortfolioPick: build/index.d.ts#PortfolioPick
 PortfolioTrace: build/index.d.ts#PortfolioTrace
 RECORD_EPS: build/index.d.ts#RECORD_EPS
 RECORD_SCALE: build/index.d.ts#RECORD_SCALE
+RECT_SCATTERED: build/index.d.ts#RECT_SCATTERED
 Rect: build/index.d.ts#Rect
 Region: build/index.d.ts#Region
 RegistryCell: build/index.d.ts#RegistryCell
@@ -163,6 +164,7 @@ documentHash: build/index.d.ts#documentHash
 edgeStep: build/index.d.ts#edgeStep
 enumerateSpace: build/index.d.ts#enumerateSpace
 exercised: build/index.d.ts#exercised
+familyKind: build/index.d.ts#familyKind
 familyOf: build/index.d.ts#familyOf
 fnv1a32: build/index.d.ts#fnv1a32
 grow: build/index.d.ts#grow
@@ -746,6 +748,9 @@ export declare const RECORD_EPS = .001;
 ### build/index.d.ts#RECORD_SCALE
 export declare const RECORD_SCALE = 1e3;
 
+### build/index.d.ts#RECT_SCATTERED
+export declare const RECT_SCATTERED: CorpusFamily<LayoutInput>;
+
 ### build/index.d.ts#Rect
 export interface Rect {
   readonly x: number;
@@ -1174,6 +1179,9 @@ export declare function enumerateSpace(space: StrategySpace, options: EnumerateO
 
 ### build/index.d.ts#exercised
 export declare function exercised(evidence: ExerciseEvidence): boolean;
+
+### build/index.d.ts#familyKind
+export declare function familyKind(name: string, version: number): string;
 
 ### build/index.d.ts#familyOf
 export declare function familyOf(cell: FamilyCell, familyBy: FamilyBy): string;

@@ -5,7 +5,8 @@ The shared corpus generator is `packages/layout-contract/src/families.ts`. It gi
 The split of the work:
 
 - `layout-contract` owns the interface, the dimension schema, the shared dimension table, the registry, the default random numbers and the browser safety.
-- Each engine owns its families and gives them to a registry. `packing` owns `rect-grid`, the 4 families of a user interface, `edge-cases` and `rect-scattered`. `highways` owns its graph families.
+- Each engine owns its families and gives them to a registry. `packing` owns `rect-grid`, the 4 families of a user interface and `edge-cases`. `highways` owns its graph families.
+- `layout-contract` owns the shared family `RECT_SCATTERED`. Both engines register it.
 - `layout-contract` imports no engine. An import registers nothing. A host makes a registry from the lists of families of the engines.
 
 ## The dimension schema
@@ -14,7 +15,7 @@ A dimension is a `CorpusDimension`. It is a `SpaceParam` of `docs/STRATEGY-SPACE
 
 | Field | Value |
 |---|---|
-| `name` | The name of the dimension. The name `kind` is reserved: the cell of `cellOf` has the name of the family in `kind`. |
+| `name` | The name of the dimension. The name `kind` is reserved: the cell of `cellOf` has the `familyKind` of the family in `kind`. |
 | `kind` | `enum`, `int`, `real` or `bool`. |
 | `values` | The values of an `enum`. |
 | `min`, `max` | The range of an `int` or a `real`. |
@@ -33,9 +34,11 @@ A dimension is a `CorpusDimension`. It is a `SpaceParam` of `docs/STRATEGY-SPACE
 ### The rules of `when`
 
 - A missing value, a default that the caller gives and a value of an inactive dimension give the same full values.
-- The family gets the default of an inactive dimension. A generator can read a dimension on more kinds than its `when` tells.
+- Put a `when` on a dimension only where the generator ignores the dimension. A dimension that each kind reads has no `when`.
+- The family gets the default of an inactive dimension.
 - `cells` and `cellCount` skip the dead combinations of `when`. `cellOf` does not include an inactive dimension.
 - The registry examines a value of an inactive dimension. A bad value causes a `RangeError`, also when the dimension is inactive.
+- A dimension with `when` cannot be in `familyBy`. `register` refuses it, because a cell without the dimension has no family key.
 
 ## The shared dimension table
 
@@ -50,18 +53,18 @@ A dimension is a `CorpusDimension`. It is a `SpaceParam` of `docs/STRATEGY-SPACE
 | `obstacles` | `enum` | `none`, `center`, `scattered`, `wall`, `corridors`, `touching`, `edge` | `none` | | `packing`, `joint` | The layout of the fixed obstacles. |
 | `containerSize` | `enum` | `fixed`, `freeHeight`, `freeWidth`, `freeAspect`, `freeArea` | `fixed` | | `packing`, `joint` | The sides of the container that the engine can change. |
 | `containerShape` | `enum` | `rect`, `convex`, `polygon`, `circle`, `ellipse`, `holes` | `rect` | | `packing`, `joint` | The kind of the shape of the container. |
-| `shape` | `enum` | `rect` | `rect` | | `packing` | The shape kind of each item. `L46` adds `polygon`, `circle` and `free`. |
+| `shape` | `enum` | `rect`, `polygon`, `circle`, `free` | `rect` | | `packing` | The shape kind of each item: a `ShapeKind` of `shapes.ts`. |
 | `order` | `enum` | `free`, `soft` | `free` | | `packing` | The reading order of the items. |
 | `groups` | `enum` | `none`, `flat`, `nested` | `none` | | `highways`, `joint` | The groups of the items. |
 | `edgeDensity` | `enum` | `sparse`, `medium`, `dense` | `medium` | | `highways`, `joint` | The mean count of the edges of each item: 0.5, 1.5 or 4. |
 | `edgeShape` | `enum` | `random`, `clustered`, `hubChain`, `hubs`, `longRange`, `tree`, `bundled` | `random` | | `highways`, `joint` | The topology of the edges. |
 | `ports` | `enum` | `free`, `sides`, `fixed` | `free` | | `highways`, `joint` | The ports of the edges. |
-| `hubBy` | `enum` | `area`, `random`, when `edgeShape` is `hubs` or `tree` | `area` | | `joint` | The order of the hubs. |
+| `hubBy` | `enum` | `area`, `random`, when `edgeShape` is `hubs` or `tree` | `area` | | `joint` | The order of the hubs. The value `random` adds `.hub-random` to the family of the input. |
 | `spacing` | `enum` | `stress`, `gap`, `margin`, `both` | `both` | | `joint` | The split of the route clearance (`docs/JOINT-CORPUS.md`). |
 | `margin` | `real` | 0 to 32 | 0 | `linear` | `packing`, `joint` | The margin of each item. |
 | `gap` | `real` | 0 to 32 | 0 | `linear` | `packing`, `joint` | The free space between two items. |
 
-The dimension `shape` uses the names of `L46`. When `L46` adds the type `ShapeKind`, the dimension uses it.
+The values of `shape` are `SHAPE_KIND_IDS` of `shapes.ts` (`L46`).
 
 ## The family registry
 
@@ -77,7 +80,7 @@ The dimension `shape` uses the names of `L46`. When `L46` adds the type `ShapeKi
 | `crossEngine` | `exact`, or `libm-dependent` for a family that uses `Math.log`, `Math.cos`, `**` or a function of the same type. |
 | `rng` | The random factory. The default is `DEFAULT_RNG`, the `mulberry32` of `random.ts`. |
 | `rngSeed` | The function that gives the seed of the stream from the input seed and the full dimensions. The default gives the input seed. |
-| `familyBy` | The dimensions of the family key after the name of the family. The default is no dimension. |
+| `familyBy` | The dimensions of the family key after the kind of the cell. A dimension with `when` is not permitted. The default is no dimension. |
 | `generate` | The function `generate(seed, dims, context)` that gives the input or the board. |
 
 The rules of the registry:
@@ -88,11 +91,12 @@ The rules of the registry:
 4. The registry gives the output of the family with no change. It calculates no hash. The family chooses its hash function.
 5. Without a version, `family(name)` gives the first version that the registry got, as `generator(name)` of `packing`.
 6. `cells(name, options)` gives the cells of a sweep, and `cellCount(name, options)` counts them with no list. The last dimension changes first.
-7. `boundaryCells(name)` gives the defaults and each end of each range, with the other dimensions at their defaults.
+7. `boundaryCells(name)` gives the defaults and each end of each range. A dimension with `when` gets the first value of its `when` at each end. The other dimensions keep their defaults.
 8. `rngOf(name)(seed, dims)` gives the stream of an input. A test of each family pins its first values.
-9. `familyBy()` gives the map form of `FamilyBy` for the cells of `cellOf`. `DEFAULT_FAMILY_BY` is `{ "*": [] }`: the key is the name of the family.
+9. `cellOf(name, dims, version)` gives the `kind` `<name>@<version>` of `familyKind`, for example `rect-grid@2`. Thus the cells of two versions do not share a key.
+10. `familyBy()` gives the map form of `FamilyBy` for the cells of `cellOf`, with one entry for each version. `DEFAULT_FAMILY_BY` is `{ "*": [] }`: the key is the kind alone.
 
-The test `families.test.ts` pins the first 8 values of `mulberry32(0)` as whole numbers of 32 bits: 1144304738, 1416247, 958946056, 627933444, 2007157716, 2340967985, 2642484575 and 2787370982. The generators of `highways` give the same stream.
+The test `families.test.ts` pins the first 8 values of `mulberry32(0)` as whole numbers of 32 bits: 1144304738, 1416247, 958946056, 627933444, 2007157716, 2340967985, 2642484575 and 2787370982. The generators of `highways` give the same stream. `highways` adds a test that pins the 8 values.
 
 ## The steps and the composed families
 
@@ -102,7 +106,7 @@ A `CorpusStep` changes an input after its base family, with the same seed. `comp
 - The family of the input gets the part of each step after a dot. The id becomes `<set>/<family>/s<seed>`.
 - The input gets the hash of `options.hash`. The default is `documentHash`.
 - The composed family is `libm-dependent` when the base or a step is `libm-dependent`.
-- `EDGES_STEP` is the step `edges` of `edgeStep`. Its family part is `e-<edgeDensity>.<edgeShape>.<groups>.<ports>`. It is `libm-dependent`, because the shape `hubs` uses `**`.
+- `EDGES_STEP` is the step `edges` of `edgeStep`. Its family part is `e-<edgeDensity>.<edgeShape>.<groups>.<ports>`. The value `random` of `hubBy` adds `.hub-random`. The step is `libm-dependent`, because the shape `hubs` uses `**`.
 
 ## The browser safety
 
@@ -135,7 +139,7 @@ Each cell tells the family that reads the dimension in each engine. "Own" tells 
 | `obstacles` | `rect-grid` | none | `rect-grid` |
 | `containerSize` | `rect-grid` and the families of a user interface | none | the same families |
 | `containerShape` | `rect-grid` | none | `rect-grid` |
-| `shape` | none: each item is a rectangle until `L46` | none | none |
+| `shape` | none: the generators make rectangles only | none | none |
 | `order` | `rect-grid` version 2 | none | none |
 | `groups` | none | own: `groupCols`, `groupRows` and `perGroup` of `many-groups` | `EDGES_STEP` |
 | `edgeDensity` | none | own: `edgesPerNode` of the fixtures | `EDGES_STEP` |
@@ -150,7 +154,7 @@ Each cell tells the family that reads the dimension in each engine. "Own" tells 
 
 | Corpus | Engine | What it needs |
 |---|---|---|
-| `corpus-v1`, `xcheck-v1` and the portfolio sets | `packing` | The registrations of its 8 generators (`k73`), with `crossEngine`. The knobs `margin`, `gap`, `shape` and a log slider of `count` for its site. |
+| `corpus-v1`, `xcheck-v1` and the portfolio sets | `packing` | The registrations of its 7 generators (`k73`), with `crossEngine`, and `RECT_SCATTERED` of the contract. The knobs `margin`, `gap`, `shape` and a log slider of `count` for its site. |
 | The screen sets (74 boards) | `highways` | The registrations of its 6 families. A new name for its fixture dimension `kind`, for example `layout`. Its own `documentHash`, with no number grid. |
 | The other sets of fixtures | `highways` | The same registrations, after the screen sets. |
 | `joint-v1` and `joint-v2` | `joint` | It uses the registry at this time, through the adapter `packingFamily`. It changes to the families of `packing` after `k73`. |
@@ -158,8 +162,19 @@ Each cell tells the family that reads the dimension in each engine. "Own" tells 
 ### The owners of the families today
 
 - `packing` owns `rect-grid` (versions 1 and 2), `gallery`, `dashboard`, `cards`, `word-cloud` and `edge-cases`. The joint package has no copy: `packingFamily` starts the generator of `packing`.
-- `rect-scattered` has two copies: `generators.ts` of `packing` and `bench/screen/generators.ts` of `highways`. A test in each repository pins the hashes of the seeds 1, 2 and 3.
-- The proposal: `layout-contract` gets the one copy of `rect-scattered`, as a family on `stepRandom` with the owner `layout-contract`. Each engine registers that family and removes its copy. Its pinned hashes stay as they are. The hash does not change, because each number of the input is a whole number, so the grid of `documentHash` changes nothing.
+- `rect-scattered` has two copies today: `generators.ts` of `packing` and `bench/screen/generators.ts` of `highways`.
+- `layout-contract` has the one shared copy: `RECT_SCATTERED`, with the owner `layout-contract`. Both engines accepted the move. Each engine registers it and removes its own copy.
+
+## The family `rect-scattered`
+
+`RECT_SCATTERED` is version 1 of the generator of `docs/FORMAT.md` of `packing`.
+
+- It has one dimension, `count`, with the default 40. Thus the params of the input are `{ count }`.
+- The set is `context.set`. Without it, the set is `xcheck-v1`.
+- It uses `stepRandom`. It takes `w` and `h` first, then `n`. Each obstacle then takes `ow`, `oh`, `x` and `y`. Each box then takes `bw` and `bh`.
+- Each value is a whole number, so the family is `exact`. It writes its own hash with `documentHash`.
+- The joint test `families.test.ts` compares its input with `rectScattered` of `packing` 0.2.17, byte for byte. The test uses 4 counts and 8 seeds, with the default set and with a given set.
+- The test of the contract pins the hashes of the seeds 1, 2 and 3: `f5f5c51d1560e41c`, `cfd6ef0ef232aaa3` and `d1638f2406360b2e`.
 
 ## The requests to the engines
 
@@ -167,21 +182,23 @@ Each cell tells the family that reads the dimension in each engine. "Own" tells 
 
 > L45 is in `layout-contract` (the release after L46). Register your generators on the registry: `createFamilyRegistry` and `CorpusFamily` of `families.ts`.
 >
-> 1. Export one `CorpusFamily` for each generator: `rect-grid` versions 1 and 2, `gallery`, `dashboard`, `cards`, `word-cloud`, `edge-cases` and `rect-scattered`. Use `sharedDimension` for each shared parameter. Give `order` only to version 2.
-> 2. `generate(seed, dims, context)` starts your generator with `context.set`. Keep `seeding` as the steps `container`, `obstacles` and `boxes` of `stepRandom`. Set `crossEngine` to `libm-dependent` for `rect-grid` (`heavyTail` uses `**`), and `exact` for the other generators.
-> 3. Put the knobs of your site into the dimensions: `margin` and `gap` (0 to 32), `shape` (the kinds of L46) and `count` (0 to 10000, `log`). A knob at its default adds no field to the input.
-> 4. Make the demo of your site get its inputs from `registry.generate`, and its sliders from `levelsOf`, `dimensionAt` and `dimensionUnit`.
-> 5. Add a test: each family through the registry gives the hashes of `corpus-v1` and `xcheck-v1` of today. Then tell `layout-stack`. The joint package then removes `packingFamily`.
+> 1. Export one `CorpusFamily` for each generator: `rect-grid` versions 1 and 2, `gallery`, `dashboard`, `cards`, `word-cloud` and `edge-cases`. Use `sharedDimension` for each shared parameter. Give `order` only to version 2.
+> 2. Register `RECT_SCATTERED` of the contract, and remove your copy of `rect-scattered`.
+> 3. `generate(seed, dims, context)` starts your generator with `context.set`. Keep `seeding` as the steps `container`, `obstacles` and `boxes` of `stepRandom`. Set `crossEngine` to `libm-dependent` for `rect-grid` (`heavyTail` uses `**`), and `exact` for the other generators.
+> 4. Put the knobs of your site into the dimensions: `margin` and `gap` (0 to 32), `shape` (`SHAPE_KIND_IDS`) and `count` (0 to 10000, `log`). A knob at its default adds no field to the input.
+> 5. Make the demo of your site get its inputs from `registry.generate`, and its sliders from `levelsOf`, `dimensionAt` and `dimensionUnit`.
+> 6. Add a test: each family through the registry gives the hashes of `corpus-v1` and `xcheck-v1` of today. Then tell `layout-stack`. The joint package then removes `packingFamily`.
 
 ### The request to `highways`
 
 > L45 is in `layout-contract` (the release after L46). Register your screen families on the registry: `createFamilyRegistry` and `CorpusFamily` of `families.ts`.
 >
 > 1. Export one `CorpusFamily` for each family of `screen-v1`: `tiny-uniform`, `small-clustered`, `dense-groups`, `hub-chain`, `many-groups` and `packed-grid`.
-> 2. A cell keeps the name of its family in `kind`. Give your fixture dimension another name, for example `layout`.
+> 2. A cell keeps `<name>@<version>` of its family in `kind`. Give your fixture dimension another name, for example `layout`.
 > 3. Make your `generate` write that dimension into your params as `kind`. Then the hash does not change.
 > 4. Use `rngSeed(seed, dims)` for the seed of the stream: `(seed * 2654435761 + dims.nodes) >>> 0` for the 3 fixture families. The other families use the seed. The default `rng` is `mulberry32`, the stream of your `rng`.
-> 5. Put `when` on `locality` (only `clustered`) and on `hubSkew` (only `hubs`). The registry gives `generate` the default of an inactive dimension.
+> 5. Put no `when` on `locality`, because each fixture kind reads it. A later `hubSkew` gets `when` with `layout` in `hubs`.
 > 6. Write into `generator.params` only the dimensions away from their defaults. Use your own `documentHash`: the registry calculates no hash.
 > 7. Set `crossEngine` to `libm-dependent` for the kinds that use `Math.log` and `Math.cos`, and `exact` for the other families.
-> 8. Make the examples page of your site get its boards from `registry.generate`. Keep your test of the 74 screen boards and of the manifest hashes `e5fe56d1069d2a18` and `35795acefa7148c3`. Then tell `layout-stack`.
+> 8. Register `RECT_SCATTERED` of the contract, and remove your copy of `rect-scattered`.
+> 9. Make the examples page of your site get its boards from `registry.generate`. Keep your test of the 74 screen boards and of the manifest hashes `e5fe56d1069d2a18` and `35795acefa7148c3`. Then tell `layout-stack`.
