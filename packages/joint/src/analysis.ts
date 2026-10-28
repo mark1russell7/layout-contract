@@ -173,6 +173,10 @@ export interface PairCompare {
   readonly onlyA: number;
   /** The count of the inputs where `b` reaches the floor and `a` misses it. */
   readonly onlyB: number;
+  /** The inputs where `a` reaches the floor and `b` misses it, in the order of the inputs of the cell. */
+  readonly onlyAInputs: readonly string[];
+  /** The inputs where `b` reaches the floor and `a` misses it, in the order of the inputs of the cell. */
+  readonly onlyBInputs: readonly string[];
 }
 
 /** The oracle of a cell without the pairs of some pack entries. */
@@ -859,6 +863,8 @@ function cellReport(
       ),
       onlyA: ids.filter((i) => on(i, a) && !on(i, b)).length,
       onlyB: ids.filter((i) => on(i, b) && !on(i, a)).length,
+      onlyAInputs: ids.filter((i) => on(i, a) && !on(i, b)),
+      onlyBInputs: ids.filter((i) => on(i, b) && !on(i, a)),
     };
   });
 
