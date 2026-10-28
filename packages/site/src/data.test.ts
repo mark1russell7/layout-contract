@@ -4,7 +4,7 @@ import { checkDataFile, checkJoint, checkNews, checkSpaceFile, latestJoint, type
 import { HEADLINE, jointData } from "./joint-data.ts";
 
 const raw = import.meta.glob<string>("../data/**/*.json", { eager: true, query: "?raw", import: "default" });
-const files = Object.entries(raw).map(([path, text]) => [path.replace("../data/", ""), text] as const);
+const files = Object.entries(raw).map(([path, text]) => [path.replace(/^\.\.\/data\//, ""), text] as const);
 const joints = files.filter(([p]) => p.startsWith("joint/")).map(([, t]) => JSON.parse(t) as JointData);
 
 describe("the data files", () => {

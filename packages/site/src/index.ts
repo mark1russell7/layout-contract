@@ -21,8 +21,8 @@ const problems: string[] = [];
 function good<T>(files: Record<string, unknown>, check: (v: unknown) => string[]): [string, T][] {
   return Object.entries(files).flatMap(([path, value]): [string, T][] => {
     const found = check(value);
-    if (found.length === 0) return [[path.replace("../", ""), value as T]];
-    problems.push(`${path.replace("../", "")}: ${found.join("; ")}`);
+    if (found.length === 0) return [[path.replace(/^\.\.\//, ""), value as T]];
+    problems.push(`${path.replace(/^\.\.\//, "")}: ${found.join("; ")}`);
     return [];
   });
 }
