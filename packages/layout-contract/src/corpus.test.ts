@@ -1,6 +1,6 @@
 import { createHash } from "node:crypto";
 import { describe, expect, it } from "vitest";
-import { canonicalJson, checkDeclared, checkSplit, corpusHashOf, type CorpusSplit, declaredClaimOf, declaredCounts, leaveOneSeedOut, SPLIT_SCHEMA, splitFileName, splitFolds } from "./index.ts";
+import { canonicalJson, checkDeclared, checkSplit, corpusHashOf, type CorpusSplit, type DeclaredClaim, declaredClaimOf, declaredCounts, familyOf, leaveOneSeedOut, SPLIT_SCHEMA, splitFileName, splitFolds } from "./index.ts";
 
 // The corpus checks of L22. The made-up manifest is the manifest of the split tests of packing.
 
@@ -185,5 +185,91 @@ describe("declaredClaimOf", () => {
     expect(() => declaredClaimOf({ claims: { declared: { minCount: 1.5, thin: [], counts: {} } } })).toThrow(/minCount is a whole number/);
     expect(() => declaredClaimOf({ claims: { declared: { minCount: 1, thin: [1], counts: {} } } })).toThrow(/thin is a list of property ids/);
     expect(() => declaredClaimOf({ claims: { declared: { minCount: 1, thin: [], counts: { a: -1 } } } })).toThrow(/gives a whole count/);
+  });
+});
+
+describe("familyOf", () => {
+  it("joins the values of the dimensions of the flat form, in order", () => {
+    expect(familyOf({ edgeDensity: "dense", groups: "flat", ports: "free" }, ["groups", "edgeDensity"])).toBe("flat/dense");
+    expect(familyOf({ count: 10 }, ["count"])).toBe("10");
+    expect(familyOf({ a: "x" }, [])).toBe("");
+  });
+
+  it("chooses the entry of the map form by kind, else the entry *", () => {
+    const by = { "rect-grid": ["obstacles"], "*": [] };
+    expect(familyOf({ kind: "rect-grid", obstacles: "wall" }, by)).toBe("rect-grid/wall");
+    expect(familyOf({ kind: "gallery", obstacles: "wall" }, by)).toBe("gallery");
+  });
+
+  it("throws for a missing dimension, a missing kind and a kind with no entry", () => {
+    expect(() => familyOf({ groups: "flat" }, ["groups", "ports"])).toThrow(new RangeError('familyOf: a cell without the dimension "ports" of familyBy.'));
+    expect(() => familyOf({ kind: "rect-grid" }, { "rect-grid": ["obstacles"] })).toThrow(/of the kind "rect-grid" without the dimension "obstacles"/);
+    expect(() => familyOf({ obstacles: "wall" }, { "*": [] })).toThrow(/a cell without kind/);
+    expect(() => familyOf({ kind: "cards" }, { "rect-grid": [] })).toThrow(/the kind "cards", which has no entry in familyBy and no entry "\*"/);
+  });
+});
+
+describe("the families of checkDeclared", () => {
+  type Cell = Record<string, string>;
+  type Input = { readonly id: string; readonly cell?: Cell };
+  const declares = (): readonly string[] => [];
+  const base = { minCount: 0, thin: [], counts: {} };
+  const check = (inputs: Input[], extra: Partial<DeclaredClaim>): { detail: string; inputs: readonly string[] }[] =>
+    checkDeclared(inputs, declares, { ...base, ...extra }).map((b) => ({ detail: b.detail, inputs: b.inputs }));
+  const grid = (id: string, obstacles?: string): Input => ({ id, cell: { kind: "rect-grid", ...(obstacles === undefined ? {} : { obstacles }) } });
+
+  it("finds no break when each cell gives its key", () => {
+    const inputs = [grid("g1", "wall"), grid("g2", "wall"), { id: "u1", cell: { kind: "gallery" } }];
+    expect(check(inputs, { familyBy: { "rect-grid": ["obstacles"], "*": [] }, familyMin: 1 })).toEqual([]);
+  });
+
+  it("gives a break for a cell without a dimension of its kind", () => {
+    expect(check([grid("g1", "wall"), grid("g2")], { familyBy: { "rect-grid": ["obstacles"], "*": [] } })).toEqual([
+      { detail: '1 inputs have a cell of the kind "rect-grid" without the dimension "obstacles" of familyBy', inputs: ["g2"] },
+    ]);
+    expect(check([{ id: "a", cell: { groups: "flat" } }], { familyBy: ["groups", "ports"] })).toEqual([
+      { detail: '1 inputs have a cell without the dimension "ports" of familyBy', inputs: ["a"] },
+    ]);
+  });
+
+  it("gives a break for a cell without kind in the map form, and for a kind with no entry and no *", () => {
+    expect(check([{ id: "a", cell: { obstacles: "wall" } }], { familyBy: { "*": [] } })).toEqual([
+      { detail: "1 inputs have a cell without kind, which the map form of familyBy needs", inputs: ["a"] },
+    ]);
+    expect(check([{ id: "u1", cell: { kind: "cards" } }, { id: "u2", cell: { kind: "cards" } }], { familyBy: { "rect-grid": [] } })).toEqual([
+      { detail: '2 inputs have the kind "cards", which has no entry in familyBy and no entry "*"', inputs: ["u1", "u2"] },
+    ]);
+  });
+
+  it("gives a break for an input without a cell", () => {
+    expect(check([{ id: "a" }], { familyBy: ["groups"] })).toEqual([{ detail: "1 inputs have no cell, which familyBy needs", inputs: ["a"] }]);
+  });
+
+  it("gives a break when two different cells give the same key", () => {
+    const inputs = [
+      { id: "a", cell: { x: "p/q", y: "r" } },
+      { id: "b", cell: { x: "p", y: "q/r" } },
+      { id: "c", cell: { x: "p", y: "s" } },
+    ];
+    expect(check(inputs, { familyBy: ["x", "y"] })).toEqual([{ detail: 'the family "p/q/r" comes from different dimension values: ["p/q","r"] and ["p","q/r"]', inputs: ["a", "b"] }]);
+  });
+
+  it("gives a break for a family below familyMin", () => {
+    const inputs = [grid("g1", "wall"), grid("g2", "wall"), grid("g3", "edge")];
+    expect(check(inputs, { familyBy: { "rect-grid": ["obstacles"] }, familyMin: 2 })).toEqual([{ detail: 'the family "rect-grid/edge" has 1 inputs, below familyMin 2', inputs: ["g3"] }]);
+  });
+
+  it("reads the cells with the hook cellOf", () => {
+    const inputs = [{ id: "rect-grid/a/s1" }, { id: "gallery/b/s1" }];
+    const cellOf = (i: { id: string }): Cell => ({ kind: i.id.split("/")[0]! });
+    expect(checkDeclared(inputs, declares, { ...base, familyBy: { "*": [] }, familyMin: 1 }, undefined, cellOf)).toEqual([]);
+  });
+
+  it("reads familyBy and familyMin in declaredClaimOf, and refuses a bad value", () => {
+    const declared = { minCount: 1, thin: [], counts: {}, familyBy: { "rect-grid": ["obstacles"], "*": [] }, familyMin: 10 };
+    expect(declaredClaimOf({ claims: { declared } })).toEqual(declared);
+    expect(() => declaredClaimOf({ claims: { declared: { ...declared, familyBy: [1] } } })).toThrow(/familyBy is a list of dimensions/);
+    expect(() => declaredClaimOf({ claims: { declared: { ...declared, familyBy: { a: "x" } } } })).toThrow(/familyBy is a list of dimensions/);
+    expect(() => declaredClaimOf({ claims: { declared: { ...declared, familyMin: -1 } } })).toThrow(/familyMin is a whole number/);
   });
 });

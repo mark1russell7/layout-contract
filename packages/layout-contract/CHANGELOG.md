@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.2.11
+
+- The claim `claims.declared` can have `familyBy`: the key of the family of each input. `familyOf(cell, familyBy)` gives the key of one cell.
+- The flat form of `familyBy` is a list of dimensions. The map form chooses a list by the `kind` of the cell, or by the entry `"*"`.
+- `checkDeclared` checks the keys: a missing dimension, a missing kind, a kind without an entry and two cells with the same key. `familyMin` sets the minimum count of each family.
+- `verdict(records, options)` compares two strategies on one measure, with the family as the unit. `docs/VERDICT.md` tells the rule.
+- The verdict gives the mean of the family means and the mean of the inputs, each with a seeded bootstrap interval. It also gives a stratified paired permutation test.
+- A verdict counts only when it holds under both weightings. Opposite signs give `depends on the mix`. `tie` and `level` have no default.
+- `docs/PROMOTION.md` has the new shared block `verdict-family`.
+
 ## 0.2.10
 
 - The contract has the strategy space `strategy-space/1`: the stages of an engine, their options and the ranges of their params, as data. `docs/STRATEGY-SPACE.md` tells the rules.

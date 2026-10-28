@@ -4,7 +4,7 @@
 # and private members. The command `api-report check` compares this file with the built .d.ts files.
 # To accept a change of the API, start the build, then `api-report update`, and review the diff.
 
-## . (build/index.d.ts): 142 names
+## . (build/index.d.ts): 161 names
 
 ClaimBreak: build/index.d.ts#ClaimBreak
 ContainerTest: build/index.d.ts#ContainerTest
@@ -21,6 +21,10 @@ EdgeShape: build/index.d.ts#EdgeShape
 EdgeStepParams: build/index.d.ts#EdgeStepParams
 EnumerateOptions: build/index.d.ts#EnumerateOptions
 ExerciseEvidence: build/index.d.ts#ExerciseEvidence
+FAMILY_ANY_KIND: build/index.d.ts#FAMILY_ANY_KIND
+FamilyBy: build/index.d.ts#FamilyBy
+FamilyCell: build/index.d.ts#FamilyCell
+FamilyVerdict: build/index.d.ts#FamilyVerdict
 GridOptions: build/index.d.ts#GridOptions
 HashOptions: build/index.d.ts#HashOptions
 Item: build/index.d.ts#Item
@@ -90,7 +94,20 @@ StrategyInfo: build/index.d.ts#StrategyInfo
 StrategySpace: build/index.d.ts#StrategySpace
 Supports: build/index.d.ts#Supports
 Tolerance: build/index.d.ts#Tolerance
+VERDICT_DRAWS: build/index.d.ts#VERDICT_DRAWS
+VERDICT_EXACT_CAP: build/index.d.ts#VERDICT_EXACT_CAP
+VERDICT_EXACT_MAX: build/index.d.ts#VERDICT_EXACT_MAX
+VERDICT_RUNS: build/index.d.ts#VERDICT_RUNS
+VERDICT_SEED: build/index.d.ts#VERDICT_SEED
 Verdict: build/index.d.ts#Verdict
+VerdictInterval: build/index.d.ts#VerdictInterval
+VerdictLabel: build/index.d.ts#VerdictLabel
+VerdictOptions: build/index.d.ts#VerdictOptions
+VerdictPermutation: build/index.d.ts#VerdictPermutation
+VerdictRecord: build/index.d.ts#VerdictRecord
+VerdictResult: build/index.d.ts#VerdictResult
+VerdictSide: build/index.d.ts#VerdictSide
+VerdictSignTest: build/index.d.ts#VerdictSignTest
 applyPack: build/index.d.ts#applyPack
 boundsOf: build/index.d.ts#boundsOf
 canonicalConfig: build/index.d.ts#canonicalConfig
@@ -113,6 +130,7 @@ documentHash: build/index.d.ts#documentHash
 edgeStep: build/index.d.ts#edgeStep
 enumerateSpace: build/index.d.ts#enumerateSpace
 exercised: build/index.d.ts#exercised
+familyOf: build/index.d.ts#familyOf
 fnv1a32: build/index.d.ts#fnv1a32
 grow: build/index.d.ts#grow
 joinConfigs: build/index.d.ts#joinConfigs
@@ -148,6 +166,7 @@ turnPoint: build/index.d.ts#turnPoint
 turnPort: build/index.d.ts#turnPort
 turnRegion: build/index.d.ts#turnRegion
 turnSide: build/index.d.ts#turnSide
+verdict: build/index.d.ts#verdict
 
 ## Declarations
 
@@ -187,6 +206,8 @@ export interface DeclaredClaim {
   readonly minCount: number;
   readonly thin: readonly string[];
   readonly counts: Readonly<Record<string, number>>;
+  readonly familyBy?: FamilyBy;
+  readonly familyMin?: number;
 }
 
 ### build/index.d.ts#Declares
@@ -224,6 +245,25 @@ export interface ExerciseEvidence {
   readonly moves?: Readonly<Record<string, number>>;
   readonly hashes?: readonly string[];
   readonly baseHashes?: readonly string[];
+}
+
+### build/index.d.ts#FAMILY_ANY_KIND
+export declare const FAMILY_ANY_KIND = "*";
+
+### build/index.d.ts#FamilyBy
+export type FamilyBy = readonly string[] | {
+  readonly [kind: string]: readonly string[];
+};
+
+### build/index.d.ts#FamilyCell
+export type FamilyCell = Readonly<Record<string, unknown>>;
+
+### build/index.d.ts#FamilyVerdict
+export interface FamilyVerdict {
+  readonly family: string;
+  readonly n: number;
+  readonly mean: number;
+  readonly sign: -1 | 0 | 1;
 }
 
 ### build/index.d.ts#GridOptions
@@ -756,8 +796,88 @@ export interface Tolerance {
   readonly through: number;
 }
 
+### build/index.d.ts#VERDICT_DRAWS
+export declare const VERDICT_DRAWS = 2e4;
+
+### build/index.d.ts#VERDICT_EXACT_CAP
+export declare const VERDICT_EXACT_CAP = 20;
+
+### build/index.d.ts#VERDICT_EXACT_MAX
+export declare const VERDICT_EXACT_MAX = 16;
+
+### build/index.d.ts#VERDICT_RUNS
+export declare const VERDICT_RUNS = 1e4;
+
+### build/index.d.ts#VERDICT_SEED
+export declare const VERDICT_SEED = 1;
+
 ### build/index.d.ts#Verdict
 export type Verdict = "better" | "worse" | "tie";
+
+### build/index.d.ts#VerdictInterval
+export interface VerdictInterval {
+  readonly mean: number;
+  readonly lo: number;
+  readonly hi: number;
+}
+
+### build/index.d.ts#VerdictLabel
+export type VerdictLabel = "better" | "worse" | "depends on the mix" | "no verdict";
+
+### build/index.d.ts#VerdictOptions
+export interface VerdictOptions<R extends VerdictRecord = VerdictRecord> {
+  readonly by: "family";
+  readonly family: (record: R) => string;
+  readonly measure: Pick<MeasureSpec, "id" | "direction">;
+  readonly a: VerdictSide<R>;
+  readonly b: VerdictSide<R>;
+  readonly tie: number | {
+    readonly rel: number;
+  };
+  readonly level: number;
+  readonly runs?: number;
+  readonly draws?: number;
+  readonly seed?: number;
+  readonly exactMax?: number;
+}
+
+### build/index.d.ts#VerdictPermutation
+export interface VerdictPermutation {
+  readonly p: number;
+  readonly exact: boolean;
+  readonly draws: number;
+  readonly seed: number;
+}
+
+### build/index.d.ts#VerdictRecord
+export type VerdictRecord = Pick<LayoutRecord, "strategy" | "input" | "seed" | "measures"> & {
+  readonly skipped?: string;
+};
+
+### build/index.d.ts#VerdictResult
+export interface VerdictResult {
+  readonly measure: string;
+  readonly n: number;
+  readonly stratified: VerdictInterval;
+  readonly pooled: VerdictInterval;
+  readonly permutation: VerdictPermutation;
+  readonly families: readonly FamilyVerdict[];
+  readonly signTest: VerdictSignTest;
+  readonly agree: boolean;
+  readonly label: VerdictLabel;
+  readonly dropped: readonly string[];
+}
+
+### build/index.d.ts#VerdictSide
+export type VerdictSide<R extends VerdictRecord = VerdictRecord> = string | ((record: R) => boolean);
+
+### build/index.d.ts#VerdictSignTest
+export interface VerdictSignTest {
+  readonly wins: number;
+  readonly losses: number;
+  readonly ties: number;
+  readonly p: number;
+}
 
 ### build/index.d.ts#applyPack
 export declare function applyPack(input: LayoutInput, output: PackOutput): LayoutInput;
@@ -775,7 +895,7 @@ export declare function canonicalJson(value: unknown): string;
 export declare function checkConfig(space: StrategySpace, config: StrategyConfig): ClaimBreak[];
 
 ### build/index.d.ts#checkDeclared
-export declare function checkDeclared<I>(inputs: Iterable<I>, declares: Declares<I>, claim: DeclaredClaim, ids?: readonly string[]): ClaimBreak[];
+export declare function checkDeclared<I>(inputs: Iterable<I>, declares: Declares<I>, claim: DeclaredClaim, ids?: readonly string[], cellOf?: (input: I) => FamilyCell | undefined): ClaimBreak[];
 
 ### build/index.d.ts#checkInput
 export declare function checkInput(input: LayoutInput): readonly string[];
@@ -824,6 +944,9 @@ export declare function enumerateSpace(space: StrategySpace, options: EnumerateO
 
 ### build/index.d.ts#exercised
 export declare function exercised(evidence: ExerciseEvidence): boolean;
+
+### build/index.d.ts#familyOf
+export declare function familyOf(cell: FamilyCell, familyBy: FamilyBy): string;
 
 ### build/index.d.ts#fnv1a32
 export declare function fnv1a32(text: string): number;
@@ -934,3 +1057,6 @@ export declare function turnRegion(region: Region, h: number): Region;
 
 ### build/index.d.ts#turnSide
 export declare function turnSide(side: Side): Side;
+
+### build/index.d.ts#verdict
+export declare function verdict<R extends VerdictRecord>(records: Iterable<R>, options: VerdictOptions<R>): VerdictResult;

@@ -19,6 +19,78 @@ export interface DeclaredClaim {
   readonly thin: readonly string[];
   /** The count of the inputs for each property id. */
   readonly counts: Readonly<Record<string, number>>;
+  /** The key of the family of an input. `familyOf` gives the key of one cell. The family is the unit of a verdict. */
+  readonly familyBy?: FamilyBy;
+  /** The minimum count of the inputs of each family. Without it, `checkDeclared` does not count the families. */
+  readonly familyMin?: number;
+}
+
+/**
+ * The key of the family of a cell (`docs/CORPUS-CHECKS.md`).
+ *
+ * - The flat form is a list of dimensions. The key is the values of these dimensions of the cell, in order, with `/` between them.
+ * - The map form chooses an entry by the field `kind` of the cell, or the entry `"*"`. The key is the kind, then the values of the dimensions of the entry.
+ */
+export type FamilyBy = readonly string[] | { readonly [kind: string]: readonly string[] };
+
+/** A cell of an input: one value for each dimension. The map form of `FamilyBy` also reads the field `kind`. */
+export type FamilyCell = Readonly<Record<string, unknown>>;
+
+/** The entry of the map form of `FamilyBy` for each kind without its own entry. */
+export const FAMILY_ANY_KIND = "*";
+
+/** The separator of the parts of a family key. */
+const FAMILY_SEP = "/";
+
+/** The parts of the key of one cell, or the text of the problem. */
+type FamilyParts = { readonly parts: readonly string[] } | { readonly problem: string };
+
+/** This function gives the text of a dimension value. A missing value, or a value that is not a string, a number or a boolean, gives `undefined`. */
+function partOf(value: unknown): string | undefined {
+  if (typeof value === "string") return value;
+  if (typeof value === "number" || typeof value === "boolean") return String(value);
+  return undefined;
+}
+
+/** This function gives the parts of the family key of a cell. A missing dimension, a missing kind or a kind without an entry gives a problem. */
+function familyParts(cell: FamilyCell, familyBy: FamilyBy): FamilyParts {
+  let dims: readonly string[];
+  let kind: string | undefined;
+  const parts: string[] = [];
+  if (Array.isArray(familyBy)) {
+    dims = familyBy as readonly string[];
+  } else {
+    const map = familyBy as Readonly<Record<string, readonly string[]>>;
+    kind = partOf(cell["kind"]);
+    if (kind === undefined) return { problem: "a cell without kind, which the map form of familyBy needs" };
+    const entry = Object.hasOwn(map, kind) ? map[kind] : Object.hasOwn(map, FAMILY_ANY_KIND) ? map[FAMILY_ANY_KIND] : undefined;
+    if (entry === undefined) return { problem: `the kind "${kind}", which has no entry in familyBy and no entry "${FAMILY_ANY_KIND}"` };
+    dims = entry;
+    parts.push(kind);
+  }
+  for (const dim of dims) {
+    const part = partOf(cell[dim]);
+    if (part === undefined) return { problem: `a cell${kind === undefined ? "" : ` of the kind "${kind}"`} without the dimension "${dim}" of familyBy` };
+    parts.push(part);
+  }
+  return { parts };
+}
+
+/**
+ * This function gives the family key of a cell. It throws a `RangeError` when the cell does not have a dimension of the key.
+ * In the map form, it also throws for a cell without `kind`, and for a kind with no entry and no entry `"*"`.
+ * For example, `{ "rect-grid": ["obstacles"], "*": [] }` gives `rect-grid/wall` for a `rect-grid` cell and `gallery` for a `gallery` cell.
+ */
+export function familyOf(cell: FamilyCell, familyBy: FamilyBy): string {
+  const found = familyParts(cell, familyBy);
+  if ("problem" in found) throw new RangeError(`familyOf: ${found.problem}.`);
+  return found.parts.join(FAMILY_SEP);
+}
+
+/** This function tells if a value is a `FamilyBy`: a list of dimensions, or a map from a kind to a list of dimensions. */
+function isFamilyBy(value: unknown): value is FamilyBy {
+  const isDims = (v: unknown): boolean => Array.isArray(v) && v.every((d) => typeof d === "string");
+  return isDims(value) || (isObject(value) && Object.values(value).every(isDims));
 }
 
 /** The hook that gives the ids of the properties that one input declares. */
@@ -54,7 +126,16 @@ export function declaredClaimOf(manifest: object): DeclaredClaim | undefined {
   if (!isObject(counts) || !Object.values(counts).every((n) => Number.isInteger(n) && (n as number) >= 0)) {
     throw new Error("The field claims.declared.counts gives a whole count for each property id.");
   }
-  return { minCount: minCount as number, thin: [...(thin as string[])], counts: { ...(counts as Record<string, number>) } };
+  const { familyBy, familyMin } = declared;
+  if (familyBy !== undefined && !isFamilyBy(familyBy)) throw new Error("The field claims.declared.familyBy is a list of dimensions, or a map from a kind to a list of dimensions.");
+  if (familyMin !== undefined && (!Number.isInteger(familyMin) || (familyMin as number) < 0)) throw new Error("The field claims.declared.familyMin is a whole number of 0 or more.");
+  return {
+    minCount: minCount as number,
+    thin: [...(thin as string[])],
+    counts: { ...(counts as Record<string, number>) },
+    ...(familyBy === undefined ? {} : { familyBy: Array.isArray(familyBy) ? [...familyBy] : { ...(familyBy as Record<string, readonly string[]>) } }),
+    ...(familyMin === undefined ? {} : { familyMin: familyMin as number }),
+  };
 }
 
 /**
@@ -64,9 +145,22 @@ export function declaredClaimOf(manifest: object): DeclaredClaim | undefined {
  * - Each id of `ids` has a count in `claim.counts`, and `claim.counts` has no other id. Each count is the count of the inputs.
  * - An id with a count below `minCount` is in `thin`. Each id of `thin` is an id of `ids`.
  * - Each id that `declares` gives is an id of `ids`.
+ *
+ * With `claim.familyBy`, the hook `cellOf` gives the cell of each input. The default reads the field `cell` of the input.
+ *
+ * - Each cell has each dimension of its key. In the map form, each cell has a `kind`, and the kind has an entry or the entry `"*"` is there.
+ * - Two cells with different dimension values do not give the same key.
+ * - With `claim.familyMin`, each family has `familyMin` inputs or more.
  */
-export function checkDeclared<I>(inputs: Iterable<I>, declares: Declares<I>, claim: DeclaredClaim, ids: readonly string[] = Object.keys(claim.counts)): ClaimBreak[] {
-  const computed = declaredCounts(inputs, declares, ids);
+export function checkDeclared<I>(
+  inputs: Iterable<I>,
+  declares: Declares<I>,
+  claim: DeclaredClaim,
+  ids: readonly string[] = Object.keys(claim.counts),
+  cellOf: (input: I) => FamilyCell | undefined = cellField,
+): ClaimBreak[] {
+  const list = [...inputs];
+  const computed = declaredCounts(list, declares, ids);
   const out: string[] = [];
   for (const id of ids) {
     if (!(id in claim.counts)) out.push(`the property "${id}" has no count`);
@@ -79,7 +173,53 @@ export function checkDeclared<I>(inputs: Iterable<I>, declares: Declares<I>, cla
   }
   for (const id of claim.thin) if (!ids.includes(id)) out.push(`"${id}" of thin is not a declared property`);
   for (const id of Object.keys(computed)) if (!ids.includes(id)) out.push(`${computed[id]} inputs declare "${id}", which is not a declared property`);
-  return out.map((detail) => ({ claim: "declared", detail, inputs: [] }));
+  const breaks: ClaimBreak[] = out.map((detail) => ({ claim: "declared", detail, inputs: [] }));
+  if (claim.familyBy !== undefined) breaks.push(...checkFamilies(list, claim.familyBy, claim.familyMin, cellOf));
+  return breaks;
+}
+
+/** This function gives the field `cell` of an input, when it is an object. */
+function cellField(input: unknown): FamilyCell | undefined {
+  const cell = isObject(input) ? input["cell"] : undefined;
+  return isObject(cell) ? cell : undefined;
+}
+
+/** This function gives the field `id` of an input, or its place in the list. */
+function inputId(input: unknown, at: number): string {
+  const id = isObject(input) ? input["id"] : undefined;
+  return typeof id === "string" ? id : `#${at}`;
+}
+
+/** This function gives the breaks of the family keys of the inputs: the problems of each key, the collisions and the thin families. */
+function checkFamilies<I>(inputs: readonly I[], familyBy: FamilyBy, familyMin: number | undefined, cellOf: (input: I) => FamilyCell | undefined): ClaimBreak[] {
+  const problems = new Map<string, string[]>();
+  const members = new Map<string, { readonly tuples: Map<string, string[]>; readonly ids: string[] }>();
+  inputs.forEach((input, at) => {
+    const id = inputId(input, at);
+    const cell = cellOf(input);
+    const found: FamilyParts = cell === undefined ? { problem: "no cell, which familyBy needs" } : familyParts(cell, familyBy);
+    if ("problem" in found) {
+      problems.set(found.problem, [...(problems.get(found.problem) ?? []), id]);
+      return;
+    }
+    const key = found.parts.join(FAMILY_SEP);
+    const family = members.get(key) ?? { tuples: new Map<string, string[]>(), ids: [] };
+    const tuple = JSON.stringify(found.parts);
+    family.tuples.set(tuple, [...(family.tuples.get(tuple) ?? []), id]);
+    family.ids.push(id);
+    members.set(key, family);
+  });
+  const breaks: ClaimBreak[] = [];
+  const add = (detail: string, ids: readonly string[]): void => void breaks.push({ claim: "declared", detail, inputs: [...ids] });
+  for (const [problem, ids] of problems) add(`${ids.length} inputs have ${problem}`, ids);
+  for (const [key, family] of members) {
+    if (family.tuples.size > 1) {
+      const forms = [...family.tuples.keys()].join(" and ");
+      add(`the family "${key}" comes from different dimension values: ${forms}`, family.ids);
+    }
+    if (familyMin !== undefined && family.ids.length < familyMin) add(`the family "${key}" has ${family.ids.length} inputs, below familyMin ${familyMin}`, family.ids);
+  }
+  return breaks;
 }
 
 /** The id and the hash of one input of a corpus. */

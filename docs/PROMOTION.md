@@ -97,6 +97,25 @@ The program screens many ideas. At a p-value of 0.05, 1 idea in 20 with no effec
 - The record of the promotion names the fresh seeds. A later screen does not use them for a decision.
 <!-- /shared:confirmation-run -->
 
+<!-- shared:verdict-family -->
+### The verdict over families
+
+A corpus has families of inputs. The seeds of one family are replicates of one board. Thus a family with many seeds does not decide a verdict alone.
+
+- The family is the unit of a verdict. The field `familyBy` of the manifest gives the family of each input.
+- The difference of an input compares the candidate with the default on the same input and seed, in the direction of the measure.
+- The stratified mean is the mean of the family means. Each family has the same weight.
+- The pooled mean is the mean of the inputs. Each input has the same weight, so a large family has a large weight.
+- Each mean has a bootstrap interval. The bootstrap of the stratified mean draws the seeds inside each family.
+- The permutation test is stratified and paired. A flip changes the sign of the difference of one input, inside its family. The statistic is the stratified mean.
+- A verdict counts only when it holds under both weightings. The two means have the same sign, the two intervals are clear of 0, and the permutation p is below the level.
+- When the two means have opposite signs, the verdict is "depends on the mix". Then the mix of the families in the corpus decides the sign.
+- The sign test of the family signs is a report only. It does not decide a verdict.
+- `verdict` of `layout-contract` calculates the verdict. The tie and the level have no default. Each caller gives them.
+
+**The power.** With 6 families, the best two-sided p of a sign test is 0.031, at 6 of 6. At 5 of 6, the p is 0.22, so 5 of 6 is not significant. More seeds do not change this limit. Only more families change it.
+<!-- /shared:verdict-family -->
+
 <!-- shared:activation -->
 ### Activation
 
