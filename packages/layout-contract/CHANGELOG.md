@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.2.10
+
+- The contract has the strategy space `strategy-space/1`: the stages of an engine, their options and the ranges of their params, as data. `docs/STRATEGY-SPACE.md` tells the rules.
+- A param can have a `when`. Then it is active only when an earlier param has one of the given values.
+- A meta option has `members`: whole configs of the same space, with a depth of 1. Portfolios and selectors use it.
+- `checkSpace` and `checkConfig` give a `ClaimBreak` for each problem. `canonicalConfig` gives the canonical form, and `configId` gives its hash.
+- `spaceSize` counts the grid points, with the meta configs apart. `paramLevels` gives the grid values of one param.
+- `enumerateSpace` gives the grid, or a seeded Latin hypercube sample. `productSpace`, `joinConfigs` and `splitConfig` join a packer and a router.
+
 ## 0.2.9
 
 - The contract has the corpus checks of `packing`, `highways` and the joint corpus. `docs/CORPUS-CHECKS.md` tells the rules.
