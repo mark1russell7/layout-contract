@@ -119,4 +119,4 @@ Thus the corpus has 95 specs (55, 37 and 3) and 285 inputs.
 - `inputs` of the manifest has the id, the hash and the cell of each input. The input files do not have the cell, as in `packing`.
 - The cell has the values of `packing`, with the 4 dimensions of the edges. Its `edgeShape` can be `hubs`.
 - The test of the package compares the corpus with the manifest. After a change of the corpus, write the manifest again with the script `corpus` of the package.
-- The joint runner comes later. It uses `packing` and `highways` from npm, and the benchmark runs in CI.
+- The joint runner comes later. It uses `packing` and `highways` from npm, and CI starts the benchmark.

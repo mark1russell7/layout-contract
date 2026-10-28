@@ -116,7 +116,7 @@ function specOf(array: JointSpec["array"], name: string, params: GeneratorParams
 }
 
 /**
- * This function gives the specs of the corpus: the rows of the array of `rect-grid`, then the rows of the array of the families of a user interface, then the fixed cases.
+ * This function gives the specs of the corpus. The rows of the array `grid` come first, then the rows of the array `ui`, then the fixed cases.
  * The arrays come from `pairwise` with `ARRAY_SEED`.
  */
 export function jointSpecs(): JointSpec[] {
