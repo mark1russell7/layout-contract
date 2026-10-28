@@ -12,7 +12,7 @@ import {
   type SplitFold,
 } from "@mark1russell7/layout-contract";
 import { recordCount, type RecordCount } from "./record-count.ts";
-import { CAPS, PAIR_SEPARATOR } from "./runner.ts";
+import { CAPS, PAIR_SEPARATOR, ROUTERS } from "./runner.ts";
 
 /** The facts of one input that the analysis reads. The CLI gives them from the manifest of the corpus. */
 export interface AnalysisInput {
@@ -102,8 +102,23 @@ export interface AnalysisOptions {
   readonly allowMissing?: readonly string[];
   /** The ids of the inputs of the second headline. With it, the report also gives the headline cell on these inputs only. */
   readonly subset?: readonly string[];
-  /** The pair of the baseline, for example `BASELINE`. With it, each cell also gives the baseline and the gains over it. */
-  readonly baseline?: string;
+  /**
+   * The pair of the baseline, for example `BASELINE`, or a list of pairs. With it, each cell also gives each baseline and the gains over it.
+   * The field `baseline` of a cell holds the first pair. The field `baselines` holds each pair.
+   */
+  readonly baseline?: string | readonly string[];
+  /** The pairs `[a, b]` of the pairwise comparisons. Each cell gives the misses and the scores of `a` and `b`, and the gain of `a` over `b`. */
+  readonly compare?: readonly (readonly [string, string])[];
+  /** The pack entries to remove before the analysis. The analysis ignores each record of their pairs. The checks of `composite` and `times` read all records. */
+  readonly excludePacks?: readonly string[];
+  /** The pack entries of a second oracle. Each cell also gives the oracle without the pairs of these entries. */
+  readonly without?: readonly string[];
+  /** The composite pack entry, and the member that it picks on each input. With it, the report checks that each record of the entry is the record of its member. */
+  readonly composite?: { readonly pack: string; readonly members: Readonly<Record<string, string>> };
+  /** The specs of the table of the route times. The report gives the median and the maximum `route.ms` of each router on each seed. */
+  readonly times?: readonly string[];
+  /** The jobs of the run, from `gh run view <id> --json jobs`. With them, the report gives the time of each shard. */
+  readonly jobs?: readonly JobFacts[];
   /**
    * The folds of the greedy portfolios, from a split file (`loadSplit`). The default holds out one seed of the inputs in each fold.
    * A fold without held-out inputs gives no row. A seed of a fold without inputs adds no input.
@@ -114,8 +129,150 @@ export interface AnalysisOptions {
 /** The pair of the sequential baseline (L10): the default pack entry `rows`, then the portfolio router. */
 export const BASELINE = "rows+portfolio";
 
+/** The router of the first row of the table of the route times. */
+export const TIME_FIRST = "shared-all";
+
+/** The spec of the claim S10 (L32): the dense spec with hubs and 1000 boxes. `pnpm bench analyze` gives its route times by default. */
+export const DENSE_HUBS = "joint-v2/rect-grid.freeHeight.holes.none.bimodal.n1000.e-dense.hubs.none.free.sp-gap";
+
+/** The limit of the claim S11 (L32) on the time of the step `Run one shard` of each shard, in minutes. */
+export const SHARD_LIMIT_MINUTES = 60;
+
+/** The name of the step of a shard job that runs the inputs of the shard. */
+export const SHARD_STEP = "Run one shard";
+
+/** The default count of the rows of the ranking of the output groups in the Markdown report. */
+export const RANK_TOP = 20;
+
 /** The options of the report of one cell. */
-type CellOptions = Required<Pick<AnalysisOptions, "resamples" | "seed" | "sizes">> & Pick<AnalysisOptions, "baseline" | "folds">;
+type CellOptions = Required<Pick<AnalysisOptions, "resamples" | "seed" | "sizes">> &
+  Pick<AnalysisOptions, "folds" | "compare" | "without"> & { readonly baselines?: readonly string[] };
+
+/** One output group in the ranking of a cell. The ranking uses the levels of the best pair: the misses, then the score. */
+export interface GroupRank {
+  /** The rank, from 1. The group of rank 1 is the best pair of the cell. */
+  readonly rank: number;
+  /** The id of the group: its first pair in sort order. */
+  readonly group: string;
+  readonly members: readonly string[];
+  readonly misses: number;
+  readonly score: number;
+}
+
+/** The comparison of two pairs in one cell. */
+export interface PairCompare {
+  readonly a: string;
+  readonly b: string;
+  readonly missesA: number;
+  readonly missesB: number;
+  readonly scoreA: number;
+  readonly scoreB: number;
+  /** The score of `a` minus the score of `b`, on each input. */
+  readonly gain: Interval;
+  /** The count of the inputs where `a` reaches the floor and `b` misses it. */
+  readonly onlyA: number;
+  /** The count of the inputs where `b` reaches the floor and `a` misses it. */
+  readonly onlyB: number;
+}
+
+/** The oracle of a cell without the pairs of some pack entries. */
+export interface WithoutReport {
+  readonly packs: readonly string[];
+  /** The mean score of the oracle without these pairs. */
+  readonly score: number;
+  /** The score of the oracle with all pairs minus the score without these pairs, on each input. */
+  readonly gain: Interval;
+  /** The count of the inputs where the two oracle scores differ by more than 1e-12. */
+  readonly differ: number;
+}
+
+/** The check of a composite pack entry for the inputs of one member. */
+export interface CompositeMember {
+  readonly member: string;
+  /** The count of the inputs where the composite entry picks this member. */
+  readonly inputs: number;
+  /** The count of the records of the composite entry on these inputs. */
+  readonly records: number;
+  readonly skipped: number;
+  /** The count of the records with the output hash of the record of the member with the same router. */
+  readonly same: number;
+  /** The count of the records with a different output hash. */
+  readonly differ: number;
+  /** The count of the records without a record of the member with the same router. */
+  readonly missing: number;
+}
+
+/**
+ * The check of a composite pack entry, for example `select`. The output hash of a joint record is the hash of its pack hash and its route hash.
+ * Thus an equal output hash gives an equal pack hash and an equal route hash.
+ */
+export interface CompositeReport {
+  readonly pack: string;
+  readonly records: number;
+  /** The count of the skipped records of the entry, by reason. */
+  readonly skipped: Readonly<Record<string, number>>;
+  readonly members: readonly CompositeMember[];
+  /** The inputs with a record that differs from its member, or that has no record of its member. The list has 20 ids or fewer. */
+  readonly bad: readonly string[];
+  /** For each other pack entry: the count of the inputs where each record of the composite entry has its output hash, router by router. */
+  readonly matches: Readonly<Record<string, number>>;
+}
+
+/** The route times of one router on one input. */
+export interface RouterTime {
+  readonly router: string;
+  /** The count of the records with `route.ms`. */
+  readonly records: number;
+  /** The median `route.ms` of the records, in milliseconds. */
+  readonly median: number;
+  /** The maximum `route.ms` of the records, in milliseconds. */
+  readonly max: number;
+}
+
+/** The route times of the routers on one seed of a spec. The first router is `TIME_FIRST`. */
+export interface SeedTimes {
+  readonly input: string;
+  readonly seed: number;
+  readonly routers: readonly RouterTime[];
+}
+
+/** The route times of one spec. */
+export interface SpecTimes {
+  readonly spec: string;
+  readonly seeds: readonly SeedTimes[];
+}
+
+/** The facts of one job of a run, as `gh run view <id> --json jobs` gives them. */
+export interface JobFacts {
+  readonly name: string;
+  readonly conclusion?: string;
+  readonly startedAt?: string;
+  readonly completedAt?: string;
+  readonly steps?: readonly { readonly name: string; readonly startedAt?: string; readonly completedAt?: string; readonly conclusion?: string }[];
+}
+
+/** The time of one shard job. */
+export interface ShardTime {
+  readonly shard: number;
+  readonly conclusion: string;
+  /** The minutes of the job, from its start to its end. */
+  readonly job?: number;
+  /** The minutes of the step `SHARD_STEP`: the inputs of the shard. */
+  readonly step?: number;
+}
+
+/** The times of the shard jobs of a run, and the verdict of the limit `SHARD_LIMIT_MINUTES`. */
+export interface ShardTimes {
+  readonly limit: number;
+  /** The shards from the longest step to the shortest. A shard without a step time comes last. */
+  readonly shards: readonly ShardTime[];
+  /** The longest step time, in minutes. */
+  readonly max: number;
+  /** The count of the shards with a step time of `limit` minutes or more, or without a step time. */
+  readonly over: number;
+  /** This value is true when each shard succeeded and each step took less than `limit` minutes. */
+  readonly held: boolean;
+}
 
 /** A greedy portfolio of one size against the baseline, on the held-out seeds. Each input is in the test seed of one fold. */
 export interface BaselinePortfolio {
@@ -257,8 +414,18 @@ export interface CellReport {
   readonly split: { readonly best: OverflowSplit; readonly oracle: OverflowSplit };
   /** This value is true when no pair of the group of the best pair uses the best pack entry. */
   readonly bestPackOutside: boolean;
-  /** The baseline of `AnalysisOptions.baseline`. It is absent without this option. */
+  /** The baseline of `AnalysisOptions.baseline`: its first pair. It is absent without this option. */
   readonly baseline?: BaselineReport;
+  /** Each baseline of `AnalysisOptions.baseline`, in its order. It is absent without this option. */
+  readonly baselines?: readonly BaselineReport[];
+  /** The output groups from the best to the worst, by the levels of the best pair. */
+  readonly ranking: readonly GroupRank[];
+  /** The rank of the first group of each pack entry: the first group with a pair of the entry. */
+  readonly packRanks: Readonly<Record<string, number>>;
+  /** The comparisons of `AnalysisOptions.compare`. */
+  readonly compare?: readonly PairCompare[];
+  /** The oracle without the pack entries of `AnalysisOptions.without`. */
+  readonly without?: WithoutReport;
 }
 
 /** One input that must give no routes, with its facts. */
@@ -311,6 +478,14 @@ export interface Report {
   /** The mean `pack.fill` over the pack records of each value of spacing. */
   readonly fillBySpacing: Readonly<Record<string, number>>;
   readonly predictions: readonly PredictionCheck[];
+  /** The pack entries of `AnalysisOptions.excludePacks`. The analysis ignored their records. */
+  readonly excluded?: readonly string[];
+  /** The check of the composite pack entry of `AnalysisOptions.composite`. */
+  readonly composite?: CompositeReport;
+  /** The route times of the specs of `AnalysisOptions.times`. */
+  readonly times?: readonly SpecTimes[];
+  /** The times of the shard jobs of `AnalysisOptions.jobs`. */
+  readonly shardTimes?: ShardTimes;
 }
 
 /** This function gives the pack entry of a pair id. */
@@ -597,11 +772,8 @@ function cellReport(
   const reps = groups.map((g) => g.id);
   const spec = new Map(inputs.map((i) => [i.id, i.spec]));
 
-  const single = selectBest(
-    reps.map((p) => ({ id: p, values: setValues(cell, picksOf(cell, ids, [p])) })),
-    SET_LEVELS,
-  );
-  const best = single.winner;
+  const ranking = rankGroups(cell, ids, groups);
+  const best = ranking[0]!.group;
   const bestValues = setValues(cell, picksOf(cell, ids, [best]));
   const gains = ids.map((i) => ({ cluster: spec.get(i)!, value: scoreOf(cell, i, cell.oracle.get(i)) - scoreOf(cell, i, best), input: i }));
   const byCount: Record<string, Interval> = {};
@@ -623,7 +795,6 @@ function cellReport(
   const maxK = Math.max(...options.sizes);
   const pooled = new Map<number, { cluster: string; value: number; weight: number }[]>(options.sizes.map((k) => [k, []]));
   const folds = new Map<number, Fold[]>(options.sizes.map((k) => [k, []]));
-  const baseline = options.baseline;
   /** The picks of each portfolio size on the held-out inputs of all folds, for the baseline. */
   const heldPicks = new Map<number, Map<string, string | undefined>>(options.sizes.map((k) => [k, new Map()]));
   for (const fold of options.folds ?? leaveOneSeedOut(seeds)) {
@@ -651,15 +822,14 @@ function cellReport(
   }
   const portfolios: PortfolioReport[] = options.sizes.map((k) => ({ k, share: bootstrap(pooled.get(k)!, options.resamples, options.seed), folds: folds.get(k)! }));
 
-  let baselineReport: BaselineReport | undefined;
-  if (baseline !== undefined) {
+  const baselines = (options.baselines ?? []).map((baseline): BaselineReport => {
     const over = (pick: (input: string) => string | undefined): Interval =>
       bootstrap(
         ids.map((i) => ({ cluster: spec.get(i)!, value: scoreOf(cell, i, pick(i)) - scoreOf(cell, i, baseline) })),
         options.resamples,
         options.seed,
       );
-    baselineReport = {
+    return {
       pair: baseline,
       ...setValues(cell, picksOf(cell, ids, [baseline])),
       best: over(() => best),
@@ -669,7 +839,43 @@ function cellReport(
         return { k, ...setValues(cell, picks), gain: over((i) => picks.get(i)) };
       }),
     };
+  });
+
+  const compare = options.compare?.map(([a, b]): PairCompare => {
+    const va = setValues(cell, picksOf(cell, ids, [a]));
+    const vb = setValues(cell, picksOf(cell, ids, [b]));
+    const on = (i: string, p: string): boolean => cell.floor.get(i)?.has(p) ?? false;
+    return {
+      a,
+      b,
+      missesA: va.misses,
+      missesB: vb.misses,
+      scoreA: va.score,
+      scoreB: vb.score,
+      gain: bootstrap(
+        ids.map((i) => ({ cluster: spec.get(i)!, value: scoreOf(cell, i, a) - scoreOf(cell, i, b) })),
+        options.resamples,
+        options.seed,
+      ),
+      onlyA: ids.filter((i) => on(i, a) && !on(i, b)).length,
+      onlyB: ids.filter((i) => on(i, b) && !on(i, a)).length,
+    };
+  });
+
+  let without: WithoutReport | undefined;
+  if (options.without !== undefined && options.without.length > 0) {
+    const rest = cellValues(dropPacks(index, new Set(options.without)), inputs, rule, cap);
+    const diffs = ids.map((i) => ({ cluster: spec.get(i)!, value: scoreOf(cell, i, cell.oracle.get(i)) - scoreOf(rest, i, rest.oracle.get(i)) }));
+    without = {
+      packs: [...options.without],
+      score: mean(ids.map((i) => scoreOf(rest, i, rest.oracle.get(i)))),
+      gain: bootstrap(diffs, options.resamples, options.seed),
+      differ: diffs.filter((d) => Math.abs(d.value) > 1e-12).length,
+    };
   }
+
+  const packRanks: Record<string, number> = {};
+  for (const row of ranking) for (const m of row.members) packRanks[packOf(m)] ??= row.rank;
 
   const group = groups.find((g) => g.id === best)!;
   return {
@@ -686,7 +892,167 @@ function cellReport(
     portfolios,
     split: { best: splitOf(index, picksOf(cell, ids, [best])), oracle: splitOf(index, cell.oracle) },
     bestPackOutside: !group.members.some((m) => packOf(m) === bestPack),
-    ...(baselineReport === undefined ? {} : { baseline: baselineReport }),
+    ...(baselines.length === 0 ? {} : { baseline: baselines[0]!, baselines }),
+    ranking,
+    packRanks,
+    ...(compare === undefined ? {} : { compare }),
+    ...(without === undefined ? {} : { without }),
+  };
+}
+
+/**
+ * This function ranks the output groups of a cell by the levels of the best pair: the misses, then the score.
+ * Each step picks the best of the rest with `selectBest`, in the order of the groups. Thus the first group is the best pair.
+ */
+function rankGroups(cell: CellValues, ids: readonly string[], groups: readonly { readonly id: string; readonly members: readonly string[] }[]): GroupRank[] {
+  let rest = groups.map((g) => ({ id: g.id, members: g.members, values: setValues(cell, picksOf(cell, ids, [g.id])) }));
+  const out: GroupRank[] = [];
+  while (rest.length > 0) {
+    const winner = selectBest(rest, SET_LEVELS).winner;
+    const row = rest.find((r) => r.id === winner)!;
+    out.push({ rank: out.length + 1, group: row.id, members: row.members, misses: row.values.misses, score: row.values.score });
+    rest = rest.filter((r) => r !== row);
+  }
+  return out;
+}
+
+/** This function gives the index without the pairs of some pack entries. */
+function dropPacks(index: RecordIndex, packs: ReadonlySet<string>): RecordIndex {
+  const at = new Map<string, ReadonlyMap<string, LayoutRecord>>();
+  for (const [input, byPair] of index.at) at.set(input, new Map([...byPair].filter(([pair]) => !packs.has(packOf(pair)))));
+  const pack = new Map<string, ReadonlyMap<string, LayoutRecord>>();
+  for (const [input, byPack] of index.pack) pack.set(input, new Map([...byPack].filter(([p]) => !packs.has(p))));
+  return { pairs: index.pairs.filter((p) => !packs.has(packOf(p))), packs: index.packs.filter((p) => !packs.has(p)), at, pack };
+}
+
+/** This function gives the median of sorted values, or 0 for an empty list. */
+function medianOf(sorted: readonly number[]): number {
+  return quantileOf(sorted, 0.5);
+}
+
+/**
+ * This function checks the records of a composite pack entry against the records of the member that it picks on each input.
+ * A record matches when the record of the member with the same router has the same output hash.
+ */
+export function compositeCheck(records: readonly LayoutRecord[], inputs: readonly AnalysisInput[], pack: string, members: Readonly<Record<string, string>>): CompositeReport {
+  const byInput = new Map<string, Map<string, LayoutRecord>>();
+  for (const r of records) {
+    const m = byInput.get(r.input) ?? new Map<string, LayoutRecord>();
+    m.set(r.strategy, r);
+    byInput.set(r.input, m);
+  }
+  const rows = new Map<string, { member: string; inputs: number; records: number; skipped: number; same: number; differ: number; missing: number }>();
+  const skipped: Record<string, number> = {};
+  const matches: Record<string, number> = {};
+  const bad: string[] = [];
+  let count = 0;
+  for (const input of inputs) {
+    const all = byInput.get(input.id);
+    const own = [...(all?.values() ?? [])].filter((r) => packOf(r.strategy) === pack);
+    const member = members[input.id] ?? "none";
+    const row = rows.get(member) ?? { member, inputs: 0, records: 0, skipped: 0, same: 0, differ: 0, missing: 0 };
+    row.inputs += 1;
+    let fault = false;
+    for (const r of own) {
+      count += 1;
+      row.records += 1;
+      if (r.skipped !== undefined) {
+        row.skipped += 1;
+        skipped[r.skipped] = (skipped[r.skipped] ?? 0) + 1;
+        continue;
+      }
+      const twin = all!.get(`${member}${PAIR_SEPARATOR}${routerOfPair(r.strategy)}`);
+      if (twin === undefined || twin.skipped !== undefined || twin.outputHash === undefined) {
+        row.missing += 1;
+        fault = true;
+      } else if (twin.outputHash === r.outputHash) row.same += 1;
+      else {
+        row.differ += 1;
+        fault = true;
+      }
+    }
+    if (fault && bad.length < 20) bad.push(input.id);
+    rows.set(member, row);
+    const ran = own.filter((r) => r.skipped === undefined);
+    if (ran.length === 0) continue;
+    const others = new Set([...(all?.keys() ?? [])].map(packOf).filter((p) => p !== pack));
+    for (const p of others) {
+      const each = ran.every((r) => {
+        const o = all!.get(`${p}${PAIR_SEPARATOR}${routerOfPair(r.strategy)}`);
+        return o !== undefined && o.skipped === undefined && o.outputHash === r.outputHash;
+      });
+      if (each) matches[p] = (matches[p] ?? 0) + 1;
+    }
+  }
+  return {
+    pack,
+    records: count,
+    skipped,
+    members: [...rows.values()].sort((a, b) => (a.member < b.member ? -1 : a.member > b.member ? 1 : 0)),
+    bad,
+    matches: Object.fromEntries(Object.entries(matches).sort((a, b) => (a[0] < b[0] ? -1 : 1))),
+  };
+}
+
+/** This function gives the order of the routers in the table of the route times: `TIME_FIRST`, then the order of `ROUTERS`, then the other names in sort order. */
+function routerOrder(names: Iterable<string>): string[] {
+  const rank = (r: string): number => (r === TIME_FIRST ? -1 : ROUTERS.includes(r) ? ROUTERS.indexOf(r) : ROUTERS.length);
+  return [...new Set(names)].sort((a, b) => rank(a) - rank(b) || (a < b ? -1 : a > b ? 1 : 0));
+}
+
+/** This function gives the median and the maximum `route.ms` of each router on each seed of each spec. A skipped record does not count. */
+export function routeTimes(records: readonly LayoutRecord[], inputs: readonly AnalysisInput[], specs: readonly string[]): SpecTimes[] {
+  return specs.map((spec) => {
+    const seeds = inputs.filter((i) => i.spec === spec).sort((a, b) => a.seed - b.seed);
+    return {
+      spec,
+      seeds: seeds.map((input): SeedTimes => {
+        const byRouter = new Map<string, number[]>();
+        for (const r of records) {
+          const ms = r.measures["route.ms"];
+          if (r.input !== input.id || r.skipped !== undefined || typeof ms !== "number") continue;
+          const router = routerOfPair(r.strategy);
+          byRouter.set(router, [...(byRouter.get(router) ?? []), ms]);
+        }
+        return {
+          input: input.id,
+          seed: input.seed,
+          routers: routerOrder(byRouter.keys()).map((router) => {
+            const list = byRouter.get(router)!.sort((a, b) => a - b);
+            return { router, records: list.length, median: medianOf(list), max: list.at(-1)! };
+          }),
+        };
+      }),
+    };
+  });
+}
+
+/** This function gives the minutes from one ISO time to another, or `undefined` without both times. */
+function minutesOf(start: string | undefined, end: string | undefined): number | undefined {
+  if (start === undefined || end === undefined) return undefined;
+  const ms = Date.parse(end) - Date.parse(start);
+  return Number.isFinite(ms) ? ms / 60000 : undefined;
+}
+
+/** This function gives the times of the shard jobs `run (<i>)` of a run, and the verdict of the limit. A job with another name does not count. */
+export function shardTimes(jobs: readonly JobFacts[], limit: number = SHARD_LIMIT_MINUTES): ShardTimes {
+  const shards: ShardTime[] = [];
+  for (const job of jobs) {
+    const m = /^run \((\d+)\)$/.exec(job.name);
+    if (m === null) continue;
+    const step = job.steps?.find((s) => s.name === SHARD_STEP);
+    const jobMinutes = minutesOf(job.startedAt, job.completedAt);
+    const stepMinutes = minutesOf(step?.startedAt, step?.completedAt);
+    shards.push({ shard: Number(m[1]), conclusion: job.conclusion ?? "unknown", ...(jobMinutes === undefined ? {} : { job: jobMinutes }), ...(stepMinutes === undefined ? {} : { step: stepMinutes }) });
+  }
+  shards.sort((a, b) => (b.step ?? -1) - (a.step ?? -1) || a.shard - b.shard);
+  const over = shards.filter((s) => s.step === undefined || s.step >= limit).length;
+  return {
+    limit,
+    shards,
+    max: Math.max(0, ...shards.map((s) => s.step ?? 0)),
+    over,
+    held: shards.length > 0 && over === 0 && shards.every((s) => s.conclusion === "success"),
   };
 }
 
@@ -849,16 +1215,23 @@ export function checkPredictionsV2(report: Omit<Report, "predictions">): Predict
  * - The headline numbers use only the inputs outside the stress cell. The field `stress` holds the cells of the stress inputs.
  * - With a baseline pair, each cell also gives the score of the baseline and the gains over it.
  */
-export function analyze(records: readonly LayoutRecord[], allInputs: readonly AnalysisInput[], options: AnalysisOptions = {}): Report {
+export function analyze(allRecords: readonly LayoutRecord[], allInputs: readonly AnalysisInput[], options: AnalysisOptions = {}): Report {
+  const baselines = options.baseline === undefined ? [] : typeof options.baseline === "string" ? [options.baseline] : [...options.baseline];
   const opts: CellOptions = {
     resamples: options.resamples ?? 1000,
     seed: options.seed ?? 1,
     sizes: options.sizes ?? PORTFOLIO_SIZES,
-    ...(options.baseline === undefined ? {} : { baseline: options.baseline }),
+    ...(baselines.length === 0 ? {} : { baselines }),
     ...(options.folds === undefined ? {} : { folds: options.folds }),
+    ...(options.compare === undefined ? {} : { compare: options.compare }),
+    ...(options.without === undefined ? {} : { without: options.without }),
   };
-  if (options.baseline !== undefined && records.length > 0 && !records.some((r) => r.strategy === options.baseline))
-    throw new RangeError(`The records have no pair "${options.baseline}" for the baseline.`);
+  const exclude = new Set(options.excludePacks ?? []);
+  for (const p of [...exclude, ...(options.without ?? [])])
+    if (allRecords.length > 0 && !allRecords.some((r) => packOf(r.strategy) === p)) throw new RangeError(`The records have no pair of the pack entry "${p}".`);
+  const records = exclude.size === 0 ? allRecords : allRecords.filter((r) => !exclude.has(packOf(r.strategy)));
+  for (const pair of [...baselines, ...(options.compare ?? []).flat()])
+    if (records.length > 0 && !records.some((r) => r.strategy === pair)) throw new RangeError(`The records have no pair "${pair}" for the baseline or the comparison.`);
   const caps = options.caps ?? CAPS;
   const inputs = allInputs.filter((i) => i.stress !== true);
   const stressInputs = allInputs.filter((i) => i.stress === true);
@@ -935,7 +1308,14 @@ export function analyze(records: readonly LayoutRecord[], allInputs: readonly An
     ...(stress === undefined ? {} : { stress }),
     fillBySpacing: fillOf(indexRecords(records.filter((r) => allIds.has(r.input))), allInputs),
   };
-  return { ...base, predictions: options.predictions === "joint-v2" ? checkPredictionsV2(base) : checkPredictions(base) };
+  const runRecords = allRecords.filter((r) => allIds.has(r.input));
+  const extra = {
+    ...(exclude.size === 0 ? {} : { excluded: [...exclude] }),
+    ...(options.composite === undefined ? {} : { composite: compositeCheck(runRecords, allInputs, options.composite.pack, options.composite.members) }),
+    ...(options.times === undefined ? {} : { times: routeTimes(runRecords, allInputs, options.times) }),
+    ...(options.jobs === undefined ? {} : { shardTimes: shardTimes(options.jobs) }),
+  };
+  return { ...base, predictions: options.predictions === "joint-v2" ? checkPredictionsV2(base) : checkPredictions(base), ...extra };
 }
 
 /** This function gives the headline cell on the inputs of a subset, with the pack entry of the headline as the best pack. */
@@ -987,39 +1367,181 @@ function interval(i: Interval | undefined): string {
   return `${f3(i.mean)} [${f3(i.lo)}, ${f3(i.hi)}]${i.open ? " open" : ""}`;
 }
 
-/** This function writes the table of the baseline: the cells, the headline cell on the subset and the stress cells. It gives no lines without a baseline. */
-function baselineLines(report: Report): string[] {
-  const rows: [string, CellReport][] = [
+/** This function gives the named cells of a report: the cells, the headline cell on the subset and the stress cells. */
+function namedCells(report: Report): [string, CellReport][] {
+  return [
     ...report.cells.map((c): [string, CellReport] => [`all (${report.inputs})`, c]),
     ...(report.subset?.cell === undefined ? [] : [[`subset (${report.subset.inputs})`, report.subset.cell] as [string, CellReport]]),
     ...(report.stress?.cells ?? []).map((c): [string, CellReport] => [`stress (${report.stress!.inputs})`, c]),
   ];
-  const first = rows.find(([, c]) => c.baseline !== undefined)?.[1].baseline;
-  if (first === undefined) return [];
-  const ks = first.portfolios.map((p) => p.k);
-  const lines = [
-    "",
-    `### The baseline ${first.pair}`,
-    "",
-    "Each gain is the score of a pick minus the score of the baseline on each input, with its interval. The portfolios use the held-out seeds.",
-    "",
-    `| Inputs | Rule | Cap | Misses | Score | Best pair | Best pair gain | Oracle gain | ${ks.map((k) => `k = ${k} misses | k = ${k} gain`).join(" | ")} |`,
-    `|---|---|---|---|---|---|---|---|${ks.map(() => "---|---|").join("")}`,
-  ];
-  for (const [name, c] of rows) {
-    const b = c.baseline;
-    if (b === undefined) continue;
-    const k = ks.map((n) => {
-      const p = b.portfolios.find((x) => x.k === n);
-      return p === undefined ? "- | -" : `${p.misses} | ${interval(p.gain)}`;
-    });
-    lines.push(`| ${name} | ${c.rule} | ${c.cap} | ${b.misses} | ${f3(b.score)} | ${c.best.pair} | ${interval(b.best)} | ${interval(b.oracle)} | ${k.join(" | ")} |`);
+}
+
+/** This function writes the table of each baseline: the cells, the headline cell on the subset and the stress cells. It gives no lines without a baseline. */
+function baselineLines(report: Report): string[] {
+  const rows = namedCells(report);
+  const pairs = rows.find(([, c]) => c.baselines !== undefined)?.[1].baselines?.map((b) => b.pair) ?? [];
+  const lines: string[] = [];
+  for (const [at, pair] of pairs.entries()) {
+    const first = rows.find(([, c]) => c.baselines?.[at] !== undefined)![1].baselines![at]!;
+    const ks = first.portfolios.map((p) => p.k);
+    lines.push(
+      "",
+      `### The baseline ${pair}`,
+      "",
+      "Each gain is the score of a pick minus the score of the baseline on each input, with its interval. The portfolios use the held-out seeds.",
+      "",
+      `| Inputs | Rule | Cap | Misses | Score | Best pair | Best pair gain | Oracle gain | ${ks.map((k) => `k = ${k} misses | k = ${k} gain`).join(" | ")} |`,
+      `|---|---|---|---|---|---|---|---|${ks.map(() => "---|---|").join("")}`,
+    );
+    for (const [name, c] of rows) {
+      const b = c.baselines?.[at];
+      if (b === undefined) continue;
+      const k = ks.map((n) => {
+        const p = b.portfolios.find((x) => x.k === n);
+        return p === undefined ? "- | -" : `${p.misses} | ${interval(p.gain)}`;
+      });
+      lines.push(`| ${name} | ${c.rule} | ${c.cap} | ${b.misses} | ${f3(b.score)} | ${c.best.pair} | ${interval(b.best)} | ${interval(b.oracle)} | ${k.join(" | ")} |`);
+    }
   }
   return lines;
 }
 
+/** This function writes the table of the pairwise comparisons. It gives no lines without a comparison. */
+function compareLines(report: Report): string[] {
+  const rows = namedCells(report).filter(([, c]) => c.compare !== undefined && c.compare.length > 0);
+  if (rows.length === 0) return [];
+  const lines = [
+    "",
+    "### The pairwise comparisons",
+    "",
+    "The gain is the score of A minus the score of B on each input, with its interval.",
+    "",
+    "| Inputs | Rule | Cap | A | B | A misses | B misses | A misses - B misses | A score | B score | Gain | Only A on the floor | Only B on the floor |",
+    "|---|---|---|---|---|---|---|---|---|---|---|---|---|",
+  ];
+  for (const [name, c] of rows)
+    for (const p of c.compare!)
+      lines.push(`| ${name} | ${c.rule} | ${c.cap} | ${p.a} | ${p.b} | ${p.missesA} | ${p.missesB} | ${p.missesA - p.missesB} | ${f3(p.scoreA)} | ${f3(p.scoreB)} | ${interval(p.gain)} | ${p.onlyA} | ${p.onlyB} |`);
+  return lines;
+}
+
+/** This function writes the table of the oracle without some pack entries. It gives no lines without the option `without`. */
+function withoutLines(report: Report): string[] {
+  const rows = namedCells(report).filter(([, c]) => c.without !== undefined);
+  if (rows.length === 0) return [];
+  const lines = [
+    "",
+    `### The oracle without ${rows[0]![1].without!.packs.join(", ")}`,
+    "",
+    "The difference is the oracle score with all pairs minus the oracle score without these pairs, on each input.",
+    "",
+    "| Inputs | Rule | Cap | Oracle | Oracle without | Difference | Inputs that differ |",
+    "|---|---|---|---|---|---|---|",
+  ];
+  for (const [name, c] of rows) lines.push(`| ${name} | ${c.rule} | ${c.cap} | ${f3(c.oracle.score)} | ${f3(c.without!.score)} | ${interval(c.without!.gain)} | ${c.without!.differ} |`);
+  return lines;
+}
+
+/** This function writes the ranking of the output groups of the headline cell, and the rank of the first group of each pack entry in each cell. */
+function rankLines(report: Report, top: number): string[] {
+  const head = report.cells.find((c) => c.rule === HEADLINE.rule && c.cap === HEADLINE.cap);
+  if (head === undefined) return [];
+  const lines = [
+    "",
+    `### The ranking of the output groups (rule ${HEADLINE.rule}, cap ${HEADLINE.cap})`,
+    "",
+    `The ranking uses the levels of the best pair: the misses, then the score. The table shows ${Math.min(top, head.ranking.length)} of ${head.ranking.length} groups. The file report.json holds each group.`,
+    "",
+    "| Rank | Group | Misses | Score | Members |",
+    "|---|---|---|---|---|",
+  ];
+  for (const r of head.ranking.slice(0, top)) lines.push(`| ${r.rank} | ${r.group} | ${r.misses} | ${f3(r.score)} | ${r.members.join(", ")} |`);
+  const packs = Object.keys(head.packRanks).sort();
+  lines.push("", "### The rank of the first group of each pack entry", "", `| Inputs | Rule | Cap | ${packs.join(" | ")} |`, `|---|---|---|${packs.map(() => "---|").join("")}`);
+  for (const [name, c] of namedCells(report)) lines.push(`| ${name} | ${c.rule} | ${c.cap} | ${packs.map((p) => c.packRanks[p] ?? "-").join(" | ")} |`);
+  return lines;
+}
+
+/** This function writes the check of the composite pack entry. It gives no lines without the option `composite`. */
+function compositeLines(report: Report): string[] {
+  const c = report.composite;
+  if (c === undefined) return [];
+  const skipped = Object.entries(c.skipped);
+  const lines = [
+    "",
+    `### The check of the pack entry ${c.pack}`,
+    "",
+    `The records of ${c.pack}: ${c.records}. Skipped: ${skipped.length === 0 ? "none" : skipped.map(([k, v]) => `${v} (${k.replace(/\|/g, "/")})`).join(", ")}.`,
+    "A record is the same as its member when the record of the member with the same router has the same output hash, thus the same pack hash and route hash.",
+    "",
+    "| Member | Inputs | Records | Skipped | Same | Differ | No record of the member |",
+    "|---|---|---|---|---|---|---|",
+  ];
+  for (const m of c.members) lines.push(`| ${m.member} | ${m.inputs} | ${m.records} | ${m.skipped} | ${m.same} | ${m.differ} | ${m.missing} |`);
+  const matches = Object.entries(c.matches);
+  lines.push("", `The inputs where each record of ${c.pack} has the output hash of another pack entry: ${matches.length === 0 ? "none" : matches.map(([k, v]) => `${k} ${v}`).join(", ")}.`);
+  if (c.bad.length > 0) lines.push("", `The inputs with a record that is not the same as its member: ${c.bad.join(", ")}.`);
+  return lines;
+}
+
+/** This function writes a time in milliseconds as seconds with 1 decimal. */
+function seconds(ms: number): string {
+  return (ms / 1000).toFixed(1);
+}
+
+/** This function writes the tables of the route times. It gives no lines without the option `times`. */
+function timeLines(report: Report): string[] {
+  const lines: string[] = [];
+  for (const spec of report.times ?? []) {
+    lines.push("", `### The route times of ${spec.spec}`, "");
+    if (spec.seeds.length === 0) {
+      lines.push("The analysis has no input of this spec.");
+      continue;
+    }
+    const routers = routerOrder(spec.seeds.flatMap((s) => s.routers.map((r) => r.router)));
+    lines.push(
+      "Each cell gives the median and the maximum `route.ms` of the records of the router on the seed, in seconds.",
+      "",
+      `| Router | ${spec.seeds.map((s) => `s${s.seed} median | s${s.seed} max`).join(" | ")} |`,
+      `|---|${spec.seeds.map(() => "---|---|").join("")}`,
+    );
+    for (const router of routers) {
+      const cells = spec.seeds.map((s) => {
+        const t = s.routers.find((r) => r.router === router);
+        return t === undefined ? "- | -" : `${seconds(t.median)} | ${seconds(t.max)}`;
+      });
+      lines.push(`| ${router} | ${cells.join(" | ")} |`);
+    }
+  }
+  return lines;
+}
+
+/** This function writes the times of the shard jobs. It gives no lines without the option `jobs`. */
+function shardLines(report: Report): string[] {
+  const t = report.shardTimes;
+  if (t === undefined) return [];
+  const minutes = (v: number | undefined): string => (v === undefined ? "-" : v.toFixed(1));
+  const lines = [
+    "",
+    "### The shard times",
+    "",
+    `Shards: ${t.shards.length}. The longest step \`${SHARD_STEP}\` took ${minutes(t.max)} minutes. Shards at ${t.limit} minutes or more, or without a step time: ${t.over}. Held: ${t.held ? "yes" : "no"}.`,
+    "",
+    "| Shard | Conclusion | Step minutes | Job minutes |",
+    "|---|---|---|---|",
+  ];
+  for (const s of t.shards.slice(0, 10)) lines.push(`| ${s.shard} | ${s.conclusion} | ${minutes(s.step)} | ${minutes(s.job)} |`);
+  return lines;
+}
+
+/** The options of `reportMarkdown`. */
+export interface MarkdownOptions {
+  /** The count of the rows of the ranking of the output groups. The default is `RANK_TOP`. */
+  readonly rankTop?: number;
+}
+
 /** This function writes a report as Markdown. */
-export function reportMarkdown(report: Report): string {
+export function reportMarkdown(report: Report, options: MarkdownOptions = {}): string {
   const lines: string[] = [];
   const n = report.count;
   lines.push(
@@ -1049,7 +1571,14 @@ export function reportMarkdown(report: Report): string {
     const k = (n: number): string => interval(c.portfolios.find((p) => p.k === n)?.share);
     lines.push(`| ${c.rule} | ${c.cap} | ${c.best.pair} | ${c.best.misses} | ${f3(c.best.score)} | ${f3(c.oracle.score)} | ${interval(c.oracle.gain)} | ${c.oracle.wins} | ${k(3)} | ${k(8)} |`);
   }
+  if (report.excluded !== undefined) lines.push("", `The analysis ignores the records of the pack entries ${report.excluded.join(", ")}.`);
+  lines.push(...compositeLines(report));
+  lines.push(...rankLines(report, options.rankTop ?? RANK_TOP));
+  lines.push(...withoutLines(report));
   lines.push(...baselineLines(report));
+  lines.push(...compareLines(report));
+  lines.push(...timeLines(report));
+  lines.push(...shardLines(report));
   if (report.subset !== undefined) {
     const full = report.cells.find((c) => c.rule === HEADLINE.rule && c.cap === HEADLINE.cap);
     lines.push("", `### The headline cell on the subset (${report.subset.inputs} of ${report.inputs} inputs)`, "", "| Inputs | Best pair | Misses | Score | Oracle | Gain | Oracle wins | k = 3 share | k = 8 share |", "|---|---|---|---|---|---|---|---|---|");

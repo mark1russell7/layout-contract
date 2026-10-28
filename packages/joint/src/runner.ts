@@ -14,7 +14,7 @@ import {
   type PackOutput,
   type RunEnv,
 } from "@mark1russell7/layout-contract";
-import { checkHard, measure, outputHash as packHash, packWith, strategy as packStrategy, unsupportedOf } from "@mark1russell7/packing";
+import { checkHard, measure, outputHash as packHash, packWith, SELECT_MEMBERS, selectFeatures, selectLeaf, strategy as packStrategy, unsupportedOf } from "@mark1russell7/packing";
 import {
   asRouter,
   benchRun,
@@ -61,6 +61,17 @@ export const PACK_ENTRIES: readonly PackEntry[] = Object.freeze([
   { id: "maxrects-cp", strategy: "maxrects", options: { rule: "cp" } },
   { id: "select", strategy: "select", options: {} },
 ]);
+
+/** The id of the composite pack entry `select` in the pair ids. */
+export const SELECT_PACK = "select";
+
+/**
+ * This function gives the member that the table of `select` picks for an input: `rows` or `maxrects-bl`.
+ * The pick comes from the features of the pack input alone. The member ids are also the ids of their pack entries.
+ */
+export function selectMemberOf(input: LayoutInput): string {
+  return SELECT_MEMBERS[selectLeaf(selectFeatures(packInputOf(input))).pick]!.id;
+}
 
 /** The name of the portfolio router of `highways` 0.6.0 in the pair ids. The runner uses `portfolioRouter()` with its defaults. */
 export const PORTFOLIO_ROUTER = "portfolio";
