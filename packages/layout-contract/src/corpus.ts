@@ -45,7 +45,7 @@ const FAMILY_SEP = "/";
 /** The parts of the key of one cell, or the text of the problem. */
 type FamilyParts = { readonly parts: readonly string[] } | { readonly problem: string };
 
-/** This function gives the text of a dimension value, or `undefined` for a missing value or a value that is not a string, a number or a boolean. */
+/** This function gives the text of a dimension value. A missing value, or a value that is not a string, a number or a boolean, gives `undefined`. */
 function partOf(value: unknown): string | undefined {
   if (typeof value === "string") return value;
   if (typeof value === "number" || typeof value === "boolean") return String(value);
@@ -55,12 +55,13 @@ function partOf(value: unknown): string | undefined {
 /** This function gives the parts of the family key of a cell. A missing dimension, a missing kind or a kind without an entry gives a problem. */
 function familyParts(cell: FamilyCell, familyBy: FamilyBy): FamilyParts {
   let dims: readonly string[];
+  let kind: string | undefined;
   const parts: string[] = [];
   if (Array.isArray(familyBy)) {
     dims = familyBy as readonly string[];
   } else {
     const map = familyBy as Readonly<Record<string, readonly string[]>>;
-    const kind = partOf(cell["kind"]);
+    kind = partOf(cell["kind"]);
     if (kind === undefined) return { problem: "a cell without kind, which the map form of familyBy needs" };
     const entry = Object.hasOwn(map, kind) ? map[kind] : Object.hasOwn(map, FAMILY_ANY_KIND) ? map[FAMILY_ANY_KIND] : undefined;
     if (entry === undefined) return { problem: `the kind "${kind}", which has no entry in familyBy and no entry "${FAMILY_ANY_KIND}"` };
@@ -69,7 +70,7 @@ function familyParts(cell: FamilyCell, familyBy: FamilyBy): FamilyParts {
   }
   for (const dim of dims) {
     const part = partOf(cell[dim]);
-    if (part === undefined) return { problem: `a cell${parts.length > 0 ? ` of the kind "${parts[0]}"` : ""} without the dimension "${dim}" of familyBy` };
+    if (part === undefined) return { problem: `a cell${kind === undefined ? "" : ` of the kind "${kind}"`} without the dimension "${dim}" of familyBy` };
     parts.push(part);
   }
   return { parts };

@@ -207,7 +207,7 @@ function pairsOf<R extends VerdictRecord>(records: Iterable<R>, options: Verdict
  * - The permutation test changes the sign of each difference inside its family. Its statistic is the mean of the family means.
  * - The label is `better` or `worse` only when `agree` is `true`. Opposite signs of the two means give `depends on the mix`.
  *
- * It throws a `RangeError` for a missing `tie` or `level`, for no pair, for two records of one side and input, and for a value that is not finite.
+ * It throws a `RangeError` for a missing `tie` or `level`, and for no pair. Two records of one side and input, or a value that is not finite, also cause a `RangeError`.
  */
 export function verdict<R extends VerdictRecord>(records: Iterable<R>, options: VerdictOptions<R>): VerdictResult {
   const { tie, level, measure } = options;
@@ -282,7 +282,7 @@ export function verdict<R extends VerdictRecord>(records: Iterable<R>, options: 
       if (Math.abs(t) >= observed - slack) hits++;
     }
   }
-  // A drawn p counts the observed sign set as one draw, so it is never 0.
+  // A drawn p counts the observed sign set as one draw, so it is always above 0.
   const permutation: VerdictPermutation = { p: exact ? hits / total : (hits + 1) / (total + 1), exact, draws: total, seed };
 
   const wins = families.filter((f) => f.sign === 1).length;

@@ -33,6 +33,34 @@ The field `claims.declared` of a manifest gives the count of the inputs for each
 
 The text of each problem is the text of the claim check of the benchmark of `packing`. Thus `packing` can join the texts and keep its error message.
 
+## The families
+
+The family is the unit of a verdict (`docs/VERDICT.md`). The field `familyBy` of `claims.declared` gives the key of the family of each input. The field `familyMin` gives the minimum count of the inputs of each family.
+
+```json
+{ "claims": { "declared": { "minCount": 10, "thin": [], "counts": {}, "familyBy": { "rect-grid": ["obstacles"], "*": [] }, "familyMin": 10 } } }
+```
+
+The key has two forms:
+
+- **The flat form** is a list of dimensions, for example `["groups", "edgeDensity"]`. The key is the values of these dimensions of the cell, in order, with `/` between them. The example gives `flat/dense`.
+- **The map form** chooses an entry by the field `kind` of the cell. A kind without its own entry uses the entry `"*"`. The key is the kind, then the values of the dimensions of the entry.
+
+For example, `{ "rect-grid": ["obstacles"], "*": [] }` gives `rect-grid/wall` for a `rect-grid` cell with `obstacles: "wall"`, and `gallery` for a `gallery` cell.
+
+- `familyOf(cell, familyBy)` gives the key of one cell. It throws a `RangeError` for each problem of a cell in the list below.
+- `declaredClaimOf` reads `familyBy` and `familyMin`. A value that is not a list of dimensions or a map of lists causes an `Error`.
+- `checkDeclared` reads the cell of each input with the hook `cellOf`. The default hook reads the field `cell` of the input.
+
+With `familyBy`, `checkDeclared` also gives one break `declared` for each of these problems. The break names the inputs.
+
+1. An input has no cell.
+2. A cell does not have a dimension of the key of its kind.
+3. In the map form, a cell has no `kind`.
+4. In the map form, the kind of a cell has no entry, and the entry `"*"` is not there.
+5. Two cells with different dimension values give the same key, for example `p/q` with `r` and `p` with `q/r`.
+6. With `familyMin`, a family has fewer inputs than `familyMin`.
+
 ## The corpus hash
 
 `corpusHashOf(corpus, inputs)` gives the hash of a corpus. It is the SHA-256 of `canonicalJson({ corpus, inputs })`, cut to the first 16 hex characters. Each input is the pair `[id, hash]`, in the order of the manifest.

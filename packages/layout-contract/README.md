@@ -21,6 +21,8 @@ The package has no runtime dependencies.
 | The portfolio | `portfolio`, `Portfolio`, `PortfolioKey`, `PortfolioLevel`, `PortfolioOptions`, `PortfolioPick`, `PortfolioTrace`, `Member`, `MemberTrace`, `MemberStatus`, `pickMoves` |
 | The pick rule | `selectBest`, `SelectCandidate`, `SelectLevel`, `Selection`, `PickSpec` |
 | The corpus checks | `ClaimBreak`, `checkDeclared`, `declaredCounts`, `declaredClaimOf`, `DeclaredClaim`, `Declares`, `corpusHashOf`, `CorpusEntry` |
+| The families | `familyOf`, `FamilyBy`, `FamilyCell`, `FAMILY_ANY_KIND` |
+| The verdict | `verdict`, `VerdictOptions`, `VerdictResult`, `VerdictRecord`, `VerdictSide`, `VerdictInterval`, `FamilyVerdict`, `VerdictPermutation`, `VerdictSignTest`, `VerdictLabel`, `VERDICT_EXACT_MAX`, `VERDICT_EXACT_CAP`, `VERDICT_RUNS`, `VERDICT_DRAWS`, `VERDICT_SEED` |
 | The split files | `checkSplit`, `splitFolds`, `leaveOneSeedOut`, `splitFileName`, `SPLIT_SCHEMA`, `CorpusSplit`, `SplitFold`, `SplitCorpus` |
 | The strategy space | `StrategySpace`, `SpaceStage`, `StageOption`, `SpaceParam`, `ParamWhen`, `MemberRule`, `SpaceConstraint`, `OptionRef`, `StrategyConfig`, `StageChoice`, `ParamKind`, `ParamValue`, `STRATEGY_SPACE_SCHEMA` |
 | The space functions | `checkSpace`, `checkConfig`, `canonicalConfig`, `configId`, `spaceSize`, `paramLevels`, `enumerateSpace`, `productSpace`, `joinConfigs`, `splitConfig`, `SpaceSize`, `SpaceSizeOptions`, `EnumerateOptions`, `GridOptions`, `SampleOptions` |
@@ -39,6 +41,7 @@ The package has no runtime dependencies.
 - **The exact container.** Give `{ exactContainer: true }` to `packHard` or `countOutside`. Then a box of a shaped container with the size `fixed` must stay inside the shape. A cut corner, a notch and a hole count. A container with a free side keeps the bounding test. The default changes to the exact test at the next breaking version.
 - **The output hash.** `outputHash` gives the first 16 hex characters of the SHA-256 of the canonical JSON of an output. Each number goes to the grid of `RECORD_EPS` first.
 - **The corpus checks.** `checkDeclared` and `checkSplit` give a list of `ClaimBreak`. An empty list tells that each claim is true. `corpusHashOf` gives the corpus hash of `packing`.
+- **The verdict.** `verdict` compares two strategies on one measure, with the family as the unit. A verdict counts only when it holds for the mean of the family means and for the mean of the inputs.
 - **The tolerances.** `EPS` (`1e-6`) is for the float compares in an engine. `RECORD_EPS` (`1e-3`) is for the compares on a written file. A record writes the tolerance of each hard rule in its field `tolerance`. The defaults are `overlap` `0.001` and `through` `0.5`.
 
 ## An example
@@ -59,3 +62,5 @@ const hard = packHard(input, output);
 ```
 
 The formats are in `docs/FORMAT.md` of `packing` and `docs/LAYOUT-RECORDS.md` of `highways`. The joint measures are in `docs/JOINT-MEASURES.md` of this repository, and the joint corpus is in `docs/JOINT-CORPUS.md`. The promotion guards are in `docs/PROMOTION.md`. The portfolio and its pick rule are in `docs/PORTFOLIO.md`. The corpus checks and the split files are in `docs/CORPUS-CHECKS.md`. The strategy space is in [`docs/STRATEGY-SPACE.md`](https://github.com/mark1russell7/layout-contract/blob/main/docs/STRATEGY-SPACE.md).
+
+The verdict over families is in [`docs/VERDICT.md`](https://github.com/mark1russell7/layout-contract/blob/main/docs/VERDICT.md).
