@@ -13,7 +13,7 @@ function rng(seed: number): () => number {
   };
 }
 
-const swap: Record<Verdict, Verdict> = { win: "loss", loss: "win", tie: "tie" };
+const swap: Record<Verdict, Verdict> = { better: "worse", worse: "better", tie: "tie" };
 const lower: Pick<MeasureSpec, "direction" | "minEffect"> = { direction: "lower", minEffect: 0.01 };
 const higher: Pick<MeasureSpec, "direction" | "minEffect"> = { direction: "higher", minEffect: 0.01 };
 const relative: Pick<MeasureSpec, "direction" | "minEffect"> = { direction: "lower", minEffect: { rel: 0.1 } };
@@ -30,22 +30,22 @@ describe("compareMeasure", () => {
     }
   });
 
-  it("gives a tie for each change of at most the threshold, and a win or a loss just above it", () => {
+  it("gives a tie for each change of at most the threshold, and better or worse just above it", () => {
     const r = rng(11);
     for (let i = 0; i < 2000; i++) {
       const base = Math.round(r() * 1000) / 8;
       const t = minEffectOf(lower);
       const inside = base + (r() * 2 - 1) * t * 0.999;
       expect(compareMeasure(inside, base, lower)).toBe("tie");
-      expect(compareMeasure(base - t * 1.001, base, lower)).toBe("win");
-      expect(compareMeasure(base + t * 1.001, base, lower)).toBe("loss");
-      expect(compareMeasure(base + t * 1.001, base, higher)).toBe("win");
+      expect(compareMeasure(base - t * 1.001, base, lower)).toBe("better");
+      expect(compareMeasure(base + t * 1.001, base, lower)).toBe("worse");
+      expect(compareMeasure(base + t * 1.001, base, higher)).toBe("better");
     }
   });
 
   it("scales a relative minEffect with the larger value, the same after a swap", () => {
-    expect(compareMeasure(100, 112, relative)).toBe("win");
-    expect(compareMeasure(112, 100, relative)).toBe("loss");
+    expect(compareMeasure(100, 112, relative)).toBe("better");
+    expect(compareMeasure(112, 100, relative)).toBe("worse");
     expect(compareMeasure(100, 111, relative)).toBe("tie");
     expect(compareMeasure(100, 110, relative)).toBe("tie");
     expect(compareMeasure(110, 100, relative)).toBe("tie");
@@ -55,13 +55,13 @@ describe("compareMeasure", () => {
   it("uses RECORD_EPS when minEffect is smaller or missing, so a count of 1 counts", () => {
     expect(minEffectOf({})).toBe(RECORD_EPS);
     expect(minEffectOf({ minEffect: 0 })).toBe(RECORD_EPS);
-    expect(compareMeasure(1, 0, { direction: "lower", minEffect: 0 })).toBe("loss");
+    expect(compareMeasure(1, 0, { direction: "lower", minEffect: 0 })).toBe("worse");
     expect(compareMeasure(0.0005, 0, { direction: "lower" })).toBe("tie");
   });
 
   it("gives a tie for equal infinite values, and an error for NaN", () => {
     expect(compareMeasure(Infinity, Infinity, lower)).toBe("tie");
-    expect(compareMeasure(Infinity, 1, lower)).toBe("loss");
+    expect(compareMeasure(Infinity, 1, lower)).toBe("worse");
     expect(() => compareMeasure(Number.NaN, 1, lower)).toThrow(RangeError);
   });
 

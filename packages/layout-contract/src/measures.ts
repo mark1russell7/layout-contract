@@ -23,7 +23,7 @@ export interface MeasureSpec<Id extends string = string> {
   /** The absolute tolerance at the floor. */
   readonly tol?: number;
   /**
-   * The smallest change that counts as a win or a loss. A number is an absolute change. `{ rel }` is a share of the larger of the two values.
+   * The smallest change that counts as better or worse. A number is an absolute change. `{ rel }` is a share of the larger of the two values.
    * `docs/JOINT-MEASURES.md` gives the reason of each joint value.
    */
   readonly minEffect?: number | { readonly rel: number };
@@ -59,8 +59,8 @@ export const JOINT_MEASURES: readonly MeasureSpec<JointMeasureId>[] = Object.fre
 /** The threshold of `joint.stability.moved`, in widths `W` of the base. */
 export const JOINT_MOVED_MIN = 0.01;
 
-/** The result of a compare of a candidate with a baseline on one measure. A tie is not a win. */
-export type Verdict = "win" | "tie" | "loss";
+/** The result of a compare of a candidate with a baseline on one measure. A tie is not better. */
+export type Verdict = "better" | "worse" | "tie";
 
 /**
  * This function gives the smallest change of a measure that counts between the values `a` and `b`.
@@ -75,7 +75,7 @@ export function minEffectOf(spec: Pick<MeasureSpec, "minEffect">, a = 0, b = 0):
 
 /**
  * This function compares the value `candidate` with the value `baseline` of one measure on one input.
- * A change of at most `minEffectOf(spec, candidate, baseline)` is a tie. The test is symmetric: a swap of the two values swaps win and loss.
+ * A change of at most `minEffectOf(spec, candidate, baseline)` is a tie. The test is symmetric: a swap of the two values swaps better and worse.
  * Two equal values are a tie, also two infinite values. A value `NaN` is an error.
  */
 export function compareMeasure(candidate: number, baseline: number, spec: Pick<MeasureSpec, "direction" | "minEffect">): Verdict {
@@ -84,5 +84,5 @@ export function compareMeasure(candidate: number, baseline: number, spec: Pick<M
   const delta = candidate - baseline;
   if (!(Math.abs(delta) > minEffectOf(spec, candidate, baseline))) return "tie";
   const better = spec.direction === "lower" ? delta < 0 : delta > 0;
-  return better ? "win" : "loss";
+  return better ? "better" : "worse";
 }

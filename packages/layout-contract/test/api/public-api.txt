@@ -374,7 +374,7 @@ export interface Tolerance {
 }
 
 ### build/index.d.ts#Verdict
-export type Verdict = "win" | "tie" | "loss";
+export type Verdict = "better" | "worse" | "tie";
 
 ### build/index.d.ts#applyPack
 export declare function applyPack(input: LayoutInput, output: PackOutput): LayoutInput;
