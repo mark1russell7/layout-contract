@@ -257,7 +257,7 @@ function baseHard(record: LayoutRecord): number {
   return sum;
 }
 
-/** This function gives the hard value of a record in a cell: the base breaks, the routes above the cap, and the mixed segments under the rule `collection`. */
+/** This function gives the hard value of a record in a cell. It adds the base breaks, the routes above the cap, and the mixed segments under the rule `collection`. */
 export function hardOf(record: LayoutRecord, rule: "collection" | "all", cap: number): number {
   const m = record.measures;
   return baseHard(record) + (m[`route.cap.${cap}`] ?? 0) + (rule === "collection" ? (m["route.mixed"] ?? 0) : 0);

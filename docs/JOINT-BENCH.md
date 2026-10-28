@@ -12,7 +12,7 @@ The joint benchmark packs each input of the corpus `joint-v1`, and then routes t
 
 1. The runner removes `group` and `parent` from the boxes of the input of the packer. No strategy of `packing` 0.2.6 supports groups. The router reads the groups from `data.group`.
 2. The runner packs the input two times. The time of the pack is the mean of the two times. The rule "same twice" compares the two hashes.
-3. The runner applies the pack to the input. It drops the overflow boxes and their edges (see "The overflow rule").
+3. The runner applies the pack to the input. It drops the overflow boxes and their edges (refer to "The overflow rule").
 4. The runner routes the packed input with each router, with `benchRun` of `highways` and 2 timed routes.
 5. Pack entries with the same output share the routes of each router. Thus the runner routes each packed input one time for each router.
 
@@ -43,7 +43,7 @@ The analysis has 6 cells: the rules `collection` and `all`, and the caps 1.1, 1.
 - the routes with a stretch above the cap (`route.cap.<cap>`)
 - under the rule `collection`, the shared segments with edges of 2 collections or more (`route.mixed`)
 
-The stretch of a route is its length divided by the length of the route of `corners` for the same edge, on the same packed input. This is the bundle stretch B3 of `highways`. A base route of 1 unit or less does not count.
+The stretch of a route is its length divided by the length of the route of `corners` for the same edge. Both routes use the same packed input. This is the bundle stretch B3 of `highways`. A base route of 1 unit or less does not count.
 
 ## The analysis
 

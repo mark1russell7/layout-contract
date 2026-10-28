@@ -155,7 +155,7 @@ function ranks(values: readonly number[]): number[] {
   return out;
 }
 
-/** This function gives the Spearman rank correlation of two lists of one length, or `undefined` when a list has no spread or fewer than 2 values. */
+/** This function gives the Spearman rank correlation of two lists of one length. It gives `undefined` when a list has no spread or fewer than 2 values. */
 export function spearman(xs: readonly number[], ys: readonly number[]): number | undefined {
   if (xs.length !== ys.length || xs.length < 2) return undefined;
   const rx = ranks(xs);

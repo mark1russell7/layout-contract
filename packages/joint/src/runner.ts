@@ -126,7 +126,7 @@ export function packedInput(input: LayoutInput, output: PackOutput, packId: stri
   return { input: { ...rest, id: `${input.id}#${packId}`, base: input.id, change: "packed", boxes, edges }, dropped };
 }
 
-/** This function gives the hash form of a route result, as the router stage of `docs/PROMOTION.md` gives it: the routes by the order of the edge ids. */
+/** This function gives the hash form of a route result, as the router stage of `docs/PROMOTION.md` gives it. The routes go in the order of the edge ids. */
 export function routeHash(result: Result): string {
   const routes = [...result.routes].sort((a, b) => (a.edge < b.edge ? -1 : a.edge > b.edge ? 1 : 0));
   return outputHash({ routes, levels: result.levels, bundles: result.bundles, runs: result.runs }, { grid: RECORD_EPS });
