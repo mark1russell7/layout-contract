@@ -48,6 +48,16 @@ A joint run packs an input, and then routes the edges of the same input. The `jo
 - `joint.stability.mean` (0.005) and `joint.stability.moved` (0.02): the same values as their `tol` and as the twins of `pack.stability.*`.
 - `joint.proxy.rank` and `joint.ms` have no minimum effect. The selector does not test the diagnostic, and the time test uses its own ratio.
 
+## The output hash
+
+`outputHash` of this package gives the hash of an output: the first 16 hex characters of the SHA-256 of its canonical JSON.
+
+- Before the hash, each number goes to the grid of `RECORD_EPS`, as `Math.round(x * 1000) / 1000`. The value `-0` becomes `0`.
+- `exercised` tells if a candidate has an effect: a move count above 0, or a hash that is different from the hash of its base.
+- `outputGroups` puts the candidates with the same hashes on each decision input in one group. A group counts as one candidate.
+
+[`PROMOTION.md`](PROMOTION.md) gives the two guards and the form of each stage.
+
 ## The roles
 
 - A guard must not become worse, by the tests of the promotion rule.

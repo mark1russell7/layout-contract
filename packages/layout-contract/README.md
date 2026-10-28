@@ -16,6 +16,8 @@ The package has no runtime dependencies.
 | The measures | `MeasureSpec`, `Direction`, `JointMeasureId`, `JOINT_MEASURES`, `JOINT_MOVED_MIN`, `Verdict`, `compareMeasure`, `minEffectOf` |
 | The edges step | `edgeStep`, `EdgeShape`, `EdgeStepParams`, `EDGE_DENSITY`, `EDGE_STEP_VERSION` |
 | The random numbers | `mulberry32`, `fnv1a32`, `stepRandom`, `randomInt` |
+| The hashes | `sha256Hex`, `canonicalJson`, `documentHash`, `outputHash`, `HashOptions` |
+| The promotion guards | `outputGroups`, `OutputGroup`, `exercised`, `ExerciseEvidence` |
 | The turn | `turnBox`, `turnPort`, `turnMargin`, `turnRegion`, `turnSide`, `turnPoint` |
 | The tolerances | `EPS`, `RECORD_EPS`, `Tolerance`, `DEFAULT_TOLERANCE` |
 | The hard rules | `countOverlaps`, `countObstacleHits`, `regionHitsRect`, `rectInRegion`, `countOutside`, `ContainerTest`, `countPortsOffBorder`, `packHard`, `PackHard`, `placedRect`, `checkInput` |
@@ -29,6 +31,7 @@ The package has no runtime dependencies.
 - **The hard rules of a pack.** `no-overlap` counts the pairs of boxes and the pairs of a box and an obstacle. A locked box without a placement, or with a move of more than `RECORD_EPS`, breaks `locked-kept`. `checkInput` refuses a locked box without a position. Another box without a placement and not in `overflow` breaks `complete`.
 - **The container rule.** `in-container` counts each box that goes out of the container made smaller by `inset`. The box counts with its margin. By default, a shaped container counts as its bounding box.
 - **The exact container.** Give `{ exactContainer: true }` to `packHard` or `countOutside`. Then a box of a shaped container with the size `fixed` must stay inside the shape. A cut corner, a notch and a hole count. A container with a free side keeps the bounding test. The default changes to the exact test at the next breaking version.
+- **The output hash.** `outputHash` gives the first 16 hex characters of the SHA-256 of the canonical JSON of an output. Each number goes to the grid of `RECORD_EPS` first.
 - **The tolerances.** `EPS` (`1e-6`) is for the float compares in an engine. `RECORD_EPS` (`1e-3`) is for the compares on a written file. A record writes the tolerance of each hard rule in its field `tolerance`. The defaults are `overlap` `0.001` and `through` `0.5`.
 
 ## An example
@@ -48,4 +51,4 @@ const placed = applyPack(input, output);
 const hard = packHard(input, output);
 ```
 
-The formats are in `docs/FORMAT.md` of `packing` and `docs/LAYOUT-RECORDS.md` of `highways`. The joint measures are in `docs/JOINT-MEASURES.md` of this repository, and the joint corpus is in `docs/JOINT-CORPUS.md`.
+The formats are in `docs/FORMAT.md` of `packing` and `docs/LAYOUT-RECORDS.md` of `highways`. The joint measures are in `docs/JOINT-MEASURES.md` of this repository, and the joint corpus is in `docs/JOINT-CORPUS.md`. The promotion guards are in `docs/PROMOTION.md`.
