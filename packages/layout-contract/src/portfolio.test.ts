@@ -238,8 +238,8 @@ describe("portfolio", () => {
   it("gives move.pick for a record, and exercised reads it", () => {
     const moved = portfolio("p", [constant("a", { hard: 0, score: 1 }), constant("b", { hard: 0, score: 2 })], key).pick(0).trace;
     const still = portfolio("p", [constant("a", { hard: 0, score: 2 }), constant("b", { hard: 0, score: 1 })], key).pick(0).trace;
-    expect(pickMoves(moved)).toEqual({ "move.pick": 1 });
-    expect(pickMoves(still)).toEqual({ "move.pick": 0 });
+    expect(pickMoves(moved)).toEqual({ pick: 1 });
+    expect(pickMoves(still)).toEqual({ pick: 0 });
     expect(exercised({ moves: pickMoves(moved) })).toBe(true);
     expect(exercised({ moves: pickMoves(still) })).toBe(false);
   });

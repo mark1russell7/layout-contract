@@ -144,9 +144,9 @@ export function selectBest(candidates: readonly SelectCandidate[], levels: reado
   return { winner: alive[0]!.id, kept };
 }
 
-/** This function gives the trace measure `move.pick` of a pick: 1 when `picked` is true, else 0. */
-export function pickMoves(trace: Pick<PortfolioTrace, "picked">): { "move.pick": number } {
-  return { "move.pick": trace.picked ? 1 : 0 };
+/** This function gives the move `pick` of a pick: 1 when `picked` is true, else 0. A record keeps it as the trace measure `move.pick`. */
+export function pickMoves(trace: Pick<PortfolioTrace, "picked">): { pick: number } {
+  return { pick: trace.picked ? 1 : 0 };
 }
 
 /** This function gives the default clock: `performance.now`, or `Date.now` without `performance`. */

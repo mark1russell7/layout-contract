@@ -66,7 +66,7 @@ The first member is the base of the shared guards of `docs/PROMOTION.md`. The ot
 
 `picked` is `true` when the winner is not member 0, and the `outputHash` of the winner is different from the hash of member 0. When member 0 has an error, `picked` is `true` for each winner after member 0.
 
-A stage adds `pickMoves(trace)` to the moves of its record. It gives the trace measure `move.pick`: 1 when `picked` is `true`, else 0. Then `exercised({ moves })` tells that a portfolio has an effect, with no change.
+A stage adds `pickMoves(trace)` to the moves of its record. It gives the move `pick`: 1 when `picked` is `true`, else 0. The record keeps it as the trace measure `move.pick`. Then `exercised({ moves })` tells that a portfolio has an effect, with no change.
 
 ## Determinism
 

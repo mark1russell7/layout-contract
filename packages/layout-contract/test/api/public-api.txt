@@ -609,7 +609,7 @@ export declare function packHard(input: LayoutInput, output: PackOutput, toleran
 
 ### build/index.d.ts#pickMoves
 export declare function pickMoves(trace: Pick<PortfolioTrace, "picked">): {
-  "move.pick": number;
+  pick: number;
 };
 
 ### build/index.d.ts#placedRect
