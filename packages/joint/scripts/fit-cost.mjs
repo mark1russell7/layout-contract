@@ -2,17 +2,21 @@
 //
 //   node scripts/fit-cost.mjs --logs <dir> --run <run id> --commit <sha> [--corpus <set>] [--out <file>]
 //
-// <dir> holds the logs of the `run (<i>)` jobs of one full run, one file for each job:
+// <dir> holds the logs of the `run (<i>)` jobs of one full run. One call of gh writes the logs of all jobs into one file:
+//   gh run view <run id> -R mark1russell7/layout-contract --log > <dir>/run.log
+// The logs of single jobs also work, one file for each job:
 //   gh api repos/mark1russell7/layout-contract/actions/jobs/<job id>/logs > <dir>/run-<i>.log
-// Each shard prints one line for each input: `<input id>: 120 records, 0 skipped, <wall ms> ms`.
+// Each shard prints one line for each input: `<input id>: <pairs> records, 0 skipped, <wall ms> ms`.
+// The count of the pairs is PACK_ENTRIES times ROUTERS: 130 since L32. The fit divides the wall time by this count.
+// The old fit of the R² lines is the fit of the file <out> before the script writes it.
 //
 // The fit: the time of one pair is `base + square * boxes² / 1000 + cross * boxes * edges / 1000` milliseconds.
 // The coefficients are 0 or more, and they make the least sum of the squares of log(real / predicted).
 // Thus the fit gives the typical input of a size, and the margin of each spec gives the spread.
 // The margin of a spec is the q90 of real / predicted over its seeds. The default margin is the q90 over all inputs.
-import { readdirSync, readFileSync, writeFileSync } from "node:fs";
+import { existsSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { jointCorpus, PACK_ENTRIES, ROUTERS, SET_V2, SETS } from "../src/index.ts";
+import { jointCorpus, PACK_ENTRIES, parseCostModel, ROUTERS, SET_V2, SETS } from "../src/index.ts";
 
 const rest = process.argv.slice(2);
 const args = {};
@@ -23,6 +27,7 @@ if (args.logs === undefined || args.run === undefined || args.commit === undefin
 const out = args.out ?? "data/cost-margins.json";
 const QUANTILE = 0.9;
 const pairs = PACK_ENTRIES.length * ROUTERS.length;
+const before = existsSync(out) ? parseCostModel(readFileSync(out, "utf8")).fit : undefined;
 
 // The wall time of each input in the logs.
 const wall = new Map();
@@ -106,7 +111,7 @@ const r2 = (pred, real) => {
 };
 const real = rows.map((r) => r.ms);
 for (const [name, c] of [
-  ["old", [8, 5.5, 1.35]],
+  ...(before === undefined ? [] : [["old", [before.base, before.square, before.cross]]]),
   ["new", [base, square, cross]],
 ]) {
   const pred = rows.map((r) => pairs * perPair(c, r));

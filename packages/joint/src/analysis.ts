@@ -994,7 +994,7 @@ export function compositeCheck(records: readonly LayoutRecord[], inputs: readonl
   };
 }
 
-/** This function gives the order of the routers in the table of the route times: `TIME_FIRST`, then the order of `ROUTERS`, then the other names in sort order. */
+/** This function gives the order of the routers of the table of the route times. `TIME_FIRST` comes first, then the order of `ROUTERS`, then the other names. */
 function routerOrder(names: Iterable<string>): string[] {
   const rank = (r: string): number => (r === TIME_FIRST ? -1 : ROUTERS.includes(r) ? ROUTERS.indexOf(r) : ROUTERS.length);
   return [...new Set(names)].sort((a, b) => rank(a) - rank(b) || (a < b ? -1 : a > b ? 1 : 0));
@@ -1442,7 +1442,7 @@ function withoutLines(report: Report): string[] {
   return lines;
 }
 
-/** This function writes the ranking of the output groups of the headline cell, and the rank of the first group of each pack entry in each cell. */
+/** This function writes the ranking of the output groups of the headline cell. It also writes the rank of the first group of each pack entry in each cell. */
 function rankLines(report: Report, top: number): string[] {
   const head = report.cells.find((c) => c.rule === HEADLINE.rule && c.cap === HEADLINE.cap);
   if (head === undefined) return [];

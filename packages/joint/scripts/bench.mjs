@@ -170,7 +170,8 @@ if (command === "check") {
   const dir = args.records ?? "bench-out";
   const out = args.out ?? dir;
   const records = [];
-  for (const name of readdirSync(dir).filter((n) => n.endsWith(".jsonl")).sort())
+  // The files can be in folders: `gh run download` writes each artifact into a folder of its name.
+  for (const name of readdirSync(dir, { recursive: true }).map(String).filter((n) => n.endsWith(".jsonl")).sort())
     for (const line of readFileSync(join(dir, name), "utf8").split("\n")) if (line.trim() !== "") records.push(JSON.parse(line));
   const slice = corpusSlice();
   const inputs = slice.map(({ entry }) => ({

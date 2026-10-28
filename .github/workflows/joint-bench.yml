@@ -6,7 +6,8 @@
 # The job analyze joins the records and keeps the report as the artifact joint-report, in JSON and in Markdown.
 # The job analyze fails when an input of the manifest has no records. The report lists the missing inputs.
 # On joint-v2, the report also gives the headline cell on the inputs of data/joint-v2-recorded.txt.
-# Each report gives the gains over the baseline pair rows+portfolio (L10).
+# Each report gives the gains over the baseline pair rows+portfolio (L10). With the records of select, it gives the numbers of the claims of L32.
+# The jobs analyze and reanalyze read the jobs of the run with one call of gh run view. The report then gives the time of each shard.
 # A manual run with the input records-run does not run the benchmark. The job reanalyze downloads the records of that earlier run and analyzes them.
 # Only the times of these jobs count. The benchmark does not run on a local computer.
 name: Joint bench
@@ -142,6 +143,9 @@ jobs:
     if: ${{ !cancelled() && needs.plan.result == 'success' }}
     runs-on: ubuntu-latest
     timeout-minutes: 20
+    permissions:
+      contents: read
+      actions: read
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -162,12 +166,15 @@ jobs:
         env:
           SLICE: ${{ needs.plan.outputs.slice }}
           CORPUS: ${{ needs.plan.outputs.corpus }}
+          GH_TOKEN: ${{ github.token }}
         run: |
           ls records | wc -l
           subset=""
           if [ "$CORPUS" = joint-v2 ]; then subset=data/joint-v2-recorded.txt; fi
+          jobs=jobs.json
+          gh run view "$GITHUB_RUN_ID" --repo "$GITHUB_REPOSITORY" --json jobs > "$jobs" || { rm -f "$jobs"; jobs=""; }
           status=0
-          node scripts/bench.mjs analyze --corpus "$CORPUS" --records records --out report ${SLICE:+--slice "$SLICE"} ${subset:+--subset "$subset"} || status=$?
+          node scripts/bench.mjs analyze --corpus "$CORPUS" --records records --out report ${SLICE:+--slice "$SLICE"} ${subset:+--subset "$subset"} ${jobs:+--jobs "$jobs"} || status=$?
           if [ -f report/report.md ]; then cat report/report.md >> "$GITHUB_STEP_SUMMARY"; fi
           exit "$status"
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
@@ -211,12 +218,15 @@ jobs:
         env:
           CORPUS: ${{ inputs.corpus || 'joint-v2' }}
           RECORDS_RUN: ${{ inputs.records-run }}
+          GH_TOKEN: ${{ github.token }}
         run: |
           echo "The records of run $RECORDS_RUN: $(ls records | wc -l) files."
           subset=""
           if [ "$CORPUS" = joint-v2 ]; then subset=data/joint-v2-recorded.txt; fi
+          jobs=jobs.json
+          gh run view "$RECORDS_RUN" --repo "$GITHUB_REPOSITORY" --json jobs > "$jobs" || { rm -f "$jobs"; jobs=""; }
           status=0
-          node scripts/bench.mjs analyze --corpus "$CORPUS" --records records --out report ${subset:+--subset "$subset"} || status=$?
+          node scripts/bench.mjs analyze --corpus "$CORPUS" --records records --out report ${subset:+--subset "$subset"} ${jobs:+--jobs "$jobs"} || status=$?
           if [ -f report/report.md ]; then { echo "Records of run $RECORDS_RUN."; echo; cat report/report.md; } >> "$GITHUB_STEP_SUMMARY"; fi
           exit "$status"
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
