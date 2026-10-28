@@ -4,7 +4,7 @@
 # and private members. The command `api-report check` compares this file with the built .d.ts files.
 # To accept a change of the API, start the build, then `api-report update`, and review the diff.
 
-## . (build/index.d.ts): 211 names
+## . (build/index.d.ts): 218 names
 
 CORPUS_DIMENSIONS: build/index.d.ts#CORPUS_DIMENSIONS
 CellsOptions: build/index.d.ts#CellsOptions
@@ -42,6 +42,7 @@ GenerateContext: build/index.d.ts#GenerateContext
 GenerateOptions: build/index.d.ts#GenerateOptions
 GridOptions: build/index.d.ts#GridOptions
 HashOptions: build/index.d.ts#HashOptions
+INVALIDATED_FIELD: build/index.d.ts#INVALIDATED_FIELD
 Item: build/index.d.ts#Item
 JOINT_MEASURES: build/index.d.ts#JOINT_MEASURES
 JOINT_MOVED_MIN: build/index.d.ts#JOINT_MOVED_MIN
@@ -63,6 +64,7 @@ Obstacle: build/index.d.ts#Obstacle
 OptionRef: build/index.d.ts#OptionRef
 OptionSupports: build/index.d.ts#OptionSupports
 OutputGroup: build/index.d.ts#OutputGroup
+OwnerDimensionSpec: build/index.d.ts#OwnerDimensionSpec
 PACK_HARD_RULES: build/index.d.ts#PACK_HARD_RULES
 PackHard: build/index.d.ts#PackHard
 PackInput: build/index.d.ts#PackInput
@@ -120,6 +122,8 @@ StageTrace: build/index.d.ts#StageTrace
 StrategyConfig: build/index.d.ts#StrategyConfig
 StrategyInfo: build/index.d.ts#StrategyInfo
 StrategySpace: build/index.d.ts#StrategySpace
+SupportedRange: build/index.d.ts#SupportedRange
+SupportedValues: build/index.d.ts#SupportedValues
 Supports: build/index.d.ts#Supports
 Tolerance: build/index.d.ts#Tolerance
 VERDICT_DRAWS: build/index.d.ts#VERDICT_DRAWS
@@ -161,6 +165,7 @@ createFamilyRegistry: build/index.d.ts#createFamilyRegistry
 declaredClaimOf: build/index.d.ts#declaredClaimOf
 declaredCounts: build/index.d.ts#declaredCounts
 dimensionAt: build/index.d.ts#dimensionAt
+dimensionSupports: build/index.d.ts#dimensionSupports
 dimensionUnit: build/index.d.ts#dimensionUnit
 documentHash: build/index.d.ts#documentHash
 edgeStep: build/index.d.ts#edgeStep
@@ -181,6 +186,7 @@ mulberry32: build/index.d.ts#mulberry32
 outputGroups: build/index.d.ts#outputGroups
 outputHash: build/index.d.ts#outputHash
 overlapOf: build/index.d.ts#overlapOf
+ownerDimension: build/index.d.ts#ownerDimension
 packHard: build/index.d.ts#packHard
 paramActive: build/index.d.ts#paramActive
 paramLevels: build/index.d.ts#paramLevels
@@ -188,6 +194,7 @@ paramProblem: build/index.d.ts#paramProblem
 paramValue: build/index.d.ts#paramValue
 pickMoves: build/index.d.ts#pickMoves
 placedRect: build/index.d.ts#placedRect
+portPoint: build/index.d.ts#portPoint
 portfolio: build/index.d.ts#portfolio
 productSpace: build/index.d.ts#productSpace
 randomInt: build/index.d.ts#randomInt
@@ -255,6 +262,8 @@ export interface CorpusDimension extends SpaceParam {
   readonly meaning: string;
   readonly engines: readonly string[];
   readonly levels?: readonly ParamValue[];
+  readonly supported?: SupportedValues;
+  readonly invalidates?: readonly string[];
 }
 
 ### build/index.d.ts#CorpusEntry
@@ -275,6 +284,7 @@ export interface CorpusFamily<O = LayoutInput> {
   readonly rng?: RngFactory;
   readonly rngSeed?: (seed: number, dims: DimensionValues) => number;
   readonly familyBy?: readonly string[];
+  readonly hash?: (output: never) => string;
   generate(seed: number, dims: DimensionValues, context: GenerateContext): O;
 }
 
@@ -427,6 +437,9 @@ export interface HashOptions {
   readonly grid?: number;
 }
 
+### build/index.d.ts#INVALIDATED_FIELD
+export declare const INVALIDATED_FIELD = "invalidated";
+
 ### build/index.d.ts#Item
 export type Item = LayoutBox;
 
@@ -523,6 +536,7 @@ export interface LayoutInput {
   readonly obstacles?: readonly Obstacle[];
   readonly base?: string;
   readonly change?: "add" | "remove" | "resize" | "reorder" | "packed";
+  readonly invalidated?: readonly string[];
 }
 
 ### build/index.d.ts#LayoutRecord
@@ -626,6 +640,9 @@ export interface OutputGroup {
   readonly members: readonly string[];
 }
 
+### build/index.d.ts#OwnerDimensionSpec
+export type OwnerDimensionSpec = Omit<CorpusDimension, "name">;
+
 ### build/index.d.ts#PACK_HARD_RULES
 export declare const PACK_HARD_RULES: readonly ShapeSupport<keyof PackHard>[];
 
@@ -705,6 +722,7 @@ export interface Port {
   readonly side?: Side;
   readonly x?: number;
   readonly y?: number;
+  readonly along?: number;
 }
 
 ### build/index.d.ts#Portfolio
@@ -1007,6 +1025,15 @@ export interface StrategySpace {
   readonly parts?: readonly StrategySpace[];
 }
 
+### build/index.d.ts#SupportedRange
+export interface SupportedRange {
+  readonly min?: number;
+  readonly max?: number;
+}
+
+### build/index.d.ts#SupportedValues
+export type SupportedValues = readonly ParamValue[] | SupportedRange;
+
 ### build/index.d.ts#Supports
 export type Supports = Readonly<Record<string, readonly string[]>>;
 
@@ -1181,6 +1208,9 @@ export declare function declaredCounts<I>(inputs: Iterable<I>, declares: Declare
 ### build/index.d.ts#dimensionAt
 export declare function dimensionAt(dim: SpaceParam, t: number): number;
 
+### build/index.d.ts#dimensionSupports
+export declare function dimensionSupports(dim: CorpusDimension, value: unknown): boolean;
+
 ### build/index.d.ts#dimensionUnit
 export declare function dimensionUnit(dim: SpaceParam, value: number): number;
 
@@ -1244,6 +1274,9 @@ export declare function overlapOf(a: Rect, b: Rect): {
   readonly y: number;
 };
 
+### build/index.d.ts#ownerDimension
+export declare function ownerDimension(name: string, spec: OwnerDimensionSpec): CorpusDimension;
+
 ### build/index.d.ts#packHard
 export declare function packHard(input: LayoutInput, output: PackOutput, tolerance?: number, options?: ContainerTest): PackHard;
 
@@ -1267,6 +1300,9 @@ export declare function pickMoves(trace: Pick<PortfolioTrace, "picked">): {
 ### build/index.d.ts#placedRect
 export declare function placedRect(box: LayoutBox): Rect | undefined;
 
+### build/index.d.ts#portPoint
+export declare function portPoint(box: Pick<LayoutBox, "w" | "h">, port: Port): Point | undefined;
+
 ### build/index.d.ts#portfolio
 export declare function portfolio<I, O>(id: string, members: readonly Member<I, O>[] | ((input: I) => readonly Member<I, O>[]), key: PortfolioKey<I, O>, options?: PortfolioOptions): Portfolio<I, O>;
 
@@ -1283,7 +1319,7 @@ export declare function rectInRegion(region: Region, rect: Rect): boolean;
 export declare function regionHitsRect(region: Region, rect: Rect): boolean;
 
 ### build/index.d.ts#resolveDimensions
-export declare function resolveDimensions(dimensions: readonly CorpusDimension[], dims?: Readonly<Record<string, ParamValue>>, where?: string): DimensionValues;
+export declare function resolveDimensions(dimensions: readonly CorpusDimension[], dims?: Readonly<Record<string, ParamValue>>, where?: string, by?: string): DimensionValues;
 
 ### build/index.d.ts#selectBest
 export declare function selectBest(candidates: readonly SelectCandidate[], levels: readonly SelectLevel[]): Selection;

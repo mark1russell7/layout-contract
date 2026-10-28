@@ -18,14 +18,20 @@ export function turnPoint(x: number, y: number, h: number): [number, number] {
   return [h - y, x];
 }
 
-/** This function gives a port of a box of height `h` after the turn. Each value of the port turns, also a port with only `x` or only `y`. */
+/**
+ * This function gives a port of a box of height `h` after the turn. Each value of the port turns, also a port with only `x` or only `y`.
+ * The start of a side is its top end or its left end. Thus `left` goes to `top` and `right` goes to `bottom` with `along` changed to `1 - along`.
+ * `top` goes to `right` and `bottom` goes to `left` with the same `along`.
+ */
 export function turnPort(port: Port, h: number): Port {
-  const { side, x, y, ...rest } = port;
+  const { side, x, y, along, ...rest } = port;
+  const flips = side === "left" || side === "right";
   return {
     ...rest,
     ...(side === undefined ? {} : { side: turnSide(side) }),
     ...(y === undefined ? {} : { x: h - y }),
     ...(x === undefined ? {} : { y: x }),
+    ...(along === undefined ? {} : { along: flips ? 1 - along : along }),
   };
 }
 

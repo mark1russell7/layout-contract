@@ -10,7 +10,7 @@ The package has no runtime dependencies.
 |---|---|
 | Geometry | `Point`, `Rect`, `Region`, `Side`, `Sides`, `Margin`, `marginSides`, `grow`, `boundsOf`, `translate`, `overlapOf` |
 | The shape kinds | `ShapeKind`, `SHAPE_KINDS`, `SHAPE_KIND_IDS`, `ShapeKindSpec`, `ShapeGeometry`, `DEFAULT_SHAPES`, `ShapeSupport`, `isShapeKind`, `shapeKindOf`, `shapeKindsOf`, `itemShapeOf`, `shapeKindProblem`, `shapesOf`, `checkShapes` |
-| The input `layout-input/1` | `LayoutInput`, `LayoutBox` (`Item` for the packer), `Port`, `LayoutEdge`, `LayoutContainer`, `Obstacle`, `LayoutCell`, `LayoutGenerator`, `PairGap`, `canonicalInput` |
+| The input `layout-input/1` | `LayoutInput`, `LayoutBox` (`Item` for the packer), `Port`, `portPoint`, `LayoutEdge`, `LayoutContainer`, `Obstacle`, `LayoutCell`, `LayoutGenerator`, `PairGap`, `canonicalInput` |
 | The packer | `PackInput`, `toPackInput`, `Placement`, `PackOutput`, `StageTrace`, `applyPack` |
 | The record `layout-record/1` | `LayoutRecord`, `Stage`, `Supports`, `RunFacts`, `RunEnv`, `toLayoutRecord` |
 | The strategies | `StrategyInfo` |
@@ -44,6 +44,12 @@ The package has no runtime dependencies.
   - The hard rule `no-overlap` reads `pairGaps`. For a pair of the list, in either order, the `gap` replaces the two margins. The pair breaks the rule only when the boxes are nearer than the gap.
   - The pairs that are not in the list keep their margins. Without `pairGaps`, the verdicts and the hashes of the records do not change.
 - **The ports.** A port can have a side. Without a side, the router picks the side. A fixed port has `x` and `y` on the border of the box, relative to its top-left corner.
+  - A port with `side` and `along` is fixed at a fraction of its side. `along` is a number from 0 to 1, from the start of the side.
+  - The start of `left` and `right` is the top end. The start of `top` and `bottom` is the left end. `countPortsOffBorder` uses the same start for `x` and `y`.
+  - `checkInput` refuses `along` without a side, a value that is not a finite number from 0 to 1, and `along` with `x` or `y`.
+  - `portPoint(box, port)` gives the point of a port, relative to the top-left corner of the box. A port without a fixed point gives `undefined`, because the router picks the point.
+  - A turn changes `along` of `left` and `right` to `1 - along`, because the start of the side moves to its other end. `along` of `top` and `bottom` stays.
+  - An input without `along` keeps its hash.
 - **The hard rules of a pack.** `no-overlap` counts the pairs of boxes and the pairs of a box and an obstacle. A pair of `pairGaps` uses its gap in place of the margins. A locked box without a placement, or with a move of more than `RECORD_EPS`, breaks `locked-kept`. `checkInput` refuses a locked box without a position. Another box without a placement and not in `overflow` breaks `complete`.
 - **The container rule.** `in-container` counts each box that goes out of the container made smaller by `inset`. The box counts with its margin. By default, a shaped container counts as its bounding box.
 - **The exact container.** Give `{ exactContainer: true }` to `packHard` or `countOutside`. Then a box of a shaped container with the size `fixed` must stay inside the shape. A cut corner, a notch and a hole count. A container with a free side keeps the bounding test. The default changes to the exact test at the next breaking version.

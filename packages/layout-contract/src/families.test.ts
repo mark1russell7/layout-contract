@@ -9,10 +9,12 @@ import {
   DEFAULT_FAMILY_BY,
   DEFAULT_RNG,
   dimensionAt,
+  dimensionSupports,
   dimensionUnit,
   EDGES_STEP,
   familyKind,
   levelsOf,
+  ownerDimension,
   RECT_SCATTERED,
   resolveDimensions,
   sharedDimension,
@@ -352,5 +354,141 @@ describe("a cell of cellOf as the dims of the registry", () => {
     expect(() => reg.resolve("graph", { kind: "rect-scattered@1" })).toThrow(RangeError);
     expect(() => reg.generate("rect-scattered", 1, { kind: "graph@1" })).toThrow(RangeError);
     expect(() => reg.cellOf("graph", { kind: 1 })).toThrow(RangeError);
+  });
+});
+
+/** An input with a known best value, as the inputs of a consumer with a cut of the container. */
+type KnownInput = LayoutInput & { readonly known?: { readonly area: number } };
+
+/** A family with each new field: `supported`, an owner dimension and `invalidates`. */
+function knobFamily(): CorpusFamily<KnownInput> {
+  return {
+    name: "cut",
+    version: 1,
+    owner: "test",
+    meaning: "The pieces of a cut, with a known best value.",
+    dimensions: [
+      ownerDimension("cut", { kind: "enum", values: ["guillotine", "free"], default: "guillotine", meaning: "The kind of cut.", engines: ["test"] }),
+      sharedDimension("shape", { supported: ["rect"] }),
+      sharedDimension("margin", { invalidates: ["known"] }),
+      sharedDimension("gap", { invalidates: ["known", "missing"], supported: { max: 16 } }),
+    ],
+    seeding: "stepRandom(seed, boxes).",
+    crossEngine: "exact",
+    generate(seed, dims) {
+      const margin = dims["margin"] as number;
+      const body: KnownInput = {
+        schema: "layout-input/1",
+        id: `t/cut.${String(dims["cut"])}/s${seed}`,
+        boxes: [{ id: "b0", w: 10, h: 20, ...(margin === 0 ? {} : { margin }) }],
+        known: { area: 200 },
+      };
+      return { ...body, hash: documentHash(body) };
+    },
+  };
+}
+
+describe("the supported values of a dimension", () => {
+  it("keeps the shared values, and refuses another value in resolve, generate, cells and cellCount", () => {
+    const reg = createFamilyRegistry([knobFamily()]);
+    const shape = reg.family("cut").dimensions.find((d) => d.name === "shape")!;
+    expect(shape.values).toEqual(CORPUS_DIMENSIONS["shape"]!.values);
+    expect(levelsOf(shape)).toEqual(["rect"]);
+    expect(reg.resolve("cut", { shape: "rect" })["shape"]).toBe("rect");
+    expect(() => reg.resolve("cut", { shape: "circle" })).toThrow(/the value "circle" of the dimension "shape" is not supported by cut@1\. The supported values are "rect"\./);
+    expect(() => reg.generate("cut", 1, { shape: "circle" })).toThrow(RangeError);
+    expect(() => reg.generate("cut", 1, { gap: 20 })).toThrow(/the value 20 of the dimension "gap" is not supported by cut@1\. The supported values are the values from 0 to 16\./);
+    expect(() => reg.cellCount("cut", { levels: { shape: ["rect", "circle"] } })).toThrow(/the level "circle" of "shape" is not supported by cut@1/);
+    expect(reg.cellCount("cut", { sweep: ["shape"] })).toBe(1);
+    expect([...reg.cells("cut", { sweep: ["cut", "shape"] })].map((c) => c["shape"])).toEqual(["rect", "rect"]);
+  });
+
+  it("gives the supported answer for the site, and keeps the numeric points of levelsOf in the supported range", () => {
+    const [, shape, margin, gap] = knobFamily().dimensions;
+    expect(dimensionSupports(shape!, "rect")).toBe(true);
+    expect(dimensionSupports(shape!, "circle")).toBe(false);
+    expect(dimensionSupports(shape!, "star")).toBe(false);
+    expect(dimensionSupports(margin!, 32)).toBe(true);
+    expect(dimensionSupports(gap!, 16)).toBe(true);
+    expect(dimensionSupports(gap!, 16.5)).toBe(false);
+    expect(dimensionSupports(gap!, "x")).toBe(false);
+    expect(levelsOf(gap!, 3)).toEqual([0, 8, 16]);
+    expect(levelsOf(sharedDimension("gap"), 3)).toEqual([0, 16, 32]);
+    const ends = createFamilyRegistry([knobFamily()]).boundaryCells("cut").map((c) => c["gap"]);
+    expect(ends).toContain(16);
+    expect(ends).not.toContain(32);
+  });
+
+  it("refuses a bad supported list or range, and a default or a level outside it", () => {
+    expect(() => sharedDimension("shape", { supported: [] })).toThrow(/an empty list/);
+    expect(() => sharedDimension("shape", { supported: ["star"] })).toThrow(/a supported value of "shape" is bad/);
+    expect(() => sharedDimension("shape", { supported: ["rect", "rect"] })).toThrow(/a value two times/);
+    expect(() => sharedDimension("shape", { supported: ["circle"] })).toThrow(/the default of "shape" is not a supported value/);
+    expect(() => sharedDimension("shape", { supported: { max: 1 } })).toThrow(/are a list, because the dimension is not numeric/);
+    expect(() => sharedDimension("gap", { supported: [0, 1] })).toThrow(/are a range with min and max/);
+    expect(() => sharedDimension("gap", { supported: { min: 8, max: 4 } })).toThrow(/a min above its max/);
+    expect(() => sharedDimension("gap", { supported: { max: 64 } })).toThrow(/an end of the supported range of "gap" is bad/);
+    expect(() => sharedDimension("count", { supported: { min: 200 } })).toThrow(/the default of "count" is not a supported value/);
+    expect(() => sharedDimension("count", { supported: { max: 500 } })).toThrow(/the level 1000 of "count" is not a supported value/);
+    const bad: CorpusFamily<KnownInput> = { ...knobFamily(), dimensions: [{ ...CORPUS_DIMENSIONS["shape"]!, supported: ["circle"] }] };
+    expect(() => createFamilyRegistry([bad])).toThrow(/the default of "shape" is not a supported value/);
+  });
+});
+
+describe("ownerDimension", () => {
+  it("gives a dimension with the checks of a shared dimension", () => {
+    const cut = ownerDimension("cut", { kind: "enum", values: ["guillotine", "free"], default: "free", meaning: "The kind of cut.", engines: ["test"] });
+    expect(cut).toEqual({ kind: "enum", values: ["guillotine", "free"], default: "free", meaning: "The kind of cut.", engines: ["test"], name: "cut" });
+    expect(Object.isFrozen(cut)).toBe(true);
+    expect(levelsOf(cut)).toEqual(["guillotine", "free"]);
+  });
+
+  it("refuses a shared name, the name kind, an empty name and a bad dimension", () => {
+    const spec = { kind: "enum", values: ["a", "b"], default: "a", meaning: "A test.", engines: ["test"] } as const;
+    expect(() => ownerDimension("shape", spec)).toThrow(/is in the shared dimension table\. Use sharedDimension\("shape"\)/);
+    expect(() => ownerDimension("count", spec)).toThrow(RangeError);
+    expect(() => ownerDimension("kind", spec)).toThrow(/has a reserved name/);
+    expect(() => ownerDimension("", spec)).toThrow(/a text that is not empty/);
+    expect(() => ownerDimension("cut", { ...spec, default: "c" })).toThrow(/the default of "cut" is bad/);
+    expect(() => ownerDimension("cut", { ...spec, levels: ["c"] })).toThrow(/a level of "cut" is bad/);
+    expect(() => ownerDimension("cut", { ...spec, supported: ["b"] })).toThrow(/the default of "cut" is not a supported value/);
+    expect(() => ownerDimension("cut", { ...spec, invalidates: ["hash"] })).toThrow(/the field "hash", which the registry writes/);
+  });
+});
+
+describe("the invalidates fields of a dimension", () => {
+  it("keeps the output of the family at the defaults: the same object, the same hash and no invalidated", () => {
+    const f = knobFamily();
+    const own = f.generate(3, createFamilyRegistry([f]).resolve("cut"), { rng: DEFAULT_RNG, random: DEFAULT_RNG(3) });
+    const out = createFamilyRegistry([f]).generate("cut", 3);
+    expect(out).toEqual(own);
+    expect(out.known).toEqual({ area: 200 });
+    expect(Object.hasOwn(out, "invalidated")).toBe(false);
+  });
+
+  it("removes the fields for a value other than the default, lists them sorted and calculates the hash again", () => {
+    const reg = createFamilyRegistry([knobFamily()]);
+    const out = reg.generate("cut", 3, { margin: 4, gap: 2 });
+    expect(Object.hasOwn(out, "known")).toBe(false);
+    expect(out.invalidated).toEqual(["known"]);
+    expect(Object.keys(out).slice(-2)).toEqual(["invalidated", "hash"]);
+    expect(out.hash).toBe(documentHash(out));
+    expect(out.boxes[0]!.margin).toBe(4);
+    expect(reg.generate("cut", 3, { gap: 2 }).invalidated).toEqual(["known"]);
+  });
+
+  it("uses the hash of the family, and keeps an output with none of the fields", () => {
+    const f: CorpusFamily<KnownInput> = { ...knobFamily(), hash: () => "own" };
+    expect(createFamilyRegistry([f]).generate("cut", 3, { margin: 4 }).hash).toBe("own");
+    const plain: CorpusFamily<KnownInput> = { ...knobFamily(), generate: (seed) => ({ schema: "layout-input/1", id: `p/s${seed}`, boxes: [] }) };
+    expect(createFamilyRegistry([plain]).generate("cut", 3, { margin: 4 })).toEqual({ schema: "layout-input/1", id: "p/s3", boxes: [] });
+  });
+
+  it("refuses a bad list of fields at registration", () => {
+    const withList = (invalidates: readonly string[]): CorpusFamily<KnownInput> => ({ ...knobFamily(), dimensions: [{ ...CORPUS_DIMENSIONS["margin"]!, invalidates }] });
+    expect(() => createFamilyRegistry([withList(["known", "known"])])).toThrow(/has a field two times/);
+    expect(() => createFamilyRegistry([withList(["invalidated"])])).toThrow(/the field "invalidated", which the registry writes/);
+    expect(() => createFamilyRegistry([withList([""])])).toThrow(/is not a list of field names/);
+    expect(() => sharedDimension("margin", { invalidates: ["hash"] })).toThrow(RangeError);
   });
 });

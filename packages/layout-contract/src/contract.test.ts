@@ -6,9 +6,11 @@ import {
   countOutside,
   countOverlaps,
   countPortsOffBorder,
+  documentHash,
   grow,
   JOINT_MEASURES,
   packHard,
+  portPoint,
   regionHitsRect,
   toLayoutRecord,
   toPackInput,
@@ -18,6 +20,7 @@ import {
   turnRegion,
   type LayoutBox,
   type LayoutInput,
+  type Port,
 } from "./index.ts";
 
 const input = (boxes: LayoutBox[], extra: Partial<LayoutInput> = {}): LayoutInput => ({
@@ -205,5 +208,75 @@ describe("applyPack", () => {
   it("gives the packer input without the edges", () => {
     const i = toPackInput(input([{ id: "a", w: 1, h: 1 }], { gap: 4, edges: [{ id: "e", source: "a", target: "a" }] }));
     expect(i).toEqual({ container: { w: 100, h: 100, fixed: "size" }, items: [{ id: "a", w: 1, h: 1 }], gap: 4 });
+  });
+});
+
+/** An input with ports and no `along`. Its hashes are pinned from version 0.2.14, before `along`. */
+const PORTS_INPUT: LayoutInput = {
+  schema: "layout-input/1",
+  id: "pin/ports",
+  container: { w: 200, h: 100, fixed: "size" },
+  boxes: [
+    { id: "a", w: 40, h: 10, turnable: true, ports: [{ id: "t", side: "top", x: 5, y: 0 }, { id: "r", side: "right" }, { id: "f" }] },
+    { id: "b", w: 20, h: 30, ports: [{ id: "l", side: "left", x: 0, y: 9 }] },
+  ],
+  edges: [{ id: "e", source: "a", target: "b", sourcePort: "r", targetPort: "l" }],
+};
+
+describe("Port.along", () => {
+  it("keeps the hash of an input without along, before and after a pack with a turn", () => {
+    expect(documentHash(PORTS_INPUT)).toBe("77b88b33d2f4093e");
+    const packed = applyPack(PORTS_INPUT, { placements: [{ id: "a", x: 0, y: 0, turn: 90 }, { id: "b", x: 50, y: 0 }], overflow: [], size: { w: 200, h: 100 }, moved: [] });
+    expect(documentHash(packed)).toBe("1ef5bd4d7937360b");
+    expect(checkInput(PORTS_INPUT)).toEqual([]);
+  });
+
+  it("gives the point of a port: x and y, or side and along from the top end or the left end", () => {
+    const box = { w: 40, h: 10 };
+    expect(portPoint(box, { id: "p", side: "top", along: 0.25 })).toEqual({ x: 10, y: 0 });
+    expect(portPoint(box, { id: "p", side: "bottom", along: 0.25 })).toEqual({ x: 10, y: 10 });
+    expect(portPoint(box, { id: "p", side: "left", along: 0.2 })).toEqual({ x: 0, y: 2 });
+    expect(portPoint(box, { id: "p", side: "right", along: 1 })).toEqual({ x: 40, y: 10 });
+    expect(portPoint(box, { id: "p", side: "top", x: 5, y: 0 })).toEqual({ x: 5, y: 0 });
+    expect(portPoint(box, { id: "p", side: "top" })).toBeUndefined();
+    expect(portPoint(box, { id: "p" })).toBeUndefined();
+    expect(portPoint(box, { id: "p", x: 5 })).toBeUndefined();
+  });
+
+  it("refuses along without a side, outside [0, 1], not finite, or with x or y", () => {
+    const one = (port: Port): readonly string[] => checkInput(input([{ id: "a", w: 10, h: 10, ports: [port] }]));
+    expect(one({ id: "p", side: "top", along: 0 })).toEqual([]);
+    expect(one({ id: "p", side: "left", along: 1 })).toEqual([]);
+    expect(one({ id: "p", along: 0.5 })).toEqual(["box a port p: a port with along has no side"]);
+    expect(one({ id: "p", side: "top", along: 1.5 })).toEqual(["box a port p: the along value 1.5 is not a finite number from 0 to 1"]);
+    expect(one({ id: "p", side: "top", along: -0.1 })).toEqual(["box a port p: the along value -0.1 is not a finite number from 0 to 1"]);
+    expect(one({ id: "p", side: "top", along: Number.NaN })).toEqual(["box a port p: the along value NaN is not a finite number from 0 to 1"]);
+    expect(one({ id: "p", side: "top", along: Infinity })).toHaveLength(1);
+    expect(one({ id: "p", side: "top", along: 0.5, x: 5 })).toEqual(["box a port p: a port with along also has x or y"]);
+    expect(one({ id: "p", side: "top", along: 0.5, y: 0 })).toEqual(["box a port p: a port with along also has x or y"]);
+  });
+
+  it("turns along on each of the 4 sides, and the turned point is the turned point of the box", () => {
+    const box: LayoutBox = {
+      id: "a",
+      w: 40,
+      h: 10,
+      ports: (["top", "right", "bottom", "left"] as const).map((side) => ({ id: side, side, along: 0.25 })),
+    };
+    const turned = turnBox(box);
+    expect(turned.ports).toEqual([
+      { id: "top", side: "right", along: 0.25 },
+      { id: "right", side: "bottom", along: 0.75 },
+      { id: "bottom", side: "left", along: 0.25 },
+      { id: "left", side: "top", along: 0.75 },
+    ]);
+    for (const [i, port] of box.ports!.entries()) {
+      const p = portPoint(box, port)!;
+      expect(portPoint(turned, turned.ports![i]!)).toEqual({ x: box.h - p.y, y: p.x });
+    }
+    let b = box;
+    for (let i = 0; i < 4; i++) b = turnBox(b);
+    expect(b.ports).toEqual(box.ports);
+    expect(checkInput(input([turned]))).toEqual([]);
   });
 });
