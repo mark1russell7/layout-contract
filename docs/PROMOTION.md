@@ -28,3 +28,12 @@ The `outputHash` of a record is the first 16 hexadecimal digits of the SHA-256 o
 - The joint runner of layout-contract hashes the list of 2 hashes: the `outputHash` of the pack, then the `outputHash` of the routes. Each part uses the form of its stage.
 
 Groups compare hashes only in one stage. A number near a rounding boundary can split a group, and then a real copy counts two times. Two outputs with the same rounded hash have each number in one grid step of the other.
+
+### A bound by count
+
+On mixed sizes, a lower bound by count is weak. It drops the largest items first, but a packer leaves out many small items. On the screen 3 of packing, the count bound was 1.5% of the overflow count. The area bound was 42% to 62% of the overflow area. Judge an overflow by the area excess (`pack.overflow.excessArea`), not by the count excess.
+
+The `pack` step ranks its strategies in each cell in two levels. In a cell with a free size, the area excess is 0, thus `pack.fill` decides.
+
+1. Rank by the area excess, with its `minEffect`.
+2. Compare `pack.fill` only between the strategies with a tie on the area excess. Use only the inputs that each compared strategy packs with no overflow. A cell is "thin" when these shared inputs are less than 30% of the cell.
