@@ -2,8 +2,8 @@
 //
 //   check [--corpus <set>]                                                  examines the claims of the committed manifest and its split file
 //   smoke [--corpus <set>]                                                  packs and routes 1 input of each value of spacing with corners
-//   run --shards <n> --shard <i> --out <dir> [--slice pr] [--corpus <set>] [--lanes on]   writes <dir>/records-<i>.jsonl
-//   plan --shards <n> [--slice pr] [--corpus <set>] [--lanes on]                           prints the planned cost of each shard
+//   run --shards <n> --shard <i> --out <dir> [--slice pr] [--corpus <set>] [--lanes on] [--iterate on]   writes <dir>/records-<i>.jsonl
+//   plan --shards <n> [--slice pr] [--corpus <set>] [--lanes on] [--iterate on]                           prints the planned cost of each shard
 //   analyze --records <dir> --out <dir> [--slice pr] [--corpus <set>] [--allow-missing <file>] [--subset <file>] [--baseline <pair[,pair]>]
 //           [--compare <a:b[,a:b]>] [--exclude-pack <id[,id]>] [--oracle-without <id[,id]>] [--times <spec[,spec]>] [--jobs <file>] [--rank-top <n>]
 //                                                                            writes <dir>/report.json and <dir>/report.md
@@ -21,6 +21,8 @@
 // The value `none` removes the default of `--baseline`, `--compare`, `--oracle-without` and `--times`.
 // `--lanes on` adds the lane pairs of L13 (`laneEntries`) to run and to plan. The default is off.
 // With the records of lane pairs, analyze compares each lane pair with its base pair, and the default of `--oracle-without` is the lane entries.
+// `--iterate on` adds the iteration pairs of L11 (`iterEntries`) to run and to plan. The default is off. An iteration pair is also a lane pair.
+// analyze also compares each iteration pair with a cap above 1 with round 1 of its chain, the pair `lanes-iter1` of the same pack entry and router.
 // analyze reads the folds of the greedy portfolios from the split "default" of the split file of the corpus (corpus/splits).
 // analyze fails when an input of the manifest has no records, unless the file of `--allow-missing` lists it. The files list one input id on each line.
 import { appendFileSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
@@ -33,6 +35,10 @@ import {
   checkCorpus,
   idList,
   isLanePack,
+  ITER_VARIANTS,
+  iterEntries,
+  iterPlanPairs,
+  iterRoundsOf,
   jointCorpus,
   laneEntries,
   laneParts,
@@ -65,6 +71,9 @@ if (!SETS.includes(set)) throw new RangeError(`The corpus is one of ${SETS.join(
 // The lane pairs of L13 run only with `--lanes on`. Thus the default plan and the default records do not change.
 if (args.lanes !== undefined && args.lanes !== "on" && args.lanes !== "off") throw new RangeError(`The option --lanes is on or off, not "${args.lanes}".`);
 const lanes = args.lanes === "on" ? laneEntries() : [];
+// The iteration pairs of L11 run only with `--iterate on`, for the same reason.
+if (args.iterate !== undefined && args.iterate !== "on" && args.iterate !== "off") throw new RangeError(`The option --iterate is on or off, not "${args.iterate}".`);
+const iterate = args.iterate === "on" ? iterEntries() : [];
 
 /** This function gives the inputs and their manifest entries, in the order of the corpus, for the slice of the arguments. */
 function corpusSlice() {
@@ -79,7 +88,7 @@ function corpusSlice() {
 function shardPlan() {
   const shards = Number(args.shards ?? 1);
   const rows = corpusSlice();
-  const pairs = PACK_ENTRIES.length * ROUTERS.length + lanePlanPairs(lanes);
+  const pairs = PACK_ENTRIES.length * ROUTERS.length + lanePlanPairs(lanes) + iterPlanPairs(iterate);
   const items = rows.map(({ input, entry }) => {
     const spec = entry.id.replace(/\/s\d+$/, "");
     return { id: entry.id, spec, cost: plannedCost(spec, input.boxes.length, input.edges?.length ?? 0, pairs) };
@@ -171,7 +180,7 @@ if (command === "check") {
   console.log(`${set} shard ${shard} of ${shards}: ${rows.length} inputs, ${(plan.loads[shard] / 60000).toFixed(1)} predicted minutes`);
   for (const { input, entry } of rows) {
     const t0 = performance.now();
-    const records = runInput(input, entry.cell, { env, corpus: set, lanes, ...(commit === undefined ? {} : { commit }) });
+    const records = runInput(input, entry.cell, { env, corpus: set, lanes, iterate,...(commit === undefined ? {} : { commit }) });
     appendFileSync(file, records.map((r) => JSON.stringify(r) + "\n").join(""));
     const skipped = records.filter((r) => r.skipped !== undefined).length;
     console.log(`${input.id}: ${records.length} records, ${skipped} skipped, ${Math.round(performance.now() - t0)} ms`);
@@ -204,7 +213,11 @@ if (command === "check") {
   const laneCompare = lanePairs.flatMap((p) => {
     const parts = laneParts(packOf(p));
     const base = parts === undefined ? undefined : pairId(parts.pack, parts.router);
-    return base !== undefined && hasPair(base) ? [`${p}:${base}`] : [];
+    const own = base !== undefined && hasPair(base) ? [`${p}:${base}`] : [];
+    // An iteration pair with a cap above 1 also gets a compare with round 1 of its chain: the layout of lanes-sides.
+    const rounds = iterRoundsOf(packOf(p));
+    const start = parts === undefined ? undefined : pairId([ITER_VARIANTS[0].name, parts.pack, parts.router].join("."), parts.router);
+    return rounds !== undefined && rounds > 1 && start !== undefined && hasPair(start) ? [...own, `${p}:${start}`] : own;
   });
   const defaultCompare = [...(hasPair(selectPortfolio) && hasPair(BASELINE) ? [`${selectPortfolio}:${BASELINE}`] : []), ...laneCompare];
   const compare = (list(args.compare) ?? defaultCompare).map((c) => {

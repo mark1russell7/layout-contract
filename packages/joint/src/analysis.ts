@@ -1,7 +1,6 @@
 // The analysis of the joint benchmark (`docs/JOINT-BENCH.md`). It reads records and the facts of the inputs, and gives a report. It has no input or output of its own.
 import {
   compareMeasure,
-  JOINT_MEASURES,
   leaveOneSeedOut,
   mulberry32,
   outputGroups,
@@ -12,8 +11,11 @@ import {
   type SplitFold,
 } from "@mark1russell7/layout-contract";
 import { recordCount, type RecordCount } from "./record-count.ts";
-import { CAPS, PAIR_SEPARATOR, pairId, ROUTERS } from "./runner.ts";
-import { isLanePack, laneParts } from "./lanes.ts";
+import { CAPS, ITER_STOPS, PAIR_SEPARATOR, pairId, ROUTERS } from "./runner.ts";
+import { isIterPack, isLanePack, laneParts } from "./lanes.ts";
+import { EXCESS_SPEC as EXCESS, HEADLINE, lexicographic, PICK_LEVELS, pickValues } from "./pick.ts";
+
+export { HEADLINE, hardOf, PICK_LEVELS } from "./pick.ts";
 
 /** The facts of one input that the analysis reads. The CLI gives them from the manifest of the corpus. */
 export interface AnalysisInput {
@@ -41,30 +43,8 @@ export const THIN_SHARE = 0.3;
 /** A board kind with fewer inputs than this count is thin. */
 export const THIN_KIND = 10;
 
-/** The spec of `pack.overflow.excessArea` in the pack rule. */
-const EXCESS = { direction: "lower", minEffect: 0.005 } as const;
-
 /** The spec of `pack.fill` in the pack rule. */
 const PACK_FILL = { direction: "higher", minEffect: 0.005 } as const;
-
-/** This function gives the pick spec of a joint measure. */
-function jointSpec(id: string): SelectLevel["spec"] {
-  const spec = JOINT_MEASURES.find((m) => m.id === id);
-  if (spec === undefined) throw new RangeError(`There is no joint measure "${id}".`);
-  return { direction: spec.direction, minEffect: spec.minEffect ?? 0 };
-}
-
-/**
- * The levels of the pick on one input, in order. Level 0 is `hard`. Level 1 is the overflow area above its bound.
- * Then `joint.fill`, and `joint.spill` and `joint.straight.crossings` break the ties.
- */
-export const PICK_LEVELS: readonly SelectLevel[] = Object.freeze([
-  { id: "hard", spec: { direction: "lower", minEffect: 0 } },
-  { id: "pack.overflow.excessArea", spec: EXCESS },
-  { id: "joint.fill", spec: jointSpec("joint.fill") },
-  { id: "joint.spill", spec: jointSpec("joint.spill") },
-  { id: "joint.straight.crossings", spec: jointSpec("joint.straight.crossings") },
-] as SelectLevel[]);
 
 /** The levels of a pick over many inputs: the count of the inputs that miss the floor, then the mean score. */
 export const SET_LEVELS: readonly SelectLevel[] = Object.freeze([
@@ -307,9 +287,6 @@ export interface BaselineReport {
 /** The routers of the prediction Q2 of `joint-v2`. */
 export const CLEAN_ROUTERS: readonly string[] = Object.freeze(["corners", "sections", "shared"]);
 
-/** The headline cell of the predictions: the rule `all` with the cap 1.25, as in the result of the first run. */
-export const HEADLINE: { readonly rule: "all"; readonly cap: number } = Object.freeze({ rule: "all", cap: 1.25 });
-
 /** The oracle gain of the headline cell of the first run on `joint-v1`. */
 export const V1_GAIN = 0.445;
 
@@ -532,6 +509,40 @@ export interface LaneRow {
   readonly short: number;
   /** The mean growth of the margins of the lane pair, in units (`lanes.margin`). */
   readonly margin: number;
+  /** The rounds of an iteration pair of L11. It is absent for the other lane pairs. */
+  readonly iterate?: IterSide;
+}
+
+/** The means of the rounds of an iteration pair over the inputs of a row of `LaneRow`. */
+export interface IterSide {
+  /** The mean count of the rounds that the pair used (`iter.rounds`). */
+  readonly rounds: number;
+  /** The mean number of the best round (`iter.best`). */
+  readonly best: number;
+  /** The count of the inputs where a round after round 1 is the best round. */
+  readonly gained: number;
+  /** The count of the inputs by the end of the rounds (`iter.stop`, `ITER_STOPS`). */
+  readonly stops: Readonly<Record<string, number>>;
+  /** The mean counts of the sides that the rounds widened and narrowed. */
+  readonly widened: number;
+  readonly narrowed: number;
+}
+
+/** This function gives the rounds of an iteration pair over a list of records. */
+function iterSide(list: readonly LayoutRecord[]): IterSide {
+  const stops: Record<string, number> = {};
+  for (const r of list) {
+    const name = ITER_STOPS[r.measures["iter.stop"] ?? 0] ?? "cap";
+    stops[name] = (stops[name] ?? 0) + 1;
+  }
+  return {
+    rounds: mean(list.map((r) => r.measures["iter.rounds"] ?? 0)),
+    best: mean(list.map((r) => r.measures["iter.best"] ?? 0)),
+    gained: list.filter((r) => (r.measures["iter.best"] ?? 1) > 1).length,
+    stops,
+    widened: mean(list.map((r) => r.measures["iter.widened"] ?? 0)),
+    narrowed: mean(list.map((r) => r.measures["iter.narrowed"] ?? 0)),
+  };
 }
 
 /** This function gives the means of one pair over a list of records. */
@@ -590,6 +601,7 @@ export function laneRows(records: readonly LayoutRecord[], inputs: readonly Anal
         shortBase: mean(lane.map((r) => r.measures["lanes.short.base"] ?? 0)),
         short: mean(lane.map((r) => r.measures["lanes.short"] ?? 0)),
         margin: mean(lane.map((r) => r.measures["lanes.margin"] ?? 0)),
+        ...(isIterPack(packOf(pair)) ? { iterate: iterSide(lane) } : {}),
       });
     }
   }
@@ -649,44 +661,10 @@ export function bootstrap(rows: readonly { readonly cluster: string; readonly va
   return { mean: point, lo, hi, open: !Number.isFinite(point) || (lo <= 0 && hi >= 0), n: rows.length };
 }
 
-/** This function gives the count of the breaks of the pack and of the route in a record: the `pack.*` breaks and `route.violations`. */
-function baseHard(record: LayoutRecord): number {
-  let sum = record.hard["route.violations"] ?? 0;
-  for (const [k, v] of Object.entries(record.hard)) if (k.startsWith("pack.")) sum += v;
-  return sum;
-}
-
-/** This function gives the hard value of a record in a cell. It adds the base breaks, the routes above the cap, and the mixed segments under the rule `collection`. */
-export function hardOf(record: LayoutRecord, rule: "collection" | "all", cap: number): number {
-  const m = record.measures;
-  return baseHard(record) + (m[`route.cap.${cap}`] ?? 0) + (rule === "collection" ? (m["route.mixed"] ?? 0) : 0);
-}
-
-/** This function gives the values of the pick levels of a record in a cell. A missing joint value is 0, because each pair of the input misses it. */
-function pickValues(record: LayoutRecord, rule: "collection" | "all", cap: number): Record<string, number> {
-  const m = record.measures;
-  return {
-    hard: hardOf(record, rule, cap),
-    "pack.overflow.excessArea": m["pack.overflow.excessArea"] ?? 0,
-    "joint.fill": m["joint.fill"] ?? 0,
-    "joint.spill": m["joint.spill"] ?? 0,
-    "joint.straight.crossings": m["joint.straight.crossings"] ?? 0,
-  };
-}
-
 /** This function tells if a pack is clean: no hard break of the pack and no overflow. */
 function packClean(record: LayoutRecord): boolean {
   for (const [k, v] of Object.entries(record.hard)) if (k.startsWith("pack.") && v > 0) return false;
   return (record.measures["pack.overflow"] ?? 0) === 0;
-}
-
-/** This function compares two value sets by the levels in order: the first level that is not a tie decides. */
-function lexicographic(a: Readonly<Record<string, number>>, b: Readonly<Record<string, number>>, levels: readonly SelectLevel[]): "better" | "worse" | "tie" {
-  for (const level of levels) {
-    const v = compareMeasure(a[level.id]!, b[level.id]!, level.spec);
-    if (v !== "tie") return v;
-  }
-  return "tie";
 }
 
 /** The records of the analysis, by input and by pair. */
@@ -1746,6 +1724,23 @@ export function reportMarkdown(report: Report, options: MarkdownOptions = {}): s
       lines.push(
         `| ${r.pair} | ${r.scope} | ${r.inputs} | ${r.skipped} | ${r.same} | ${r.lane.broken} (${r.baseSide.broken}) | ${r.lane.breaks} (${r.baseSide.breaks}) | ${r.lane.overflowing} (${r.baseSide.overflowing}) | ${f3(r.lane.fill)} (${f3(r.baseSide.fill)}) | ${f3(r.lane.packFill)} (${f3(r.baseSide.packFill)}) | ${f3(r.short)} (${f3(r.shortBase)}) | ${f3(r.margin)} | ${Math.round(r.lane.ms)} (${Math.round(r.baseSide.ms)}) |`,
       );
+    const iter = report.lanes.filter((r) => r.iterate !== undefined);
+    if (iter.length > 0) {
+      lines.push(
+        "",
+        "### The rounds of the iteration pairs",
+        "",
+        "Rounds: the mean count of the rounds used. Gained: the inputs where a round after round 1 is the best round. Widened and narrowed: the mean count of the changed sides.",
+        "",
+        "| Iteration pair | Scope | Inputs | Rounds | Best round | Gained | Stops | Widened | Narrowed |",
+        "|---|---|---|---|---|---|---|---|---|",
+      );
+      for (const r of iter) {
+        const t = r.iterate!;
+        const stops = Object.entries(t.stops).map(([k, v]) => `${k} ${v}`).join(", ") || "-";
+        lines.push(`| ${r.pair} | ${r.scope} | ${r.inputs} | ${f3(t.rounds)} | ${f3(t.best)} | ${t.gained} | ${stops} | ${f3(t.widened)} | ${f3(t.narrowed)} |`);
+      }
+    }
   }
   if (report.stress !== undefined) {
     lines.push("", `### The stress cell (${report.stress.inputs} inputs)`, "", "| Rule | Cap | Best pair | Misses | Score | Oracle | Gain | k = 3 share | k = 8 share |", "|---|---|---|---|---|---|---|---|---|");

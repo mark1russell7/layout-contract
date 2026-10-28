@@ -33,7 +33,24 @@ import {
   type Strategy,
 } from "@mark1russell7/highways";
 import { jointMeasures, placementFacts, type PlacementFacts } from "./joint-measures.ts";
-import { LANE_CAP, LANE_CLEARANCE, LANE_SPACE, laneMargins, marginGrowth, maxLanes, shortSides, sideLanes, type LaneEntry, type LaneOptions } from "./lanes.ts";
+import {
+  ITER_FLOOR_SPACE,
+  iterMargins,
+  LANE_CAP,
+  LANE_CLEARANCE,
+  LANE_SEPARATOR,
+  LANE_SPACE,
+  laneMargins,
+  marginGrowth,
+  maxLanes,
+  shortSides,
+  sideLanes,
+  type BoxLanes,
+  type IterEntry,
+  type LaneEntry,
+  type LaneOptions,
+} from "./lanes.ts";
+import { compareRecords } from "./pick.ts";
 
 /** One pack entry: a strategy of `packing` with options over its defaults. The id names the entry in the records. */
 export interface PackEntry {
@@ -112,6 +129,13 @@ export interface RunOptions {
   readonly lanes?: readonly LaneEntry[];
   /** The options of the lane count and of the lane margins. */
   readonly laneOptions?: LaneOptions;
+  /**
+   * The iteration pairs of L11 (`iterEntries`). The default is none, so the default plan does not change.
+   * Each iteration pair gives one more record after the records of the lane pairs.
+   */
+  readonly iterate?: readonly IterEntry[];
+  /** The least space between two facing sides of an iteration pair. The default is `ITER_FLOOR_SPACE`. */
+  readonly iterFloor?: number;
 }
 
 /** This function gives the facts of the computer of this run. */
@@ -325,6 +349,8 @@ export function runInput(input: LayoutInput, cell: Readonly<Record<string, unkno
   const records: LayoutRecord[] = [];
   const shared = new Map<string, PackGroup>();
   const packRuns = new Map<string, PackRun>();
+  const iterating = (options.iterate?.length ?? 0) > 0;
+  const jointOf = new WeakMap<RouteRun, { readonly values: ReturnType<typeof jointMeasures>; readonly ms: number }>();
 
   const factsOf = (entry: PackEntry, router: string, id: string = entry.id, extra: Readonly<Record<string, unknown>> = {}) => ({
     stage: "joint" as const,
@@ -387,9 +413,16 @@ export function runInput(input: LayoutInput, cell: Readonly<Record<string, unkno
     extra?: Readonly<Record<string, unknown>>,
     more: Readonly<Record<string, number>> = {},
   ): LayoutRecord => {
-    const t0 = now();
-    const joint = jointMeasures(g.facts, route.result.routes, edgeCount - g.packed.dropped, target);
-    const jointMs = now() - t0;
+    // The joint measures depend only on the group and its routes. With iteration pairs, a round and its record share them. A run without them does not change.
+    let cached = iterating ? jointOf.get(route) : undefined;
+    if (cached === undefined) {
+      const t0 = now();
+      const values = jointMeasures(g.facts, route.result.routes, edgeCount - g.packed.dropped, target);
+      cached = { values, ms: now() - t0 };
+      if (iterating) jointOf.set(route, cached);
+    }
+    const joint = cached.values;
+    const jointMs = cached.ms;
     const measures = finite({
       ...run.measures,
       "pack.ms": packMs,
@@ -518,7 +551,162 @@ export function runInput(input: LayoutInput, cell: Readonly<Record<string, unkno
     };
     records.push(recordOf(entry, lane.router, run, g, final, packMs, totalMs, deterministic, lane.id, extra, more));
   }
+
+  // The iteration pairs of L11. Each pack entry and router has one chain of rounds. The round caps of its iteration pairs read prefixes of the chain.
+  const floor = options.iterFloor ?? ITER_FLOOR_SPACE;
+  const inputIds = new Set(input.boxes.map((b) => b.id));
+  const chains = new Map<string, IterChain | { readonly ok: false; readonly reason: string }>();
+  /** This function counts the lanes of the routes of a round one time, and adds the time to `ms`. */
+  const lanesOf = (round: IterRound): { readonly lanes: Map<string, BoxLanes>; readonly ms: number } => {
+    if (round.lanes === undefined) {
+      const t0 = now();
+      const lanes = sideLanes(round.g.graph, round.route.result.routes, inputIds, laneOpts);
+      round.lanes = { lanes, ms: now() - t0 };
+    }
+    return round.lanes;
+  };
+  /** This function packs and routes one round with the boxes of `boxes`, after the round `prev`. It gives the round, or the reason of a failure. */
+  const roundOf = (entry: PackEntry, router: string, boxes: readonly LayoutBox[], prev: Totals, laneMs: number, best: (r: LayoutRecord) => number): IterRound | string => {
+    const run = packOnce(entry, packInputOf({ ...input, boxes }), cell, seed, now, packInput);
+    if (!run.ok) return run.reason;
+    const g = groupOf(run, `${ITER_PREFIX_ID}${LANE_SEPARATOR}${entry.id}`);
+    const route = routeOf(g, router);
+    if (!route.ok) return route.reason;
+    const totals: Totals = {
+      packMs: prev.packMs + run.ms,
+      totalMs: prev.totalMs + run.ms + route.ms,
+      laneMs: prev.laneMs + laneMs,
+      deterministic: prev.deterministic && run.deterministic && route.deterministic,
+    };
+    const score = recordOf(entry, router, run, g, route, totals.packMs, totals.totalMs, totals.deterministic);
+    return { run, g, route, boxes, score, best: best(score), totals };
+  };
+  /** This function starts the chain of a pack entry and a router: the base pair, then round 1 with the margins of `lanes-sides`. */
+  const startChain = (entry: PackEntry, router: string): IterChain | { readonly ok: false; readonly reason: string } => {
+    const run = packRuns.get(entry.id) ?? packOnce(entry, packInput, cell, seed, now);
+    packRuns.set(entry.id, run);
+    if (!run.ok) return { ok: false, reason: run.reason };
+    const g = groupOf(run, entry.id);
+    const routes = plainOf(g, router);
+    if (!routes.ok) return { ok: false, reason: routes.reason };
+    const t0 = now();
+    const first = sideLanes(g.graph, routes.routes, inputIds, laneOpts);
+    const boxes = laneMargins(input.boxes, run.output.placements, first, gap, "sides", laneOpts);
+    const laneMs = now() - t0;
+    const round = roundOf(entry, router, boxes, { packMs: run.ms, totalMs: run.ms + routes.ms, laneMs: 0, deterministic: run.deterministic }, laneMs, () => 1);
+    if (typeof round === "string") return { ok: false, reason: round };
+    return { ok: true, entry, router, first, rounds: [round], widened: [0], narrowed: [0] };
+  };
+  /** This function adds rounds to a chain up to `cap` rounds. It stops at a round without gain, at a round with the same margins, and at a failure. */
+  const growChain = (chain: IterChain, cap: number): void => {
+    while (chain.rounds.length < cap && chain.stop === undefined) {
+      const prev = chain.rounds[chain.rounds.length - 1]!;
+      const index = chain.rounds.length + 1;
+      const t0 = now();
+      const { lanes, ms } = lanesOf(prev);
+      const space = iterMargins(prev.boxes, input.boxes, prev.run.output.placements, lanes, gap, { ...laneOpts, floor });
+      const laneMs = ms + (now() - t0);
+      if (space.widened + space.narrowed === 0) {
+        chain.stop = { reason: "fixed", at: index };
+        break;
+      }
+      const top = chain.rounds[prev.best - 1]!;
+      const round = roundOf(chain.entry, chain.router, space.boxes, prev.totals, laneMs, (score) => (compareRecords(score, top.score) === "better" ? index : prev.best));
+      if (typeof round === "string") {
+        chain.stop = { reason: "failed", at: index, detail: round };
+        break;
+      }
+      chain.rounds.push(round);
+      chain.widened.push(space.widened);
+      chain.narrowed.push(space.narrowed);
+      if (round.best !== index) chain.stop = { reason: "no-gain", at: index };
+    }
+  };
+  for (const it of options.iterate ?? []) {
+    const entry = packs.find((p) => p.id === it.pack) ?? PACK_ENTRIES.find((p) => p.id === it.pack);
+    if (entry === undefined) throw new RangeError(`There is no pack entry "${it.pack}" for the iteration pair "${it.id}".`);
+    const extra = { iterate: { variant: it.variant.name, rounds: it.variant.rounds, base: pairId(it.pack, it.router), start: "lanes-sides", floor, ...laneOpts } };
+    const key = [it.pack, it.router].join(LANE_SEPARATOR);
+    let chain = chains.get(key);
+    if (chain === undefined) {
+      chain = startChain(entry, it.router);
+      chains.set(key, chain);
+    }
+    if (!chain.ok) {
+      records.push(skippedRecord(entry, it.router, chain.reason, it.id, extra));
+      continue;
+    }
+    growChain(chain, it.variant.rounds);
+    const used = chain.rounds.slice(0, it.variant.rounds);
+    const last = used[used.length - 1]!;
+    const best = used[last.best - 1]!;
+    const own = lanesOf(best);
+    const stop = chain.stop !== undefined && chain.stop.at <= it.variant.rounds ? chain.stop.reason : "cap";
+    const sum = (list: readonly number[]): number => list.slice(0, used.length).reduce((s, n) => s + n, 0);
+    const more = {
+      "iter.rounds": used.length,
+      "iter.best": last.best,
+      "iter.stop": ITER_STOPS.indexOf(stop),
+      "iter.widened": sum(chain.widened),
+      "iter.narrowed": sum(chain.narrowed),
+      "lanes.short.base": shortSides(chain.first, laneOpts),
+      "lanes.short": shortSides(own.lanes, laneOpts),
+      "lanes.max.base": maxLanes(chain.first),
+      "lanes.max": maxLanes(own.lanes),
+      "lanes.margin": marginGrowth(input.boxes, best.boxes),
+      "time.lanes.ms": last.totals.laneMs + (best === last ? own.ms : 0),
+    };
+    records.push(recordOf(entry, it.router, best.run, best.g, best.route, last.totals.packMs, last.totals.totalMs, last.totals.deterministic, it.id, extra, more));
+  }
   return records;
+}
+
+/** The part of the packed input id of a round of an iteration pair. */
+const ITER_PREFIX_ID = "iter";
+
+/**
+ * The reasons of the end of the rounds of an iteration pair, in the order of the measure `iter.stop`.
+ * `cap`: the pair used all its rounds. `no-gain`: the last round did not beat the best round. `fixed`: the next margins were the same. `failed`: a pack or a route failed.
+ */
+export const ITER_STOPS: readonly ("cap" | "no-gain" | "fixed" | "failed")[] = Object.freeze(["cap", "no-gain", "fixed", "failed"]);
+
+/** The sums of the times of the rounds of an iteration pair, up to one round. */
+interface Totals {
+  readonly packMs: number;
+  readonly totalMs: number;
+  readonly laneMs: number;
+  readonly deterministic: boolean;
+}
+
+/** One round of an iteration pair: the pack, the routes and the record of the scores. */
+interface IterRound {
+  readonly run: Extract<PackRun, { ok: true }>;
+  readonly g: PackGroup;
+  readonly route: RouteRun;
+  readonly boxes: readonly LayoutBox[];
+  /** The record of the round. Its pick values of the headline cell give the best round. */
+  readonly score: LayoutRecord;
+  /** The number of the best round of the rounds 1 to this round. */
+  readonly best: number;
+  /** The sums of the times of the base pair and of the rounds 1 to this round. */
+  readonly totals: Totals;
+  /** The lanes of the routes of this round, after the first count. */
+  lanes?: { readonly lanes: Map<string, BoxLanes>; readonly ms: number };
+}
+
+/** The chain of rounds of one pack entry and one router. */
+interface IterChain {
+  readonly ok: true;
+  readonly entry: PackEntry;
+  readonly router: string;
+  /** The lanes of the routes of the base pair. */
+  readonly first: ReadonlyMap<string, BoxLanes>;
+  readonly rounds: IterRound[];
+  /** The count of the sides that each round widened and narrowed. Round 1 counts 0. */
+  readonly widened: number[];
+  readonly narrowed: number[];
+  /** The end of the rounds, and the number of the round that ended them. */
+  stop?: { readonly reason: (typeof ITER_STOPS)[number]; readonly at: number; readonly detail?: string };
 }
 
 /** The shared facts of one pack output: the packed input, its graph and the routes of each router. Pack entries with the same output share them. */
