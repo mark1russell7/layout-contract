@@ -206,8 +206,8 @@ importers:
   packages/joint:
     dependencies:
       '@mark1russell7/highways':
-        specifier: ^0.8.1
-        version: 0.8.1
+        specifier: ^0.9.1
+        version: 0.9.1
       '@mark1russell7/layout-contract':
         specifier: workspace:*
         version: link:../layout-contract
@@ -252,8 +252,8 @@ importers:
         specifier: workspace:*
         version: link:../joint
       '@mark1russell7/highways':
-        specifier: ^0.8.1
-        version: 0.8.1
+        specifier: ^0.9.1
+        version: 0.9.1
       '@mark1russell7/layout-contract':
         specifier: workspace:*
         version: link:../layout-contract
@@ -496,15 +496,15 @@ packages:
     engines: {node: '>=22'}
     hasBin: true
 
-  '@mark1russell7/highways@0.8.1':
-    resolution: {integrity: sha512-jL3n3yCrKeG3+wixHX5wskwea8nDnZDZ+UwRsySQtBfYiKj0BlIh+iwDNwtclEwX3x663C/r4b50soraIYjh4A==}
+  '@mark1russell7/highways@0.9.1':
+    resolution: {integrity: sha512-JQLNB+YENUbQL7PSXnE5M2/wMmQ9TlNHo0a8CbvxxL03xJx4urA0utR4FeoD3PMmxwfD+hV+TDj9b07u6RbFfg==}
 
   '@mark1russell7/layout-contract@0.2.12':
     resolution: {integrity: sha512-l2GYMp5c4Sa2ddKBWNXOMZIYx1Uf1+ROYhnpcWm1l1WU6KF3GiwxvMC0ObmlHt/YlsHScfoBvL2BtF72rY6Svw==}
     engines: {node: '>=22.12'}
 
-  '@mark1russell7/layout-contract@0.2.8':
-    resolution: {integrity: sha512-HcSw08uMIHf0M/BdHa1JbrN3XNb3OHl6q1J3Ql9OwcmgWMSlOmz4wajMPcZLP0GugewqCRmwKNckARF6FxaJjg==}
+  '@mark1russell7/layout-contract@0.2.15':
+    resolution: {integrity: sha512-hHZxuCTsLEhzkCrTmZmOcLsvUg2SIpSBlAj2shoS5mMRr5WUCGA9Yu/6UT1IGia3kqllLO2EFSkq94DozPCR7g==}
     engines: {node: '>=22.12'}
 
   '@mark1russell7/packing@0.2.17':
@@ -1671,13 +1671,13 @@ snapshots:
 
   '@mark1russell7/cue@1.0.2': {}
 
-  '@mark1russell7/highways@0.8.1':
+  '@mark1russell7/highways@0.9.1':
     dependencies:
-      '@mark1russell7/layout-contract': 0.2.8
+      '@mark1russell7/layout-contract': 0.2.15
 
   '@mark1russell7/layout-contract@0.2.12': {}
 
-  '@mark1russell7/layout-contract@0.2.8': {}
+  '@mark1russell7/layout-contract@0.2.15': {}
 
   '@mark1russell7/packing@0.2.17':
     dependencies:
