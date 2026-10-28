@@ -12,7 +12,7 @@ function corpusItems(): PlanItem[] {
   return jointCorpus(SET_V2).inputs.map((i) => ({ id: i.id, spec: specOf(i.id), cost: plannedCost(specOf(i.id), i.boxes.length, i.edges?.length ?? 0, PAIRS) }));
 }
 
-/** The dense spec with hubs and the gap, and its wall time on each seed in the shard logs of run 40757153151 (L13, with the lane pairs), in milliseconds. */
+/** The dense spec with hubs and the gap, and its wall time on each seed in the shard logs of run 40757153151 (L13, with the lane pairs), in milliseconds. That run had `COST_MODEL.pairs` pairs. */
 const DENSE_HUBS = "joint-v2/rect-grid.freeHeight.holes.none.bimodal.n1000.e-dense.hubs.none.free.sp-gap";
 const DENSE_HUBS_WALL: Readonly<Record<string, number>> = { s1: 1760697, s2: 1884750, s3: 1765378 };
 
@@ -86,7 +86,7 @@ describe("planShards", () => {
     const inputs = jointCorpus(SET_V2).inputs.filter((i) => specOf(i.id) === DENSE_HUBS);
     expect(inputs.map((i) => i.id.slice(DENSE_HUBS.length + 1))).toEqual(["s1", "s2", "s3"]);
     for (const i of inputs) {
-      const ratio = plannedCost(DENSE_HUBS, i.boxes.length, i.edges?.length ?? 0, PAIRS, PASSES) / DENSE_HUBS_WALL[i.id.slice(DENSE_HUBS.length + 1)]!;
+      const ratio = plannedCost(DENSE_HUBS, i.boxes.length, i.edges?.length ?? 0, COST_MODEL.pairs, PASSES) / DENSE_HUBS_WALL[i.id.slice(DENSE_HUBS.length + 1)]!;
       expect(ratio, i.id).toBeGreaterThan(1 / 1.5);
       expect(ratio, i.id).toBeLessThan(1.5);
     }
@@ -98,9 +98,9 @@ describe("the cost model", () => {
     expect(COST_MODEL.corpus).toBe(SET_V2);
     expect(COST_MODEL.pairRun).toBe(40743187036);
     expect(COST_MODEL.run).toBe(40757153151);
-    // The run of L13 has the 130 pairs of the runner and the 18 lane pairs, with 24 passes.
+    // The run of L13 had the 130 pairs of the runner then and the 18 lane pairs, with 24 passes. Since bench-3, the runner has 195 pairs. The fit gives each pair the mean time of the 130 pairs.
     expect(COST_MODEL.pairs).toBe(130);
-    expect(PAIRS).toBe(130);
+    expect(PAIRS).toBe(195);
     expect(COST_MODEL.lanePasses).toBe(24);
     expect(PASSES).toBe(24);
     expect(COST_MODEL.quantile).toBe(0.9);

@@ -34,7 +34,7 @@ S3, S5 and S6 are the risky claims.
 `packages/joint/src/space.ts` makes the joint space `JOINT_SPACE` from 3 parts:
 
 1. `benchPackSpace()`: the engine `packing` with the stage `entry`. Its options are the 13 pack entries of the runner.
-2. `benchRouteSpace()`: the engine `highways` with the stage `router`. Its options are the 10 routers of the runner.
+2. `benchRouteSpace()`: the engine `highways` with the stage `router`. Its options are the 15 routers of the runner (`ROUTERS`).
 3. `laneSpace()`: the engine `lanes` with the optional stage `mode`. Its options are `max`, `sides` and `iter`.
 
 The options `max` and `sides` are the lane pairs of L13. They have the params of `LANE_PARAMS`:
@@ -48,12 +48,19 @@ The options `max` and `sides` are the lane pairs of L13. They have the params of
 
 The option `iter` is the iteration of L11: place, route and place again. Its one param `rounds` is the round cap, from 1 to 3, with the default 3 (`ITER_PARAMS`). It uses the default lane options.
 
-`jointSpace(pack, route, options)` joins the parts with `productSpace`, and adds the stage `lanes.mode`. The version of the space is `bench-2`. Version `bench-1` did not have the option `iter`.
+`jointSpace(pack, route, options)` joins the parts with `productSpace`, and adds the stage `lanes.mode`. The version of the space is `bench-3`.
 
-- The space has 166 named configs: the 130 pairs, the 18 lane pairs of L13 and the 18 iteration pairs of L11. A named config runs with the pair id of the bench.
-- `spaceSize(JOINT_SPACE, { levels: 3 })` gives the base 21580 and the meta 0: 130 × (1 + 2 × 3⁴ + 3).
-- `spaceSize(JOINT_SPACE, { levels: 1 })` gives 520, and the levels 2 give 4550.
-- The full integer grid has approximately 787000 configs: 130 × (1 + 2 × 3024 + 3).
+- Version `bench-1` did not have the option `iter`.
+- Version `bench-2` had 10 routers, 130 pairs and 166 named configs.
+- Version `bench-3` adds the 5 highway strategies of wave 3 of `highways` 0.9.1 as routers (`HIGHWAY_ROUTERS`): `steiner`, `gaps`, `streets`, `search` and `interchanges`. Each strategy makes a plan of highways, and `follow` routes it.
+
+The counts of version `bench-3`:
+
+- The space has 231 named configs: the 195 pairs, the 18 lane pairs of L13 and the 18 iteration pairs of L11. A named config runs with the pair id of the bench.
+- `spaceSize(JOINT_SPACE, { levels: 3 })` gives the base 32370 and the meta 0: 195 × (1 + 2 × 3⁴ + 3).
+- `spaceSize(JOINT_SPACE, { levels: 1 })` gives 780, and the levels 2 give 6825.
+- The full integer grid has approximately 1180000 configs: 195 × (1 + 2 × 3024 + 3).
+- The lane pairs and the iteration pairs do not change. They use only the routers `corners` and `portfolio`.
 
 `configRun(config, space, adapter)` gives the run of a config. The run has the pack entry, the router, a lane entry or an iteration entry, and the counts. A `JointAdapter` reads the pack entry and the router of a config. `BENCH_ADAPTER` reads the stages `packing.entry` and `highways.router`.
 
@@ -171,7 +178,10 @@ epochs/<epoch>/summary.json        the cumulative summary as a table
 epochs/<epoch>/nights/<date>.json  the facts of each night: the rounds, the race, the shards and the drift
 ```
 
-The epoch is `<corpus>_packing-<version>_highways-<version>_space-<version>`, for example `joint-v2_packing-0.2.17_highways-0.8.1_space-bench-2`. A new version of an engine or of the space starts a new epoch. The data of the old epochs stays.
+The epoch is `<corpus>_packing-<version>_highways-<version>_space-<version>`, for example `joint-v2_packing-0.2.17_highways-0.9.1_space-bench-3`. A new version of an engine or of the space starts a new epoch. The data of the old epochs stays.
+
+- The epoch `joint-v2_packing-0.2.17_highways-0.8.1_space-bench-2` ends with `highways` 0.9.1 and the space `bench-3`. Its data stays on the branch `sweep-data`.
+- The first night of `bench-3` starts a new state with the baseline arm. The random sample of a night can then pick the 5 new routers.
 
 `summary.json` has one row for each config, cell and board kind:
 

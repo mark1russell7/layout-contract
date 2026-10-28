@@ -7,7 +7,9 @@ The joint benchmark packs each input of a joint corpus, and then routes the pack
 - The entry `select` is the composite strategy `select` of `packing` 0.2.15, the `DEFAULT_STRATEGY` of `packDefault`. Refer to "The prediction for the select packer (L32)".
 - The routers are the 9 router strategies of `highways` 0.6.0, and the portfolio router `portfolio` of `highways` 0.6.0.
 - The joint-v2 run of 2026-10-28 used `packing` 0.2.6 and `highways` 0.5.1. Version 0.6.0 changes the default members of `portfolio`.
-- Thus the benchmark has 130 pairs. The runs before L32 had 120 pairs. `joint-v2` has 303 inputs, and `joint-v1` has 285 inputs.
+- Since `highways` 0.9.1, the routers also hold the 5 highway strategies of wave 3 (`HIGHWAY_ROUTERS`): `steiner`, `gaps`, `streets`, `search` and `interchanges`. Each makes a plan of highways, then `follow` routes it.
+- Thus the benchmark has 195 pairs. The runs before the space `bench-3` had 130 pairs, and the runs before L32 had 120 pairs. `joint-v2` has 303 inputs, and `joint-v1` has 285 inputs.
+- The cost model of the shard plan gives each new pair the mean time of the 130 pairs of the fit. The first full run of 195 pairs gives the data for a new fit.
 - The option `--lanes on` adds the 18 lane pairs of L13. Refer to "The lane pairs".
 - The option `--iterate on` adds the 18 iteration pairs of L11. Refer to "The iteration pairs".
 - The nightly sweep runs the same runner on configs of the joint strategy space. `docs/SWEEP.md` tells it.

@@ -1,9 +1,10 @@
 import { readFileSync } from "node:fs";
-import { createFamilyRegistry, DEFAULT_RNG, edgeStep, RECT_SCATTERED, type LayoutInput } from "@mark1russell7/layout-contract";
+import { checkInput, createFamilyRegistry, DEFAULT_RNG, edgeStep, familyKind, RECT_SCATTERED, type LayoutInput } from "@mark1russell7/layout-contract";
+import { HIGHWAYS_FAMILIES } from "@mark1russell7/highways";
 import { generator, rectScattered } from "@mark1russell7/packing";
 import { describe, expect, it } from "vitest";
 import { edgeFamily, hashOf, jointSpecs, SETS, type JointSet, type JointSpec } from "./corpus.ts";
-import { JOINT_BASES, jointRegistry, packingFamily } from "./families.ts";
+import { JOINT_BASES, JOINT_HIGHWAYS_FAMILIES, jointRegistry, packingFamily } from "./families.ts";
 import { spacingStep } from "./spacing.ts";
 
 /** The path of the corpus before L45: the generator of packing, `edgeStep`, `spacingStep`, then the id, the family and the hash. */
@@ -49,7 +50,7 @@ describe("the joint families on the shared registry", () => {
 
   it("declare the owner, the cross-engine note and the default stream of each family", () => {
     const registry = jointRegistry("joint-v2");
-    for (const f of registry.families()) {
+    for (const f of registry.families().filter((g) => JOINT_BASES.includes(g.name))) {
       expect(f.owner).toBe("joint");
       expect(f.crossEngine).toBe("libm-dependent");
       const r = registry.rngOf(f.name)(1);
@@ -58,6 +59,33 @@ describe("the joint families on the shared registry", () => {
     }
     expect(packingFamily(generator("gallery")).crossEngine).toBe("exact");
     expect(packingFamily(generator("rect-grid")).crossEngine).toBe("libm-dependent");
+  });
+
+  it("hold each family of HIGHWAYS_FAMILIES after the joint families, with no kind of a joint family (L54)", () => {
+    for (const set of SETS) {
+      const families = jointRegistry(set).families();
+      expect(families.map((f) => f.name)).toEqual([...JOINT_BASES, ...JOINT_HIGHWAYS_FAMILIES]);
+      const kinds = families.map((f) => familyKind(f.name, f.version));
+      expect(new Set(kinds).size).toBe(kinds.length);
+      for (const f of families.slice(JOINT_BASES.length)) expect(f.owner).toBe("highways");
+    }
+    expect(JOINT_HIGHWAYS_FAMILIES).toEqual(HIGHWAYS_FAMILIES.map((f) => f.name));
+  });
+
+  it("give a valid input file with the boxes and the edges of the board for each highways family", () => {
+    for (const set of SETS) {
+      const registry = jointRegistry(set);
+      for (const f of HIGHWAYS_FAMILIES) {
+        const dims = Object.fromEntries(f.dimensions.map((d) => [d.name, d.default]));
+        const input = registry.generate(f.name, 1, set === "joint-v2" ? { ...dims, spacing: "both" } : dims, { set });
+        const board = f.generate(1, dims, { rng: registry.rngOf(f.name), random: registry.rngOf(f.name)(1), set });
+        expect(input.id.startsWith(`${set}/${f.name}`), input.id).toBe(true);
+        expect(input.boxes).toHaveLength(board.graph.nodes.length);
+        expect(input.edges ?? []).toHaveLength(board.graph.edges.length);
+        expect(checkInput(input), input.id).toEqual([]);
+        expect(input.hash).toBe(hashOf(input));
+      }
+    }
   });
 
   it("refuse a value that is not text or a number for a generator of packing", () => {
