@@ -4,11 +4,15 @@
 # and private members. The command `api-report check` compares this file with the built .d.ts files.
 # To accept a change of the API, start the build, then `api-report update`, and review the diff.
 
-## . (build/index.d.ts): 61 names
+## . (build/index.d.ts): 70 names
 
 DEFAULT_TOLERANCE: build/index.d.ts#DEFAULT_TOLERANCE
 Direction: build/index.d.ts#Direction
+EDGE_DENSITY: build/index.d.ts#EDGE_DENSITY
+EDGE_STEP_VERSION: build/index.d.ts#EDGE_STEP_VERSION
 EPS: build/index.d.ts#EPS
+EdgeShape: build/index.d.ts#EdgeShape
+EdgeStepParams: build/index.d.ts#EdgeStepParams
 Item: build/index.d.ts#Item
 JOINT_MEASURES: build/index.d.ts#JOINT_MEASURES
 JOINT_MOVED_MIN: build/index.d.ts#JOINT_MOVED_MIN
@@ -51,13 +55,18 @@ countObstacleHits: build/index.d.ts#countObstacleHits
 countOutside: build/index.d.ts#countOutside
 countOverlaps: build/index.d.ts#countOverlaps
 countPortsOffBorder: build/index.d.ts#countPortsOffBorder
+edgeStep: build/index.d.ts#edgeStep
+fnv1a32: build/index.d.ts#fnv1a32
 grow: build/index.d.ts#grow
 marginSides: build/index.d.ts#marginSides
 minEffectOf: build/index.d.ts#minEffectOf
+mulberry32: build/index.d.ts#mulberry32
 overlapOf: build/index.d.ts#overlapOf
 packHard: build/index.d.ts#packHard
 placedRect: build/index.d.ts#placedRect
+randomInt: build/index.d.ts#randomInt
 regionHitsRect: build/index.d.ts#regionHitsRect
+stepRandom: build/index.d.ts#stepRandom
 toLayoutRecord: build/index.d.ts#toLayoutRecord
 toPackInput: build/index.d.ts#toPackInput
 translate: build/index.d.ts#translate
@@ -76,8 +85,26 @@ export declare const DEFAULT_TOLERANCE: Tolerance;
 ### build/index.d.ts#Direction
 export type Direction = "lower" | "higher";
 
+### build/index.d.ts#EDGE_DENSITY
+export declare const EDGE_DENSITY: Readonly<Record<EdgeStepParams["edgeDensity"], number>>;
+
+### build/index.d.ts#EDGE_STEP_VERSION
+export declare const EDGE_STEP_VERSION = 1;
+
 ### build/index.d.ts#EPS
 export declare const EPS = 1e-6;
+
+### build/index.d.ts#EdgeShape
+export type EdgeShape = "random" | "clustered" | "hubChain" | "hubs" | "longRange" | "tree" | "bundled";
+
+### build/index.d.ts#EdgeStepParams
+export interface EdgeStepParams {
+  readonly edgeDensity: "sparse" | "medium" | "dense";
+  readonly edgeShape: EdgeShape;
+  readonly groups?: "none" | "flat" | "nested";
+  readonly ports?: "free" | "sides" | "fixed";
+  readonly hubBy?: "area" | "random";
+}
 
 ### build/index.d.ts#Item
 export type Item = LayoutBox;
@@ -162,6 +189,7 @@ export interface LayoutInput {
   readonly source?: string;
   readonly hash?: string;
   readonly generator?: LayoutGenerator | null;
+  readonly steps?: readonly LayoutGenerator[];
   readonly cell?: LayoutCell;
   readonly step?: number;
   readonly container?: LayoutContainer;
@@ -400,6 +428,12 @@ export declare function countOverlaps(boxes: readonly LayoutBox[], tolerance?: n
 ### build/index.d.ts#countPortsOffBorder
 export declare function countPortsOffBorder(boxes: readonly LayoutBox[], eps?: number): number;
 
+### build/index.d.ts#edgeStep
+export declare function edgeStep(input: LayoutInput, params: EdgeStepParams, seed?: number): LayoutInput;
+
+### build/index.d.ts#fnv1a32
+export declare function fnv1a32(text: string): number;
+
 ### build/index.d.ts#grow
 export declare function grow(rect: Rect, margin: Margin | undefined): Rect;
 
@@ -408,6 +442,9 @@ export declare function marginSides(margin: Margin | undefined): Sides;
 
 ### build/index.d.ts#minEffectOf
 export declare function minEffectOf(spec: Pick<MeasureSpec, "minEffect">, a?: number, b?: number): number;
+
+### build/index.d.ts#mulberry32
+export declare function mulberry32(seed: number): () => number;
 
 ### build/index.d.ts#overlapOf
 export declare function overlapOf(a: Rect, b: Rect): {
@@ -421,8 +458,14 @@ export declare function packHard(input: LayoutInput, output: PackOutput, toleran
 ### build/index.d.ts#placedRect
 export declare function placedRect(box: LayoutBox): Rect | undefined;
 
+### build/index.d.ts#randomInt
+export declare function randomInt(r: () => number, lo: number, hi: number): number;
+
 ### build/index.d.ts#regionHitsRect
 export declare function regionHitsRect(region: Region, rect: Rect): boolean;
+
+### build/index.d.ts#stepRandom
+export declare function stepRandom(seed: number, step: string): () => number;
 
 ### build/index.d.ts#toLayoutRecord
 export declare function toLayoutRecord(input: LayoutInput, run: RunFacts): LayoutRecord;

@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.2.3
+
+- `edgeStep(input, params, seed)` adds edges, groups and ports to an input without positions, from its topology alone. `docs/JOINT-CORPUS.md` tells the rules and the pinned hashes.
+- `EdgeShape`, `EdgeStepParams`, `EDGE_DENSITY` and `EDGE_STEP_VERSION` describe the step.
+- `LayoutInput` has the optional field `steps`: the stamps of the steps after the generator.
+- `mulberry32`, `fnv1a32`, `stepRandom` and `randomInt` give the seeded random numbers of the generators.
+
 ## 0.2.2
 
 - `compareMeasure(candidate, baseline, spec)` gives `better`, `worse` or `tie` for one measure on one input. A change of at most `max(RECORD_EPS, minEffect)` is a tie. The test is symmetric, and a tie is not better.

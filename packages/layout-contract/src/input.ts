@@ -107,6 +107,8 @@ export interface LayoutInput {
   readonly hash?: string;
   /** The generator of the input. `null` or no value tells that a person made the input. */
   readonly generator?: LayoutGenerator | null;
+  /** The steps that changed the input after its generator, in their order. `edgeStep` adds one. */
+  readonly steps?: readonly LayoutGenerator[];
   readonly cell?: LayoutCell;
   /** The place of the input in a sequence of changes. */
   readonly step?: number;
