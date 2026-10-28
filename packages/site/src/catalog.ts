@@ -1,5 +1,6 @@
 // The catalog of the joint pages: the strategy spaces of the two engines, the controls of each option and the inputs.
 // This file does not import the engines. `src/engines.ts` makes the catalog at build time, and the pages read it as data.
+import type { IterEntry, LaneEntry } from "@layout-contract/joint/browser";
 import { canonicalConfig, configId, type ParamValue, type SpaceParam, type StageChoice, type StageOption, type StrategyConfig, type StrategySpace } from "@mark1russell7/layout-contract";
 
 /** The value of an `enum` param that tells "do not set this option": the engine uses its own default. */
@@ -14,6 +15,18 @@ export const VALUE = "value";
 /** The name of the stage of the pack space and of the route space. */
 export const PACK_STAGE = "strategy";
 export const ROUTE_STAGE = "router";
+
+/** The name of the stage of the space of the joint options (`laneSpace` of the joint package). The joint space names it `lanes.mode`. */
+export const LANE_STAGE = "mode";
+
+/** One pair of the joint space after the pairs of the product: a lane pair of L13 or an iteration pair of L11. */
+export interface JointPair {
+  /** The pair id, for example `lanes-sides.rows.corners+corners`. */
+  readonly pair: string;
+  readonly kind: "lanes" | "iter";
+  readonly lane?: LaneEntry;
+  readonly iter?: IterEntry;
+}
 
 /** One pack entry: an id, a strategy of `packing` and its options. It is the `PackEntry` of the joint runner. */
 export interface PackChoice {
@@ -64,13 +77,43 @@ export interface InputRow {
   readonly array: string;
 }
 
+/** One line for each variant of the joint pairs. */
+export const VARIANT_TEXT: Readonly<Record<string, string>> = {
+  "lanes-max": "one gap for all boxes: the largest lane need of the board",
+  "lanes-sides": "a margin for each side of each box, from the lanes of a first route",
+  "lanes-sides2": "the same as lanes-sides, with a second pass",
+  "lanes-iter1": "pack, route, widen the crowded sides and narrow the empty sides: at most 1 round",
+  "lanes-iter2": "the same, at most 2 rounds",
+  "lanes-iter3": "the same, at most 3 rounds",
+};
+
+/** The option of the form of the joint option that tells "no lane pass". The stage `lanes.mode` is optional, and this option gives no choice. */
+export const LANE_NONE = "none";
+
+/** One line for each option of the stage `mode` of the joint options, and for `LANE_NONE`. */
+export const LANE_TEXT: Readonly<Record<string, string>> = {
+  [LANE_NONE]: "No lane pass: pack once, then route once.",
+  max: "Pack again with one gap for all boxes: the largest lane need of the board.",
+  sides: "Pack again with a margin for each side of each box, from the lanes of the first route.",
+  iter: "Pack, route, then widen the crowded sides and narrow the empty sides, for at most `rounds` rounds.",
+};
+
+/** This function gives the space of the form of the joint options: the space of `laneSpace` with the option `LANE_NONE` first. */
+export function laneFormSpace(lanes: StrategySpace): StrategySpace {
+  return { ...lanes, stages: lanes.stages.map((s) => (s.name === LANE_STAGE ? { ...s, options: [{ id: LANE_NONE, params: [] }, ...s.options] } : s)) };
+}
+
 /** The catalog of the joint pages. */
 export interface JointCatalog {
   readonly versions: Readonly<Record<string, string>>;
   readonly pack: StrategySpace;
   readonly route: StrategySpace;
-  /** `productSpace(pack, route, "joint")`. */
+  /** `jointSpace(pack, route)` of the joint package: the product of the two spaces and the part `lanes` of the joint options. */
   readonly joint: StrategySpace;
+  /** The space of the joint options: the stage `mode` with no lane pass, `max`, `sides` or `iter`. */
+  readonly lanes: StrategySpace;
+  /** The lane pairs and the iteration pairs of the joint space, in the order of the benchmark. */
+  readonly jointPairs: readonly JointPair[];
   /** The value `engine` tells that the engine exports the space. The value `derived` tells that the site made it from the registry. */
   readonly source: { readonly pack: "engine" | "derived"; readonly route: "engine" | "derived" };
   readonly controls: readonly Control[];

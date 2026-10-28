@@ -1,5 +1,6 @@
 // The messages between the joint pages and their worker, and the view of one pair. The worker packs and routes, and the page draws.
-import type { LayoutRecord } from "@mark1russell7/layout-contract";
+import type { IterEntry, LaneEntry } from "@layout-contract/joint/browser";
+import type { LayoutRecord, StageChoice } from "@mark1russell7/layout-contract";
 import type { PackChoice, RouterChoice } from "./catalog.ts";
 
 /** An input of the corpus `joint-v2`, or an input that the page builds from the dimensions of the array `grid`. */
@@ -7,13 +8,22 @@ export type InputRef =
   | { readonly kind: "corpus"; readonly spec: number; readonly seed: number; readonly hash: string }
   | { readonly kind: "build"; readonly dims: Readonly<Record<string, string>>; readonly count: number; readonly seed: number };
 
-/** A job for the worker: each pair of the packs and the routers, on one input. */
+/**
+ * A job for the worker: each pair of the packs and the routers on one input, then the lane pairs and the iteration pairs.
+ * With `lane`, the worker operates only the variant of each pair that the lane choice gives, and not the pair without lanes.
+ */
 export interface RunJob {
   readonly type: "run";
   readonly job: number;
   readonly input: InputRef;
   readonly packs: readonly PackChoice[];
   readonly routers: readonly RouterChoice[];
+  /** The lane pairs of L13. A lane pair uses a pack entry of `packs`, else of `PACK_ENTRIES`. */
+  readonly lanes?: readonly LaneEntry[];
+  /** The iteration pairs of L11. */
+  readonly iterate?: readonly IterEntry[];
+  /** The choice of the stage `lanes.mode` of the joint space: `max`, `sides` or `iter`, with its params. */
+  readonly lane?: StageChoice;
 }
 
 /** The facts of the input of a job. */

@@ -1,7 +1,7 @@
 // The page "Compare all pairs": one input, each chosen packer with each chosen router, side by side and in the order of the benchmark.
 import { marked } from "marked";
 import aboutText from "../content/compare.md?raw";
-import type { PackChoice, RouterChoice } from "./catalog.ts";
+import { VARIANT_TEXT, type JointPair, type PackChoice, type RouterChoice } from "./catalog.ts";
 import { initBuild, initTheme } from "./chrome.ts";
 import { pairSvg } from "./draw.ts";
 import { boxesOf, parsePicked, pickedText, pickerHtml, PRESETS, readPicker, refOf, shortId, type Picked } from "./inputs.ts";
@@ -19,6 +19,10 @@ const packs: readonly (PackChoice & { readonly bench: boolean })[] = [...catalog
 const routers: readonly RouterChoice[] = catalog.routers.map((r) => ({ id: r, router: r, options: {} }));
 const onPacks = new Set(packs.map((p) => p.id));
 const onRouters = new Set(routers.map((r) => r.id));
+/** The lane pairs of L13 and the iteration pairs of L11. Each one has a fixed pack entry and router, so a chip turns on one pair. */
+const joints: readonly JointPair[] = catalog.jointPairs;
+const jointOf = new Map(joints.map((j) => [j.pair, j]));
+const onJoints = new Set(joints.map((j) => j.pair));
 let picked: Picked = { kind: "preset", id: PRESETS[0]!.id };
 let mode: Picked["kind"] = "preset";
 
@@ -38,6 +42,7 @@ function readHash(): void {
   };
   list("packs", onPacks, packs.map((p) => p.id));
   list("routers", onRouters, routers.map((r) => r.id));
+  list("joint", onJoints, joints.map((j) => j.pair));
 }
 
 /** This function writes the state of the page in the hash of the address, so a link opens the same compare. */
@@ -45,6 +50,7 @@ function writeHash(): void {
   const h = new URLSearchParams({ input: pickedText(picked) });
   if (onPacks.size !== packs.length) h.set("packs", [...onPacks].join(","));
   if (onRouters.size !== routers.length) h.set("routers", [...onRouters].join(","));
+  if (onJoints.size !== joints.length) h.set("joint", [...onJoints].join(","));
   history.replaceState(null, "", `#${h.toString()}`);
 }
 
@@ -69,6 +75,36 @@ function routerChips(): string {
     .join("");
 }
 
+/** This function gives the name of the variant of a lane pair or of an iteration pair, for example `lanes-sides2`. */
+function variantOf(j: JointPair): string {
+  return j.lane?.variant.name ?? j.iter?.variant.name ?? "";
+}
+
+/** This function gives the pack entry and the router of a lane pair or of an iteration pair. */
+function baseOf(j: JointPair): { readonly pack: string; readonly router: string } {
+  return { pack: j.lane?.pack ?? j.iter?.pack ?? "", router: j.lane?.router ?? j.iter?.router ?? "" };
+}
+
+/** This function gives the chips of the joint pairs: one group for each variant. */
+function jointChips(): string {
+  const variants = [...new Set(joints.map(variantOf))];
+  return variants
+    .map((v) => {
+      const chips = joints
+        .filter((j) => variantOf(j) === v)
+        .map((j) => {
+          const b = baseOf(j);
+          return `<button type="button" class="chip${onJoints.has(j.pair) ? " on" : ""}" data-joint="${esc(j.pair)}" aria-pressed="${onJoints.has(j.pair)}" title="${esc(j.pair)}">${esc(b.pack)} + ${esc(b.router)}</button>`;
+        })
+        .join("");
+      return `<div class="strategy-row"><span class="strategy-name" title="${esc(VARIANT_TEXT[v] ?? "")}"><code>${esc(v)}</code></span><div class="chips">${chips}</div></div>`;
+    })
+    .join("");
+}
+
+/** The cost of a joint pair in pairs without lanes. A lane pass packs and routes again, and an iteration chain has up to 3 rounds. */
+const JOINT_COST = 3;
+
 /** This function gives an estimate of the time of a compare, from the times in Node of `docs/SITE.md`. A pair takes 6 ms on 10 boxes, and 48 ms on 100 boxes. */
 function estimate(pairs: number, boxes: number): string {
   const ms = pairs * (5 + 0.0045 * boxes * boxes);
@@ -77,12 +113,14 @@ function estimate(pairs: number, boxes: number): string {
 
 /** This function draws the setup panel: the input, the packers, the routers and the start button. */
 function renderSetup(): void {
-  const pairs = onPacks.size * onRouters.size;
+  const plain = onPacks.size * onRouters.size;
+  const pairs = plain + onJoints.size;
   const boxes = boxesOf(catalog, picked);
   byId("setup-input").innerHTML = pickerHtml(catalog, picked, catalog.compareMaxBoxes);
   byId("setup-packs").innerHTML = packChips();
   byId("setup-routers").innerHTML = routerChips();
-  byId("setup-count").innerHTML = `<strong>${onPacks.size}</strong> packers × <strong>${onRouters.size}</strong> routers = <strong>${pairs}</strong> pairs on ${boxes} boxes, ${estimate(pairs, boxes)}.`;
+  byId("setup-joints").innerHTML = jointChips();
+  byId("setup-count").innerHTML = `<strong>${onPacks.size}</strong> packers × <strong>${onRouters.size}</strong> routers + <strong>${onJoints.size}</strong> joint pairs = <strong>${pairs}</strong> pairs on ${boxes} boxes, ${estimate(plain + JOINT_COST * onJoints.size, boxes)}.`;
   byId<HTMLButtonElement>("start").disabled = pairs === 0;
 }
 
@@ -97,6 +135,10 @@ root.innerHTML = `
     <h2 class="panel-title">3. The routers <span class="count-note">(${routers.length})</span></h2>
     <div class="filter"><button type="button" data-all="routers">All</button><button type="button" data-none="routers">None</button></div>
     <div id="setup-routers" class="chips"></div>
+    <h2 class="panel-title">4. The joint pairs <span class="count-note">(${joints.length}: ${joints.filter((j) => j.kind === "lanes").length} lane pairs, ${joints.filter((j) => j.kind === "iter").length} iteration pairs)</span></h2>
+    <p class="hint">A joint pair packs, routes, then packs again with more space where the routes are crowded. Each chip is one pack entry and one router.</p>
+    <div class="filter"><button type="button" data-all="joint">All</button><button type="button" data-none="joint">None</button></div>
+    <div id="setup-joints" class="strategy-rows"></div>
     <div class="go">
       <button type="button" class="primary" id="start">Start the compare</button>
       <button type="button" class="secondary" id="stop" disabled>Stop</button>
@@ -146,7 +188,9 @@ function cardHtml(view: PairView): string {
   const pass = view.breaks["route.no-pass-through"] ?? 0;
   const others = Object.entries(view.breaks).filter(([k]) => k !== "route.no-pass-through");
   const href = `playground.html#${new URLSearchParams({ input: pickedText(picked), pair: view.pair }).toString()}`;
-  const head = `<div class="pc-head"><span class="pc-rank">–</span><span class="pc-name"><code>${esc(view.pack)}</code> + <code>${esc(view.router)}</code></span><span class="badge pc-verdict"></span></div>`;
+  const j = jointOf.get(view.pair);
+  const variant = j === undefined ? "" : ` <span class="tag">${esc(variantOf(j))}</span>`;
+  const head = `<div class="pc-head"><span class="pc-rank">–</span><span class="pc-name"><code>${esc(view.pack)}</code> + <code>${esc(view.router)}</code>${variant}</span><span class="badge pc-verdict"></span></div>`;
   if (view.skipped !== undefined) return `${head}<p class="pc-skip">${esc(view.skipped)}</p>`;
   return `${head}${pairSvg(view, `The layout of ${view.pair}`)}
     <dl class="facts pc-facts">
@@ -272,7 +316,10 @@ function start(): void {
   byId<HTMLButtonElement>("start").disabled = true;
   byId<HTMLButtonElement>("stop").disabled = false;
   byId("status").innerHTML = `<p class="dataline">Making the input…</p>`;
-  const message: RunJob = { type: "run", job, input, packs: packs.filter((p) => onPacks.has(p.id)).map(({ bench: _b, ...p }) => p), routers: routers.filter((r) => onRouters.has(r.id)) };
+  const chosen = joints.filter((j) => onJoints.has(j.pair));
+  const lanes = chosen.flatMap((j) => (j.lane === undefined ? [] : [j.lane]));
+  const iterate = chosen.flatMap((j) => (j.iter === undefined ? [] : [j.iter]));
+  const message: RunJob = { type: "run", job, input, packs: packs.filter((p) => onPacks.has(p.id)).map(({ bench: _b, ...p }) => p), routers: routers.filter((r) => onRouters.has(r.id)), lanes, iterate };
   workerOf().postMessage(message);
 }
 
@@ -283,6 +330,16 @@ function stop(): void {
   job++;
   finish();
   byId("status").innerHTML = `<p class="dataline"><span class="badge warn">Stopped</span> ${cards.size} pairs done.</p>`;
+}
+
+/** This function gives the set of the chosen ids of a chip list: `packs`, `routers` or `joint`. */
+function setOf(list: string): Set<string> {
+  return list === "packs" ? onPacks : list === "routers" ? onRouters : onJoints;
+}
+
+/** This function gives each id of a chip list. */
+function idsOf(list: string): readonly string[] {
+  return list === "packs" ? packs.map((p) => p.id) : list === "routers" ? routers.map((r) => r.id) : joints.map((j) => j.pair);
 }
 
 root.addEventListener("click", (e) => {
@@ -300,8 +357,9 @@ root.addEventListener("click", (e) => {
   } else if (d["preset"] !== undefined) picked = { kind: "preset", id: d["preset"] };
   else if (d["pack"] !== undefined) onPacks.has(d["pack"]) ? onPacks.delete(d["pack"]) : onPacks.add(d["pack"]);
   else if (d["router"] !== undefined) onRouters.has(d["router"]) ? onRouters.delete(d["router"]) : onRouters.add(d["router"]);
-  else if (d["all"] !== undefined) for (const id of d["all"] === "packs" ? packs.map((p) => p.id) : routers.map((r) => r.id)) (d["all"] === "packs" ? onPacks : onRouters).add(id);
-  else if (d["none"] !== undefined) (d["none"] === "packs" ? onPacks : onRouters).clear();
+  else if (d["joint"] !== undefined) onJoints.has(d["joint"]) ? onJoints.delete(d["joint"]) : onJoints.add(d["joint"]);
+  else if (d["all"] !== undefined) for (const id of idsOf(d["all"])) setOf(d["all"]).add(id);
+  else if (d["none"] !== undefined) setOf(d["none"]).clear();
   else if (d["bench"] !== undefined) {
     onPacks.clear();
     for (const p of packs) if (p.bench) onPacks.add(p.id);

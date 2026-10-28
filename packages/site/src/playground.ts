@@ -2,7 +2,7 @@
 import { checkConfig, configId, joinConfigs, splitConfig, type LayoutRecord, type StrategyConfig } from "@mark1russell7/layout-contract";
 import { marked } from "marked";
 import aboutText from "../content/playground.md?raw";
-import { PACK_STAGE, pairOfConfigs, ROUTE_STAGE } from "./catalog.ts";
+import { LANE_STAGE, laneFormSpace, LANE_NONE, LANE_TEXT, PACK_STAGE, pairOfConfigs, ROUTE_STAGE } from "./catalog.ts";
 import { initBuild, initTheme } from "./chrome.ts";
 import { pairSvg } from "./draw.ts";
 import { configOfState, formHtml, parseValue, stateOfConfig, type FormState } from "./form.ts";
@@ -18,6 +18,10 @@ byId("about").innerHTML = marked.parse(aboutText, { async: false });
 
 const PACK = "pack.";
 const ROUTE = "route.";
+const LANE = "lane.";
+const LANE_ENGINE = catalog.lanes.engine;
+const laneForm = laneFormSpace(catalog.lanes);
+const laneFacts = { controls: [], about: LANE_TEXT };
 const packFacts = { controls: catalog.controls.filter((c) => c.engine === "packing"), about: catalog.about.packing };
 const routeFacts = { controls: catalog.controls.filter((c) => c.engine === "highways"), about: catalog.about.highways };
 const named = Object.keys(catalog.joint.named ?? {});
@@ -28,12 +32,20 @@ let picked: Picked = { kind: "preset", id: PRESETS[0]!.id };
 let mode: Picked["kind"] = "preset";
 let packState: FormState;
 let routeState: FormState;
+let laneState: FormState;
+
+/** This function gives the form state of the joint option of a joint config. A config without the stage `lanes.mode` has no lane pass. */
+function laneStateOf(joint: StrategyConfig): FormState {
+  const c = joint.stages[`${LANE_ENGINE}.${LANE_STAGE}`];
+  return c === undefined || c === null ? { option: LANE_NONE, params: {} } : stateOfConfig(splitConfig(joint, LANE_ENGINE), LANE_STAGE);
+}
 
 /** This function sets the two forms from a named pair of the joint space. */
 function fromNamed(name: string): void {
   const joint = catalog.joint.named![name]!;
   packState = stateOfConfig(splitConfig(joint, "packing"), PACK_STAGE);
   routeState = stateOfConfig(splitConfig(joint, "highways"), ROUTE_STAGE);
+  laneState = laneStateOf(joint);
 }
 
 /** This function reads the state of the page from the hash of the address. The hash holds the input, and a named pair or a joint config. */
@@ -53,6 +65,7 @@ function readHash(): void {
     if (checkConfig(catalog.joint, joint).length > 0) return;
     packState = stateOfConfig(splitConfig(joint, "packing"), PACK_STAGE);
     routeState = stateOfConfig(splitConfig(joint, "highways"), ROUTE_STAGE);
+    laneState = laneStateOf(joint);
   } catch {
     // A bad config in the address gives the default pair.
   }
@@ -67,12 +80,15 @@ byId("playground").innerHTML = `
   <div class="panel">
     <h2 class="panel-title">2. Start from a pair of the benchmark</h2>
     <label class="field wide"><span class="field-name">Pair</span><select id="pg-named">${named.map((n) => `<option value="${esc(n)}">${esc(n)}</option>`).join("")}</select></label>
-    <p class="hint">The ${named.length} pairs: ${catalog.benchPacks.length + catalog.extraPacks.length} pack entries × ${catalog.routers.length} routers. Then change any option below.</p>
+    <p class="hint">The ${named.length} pairs: ${catalog.benchPacks.length + catalog.extraPacks.length} pack entries × ${catalog.routers.length} routers, and ${catalog.jointPairs.length} joint pairs with lanes. Then change any option below.</p>
   </div>
   <div class="two">
     <div class="panel"><h2 class="panel-title">3. The packer <span class="count-note">packing ${esc(catalog.versions["packing"] ?? "")}</span></h2><div id="pg-pack" class="stage-form"></div></div>
     <div class="panel"><h2 class="panel-title">4. The router <span class="count-note">highways ${esc(catalog.versions["highways"] ?? "")}</span></h2><div id="pg-route" class="stage-form"></div></div>
   </div>
+  <div class="panel"><h2 class="panel-title">5. The joint option <span class="count-note">lanes ${esc(catalog.lanes.version)}</span></h2>
+    <p class="hint">A joint option packs again after the first route, with more space for the lanes of the routes. The strategy <code>${LANE_NONE}</code> packs and routes once.</p>
+    <div id="pg-lane" class="stage-form"></div></div>
   <div class="panel ids" id="pg-ids"></div>
   <div class="go">
     <button type="button" class="primary" id="pg-start">Pack and route</button>
@@ -101,6 +117,7 @@ function renderSize(): void {
 function renderForms(): void {
   byId("pg-pack").innerHTML = formHtml(catalog.pack, PACK_STAGE, packState, packFacts, PACK);
   byId("pg-route").innerHTML = formHtml(catalog.route, ROUTE_STAGE, routeState, routeFacts, ROUTE);
+  byId("pg-lane").innerHTML = formHtml(laneForm, LANE_STAGE, laneState, laneFacts, LANE);
 }
 
 /** This function reads the state of one form from the page. The member form of a meta option has the prefix `<prefix>m.`. */
@@ -115,11 +132,17 @@ function readForm(root: HTMLElement, prefix: string): FormState | undefined {
 }
 
 /** The configs of the forms, their problems and the entries for the worker. */
-function current(): { readonly problems: string[]; readonly pack?: StrategyConfig; readonly route?: StrategyConfig } {
+function current(): { readonly problems: string[]; readonly pack?: StrategyConfig; readonly route?: StrategyConfig; readonly lane?: StrategyConfig } {
   const pack = configOfState(catalog.pack, PACK_STAGE, packState);
   const route = configOfState(catalog.route, ROUTE_STAGE, routeState);
-  const problems = [...checkConfig(catalog.pack, pack), ...checkConfig(catalog.route, route)].map((b) => b.detail);
-  return problems.length > 0 ? { problems } : { problems, pack, route };
+  const lane = laneState.option === LANE_NONE ? undefined : configOfState(catalog.lanes, LANE_STAGE, laneState);
+  const problems = [...checkConfig(catalog.pack, pack), ...checkConfig(catalog.route, route), ...(lane === undefined ? [] : checkConfig(catalog.lanes, lane))].map((b) => b.detail);
+  return problems.length > 0 ? { problems } : { problems, pack, route, ...(lane === undefined ? {} : { lane }) };
+}
+
+/** This function gives the joint config of the forms. A config without a joint option has no stage `lanes.mode`, as the pairs of the product. */
+function jointOf(c: { readonly pack: StrategyConfig; readonly route: StrategyConfig; readonly lane?: StrategyConfig }): StrategyConfig {
+  return joinConfigs(catalog.joint.engine, [c.pack, c.route, ...(c.lane === undefined ? [] : [c.lane])]);
 }
 
 /** This function shows the config ids of the chosen config, and writes it in the hash of the address. */
@@ -131,7 +154,7 @@ function renderIds(): void {
     box.innerHTML = `<p class="problems">The config is not good: ${c.problems.map((p) => esc(p)).join("; ")}.</p>`;
     return;
   }
-  const joint = joinConfigs("joint", [c.pack, c.route]);
+  const joint = jointOf({ pack: c.pack, route: c.route, ...(c.lane === undefined ? {} : { lane: c.lane }) });
   const id = configId(catalog.joint, joint);
   const name = namedById.get(id);
   const pair = pairOfConfigs(catalog, c.pack, c.route);
@@ -139,6 +162,7 @@ function renderIds(): void {
       <dt>config id</dt><dd><code class="config-id">${esc(id)}</code> ${name === undefined ? `<span class="badge">custom</span>` : `<span class="badge good">the pair ${esc(name)} of the benchmark</span>`}</dd>
       <dt>packer</dt><dd><code>${esc(pair.pack.id)}</code> · id <code>${esc(pair.packId)}</code></dd>
       <dt>router</dt><dd><code>${esc(pair.router.id)}</code> · id <code>${esc(pair.routeId)}</code></dd>
+      <dt>joint option</dt><dd>${c.lane === undefined ? `<code>${LANE_NONE}</code>: one pack and one route` : `<code>${esc(laneState.option)}</code> · id <code>${esc(configId(catalog.lanes, c.lane))}</code>`}</dd>
     </dl>
     <details class="more"><summary>The config as JSON (<code>strategy-space/1</code>)</summary><pre class="code">${esc(JSON.stringify(joint, null, 2))}</pre>
     <button type="button" id="pg-copy">Copy the config</button></details>`;
@@ -219,7 +243,8 @@ function start(): void {
   byId<HTMLButtonElement>("pg-start").disabled = true;
   byId<HTMLButtonElement>("pg-stop").disabled = false;
   byId("pg-status").textContent = "Making the input…";
-  const message: RunJob = { type: "run", job, input, packs: [pair.pack], routers: [pair.router] };
+  const lane = c.lane?.stages[LANE_STAGE];
+  const message: RunJob = { type: "run", job, input, packs: [pair.pack], routers: [pair.router], ...(lane === undefined || lane === null ? {} : { lane }) };
   workerOf().postMessage(message);
 }
 
@@ -252,6 +277,7 @@ function syncNumber(el: HTMLInputElement): void {
 function update(redraw: boolean): void {
   packState = readForm(byId("pg-pack"), PACK) ?? packState;
   routeState = readForm(byId("pg-route"), ROUTE) ?? routeState;
+  laneState = readForm(byId("pg-lane"), LANE) ?? laneState;
   if (redraw) renderForms();
   renderIds();
 }
@@ -289,7 +315,7 @@ page.addEventListener("click", (e) => {
   if (t.id === "pg-stop") return stop();
   if (t.id === "pg-copy") {
     const c = current();
-    if (c.pack !== undefined && c.route !== undefined) void navigator.clipboard?.writeText(JSON.stringify(joinConfigs("joint", [c.pack, c.route]), null, 2));
+    if (c.pack !== undefined && c.route !== undefined) void navigator.clipboard?.writeText(JSON.stringify(jointOf({ pack: c.pack, route: c.route, ...(c.lane === undefined ? {} : { lane: c.lane }) }), null, 2));
     t.textContent = "Copied";
     return;
   }

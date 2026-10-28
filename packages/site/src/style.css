@@ -211,6 +211,8 @@ button { cursor: pointer; }
 .nav a.page-link { margin-left: auto; }
 .nav a.page-link + a.page-link { margin-left: 0; }
 .nav a[aria-current="page"] { color: var(--ink); border-bottom-color: var(--accent); }
+/* The links to the sites of the two engines: plain links after the pages, with an arrow that tells "another site". */
+.nav a.ext-link::after { content: " \2197"; font-size: 0.85em; color: var(--ink-3); }
 .panel-title { font-size: 1.05rem; margin: 18px 0 8px; }
 .panel-title:first-child { margin-top: 0; }
 .count-note { font-weight: 400; font-size: 0.85rem; color: var(--ink-3); }
@@ -283,4 +285,7 @@ button { cursor: pointer; }
   .pair-cards { grid-template-columns: minmax(0, 1fr); }
   .page-title { font-size: 1.35rem; }
   .nav a.page-link { margin-left: 0; }
+  /* At phone width the links wrap to a second row, so no link is out of view. */
+  .nav .wrap { flex-wrap: wrap; overflow-x: visible; gap: 0 2px; }
+  .nav a { padding: 8px 8px; }
 }

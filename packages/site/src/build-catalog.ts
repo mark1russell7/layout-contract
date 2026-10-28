@@ -14,11 +14,11 @@ export interface EngineVersions {
 }
 
 /**
- * This function gives the catalog of the joint pages, without the joint space: the page makes it with `productSpace`.
+ * This function gives the catalog of the joint pages, with the joint space of `jointSpace`.
  * It makes each input of `joint-v2`, and it throws when the hash of an input is not the hash of the committed manifest.
  */
-export function buildCatalog(manifestText: string, versions: EngineVersions): Omit<JointCatalog, "joint"> {
-  const { joint: _joint, ...catalog } = engineCatalog({ ...versions });
+export function buildCatalog(manifestText: string, versions: EngineVersions): JointCatalog {
+  const catalog = engineCatalog({ ...versions });
   const manifest = JSON.parse(manifestText) as { readonly inputs: readonly { readonly id: string; readonly hash: string }[] };
   const committed = new Map(manifest.inputs.map((e) => [e.id, e.hash]));
   const corpus = jointCorpus(SET_V2);

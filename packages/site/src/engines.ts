@@ -1,9 +1,8 @@
 // This file makes the catalog of the joint pages from the registries of the two engines. The build imports it, so the pages get the catalog as data.
 // When an engine exports a strategy space (`packSpace` of `packing`, `routeSpace` of `highways`), the catalog uses it. Else it derives a space from the registry.
-import { PACK_ENTRIES, ROUTERS, PORTFOLIO_ROUTER } from "@layout-contract/joint/browser";
+import { iterEntries, jointSpace, laneEntries, laneSpace, PACK_ENTRIES, pairId, PORTFOLIO_ROUTER, ROUTERS } from "@layout-contract/joint/browser";
 import {
   checkSpace,
-  productSpace,
   STRATEGY_SPACE_SCHEMA,
   type SpaceParam,
   type StageOption,
@@ -12,7 +11,7 @@ import {
 } from "@mark1russell7/layout-contract";
 import * as highways from "@mark1russell7/highways";
 import * as packing from "@mark1russell7/packing";
-import { MODE, OMIT, PACK_STAGE, packConfig, ROUTE_STAGE, routeConfig, VALUE, type Control, type JointCatalog, type PackChoice } from "./catalog.ts";
+import { MODE, OMIT, PACK_STAGE, packConfig, ROUTE_STAGE, routeConfig, VALUE, type Control, type JointCatalog, type JointPair, type PackChoice } from "./catalog.ts";
 
 /** The facts of one option of a strategy, before it becomes params. */
 interface OptionSpec {
@@ -230,6 +229,11 @@ function extraPack(f: StrategyFacts): PackChoice {
 /** The facts of the catalog that come from the engines, without the inputs. */
 export type EngineCatalog = Omit<JointCatalog, "inputs" | "grid" | "compareMaxBoxes">;
 
+/** This function gives the lane pairs of L13 and the iteration pairs of L11, as the joint space names them. */
+function jointPairs(): JointPair[] {
+  return [...laneEntries().map((lane): JointPair => ({ pair: pairId(lane.id, lane.router), kind: "lanes", lane })), ...iterEntries().map((iter): JointPair => ({ pair: pairId(iter.id, iter.router), kind: "iter", iter }))];
+}
+
 /**
  * This function gives the catalog of the joint pages from the registries of `packing` and `highways`.
  * The named configs of the pack space are the pack entries of the benchmark and the extra entries. The named configs of the route space are the routers.
@@ -253,7 +257,9 @@ export function engineCatalog(versions: Readonly<Record<string, string>>): Engin
     versions,
     pack,
     route,
-    joint: productSpace(pack, route, "joint"),
+    joint: jointSpace(pack, route),
+    lanes: laneSpace(),
+    jointPairs: jointPairs(),
     source: { pack: fromPack === undefined ? "derived" : "engine", route: fromRoute === undefined ? "derived" : "engine" },
     controls: [...derivedPack.controls, ...derivedRoute.controls],
     about: { packing: Object.fromEntries(pf.map((f) => [f.id, f.about])), highways: Object.fromEntries(rf.map((f) => [f.id, f.about])) },

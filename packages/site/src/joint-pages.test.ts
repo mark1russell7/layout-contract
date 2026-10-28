@@ -1,17 +1,16 @@
 // The tests of the parts of the joint pages: the form, the input picker, the drawing and the jobs of the worker.
-import { checkConfig, configId, joinConfigs, productSpace, splitConfig } from "@mark1russell7/layout-contract";
+import { checkConfig, configId, joinConfigs, splitConfig, type StrategyConfig } from "@mark1russell7/layout-contract";
 import { describe, expect, it } from "vitest";
 import manifestText from "../../joint/corpus/joint-v2/corpus.json?raw";
 import { buildCatalog } from "./build-catalog.ts";
-import { OMIT, PACK_STAGE, pairOfConfigs, ROUTE_STAGE } from "./catalog.ts";
+import { LANE_STAGE, laneFormSpace, LANE_NONE, OMIT, PACK_STAGE, pairOfConfigs, ROUTE_STAGE } from "./catalog.ts";
 import { pairSvg } from "./draw.ts";
 import { configOfState, formHtml, parseValue, stateOfConfig } from "./form.ts";
 import { boxesOf, parsePicked, pickedText, pickerHtml, PRESETS, refOf, type Picked } from "./inputs.ts";
-import { operate } from "./jobs.ts";
+import { laneRuns, operate } from "./jobs.ts";
 import type { WorkerMessage } from "./protocol.ts";
 
-const raw = buildCatalog(manifestText, { packing: "test", highways: "test", contract: "test" });
-const catalog = { ...raw, joint: productSpace(raw.pack, raw.route, "joint") };
+const catalog = buildCatalog(manifestText, { packing: "test", highways: "test", contract: "test" });
 const facts = (engine: string) => ({ controls: catalog.controls.filter((c) => c.engine === engine), about: {} });
 
 describe("the forms", () => {
@@ -19,12 +18,25 @@ describe("the forms", () => {
     for (const [name, joint] of Object.entries(catalog.joint.named ?? {})) {
       const pack = configOfState(catalog.pack, PACK_STAGE, stateOfConfig(splitConfig(joint, "packing"), PACK_STAGE));
       const route = configOfState(catalog.route, ROUTE_STAGE, stateOfConfig(splitConfig(joint, "highways"), ROUTE_STAGE));
+      const choice = joint.stages[`${catalog.lanes.engine}.${LANE_STAGE}`];
+      const lanes: StrategyConfig[] = choice === undefined || choice === null ? [] : [configOfState(catalog.lanes, LANE_STAGE, stateOfConfig(splitConfig(joint, catalog.lanes.engine), LANE_STAGE))];
       expect(checkConfig(catalog.pack, pack)).toEqual([]);
       expect(checkConfig(catalog.route, route)).toEqual([]);
-      expect(configId(catalog.joint, joinConfigs("joint", [pack, route])), name).toBe(configId(catalog.joint, joint));
+      for (const l of lanes) expect(checkConfig(catalog.lanes, l)).toEqual([]);
+      expect(configId(catalog.joint, joinConfigs("joint", [pack, route, ...lanes])), name).toBe(configId(catalog.joint, joint));
       const pair = pairOfConfigs(catalog, pack, route);
-      expect(`${pair.pack.id}+${pair.router.id}`).toBe(name);
+      const lane = lanes[0]?.stages[LANE_STAGE];
+      const id = lane === undefined || lane === null ? `${pair.pack.id}+${pair.router.id}` : laneRuns({ packs: [pair.pack], routers: [pair.router] }, lane).pairs[0];
+      expect(id).toBe(name);
     }
+  });
+
+  it("draws the form of the joint options with the option of no lane pass", () => {
+    const html = formHtml(laneFormSpace(catalog.lanes), LANE_STAGE, { option: "sides", params: {} }, { controls: [], about: {} }, "lane.");
+    expect(html).toContain(`value="${LANE_NONE}"`);
+    for (const p of ["passes", "clearance", "space", "cap"]) expect(html).toContain(`data-p="${p}"`);
+    const iter = formHtml(laneFormSpace(catalog.lanes), LANE_STAGE, { option: "iter", params: {} }, { controls: [], about: {} }, "lane.");
+    expect(iter).toContain(`data-p="rounds"`);
   });
 
   it("gives a custom pair an id with the start of its config id", () => {
@@ -105,6 +117,26 @@ describe("the jobs of the worker", () => {
     expect(last.ranks).toHaveLength(4);
     expect(last.ranks.map((r) => r.rank)).toContain(1);
     for (const m of pairs) if (m.type === "pair" && m.view.skipped === undefined) expect(m.view.boxes.length).toBe(40);
+  });
+
+  it("operates only the lane pair of a lane choice, and the lane pairs and the iteration pairs of a job", () => {
+    const input = refOf(catalog, { kind: "preset", id: "quick" })!;
+    const packs = catalog.benchPacks.filter((p) => p.id === "rows");
+    const routers = [{ id: "corners", router: "corners", options: {} }];
+    const one: WorkerMessage[] = [];
+    operate({ type: "run", job: 3, input, packs, routers, lane: { option: "sides", params: { passes: 1 } } }, (m) => one.push(m));
+    const lanePairs = one.flatMap((m) => (m.type === "pair" ? [m.view.pair] : []));
+    expect(lanePairs).toEqual(["lanes-sides.rows.corners+corners"]);
+    const lane = catalog.jointPairs.find((j) => j.pair === "lanes-max.rows.corners+corners")!.lane!;
+    const iter = catalog.jointPairs.find((j) => j.pair === "lanes-iter1.rows.corners+corners")!.iter!;
+    const all: WorkerMessage[] = [];
+    operate({ type: "run", job: 4, input, packs, routers, lanes: [lane], iterate: [iter] }, (m) => all.push(m));
+    const views = all.flatMap((m) => (m.type === "pair" ? [m.view] : []));
+    expect(views.map((v) => v.pair)).toEqual(["rows+corners", "lanes-max.rows.corners+corners", "lanes-iter1.rows.corners+corners"]);
+    for (const v of views) expect([v.pack, v.router]).toEqual(["rows", "corners"]);
+    const last = all.filter((m) => m.type === "pair").at(-1)!;
+    if (last.type !== "pair") throw new Error("no pair");
+    expect(last.total).toBe(3);
   });
 
   it("refuses an input of the corpus with another hash", () => {

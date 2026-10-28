@@ -1,17 +1,16 @@
 // The completeness test of the joint pages: each strategy and each option of the engines has a place on the compare page and in the playground.
-import { PACK_ENTRIES, ROUTERS } from "@layout-contract/joint/browser";
-import { checkSpace, productSpace } from "@mark1russell7/layout-contract";
+import { iterEntries, JOINT_SPACE, laneEntries, laneSpace, PACK_ENTRIES, pairId, ROUTERS } from "@layout-contract/joint/browser";
+import { checkSpace } from "@mark1russell7/layout-contract";
 import { describe, expect, it } from "vitest";
 import manifestText from "../../joint/corpus/joint-v2/corpus.json?raw";
 import { buildCatalog } from "./build-catalog.ts";
-import { PACK_STAGE, ROUTE_STAGE } from "./catalog.ts";
+import { LANE_STAGE, laneFormSpace, LANE_TEXT, PACK_STAGE, ROUTE_STAGE, VARIANT_TEXT } from "./catalog.ts";
 import { declaredOptions, packExtraKeys, registryIds } from "./engines.ts";
 import { formHtml } from "./form.ts";
 import { PRESETS } from "./inputs.ts";
 
 const versions = { packing: "test", highways: "test", contract: "test" };
-const raw = buildCatalog(manifestText, versions);
-const catalog = { ...raw, joint: productSpace(raw.pack, raw.route, "joint") };
+const catalog = buildCatalog(manifestText, versions);
 const ids = registryIds();
 const packs = [...catalog.benchPacks, ...catalog.extraPacks];
 const stageOf = (engine: string): string => (engine === "packing" ? PACK_STAGE : ROUTE_STAGE);
@@ -35,10 +34,32 @@ describe("the lists of the joint pages", () => {
     expect(options("highways").sort()).toEqual([...ids.highways].sort());
   });
 
-  it("has a pair of the joint space for each pack entry and each router", () => {
+  it("has a pair of the joint space for each pack entry and each router, and each lane pair and iteration pair", () => {
     const named = Object.keys(catalog.joint.named ?? {});
-    expect(named).toHaveLength(packs.length * catalog.routers.length);
+    expect(named).toHaveLength(packs.length * catalog.routers.length + catalog.jointPairs.length);
     for (const p of packs) for (const r of catalog.routers) expect(named).toContain(`${p.id}+${r}`);
+    for (const j of catalog.jointPairs) expect(named).toContain(j.pair);
+  });
+
+  it("has each lane pair and each iteration pair of the joint package, with the names of JOINT_SPACE", () => {
+    const expected = [...laneEntries().map((e) => pairId(e.id, e.router)), ...iterEntries().map((e) => pairId(e.id, e.router))];
+    expect(catalog.jointPairs.map((j) => j.pair)).toEqual(expected);
+    const plain = new Set(PACK_ENTRIES.flatMap((p) => ROUTERS.map((r) => pairId(p.id, r))));
+    const joint = Object.keys(JOINT_SPACE.named ?? {}).filter((n) => !plain.has(n));
+    expect(catalog.jointPairs.map((j) => j.pair).sort()).toEqual(joint.sort());
+    for (const j of catalog.jointPairs) {
+      const base = j.lane ?? j.iter!;
+      expect(catalog.benchPacks.map((p) => p.id)).toContain(base.pack);
+      expect(catalog.routers).toContain(base.router);
+      expect(VARIANT_TEXT[base.variant.name], base.variant.name).toBeTruthy();
+    }
+  });
+
+  it("has the stage of the joint options of the joint package, and a line for each option", () => {
+    expect(catalog.lanes).toEqual(laneSpace());
+    const options = catalog.lanes.stages.find((s) => s.name === LANE_STAGE)!.options.map((o) => o.id);
+    expect(options.length).toBeGreaterThan(0);
+    for (const o of laneFormSpace(catalog.lanes).stages[0]!.options) expect(LANE_TEXT[o.id], o.id).toBeTruthy();
   });
 });
 
@@ -88,9 +109,11 @@ describe("the controls of the playground", () => {
 });
 
 describe("the spaces of the joint pages", () => {
-  it("passes checkSpace for the pack space, the route space and the joint space", () => {
+  it("passes checkSpace for the pack space, the route space, the lane space and the joint space", () => {
     expect(checkSpace(catalog.pack)).toEqual([]);
     expect(checkSpace(catalog.route)).toEqual([]);
+    expect(checkSpace(catalog.lanes)).toEqual([]);
+    expect(checkSpace(laneFormSpace(catalog.lanes))).toEqual([]);
     expect(checkSpace(catalog.joint)).toEqual([]);
   });
 });

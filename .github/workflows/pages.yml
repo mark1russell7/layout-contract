@@ -35,5 +35,35 @@ jobs:
       build: pnpm --filter @layout-contract/site run build
       out: packages/site/dist
       env: '{"SITE_BASE": "/${{ github.event.repository.name }}"}'
-      # The first version of the site has its own news section: no Releases page and no Status page yet.
-      site-pages: false
+      # The site-pages action adds releases/, status/, data/releases.json and data/status.json to the built site.
+      # The repository has no docs/ROADMAP.md, so the Status page shows the open pull requests and issues.
+      site-pages: true
+      packages: "@mark1russell7/layout-contract"
+      site-name: layout-contract
+
+  # This job examines the deployed site: the Releases page, the Status page and their data files.
+  # It starts no code of the repository and reads only the public site.
+  served:
+    needs: pages
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions: {}
+    steps:
+      - name: The pages of site-pages are on the site
+        shell: bash
+        env:
+          SITE: ${{ needs.pages.outputs.page-url }}
+        run: |
+          set -euo pipefail
+          for f in data/releases.json data/status.json releases/ status/; do
+            # A new deployment can take some seconds to be served, so each file gets 5 tries.
+            ok=0
+            for i in 1 2 3 4 5; do
+              if curl -fsS -o /dev/null "${SITE%/}/$f"; then ok=1; break; fi
+              sleep 10
+            done
+            if [ "$ok" != 1 ]; then echo "::error::The site has no $f."; exit 1; fi
+            echo "The site has $f."
+          done
+          curl -fsS "${SITE%/}/data/status.json" | node -e 'JSON.parse(require("node:fs").readFileSync(0, "utf8")); console.log("data/status.json is JSON.")'
+          curl -fsS "${SITE%/}/data/releases.json" | node -e 'JSON.parse(require("node:fs").readFileSync(0, "utf8")); console.log("data/releases.json is JSON.")'

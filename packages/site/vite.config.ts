@@ -4,12 +4,18 @@ import { fileURLToPath } from "node:url";
 import { defineConfig, type Plugin } from "vite";
 import { buildCatalog } from "./src/build-catalog.ts";
 import { checkDataFile } from "./src/data.ts";
+import { withEngineLinks } from "./src/links.ts";
 
 // The Pages workflow sets SITE_BASE to "/layout-contract". A local build uses the root.
 const env = (globalThis as { process?: { env: Record<string, string | undefined> } }).process?.env ?? {};
 const base = env["SITE_BASE"] ? `${env["SITE_BASE"].replace(/\/$/, "")}/` : "/";
 
 /** This plugin examines each data file that the site imports. A bad file stops the build with its problems. */
+/** This plugin puts the links of `ENGINE_SITES` in the navigation of each page. A page without the mark stops the build. */
+function engineSites(): Plugin {
+  return { name: "engine-sites", transformIndexHtml: (html, ctx) => withEngineLinks(html, ctx.filename) };
+}
+
 function checkData(): Plugin {
   return {
     name: "layout-contract-site:check-data",
@@ -67,5 +73,5 @@ export default defineConfig({
   define: {
     __BUILD__: JSON.stringify({ sha: (env["GITHUB_SHA"] ?? "local").slice(0, 7), date: new Date().toISOString().slice(0, 10) }),
   },
-  plugins: [checkData(), jointCatalog()],
+  plugins: [checkData(), jointCatalog(), engineSites()],
 });
