@@ -1045,3 +1045,118 @@ In L32, 8 of 11 claims held. The claims from the code held, and the misses were 
 | H9 | `lanes[]` with the scope `stress`: `lane.broken` of `lanes-iter3` and of `lanes-iter1` | The lane pairs |
 | H10 | `compare` of the headline cell: the gain and its interval for `lanes-iter3.maxrects-cp.corners+corners` | The pairwise comparisons |
 | H11, H12 | `shardTimes`: the step `Run one shard` of each shard | The shard times |
+
+## The result of iteration pairs (L11)
+
+In the run [40770430229](https://github.com/mark1russell7/layout-contract/actions/runs/40770430229), the runner used the 148 pairs on the 303 inputs of `joint-v2`, with `iterate` on. The run had 64 shards, on the commit `d85a642`. 10 of the 12 claims held. The Brier score is 0.126.
+
+### The verdicts
+
+| Claim | Confidence | Verdict | The numbers |
+|---|---|---|---|
+| H1 | 0.9 | Held | The 36 rows of `lanes` have 0 skipped records. The run has no skipped record. |
+| H2 | 0.9 | Held | The 12 rows of `lanes-iter1` have the same `joint.fill`, broken records and breaks as the rows of `lanes-sides` in L13. An example is `maxrects-cp.corners`, with the fill 0.336 and 76 broken records in the stress cell. |
+| H3 | 0.85 | Held | `onlyB` is 0 in each of the 24 compares: 6 pairs, 2 variants and 2 cells. |
+| H4 | 0.75 | Held | Of the 1818 records of `lanes-iter3`, 1181 end with "no gain", 357 at the cap, 280 with the same margins and 0 with a failure. |
+| H5 | 0.6 | Held | The mean of `iter.rounds` of the 6 pairs of `lanes-iter3` is 1.98 to 2.19. |
+| H6 | 0.75 | Held | The best pair is `lanes-iter3.maxrects-cp.corners+corners`, with 19 misses. |
+| H7 | 0.5 | Held | `lanes-iter3.maxrects-cp.corners+corners` has 19 misses, and its `lanes-iter1` pair has 23. That is 4 fewer. |
+| H8 | 0.45 | Missed | The largest gain of fill is 0.00996, for `maxrects-cp.corners`: 0.3463 against 0.3364. This is less than 0.01. The other 5 pairs change by -0.004 to +0.005. |
+| H9 | 0.45 | Held | The 6 pairs of `lanes-iter3` have 73 to 76 broken records. Their `lanes-iter1` pairs have 76 to 78. |
+| H10 | 0.35 | Missed | The gain over `maxrects-cp+corners` is +0.022 [-0.014, 0.062]. The lower end is below 0. |
+| H11 | 0.75 | Held | The most costly shard took 29.4 minutes in the step `Run one shard`, and 29.8 minutes as a job. This is near the limit of 30 minutes. |
+| H12 | 0.5 | Held | All shards took 355.4 minutes in the step `Run one shard`, and 376.7 minutes as jobs. |
+
+- H8 is a miss. The Markdown report rounds the fill to 0.346 against 0.336, but the gain in `report.json` is 0.00996.
+- The 2 misses are the claims of a gain over a fixed limit. All claims from the code held.
+
+### The headline cell
+
+The run has no lane pairs. `lanes-iter1` has the layout of `lanes-sides` (H2). Thus the gain over `lanes-iter1` is the gain over `lanes-sides` in this run.
+
+| Iteration pair | Misses | Misses of `lanes-iter1` | Misses of the base pair | Gain over `lanes-iter1` [interval] | Gain over the base pair [interval] |
+|---|---|---|---|---|---|
+| `lanes-iter3.maxrects-cp.corners` | 19 | 23 | 47 | +0.013 [0.007, 0.020] | +0.022 [-0.014, 0.062] |
+| `lanes-iter2.maxrects-cp.corners` | 19 | 23 | 47 | +0.012 [0.005, 0.019] | +0.020 [-0.016, 0.060] |
+| `lanes-iter3.select.corners` | 38 | 44 | 67 | +0.006 [0.002, 0.010] | +0.003 [-0.025, 0.035] |
+| `lanes-iter3.rows.corners` | 43 | 48 | 75 | +0.004 [0.001, 0.007] | +0.018 [-0.005, 0.048] |
+| `lanes-iter3.maxrects-cp.portfolio` | 103 | 118 | 131 | +0.016 [0.007, 0.026] | +0.027 [-0.005, 0.066] |
+| `lanes-iter3.select.portfolio` | 139 | 143 | 141 | +0.011 [0.003, 0.022] | +0.002 [-0.011, 0.017] |
+| `lanes-iter3.rows.portfolio` | 144 | 148 | 145 | +0.014 [0.004, 0.028] | -0.002 [-0.013, 0.010] |
+
+### The stress cell
+
+The best pair of the stress cell is `lanes-iter3.select.corners+corners`, with 31 misses on 81 inputs. The run has no pair of `lanes-max`, so this best pair does not compare with the best pair of L13.
+
+| Iteration pair | Misses | Misses of `lanes-iter1` | Misses of the base pair | Broken records | Breaks | Gain over `lanes-iter1` [interval] |
+|---|---|---|---|---|---|---|
+| `lanes-iter3.select.corners` | 31 | 72 | 80 | 76 (78, 80) | 1715 (4474, 37244) | +0.213 [0.124, 0.311] |
+| `lanes-iter3.rows.corners` | 39 | 74 | 80 | 76 (78, 80) | 2917 (7706, 37079) | +0.187 [0.106, 0.277] |
+| `lanes-iter3.select.portfolio` | 66 | 77 | 80 | 75 (78, 80) | 1806 (4463, 37242) | +0.077 [0.031, 0.135] |
+| `lanes-iter3.rows.portfolio` | 67 | 77 | 80 | 76 (78, 80) | 3017 (7692, 37076) | +0.072 [0.027, 0.131] |
+| `lanes-iter3.maxrects-cp.corners` | 68 | 75 | 80 | 74 (76, 80) | 20981 (24236, 36457) | +0.035 [0.009, 0.071] |
+| `lanes-iter3.maxrects-cp.portfolio` | 74 | 81 | 80 | 73 (76, 80) | 18482 (24196, 36456) | +0.044 [0.011, 0.082] |
+
+The values in parentheses are the values of `lanes-iter1` and of the base pair.
+
+- The rounds cut the breaks of `no-pass-through` by 13% to 62% against `lanes-iter1`. But almost each record keeps 1 break or more.
+- In the headline cell, the 8 pairs of `lanes-iter2` and `lanes-iter3` with `rows` or `select` have 0 broken records. Their `lanes-iter1` pairs have 1 to 2, and their base pairs have 4.
+
+### The rounds and their ends
+
+| Pair of `lanes-iter3` | Rounds | Best round | Inputs with a gain | No gain | Same margins | Cap |
+|---|---|---|---|---|---|---|
+| `maxrects-cp.corners` | 2.153 | 1.482 | 85 | 149 | 51 | 22 |
+| `maxrects-cp.portfolio` | 2.063 | 1.338 | 59 | 161 | 45 | 16 |
+| `rows.corners` | 2.014 | 1.306 | 48 | 157 | 45 | 20 |
+| `rows.portfolio` | 2.189 | 1.523 | 86 | 148 | 44 | 30 |
+| `select.corners` | 1.982 | 1.279 | 46 | 156 | 50 | 16 |
+| `select.portfolio` | 2.185 | 1.518 | 86 | 148 | 45 | 29 |
+
+The table shows the headline cell, 222 inputs. The report gives the end "same margins" as `fixed`.
+
+- A later round is the best round on 46 to 86 of the 222 inputs. But it closes a miss on only 4 to 15 inputs. On the other inputs, the gain is in the fill or in the ties.
+- In the stress cell, the mean of the rounds is 2.62 to 2.77, and the mean best round is 2.03 to 2.31. A later round is the best round on 50 to 62 of the 81 inputs. 33 to 44 of the 81 records end at the cap.
+- Round 3 adds to round 2 on 4 of the 6 pairs in the headline cell. On `maxrects-cp.corners`, both have 19 misses. In the stress cell, round 3 adds the most: `select.corners` goes from 57 misses to 31.
+
+### The fill
+
+- In the headline cell, the fill of the 6 pairs of `lanes-iter3` is -0.004 to +0.010 against `lanes-iter1`. Against the base pairs, the fill stays lower by 0.041 to 0.069.
+- In the headline cell, 41 to 43 records of each pair of `lanes-iter3` overflow. The base pairs have 39 to 41.
+- In the stress cell, the rounds widen approximately 5 to 6 sides for each side that they narrow. Thus the fill goes down. For `rows.corners`, it is 0.457 against 0.521 for `lanes-iter1` and 0.779 for the base pair.
+
+### The time
+
+| Plan at 64 shards | The plan of L11 | The model of L35 | The run |
+|---|---|---|---|
+| The most costly shard | 22.7 minutes | 36.8 minutes | 29.4 minutes |
+| All shards | 426.9 minutes | 542.0 minutes | 355.4 minutes |
+
+- The times are the step `Run one shard`. The jobs took 376.7 minutes in all. The run took 65.2 minutes from the first job to the last job.
+- The plan of L11 is too low for the most costly shard by 6.7 minutes. The model of L35 is too high by 7.4 minutes. Both are too high for the sum.
+- A round costs approximately 0.6 to 1.2 times the time of its base pair in the headline cell. The plan counts 3 pairs for each round (`LANE_PASS_COST`).
+- `lanes-iter3.maxrects-cp.corners+corners` takes 1534 ms for each headline record. `lanes-iter1` takes 915 ms, and the base pair takes 457 ms.
+
+### What the result shows
+
+- Iteration beyond round 1 pays. Each of the 6 pairs of `lanes-iter3` misses the floor on fewer inputs than its `lanes-iter1` pair, in both cells. No pair loses an input (H3).
+- The gain over `lanes-sides` is small in the headline cell, but its interval is above 0 on 6 of 6 pairs. The pairs miss on 4 to 15 fewer inputs, and the gain is +0.004 to +0.016.
+- The gain is large in the stress cell. `lanes-iter3.select.corners+corners` goes from 72 misses to 31, with the gain +0.213 [0.124, 0.311].
+- The gain over the base pair is not sure yet. The interval holds 0 on 6 of 6 pairs (H10).
+- The cost is time. The best pair takes approximately 1.7 times the time of `lanes-sides`, and 3.4 times the time of its base pair.
+- The fill does not come back. The rounds keep the fill of `lanes-sides`, and it stays below the fill of the base pairs.
+
+### The candidate default
+
+The candidate for the first joint default changes. It was `lanes-sides.maxrects-cp.corners+corners` (L13). The new candidate is `lanes-iter3.maxrects-cp.corners+corners`.
+
+- It has 19 misses against 23 for `lanes-sides`, and the gain +0.013 [0.007, 0.020] over it.
+- `lanes-iter2.maxrects-cp.corners+corners` also has 19 misses, and it takes 1320 ms for each record. The report has no compare of `lanes-iter3` against `lanes-iter2`. L40 decides between the 2 caps.
+- L40 confirms the candidate on fresh seeds against `lanes-sides.maxrects-cp.corners+corners`, `maxrects-cp+corners` and both baselines.
+
+### The scope of the result
+
+- The result holds for `joint-v2`, the seeds 1 to 3, and the floor of each cell. The floor comes from the 148 pairs of this run, without the lane pairs of L13. Thus `lanes-iter1.maxrects-cp.corners+corners` has 23 misses, and `lanes-sides` had 22 in L13.
+- The cap is 3 rounds. In the stress cell, 33 to 44 of 81 records end at the cap. A higher cap is not measured.
+- The margins change for each side (`iterMargins`). A gap for each pair of facing boxes needs `packing` (k77).
+- Do not refit the cost model from this run. The fit divides by 130 pairs, and this run has 148. `fit-cost.mjs` does not count the rounds yet.
