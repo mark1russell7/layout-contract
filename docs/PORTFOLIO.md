@@ -53,7 +53,7 @@ The level 0 is `hard`: the count of hard breaks, with the direction `lower` and 
 
 `pick` gives the output of the winner, the id of the winner and a trace. The trace has these fields:
 
-- `members`: one entry for each member, in order. A cut member is also in the list. An entry has the status `ran`, `cut` or `error`. A member with the status `ran` has its `values`, `ms` and `outputHash`. A member with an error has its `ms` and its `error` message.
+- `members`: one entry for each member, in order. A cut member is also in the list. An entry has the status `ran`, `cut` or `error`. A member with the status `ran` has its `values`, `ms` and `outputHash`. The option `hashes` "pick" removes most of the hashes (the section "The option `hashes`"). A member with an error has its `ms` and its `error` message.
 - `winner` and `winnerIndex`: the id and the index of the winner.
 - `kept`: the lists of `selectBest`. The first list is for the level `hard`.
 - `cut`: the count of the cut members.
@@ -65,6 +65,18 @@ The level 0 is `hard`: the count of hard breaks, with the direction `lower` and 
 The first member is the base of the shared guards of `docs/PROMOTION.md`. The other members are the candidates against it.
 
 `picked` is `true` when the winner is not member 0, and the `outputHash` of the winner is different from the hash of member 0. When member 0 has an error, `picked` is `true` for each winner after member 0.
+
+### The option `hashes`
+
+The option `hashes` sets the members that get an output hash. The default `all` hashes each member with the status `ran`. Then a hash that throws gives the status `error` to the member, and the member does not win.
+
+With `pick`, the members get no hash before `selectBest`. `selectBest` does not use the hashes, so the winner does not change. After the pick, the portfolio hashes member 0 and the winner, and only when the winner is not member 0. When member 0 has an error, `picked` is `true` and the portfolio hashes nothing.
+
+Under `pick`, only the hashed members have an `outputHash` in the trace. A hash that throws makes `pick` throw a `RangeError` with the hash error as its `cause`. A different value of the option causes a `RangeError` when `portfolio` makes the portfolio.
+
+Each portfolio has its own option. A nested portfolio does not get the option of its parent.
+
+### `pickMoves`
 
 A stage adds `pickMoves(trace)` to the moves of its record. It gives the move `pick`: 1 when `picked` is `true`, else 0. The record keeps it as the trace measure `move.pick`. Then `exercised({ moves })` tells that a portfolio has an effect, with no change.
 

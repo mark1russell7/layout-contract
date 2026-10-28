@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.2.8
+
+- `portfolio` has the option `hashes`. The default `all` keeps the behavior of 0.2.7.
+- With `hashes: "pick"`, the members get no output hash before the pick. Only member 0 and the winner get a hash, when the winner is not member 0.
+- The output hash is most of the key cost of a member. `selectBest` does not use it, so the winner and `picked` do not change.
+- Under `pick`, a hash that throws makes `pick` throw a `RangeError`. Only the hashed traces have an `outputHash`.
+- A value of `hashes` that is not `all` or `pick` causes a `RangeError`. `docs/PORTFOLIO.md` tells the rules.
+
 ## 0.2.7
 
 - `compareMeasure` compares whole grid steps of `RECORD_EPS`. Before, a change of exactly `minEffect` on 3-decimal records was sometimes not a tie, because of float noise. An example is 0.723 against 0.718 with a `minEffect` of 0.005.

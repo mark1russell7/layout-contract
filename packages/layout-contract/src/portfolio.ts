@@ -38,6 +38,11 @@ export interface PortfolioOptions {
   readonly maxMembers?: number;
   /** The clock in milliseconds. The default is `performance.now`, or `Date.now` without `performance`. */
   readonly now?: () => number;
+  /**
+   * The members that get an output hash. The default `all` hashes each member with the status `ran`. A hash that throws then gives the status `error`.
+   * With `pick`, only member 0 and the winner get a hash, and only when the winner is not member 0. Then a hash that throws makes `pick` throw.
+   */
+  readonly hashes?: "all" | "pick";
 }
 
 /** The status of a member in a pick. */
@@ -51,7 +56,10 @@ export interface MemberTrace {
   readonly values?: Readonly<Record<string, number>>;
   /** The time of the run of the member, in milliseconds. */
   readonly ms?: number;
-  /** The hash of the output of the member. */
+  /**
+   * The hash of the output of the member. Under the option `hashes` "all" (the default), each member with the status `ran` has it.
+   * Under `hashes` "pick", it is absent, except for member 0 and the winner when the winner is not member 0.
+   */
   readonly outputHash?: string;
   /** The message of the error of a member with the status `error`. */
   readonly error?: string;
@@ -171,7 +179,7 @@ function checkMembers(id: string, members: readonly Member<unknown, unknown>[]):
 }
 
 /** The result of the run of one member. */
-type Ran<O> = { readonly ok: true; readonly output: O; readonly values: Record<string, number>; readonly hash: string } | { readonly ok: false; readonly error: unknown };
+type Ran<O> = { readonly ok: true; readonly output: O; readonly values: Record<string, number>; readonly hash?: string } | { readonly ok: false; readonly error: unknown };
 
 /**
  * This function makes a portfolio. Its `pick` starts the members in their order. `selectBest` picks the winner of the members with the status `ran`.
@@ -197,13 +205,23 @@ export function portfolio<I, O>(
     if (levelIds.has(level.id)) throw new RangeError(`The portfolio "${id}" has two levels with the id "${level.id}".`);
     levelIds.add(level.id);
   }
-  const { budgetMs, maxMembers } = options;
+  const { budgetMs, maxMembers, hashes = "all" } = options;
   if (budgetMs !== undefined && !(budgetMs >= 0)) throw new RangeError(`The portfolio "${id}" has the budgetMs ${budgetMs}. It must be 0 or more.`);
   if (maxMembers !== undefined && !(Number.isInteger(maxMembers) && maxMembers >= 1))
     throw new RangeError(`The portfolio "${id}" has the maxMembers ${maxMembers}. It must be a whole number of 1 or more.`);
+  if (hashes !== "all" && hashes !== "pick") throw new RangeError(`The portfolio "${id}" has the hashes ${String(hashes)}. It must be "all" or "pick".`);
   if (typeof members !== "function") checkMembers(id, members);
   const levels: readonly SelectLevel[] = [{ id: "hard", spec: { direction: "lower", minEffect: 0 } }, ...key.levels.map((l) => ({ id: l.id, spec: l.spec }))];
   const now = options.now ?? defaultClock();
+
+  /** This function gives the hash of the output of a member. A hash that throws causes a `RangeError`. */
+  const hashOf = (m: Member<I, O>, output: O): string => {
+    try {
+      return key.hash ? key.hash(output) : outputHash(output);
+    } catch (e) {
+      throw new RangeError(`The hash of the member "${m.id}" of the portfolio "${id}" throws: ${messageOf(e)}`, { cause: e });
+    }
+  };
 
   const evaluate = (m: Member<I, O>, input: I, output: O): Ran<O> => {
     const values: Record<string, number> = {};
@@ -221,13 +239,8 @@ export function portfolio<I, O>(
     try {
       measure("hard", () => key.hard(input, output));
       for (const level of key.levels) measure(level.id, () => level.value(input, output));
-      let hash: string;
-      try {
-        hash = key.hash ? key.hash(output) : outputHash(output);
-      } catch (e) {
-        throw new RangeError(`The hash of the member "${m.id}" of the portfolio "${id}" throws: ${messageOf(e)}`, { cause: e });
-      }
-      return { ok: true, output, values, hash };
+      if (hashes === "pick") return { ok: true, output, values };
+      return { ok: true, output, values, hash: hashOf(m, output) };
     } catch (e) {
       return { ok: false, error: e };
     }
@@ -268,7 +281,11 @@ export function portfolio<I, O>(
         result = { ok: false, error: e };
       }
       if (result.ok) {
-        traces.push({ id: m.id, status: "ran", values: result.values, ms, outputHash: result.hash });
+        traces.push(
+          result.hash === undefined
+            ? { id: m.id, status: "ran", values: result.values, ms }
+            : { id: m.id, status: "ran", values: result.values, ms, outputHash: result.hash },
+        );
         outputs.set(m.id, result.output);
         ran.push({ id: m.id, values: result.values });
       } else {
@@ -279,6 +296,10 @@ export function portfolio<I, O>(
     if (ran.length === 0) throw firstError!.error;
     const { winner, kept } = selectBest(ran, levels);
     const winnerIndex = traces.findIndex((t) => t.id === winner);
+    if (hashes === "pick" && winnerIndex > 0 && traces[0]!.status === "ran") {
+      // Only member 0 and the winner get a hash. Their two trace entries are new objects with the hash.
+      for (const i of [0, winnerIndex]) traces[i] = { ...traces[i]!, outputHash: hashOf(list[i]!, outputs.get(traces[i]!.id)!) };
+    }
     const base = traces[0]!;
     const picked = winnerIndex > 0 && (base.status !== "ran" || traces[winnerIndex]!.outputHash !== base.outputHash);
     const trace: PortfolioTrace = {

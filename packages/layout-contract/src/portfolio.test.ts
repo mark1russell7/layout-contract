@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { exercised, type Member, outputHash, pickMoves, portfolio, type PortfolioKey, selectBest } from "./index.ts";
+import { exercised, type Member, outputHash, pickMoves, portfolio, type PortfolioKey, type PortfolioOptions, selectBest } from "./index.ts";
 
 const lower = { direction: "lower", minEffect: 0 } as const;
 const higher = { direction: "higher", minEffect: 0 } as const;
@@ -265,5 +265,134 @@ describe("portfolio", () => {
     expect(() => portfolio("p", members, key, { maxMembers: 0 })).toThrow(RangeError);
     expect(() => portfolio("p", members, key, { maxMembers: 1.5 })).toThrow(RangeError);
     expect(() => portfolio("p", members, key, { budgetMs: -1 })).toThrow(RangeError);
+  });
+});
+
+/** This function gives a key with a hash that counts its calls. The hash throws for each tag in `throwFor`. */
+const countingKey = (throwFor: readonly string[] = [], fixed?: string): { readonly key: PortfolioKey<number, Out>; readonly calls: () => number } => {
+  let n = 0;
+  return {
+    key: {
+      ...key,
+      hash: (o) => {
+        n++;
+        if (o.tag !== undefined && throwFor.includes(o.tag)) throw new Error(`no hash for ${o.tag}`);
+        return fixed ?? outputHash({ hard: o.hard, score: o.score });
+      },
+    },
+    calls: () => n,
+  };
+};
+
+describe("portfolio option hashes", () => {
+  const cases: readonly (readonly Member<number, Out>[])[] = [
+    [constant("a", { hard: 0, score: 1 }), constant("b", { hard: 0, score: 1 })],
+    [constant("a", { hard: 0, score: 1 }), constant("b", { hard: 0, score: 2 }), constant("c", { hard: 1, score: 9 })],
+    [constant("nan", { hard: 0, score: Number.NaN }), constant("b", { hard: 0, score: 1 })],
+  ];
+
+  it("gives the same trace with the default and with all", () => {
+    for (const members of cases) {
+      const plain = portfolio("p", members, key, { now: fakeClock() }).pick(0);
+      const all = portfolio("p", members, key, { hashes: "all", now: fakeClock() }).pick(0);
+      expect(all).toEqual(plain);
+      expect(JSON.stringify(all.trace)).toBe(JSON.stringify(plain.trace));
+      for (const m of plain.trace.members) if (m.status === "ran") expect(m.outputHash).toBeDefined();
+    }
+  });
+
+  it("gives the same winner, kept and picked with pick as with all", () => {
+    for (const members of cases) {
+      const all = portfolio("p", members, key).pick(0).trace;
+      const pick = portfolio("p", members, key, { hashes: "pick" }).pick(0).trace;
+      expect([pick.winner, pick.winnerIndex, pick.picked, pick.kept]).toEqual([all.winner, all.winnerIndex, all.picked, all.kept]);
+    }
+  });
+
+  it("hashes nothing with pick when member 0 wins", () => {
+    const { key: counted, calls } = countingKey();
+    const members = [constant("a", { hard: 0, score: 3 }), constant("b", { hard: 0, score: 2 }), constant("c", { hard: 0, score: 1 })];
+    const { trace } = portfolio("p", members, counted, { hashes: "pick" }).pick(0);
+    expect(trace.winnerIndex).toBe(0);
+    expect(trace.picked).toBe(false);
+    expect(calls()).toBe(0);
+    expect(trace.members.map((m) => "outputHash" in m)).toEqual([false, false, false]);
+    expect(pickMoves(trace)).toEqual({ pick: 0 });
+  });
+
+  it("hashes only member 0 and the winner with pick when another member wins", () => {
+    const { key: counted, calls } = countingKey();
+    const members = [constant("a", { hard: 0, score: 1 }), constant("b", { hard: 0, score: 3 }), constant("c", { hard: 0, score: 2 })];
+    const { trace } = portfolio("p", members, counted, { hashes: "pick" }).pick(0);
+    expect(trace.winner).toBe("b");
+    expect(trace.picked).toBe(true);
+    expect(calls()).toBe(2);
+    expect(trace.members[0]!.outputHash).toBe(outputHash({ hard: 0, score: 1 }));
+    expect(trace.members[1]!.outputHash).toBe(outputHash({ hard: 0, score: 3 }));
+    expect("outputHash" in trace.members[2]!).toBe(false);
+    expect(trace.members[1]).toMatchObject({ id: "b", status: "ran", values: { hard: 0, score: 3 } });
+    expect(pickMoves(trace)).toEqual({ pick: 1 });
+  });
+
+  it("gives picked false with pick when the winner has the hash of member 0", () => {
+    const { key: counted, calls } = countingKey([], "h");
+    const { trace } = portfolio("p", [constant("a", { hard: 0, score: 1 }), constant("b", { hard: 0, score: 2 })], counted, { hashes: "pick" }).pick(0);
+    expect(trace.winnerIndex).toBe(1);
+    expect(trace.picked).toBe(false);
+    expect(calls()).toBe(2);
+    expect(trace.members.map((m) => m.outputHash)).toEqual(["h", "h"]);
+    expect(pickMoves(trace)).toEqual({ pick: 0 });
+  });
+
+  it("ignores a hash that throws on a member that gets no hash", () => {
+    const { key: counted, calls } = countingKey(["x"]);
+    const members = [constant("a", { hard: 0, score: 1 }), constant("x", { hard: 0, score: 2, tag: "x" }), constant("b", { hard: 0, score: 3 })];
+    const { trace } = portfolio("p", members, counted, { hashes: "pick" }).pick(0);
+    expect(trace.winner).toBe("b");
+    expect(trace.members[1]!.status).toBe("ran");
+    expect(calls()).toBe(2);
+    // With all, the same hash gives the status error to the member.
+    expect(portfolio("p", members, countingKey(["x"]).key).pick(0).trace.members[1]!.status).toBe("error");
+  });
+
+  it("throws a RangeError with pick when the hash of the winner throws", () => {
+    const { key: counted } = countingKey(["w"]);
+    const p = portfolio("p", [constant("a", { hard: 0, score: 1 }), constant("w", { hard: 0, score: 2, tag: "w" })], counted, { hashes: "pick" });
+    let caught: unknown;
+    try {
+      p.pick(0);
+    } catch (e) {
+      caught = e;
+    }
+    expect(caught).toBeInstanceOf(RangeError);
+    expect((caught as Error).message).toBe('The hash of the member "w" of the portfolio "p" throws: no hash for w');
+    expect(((caught as Error).cause as Error).message).toBe("no hash for w");
+  });
+
+  it("gives picked true with pick and hashes nothing when member 0 has an error", () => {
+    const { key: counted, calls } = countingKey();
+    const { trace } = portfolio("p", [constant("nan", { hard: 0, score: Number.NaN }), constant("b", { hard: 0, score: 1 })], counted, { hashes: "pick" }).pick(0);
+    expect(trace.members[0]!.status).toBe("error");
+    expect(trace.winner).toBe("b");
+    expect(trace.picked).toBe(true);
+    expect(calls()).toBe(0);
+    expect("outputHash" in trace.members[1]!).toBe(false);
+    expect(pickMoves(trace)).toEqual({ pick: 1 });
+  });
+
+  it("keeps the option of each portfolio for a nested portfolio", () => {
+    const { key: counted, calls } = countingKey();
+    const inner = portfolio("inner", [constant("a", { hard: 0, score: 1 }), constant("b", { hard: 0, score: 5 })], counted);
+    const outer = portfolio("outer", [constant("c", { hard: 0, score: 3 }), inner], counted, { hashes: "pick" });
+    expect(outer.pick(0).trace.winner).toBe("inner");
+    // The inner portfolio hashes its 2 members. The outer portfolio hashes member 0 and the winner.
+    expect(calls()).toBe(4);
+  });
+
+  it("throws a RangeError for a bad value of hashes", () => {
+    const members = [constant("a", { hard: 0, score: 1 })];
+    const bad = { hashes: "none" } as unknown as PortfolioOptions;
+    expect(() => portfolio("p", members, key, bad)).toThrow(RangeError);
+    expect(() => portfolio("p", members, key, bad)).toThrow('The portfolio "p" has the hashes none. It must be "all" or "pick".');
   });
 });
