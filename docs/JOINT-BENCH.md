@@ -165,23 +165,37 @@ The test `check.test.ts` makes a corpus that breaks each claim.
 
 ### The shards
 
-`planShards` gives the inputs to the shards by their predicted cost. Each shard job computes the same plan, so the jobs need no shared file.
+`planShards` gives the inputs to the shards by their planned cost. Each shard job computes the same plan, so the jobs need no shared file.
 
 1. The predicted cost of an input is `inputCost(boxes, edges, pairs)`: the count of the pairs times the cost of one pair.
-2. The cost of one pair in milliseconds is `8 + 5.5 * boxes * boxes / 1000 + 1.35 * boxes * edges / 1000`.
-3. The plan takes the inputs from the most cost to the least cost. Each input goes to the shard with the least load.
-4. An input does not go to a shard with an input of the same spec, while another shard has none. Thus a lost shard loses 1 seed of a spec, not 3.
-5. In a shard, the inputs run from the least cost to the most cost. Thus a timeout loses only the costly inputs at the end.
+2. The cost of one pair in milliseconds is `4.37 + 0.595 * boxes * boxes / 1000 + 1.16 * boxes * edges / 1000`.
+3. The planned cost of an input is `plannedCost(spec, boxes, edges, pairs)`: the predicted cost times the margin of its spec.
+4. The plan takes the inputs from the most cost to the least cost. Each input goes to the shard with the least load.
+5. An input does not go to a shard with an input of the same spec, while another shard has none. Thus a lost shard loses 1 seed of a spec, not 3.
+6. In a shard, the inputs run from the least cost to the most cost. Thus a timeout loses only the costly inputs at the end.
 
-The fit of the cost comes from the wall time of each input in the logs of the run `40666991882`. That run used `highways` 0.5.1, and its exact model used a slow search.
+The file `packages/joint/data/cost-margins.json` holds the cost model. The script `scripts/fit-cost.mjs` writes it from the logs of the shard jobs of a full run.
 
-- The fit has R² 0.41. The wall time of inputs with the same counts differs by up to 10 times, because the cell and the spacing also change the time.
-- 3 shards of that run stopped at the limit of 90 minutes. The first input of each of them was a seed of the dense spec with hubs and the gap: 1000 boxes and 4000 edges.
-- That spec ran for more than 89 minutes on each seed. The fit gives it 22 minutes. Thus the fit is low for this spec.
-- The limit of a shard job is 360 minutes, the limit of GitHub. The fit gives 22 minutes to the most costly shard.
-- The 64 shards give each input with 1000 boxes a shard of its own.
+- The model comes from the wall time of each input in the run `40685494092`. That run used `highways` 0.6.0 and `packing` 0.2.10. All 303 inputs have a time.
+- The fit makes the least sum of the squares of log(real / predicted). Thus the fit gives the typical time of an input of a size.
+- The margin of a spec is the q90 of real / predicted over the seeds of the spec. The q90 uses linear interpolation.
+- A spec without a measured time gets the default margin: the q90 of real / predicted over all inputs. This value is 2.84.
 
-`pnpm bench plan --shards <n>` shows the predicted cost of the most costly shards.
+The fit of the run `40666991882` gave `8 + 5.5 * boxes * boxes / 1000 + 1.35 * boxes * edges / 1000`. On the new run, the 2 fits compare as follows.
+
+| Fit | R² of the times | R² of the logs of the times |
+|---|---|---|
+| The old fit | 0.210 | 0.581 |
+| The new fit | 0.229 | 0.762 |
+
+- The counts of the boxes and the edges do not tell the time well. The 12 inputs with 1000 boxes and 4000 edges take from less than 1 second to 46 seconds for each pair. The best linear fit of the times has R² 0.37 only.
+- The margins correct this spread for each spec. The dense spec with hubs and the gap has the margin 8.74. Its 3 seeds took 85, 87 and 93 minutes. The old fit gave them 21.8 minutes. The new plan gives them 91.6 minutes.
+- The next 3 margins are 4.79, 3.71 and 3.68. These specs are the dense spec with hub chains and 1000 boxes, a dense dashboard with 10 boxes and a word cloud with 100 boxes.
+- The new plan gives 717 minutes to all shards. The run took 641 minutes on the inputs.
+
+The limit of a shard job is 360 minutes, the limit of GitHub. At 64 shards, the plan gives 91.6 minutes to the most costly shard. This shard has 1 seed of the dense spec with hubs. This load is less than half of the limit, so 64 shards and the limit of 360 minutes stay.
+
+`pnpm bench plan --shards <n>` shows the planned cost of the most costly shards. The lines of the logs keep the words "predicted minutes".
 
 The benchmark measures times, so it runs only in CI.
 
