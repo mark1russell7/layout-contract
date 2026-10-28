@@ -316,3 +316,30 @@ These numbers come from the easier part of the corpus. The 18 missing inputs hol
 - These records stay broken in this run, and they count as breaks of `pack.no-overlap`. The report does not count them by themselves.
 - The router does not see the margins, the gap, the inset or the container. Thus the clearance comes only from the distances between the boxes.
 - L28 starts the benchmark again on `highways` 0.6.0 and `packing` 0.2.10, with `exactStretches` for the cap.
+
+## The prediction for the L28 run
+
+This prediction comes before the second full run on `joint-v2`. The verdicts come from the report and the shard logs, by hand. The entries stay the same after the run.
+
+The run has 4 changes from the joint-v2 run:
+
+- The runner uses `highways` 0.6.0 and `packing` 0.2.10. The exact search of `highways` 0.6.0 is faster, and the members of its portfolio router changed. `packing` 0.2.10 fixes the overlaps of `skyline`.
+- The plan gives the inputs to 64 shards by predicted cost, and each shard has 360 minutes.
+- The report counts the inputs from the records, and analyze fails on a missing input.
+- The report gives the headline cell on all inputs and on the subset of `data/joint-v2-recorded.txt`.
+
+The joint-v2 run held 5 of its 7 claims. The 2 misses were claims about the routers at a high confidence. Thus the claims about the routers have a lower confidence here.
+
+| Id | Confidence | Claim |
+|---|---|---|
+| R1 | 0.85 | Each of the 303 inputs has records, and analyze passes without `--allow-missing`. |
+| R2 | 0.9 | No record with the pack `skyline` breaks `pack.no-overlap`. |
+| R3 | 0.65 | Outside the stress cell, `corners` has 0 records broken with the cause `router` for `both`, 14 to 22 for `gap`, and 6 to 10 for `margin`. |
+| R4 | 0.6 | The oracle gain of the headline cell on all 222 inputs outside the stress cell is between 0.16 and 0.24. |
+| R5 | 0.55 | On the subset, the oracle gain of the headline cell is within 0.03 of 0.196. |
+| R6 | 0.5 | The best pair of the headline cell is `maxrects-cp+corners` again. |
+| R7 | 0.45 | Each shard of the dense spec with hubs and 1000 boxes finishes in less than 60 minutes. |
+| R8 | 0.4 | The oracle gain at the count 1k is above 0.12. Without the dense spec with hubs, it was 0.103. |
+| R9 | 0.75 | The greedy portfolio with k = 3 gets at least 60% of the oracle gain in each of the 6 cells. |
+
+R4 gives the number with the hard tail. R5 shows the effect of the new versions alone. R7 and R8 are the risky claims.
