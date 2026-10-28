@@ -1,0 +1,72 @@
+{
+  "schema": "site-space/1",
+  "source": "the test space of strategy-space.test.ts, layout-contract 0.2.10",
+  "date": "2026-10-28",
+  "example": true,
+  "note": "A made-up packer with 4 stages, a conditional param, a constraint and a meta option. No engine uses this space.",
+  "space": {
+    "schema": "strategy-space/1",
+    "engine": "pack",
+    "version": "0.0.1",
+    "stages": [
+      {
+        "name": "order",
+        "options": [
+          { "id": "area", "params": [] },
+          { "id": "height", "params": [{ "name": "reverse", "kind": "bool", "default": false }] }
+        ]
+      },
+      {
+        "name": "placement",
+        "options": [
+          {
+            "id": "maxrects",
+            "params": [
+              { "name": "rule", "kind": "enum", "values": ["bssf", "bl", "cp"], "default": "bssf" },
+              { "name": "rotate", "kind": "bool", "default": false }
+            ]
+          },
+          {
+            "id": "shelf",
+            "params": [
+              { "name": "fit", "kind": "enum", "values": ["next", "first"], "default": "next" },
+              { "name": "band", "kind": "real", "min": 1, "max": 100, "scale": "log", "default": 10 },
+              { "name": "k", "kind": "int", "min": 1, "max": 5, "default": 2, "when": { "param": "fit", "in": ["first"] } }
+            ]
+          }
+        ]
+      },
+      {
+        "name": "local",
+        "optional": true,
+        "options": [
+          {
+            "id": "anneal",
+            "params": [
+              { "name": "steps", "kind": "int", "min": 10, "max": 1000, "scale": "log", "default": 100 },
+              { "name": "temp", "kind": "real", "min": 0, "max": 1, "default": 0.5 }
+            ]
+          }
+        ]
+      },
+      { "name": "combine", "optional": true, "options": [{ "id": "portfolio", "params": [], "members": { "min": 2, "max": 3, "ordered": false } }] }
+    ],
+    "constraints": [{ "if": { "stage": "local", "option": "anneal" }, "then": { "stage": "placement", "option": "maxrects" } }],
+    "named": {
+      "maxrects-cp": { "space": "pack", "stages": { "order": { "option": "area" }, "placement": { "option": "maxrects", "params": { "rule": "cp" } } } },
+      "shelf-first": { "space": "pack", "stages": { "order": { "option": "height" }, "placement": { "option": "shelf", "params": { "fit": "first", "k": 3 } } } },
+      "portfolio-k2": {
+        "space": "pack",
+        "stages": {
+          "combine": {
+            "option": "portfolio",
+            "members": [
+              { "space": "pack", "stages": { "order": { "option": "area" }, "placement": { "option": "maxrects", "params": { "rule": "cp" } } } },
+              { "space": "pack", "stages": { "order": { "option": "height" }, "placement": { "option": "shelf", "params": { "fit": "first", "k": 3 } } } }
+            ]
+          }
+        }
+      }
+    }
+  }
+}

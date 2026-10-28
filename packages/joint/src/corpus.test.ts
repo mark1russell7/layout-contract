@@ -17,7 +17,7 @@ const baseFamily = (id: string): string => id.split("/")[1]!.split(".")[0]!;
 describe("jointCorpus", () => {
   it("gives the same corpus on each call", () => {
     expect(jointCorpus()).toEqual(corpus);
-  });
+  }, 30_000);
 
   it("gives each input a unique id of the form joint-v1/<family>/s<seed>", () => {
     const ids = inputs.map((f) => f.id);

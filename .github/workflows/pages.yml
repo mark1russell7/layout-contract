@@ -1,0 +1,39 @@
+# Builds packages/site and publishes it to GitHub Pages at https://mark1russell7.github.io/layout-contract/, with
+# the shared Pages workflow of mark1russell7 (reusable-pages.yml of mark1russell7/template, its CI.md).
+# The Pages source of the repository is "GitHub Actions" (Settings > Pages).
+# The site reads only the data files in packages/site/data. docs/SITE.md tells how an item adds data.
+name: Pages
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions: {}
+
+# One deployment at a time. A newer push cancels a deployment that waits.
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  pages:
+    uses: mark1russell7/template/.github/workflows/reusable-pages.yml@072c68a9d4b3fbaea886ad60ae54b6ebbef42bde # main
+    # The build job of the shared workflow gets only the read permissions. Only its deploy job,
+    # which runs no code of the repository, writes to Pages.
+    permissions:
+      contents: read
+      actions: read
+      issues: read
+      pull-requests: read
+      checks: read
+      statuses: read
+      pages: write
+      id-token: write
+    with:
+      # The Vite config examines each data file. A bad data file stops the build, and the old site stays.
+      build: pnpm --filter @layout-contract/site run build
+      out: packages/site/dist
+      env: '{"SITE_BASE": "/${{ github.event.repository.name }}"}'
+      # The first version of the site has its own news section: no Releases page and no Status page yet.
+      site-pages: false

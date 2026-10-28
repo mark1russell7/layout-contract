@@ -1,0 +1,1 @@
+`layout-contract` is the shared contract of two layout engines: [packing](https://mark1russell7.github.io/packing/) puts boxes into a container, and [highways](https://mark1russell7.github.io/highways/) draws the edges between them. This site shows how well the two engines work together, and the data formats that they share.
