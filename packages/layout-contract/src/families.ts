@@ -28,7 +28,7 @@ export type RngFactory = (seed: number) => () => number;
 
 /**
  * The cross-engine note of a family. `exact` tells that each JavaScript engine gives the same output.
- * `libm-dependent` tells that the family uses a function such as `Math.log`, `Math.cos` or `**`, which is not correctly rounded in each engine.
+ * `libm-dependent` tells that the family uses a function that is not correctly rounded in each engine, for example `Math.log`, `Math.cos` or `**`.
  */
 export type CrossEngine = "exact" | "libm-dependent";
 
@@ -39,7 +39,7 @@ export const DEFAULT_RNG: RngFactory = mulberry32;
 export interface GenerateContext {
   /** The random factory of the family: its own `rng`, or `DEFAULT_RNG`. */
   readonly rng: RngFactory;
-  /** The source of random numbers of the input: `rng(rngSeed(seed, dims))`. A family that does not call it uses no numbers from it. */
+  /** The source of random numbers of the input: `rng(rngSeed(seed, dims))`. A family that does not use it takes no numbers from it. */
   readonly random: () => number;
   /** The name of the corpus of the input, when the caller gives one. */
   readonly set?: string;

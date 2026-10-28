@@ -4,17 +4,28 @@
 # and private members. The command `api-report check` compares this file with the built .d.ts files.
 # To accept a change of the API, start the build, then `api-report update`, and review the diff.
 
-## . (build/index.d.ts): 181 names
+## . (build/index.d.ts): 207 names
 
+CORPUS_DIMENSIONS: build/index.d.ts#CORPUS_DIMENSIONS
+CellsOptions: build/index.d.ts#CellsOptions
 ClaimBreak: build/index.d.ts#ClaimBreak
+ComposeOptions: build/index.d.ts#ComposeOptions
 ContainerTest: build/index.d.ts#ContainerTest
+CorpusDimension: build/index.d.ts#CorpusDimension
 CorpusEntry: build/index.d.ts#CorpusEntry
+CorpusFamily: build/index.d.ts#CorpusFamily
 CorpusSplit: build/index.d.ts#CorpusSplit
+CorpusStep: build/index.d.ts#CorpusStep
+CrossEngine: build/index.d.ts#CrossEngine
+DEFAULT_FAMILY_BY: build/index.d.ts#DEFAULT_FAMILY_BY
+DEFAULT_RNG: build/index.d.ts#DEFAULT_RNG
 DEFAULT_SHAPES: build/index.d.ts#DEFAULT_SHAPES
 DEFAULT_TOLERANCE: build/index.d.ts#DEFAULT_TOLERANCE
 DeclaredClaim: build/index.d.ts#DeclaredClaim
 Declares: build/index.d.ts#Declares
+DimensionValues: build/index.d.ts#DimensionValues
 Direction: build/index.d.ts#Direction
+EDGES_STEP: build/index.d.ts#EDGES_STEP
 EDGE_DENSITY: build/index.d.ts#EDGE_DENSITY
 EDGE_STEP_VERSION: build/index.d.ts#EDGE_STEP_VERSION
 EPS: build/index.d.ts#EPS
@@ -25,7 +36,10 @@ ExerciseEvidence: build/index.d.ts#ExerciseEvidence
 FAMILY_ANY_KIND: build/index.d.ts#FAMILY_ANY_KIND
 FamilyBy: build/index.d.ts#FamilyBy
 FamilyCell: build/index.d.ts#FamilyCell
+FamilyRegistry: build/index.d.ts#FamilyRegistry
 FamilyVerdict: build/index.d.ts#FamilyVerdict
+GenerateContext: build/index.d.ts#GenerateContext
+GenerateOptions: build/index.d.ts#GenerateOptions
 GridOptions: build/index.d.ts#GridOptions
 HashOptions: build/index.d.ts#HashOptions
 Item: build/index.d.ts#Item
@@ -70,6 +84,8 @@ RECORD_EPS: build/index.d.ts#RECORD_EPS
 RECORD_SCALE: build/index.d.ts#RECORD_SCALE
 Rect: build/index.d.ts#Rect
 Region: build/index.d.ts#Region
+RegistryCell: build/index.d.ts#RegistryCell
+RngFactory: build/index.d.ts#RngFactory
 RunEnv: build/index.d.ts#RunEnv
 RunFacts: build/index.d.ts#RunFacts
 SHAPE_KINDS: build/index.d.ts#SHAPE_KINDS
@@ -131,14 +147,18 @@ checkShapes: build/index.d.ts#checkShapes
 checkSpace: build/index.d.ts#checkSpace
 checkSplit: build/index.d.ts#checkSplit
 compareMeasure: build/index.d.ts#compareMeasure
+composeFamily: build/index.d.ts#composeFamily
 configId: build/index.d.ts#configId
 corpusHashOf: build/index.d.ts#corpusHashOf
 countObstacleHits: build/index.d.ts#countObstacleHits
 countOutside: build/index.d.ts#countOutside
 countOverlaps: build/index.d.ts#countOverlaps
 countPortsOffBorder: build/index.d.ts#countPortsOffBorder
+createFamilyRegistry: build/index.d.ts#createFamilyRegistry
 declaredClaimOf: build/index.d.ts#declaredClaimOf
 declaredCounts: build/index.d.ts#declaredCounts
+dimensionAt: build/index.d.ts#dimensionAt
+dimensionUnit: build/index.d.ts#dimensionUnit
 documentHash: build/index.d.ts#documentHash
 edgeStep: build/index.d.ts#edgeStep
 enumerateSpace: build/index.d.ts#enumerateSpace
@@ -150,6 +170,7 @@ isShapeKind: build/index.d.ts#isShapeKind
 itemShapeOf: build/index.d.ts#itemShapeOf
 joinConfigs: build/index.d.ts#joinConfigs
 leaveOneSeedOut: build/index.d.ts#leaveOneSeedOut
+levelsOf: build/index.d.ts#levelsOf
 marginSides: build/index.d.ts#marginSides
 minEffectOf: build/index.d.ts#minEffectOf
 mulberry32: build/index.d.ts#mulberry32
@@ -157,7 +178,10 @@ outputGroups: build/index.d.ts#outputGroups
 outputHash: build/index.d.ts#outputHash
 overlapOf: build/index.d.ts#overlapOf
 packHard: build/index.d.ts#packHard
+paramActive: build/index.d.ts#paramActive
 paramLevels: build/index.d.ts#paramLevels
+paramProblem: build/index.d.ts#paramProblem
+paramValue: build/index.d.ts#paramValue
 pickMoves: build/index.d.ts#pickMoves
 placedRect: build/index.d.ts#placedRect
 portfolio: build/index.d.ts#portfolio
@@ -165,12 +189,14 @@ productSpace: build/index.d.ts#productSpace
 randomInt: build/index.d.ts#randomInt
 rectInRegion: build/index.d.ts#rectInRegion
 regionHitsRect: build/index.d.ts#regionHitsRect
+resolveDimensions: build/index.d.ts#resolveDimensions
 selectBest: build/index.d.ts#selectBest
 sha256Hex: build/index.d.ts#sha256Hex
 shapeKindOf: build/index.d.ts#shapeKindOf
 shapeKindProblem: build/index.d.ts#shapeKindProblem
 shapeKindsOf: build/index.d.ts#shapeKindsOf
 shapesOf: build/index.d.ts#shapesOf
+sharedDimension: build/index.d.ts#sharedDimension
 spaceShapeKinds: build/index.d.ts#spaceShapeKinds
 spaceSize: build/index.d.ts#spaceSize
 splitConfig: build/index.d.ts#splitConfig
@@ -190,6 +216,16 @@ verdict: build/index.d.ts#verdict
 
 ## Declarations
 
+### build/index.d.ts#CORPUS_DIMENSIONS
+export declare const CORPUS_DIMENSIONS: Readonly<Record<string, CorpusDimension>>;
+
+### build/index.d.ts#CellsOptions
+export interface CellsOptions {
+  readonly version?: number;
+  readonly sweep?: readonly string[];
+  readonly levels?: Readonly<Record<string, readonly ParamValue[]>>;
+}
+
 ### build/index.d.ts#ClaimBreak
 export interface ClaimBreak {
   readonly claim: string;
@@ -197,15 +233,45 @@ export interface ClaimBreak {
   readonly inputs: readonly string[];
 }
 
+### build/index.d.ts#ComposeOptions
+export interface ComposeOptions {
+  readonly name?: string;
+  readonly owner?: string;
+  readonly meaning?: string;
+  readonly hash?: (input: LayoutInput) => string;
+}
+
 ### build/index.d.ts#ContainerTest
 export interface ContainerTest {
   readonly exactContainer?: boolean;
+}
+
+### build/index.d.ts#CorpusDimension
+export interface CorpusDimension extends SpaceParam {
+  readonly meaning: string;
+  readonly engines: readonly string[];
+  readonly levels?: readonly ParamValue[];
 }
 
 ### build/index.d.ts#CorpusEntry
 export interface CorpusEntry {
   readonly id: string;
   readonly hash: string;
+}
+
+### build/index.d.ts#CorpusFamily
+export interface CorpusFamily<O = LayoutInput> {
+  readonly name: string;
+  readonly version: number;
+  readonly owner: string;
+  readonly meaning: string;
+  readonly dimensions: readonly CorpusDimension[];
+  readonly seeding: string;
+  readonly crossEngine: CrossEngine;
+  readonly rng?: RngFactory;
+  readonly rngSeed?: (seed: number, dims: DimensionValues) => number;
+  readonly familyBy?: readonly string[];
+  generate(seed: number, dims: DimensionValues, context: GenerateContext): O;
 }
 
 ### build/index.d.ts#CorpusSplit
@@ -217,6 +283,28 @@ export interface CorpusSplit {
     readonly folds: readonly SplitFold[];
   }>>;
 }
+
+### build/index.d.ts#CorpusStep
+export interface CorpusStep {
+  readonly name: string;
+  readonly version: number;
+  readonly owner: string;
+  readonly meaning: string;
+  readonly dimensions: readonly CorpusDimension[];
+  readonly seeding: string;
+  readonly crossEngine: CrossEngine;
+  readonly familyPart?: (dims: DimensionValues) => string;
+  apply(input: LayoutInput, seed: number, dims: DimensionValues): LayoutInput;
+}
+
+### build/index.d.ts#CrossEngine
+export type CrossEngine = "exact" | "libm-dependent";
+
+### build/index.d.ts#DEFAULT_FAMILY_BY
+export declare const DEFAULT_FAMILY_BY: FamilyBy;
+
+### build/index.d.ts#DEFAULT_RNG
+export declare const DEFAULT_RNG: RngFactory;
 
 ### build/index.d.ts#DEFAULT_SHAPES
 export declare const DEFAULT_SHAPES: readonly ShapeKind[];
@@ -236,8 +324,14 @@ export interface DeclaredClaim {
 ### build/index.d.ts#Declares
 export type Declares<I> = (input: I) => readonly string[];
 
+### build/index.d.ts#DimensionValues
+export type DimensionValues = Readonly<Record<string, ParamValue>>;
+
 ### build/index.d.ts#Direction
 export type Direction = "lower" | "higher";
+
+### build/index.d.ts#EDGES_STEP
+export declare const EDGES_STEP: CorpusStep;
 
 ### build/index.d.ts#EDGE_DENSITY
 export declare const EDGE_DENSITY: Readonly<Record<EdgeStepParams["edgeDensity"], number>>;
@@ -281,12 +375,40 @@ export type FamilyBy = readonly string[] | {
 ### build/index.d.ts#FamilyCell
 export type FamilyCell = Readonly<Record<string, unknown>>;
 
+### build/index.d.ts#FamilyRegistry
+export interface FamilyRegistry<O = LayoutInput> {
+  register(family: CorpusFamily<O>): FamilyRegistry<O>;
+  family(name: string, version?: number): CorpusFamily<O>;
+  families(): readonly CorpusFamily<O>[];
+  resolve(name: string, dims?: Readonly<Record<string, ParamValue>>, version?: number): DimensionValues;
+  generate(name: string, seed: number, dims?: Readonly<Record<string, ParamValue>>, options?: GenerateOptions): O;
+  cellOf(name: string, dims?: Readonly<Record<string, ParamValue>>, version?: number): RegistryCell;
+  cells(name: string, options?: CellsOptions): Generator<DimensionValues>;
+  cellCount(name: string, options?: CellsOptions): number;
+  boundaryCells(name: string, version?: number): DimensionValues[];
+  rngOf(name: string, version?: number): (seed: number, dims?: Readonly<Record<string, ParamValue>>) => () => number;
+  familyBy(): FamilyBy;
+}
+
 ### build/index.d.ts#FamilyVerdict
 export interface FamilyVerdict {
   readonly family: string;
   readonly n: number;
   readonly mean: number;
   readonly sign: -1 | 0 | 1;
+}
+
+### build/index.d.ts#GenerateContext
+export interface GenerateContext {
+  readonly rng: RngFactory;
+  readonly random: () => number;
+  readonly set?: string;
+}
+
+### build/index.d.ts#GenerateOptions
+export interface GenerateOptions {
+  readonly version?: number;
+  readonly set?: string;
 }
 
 ### build/index.d.ts#GridOptions
@@ -656,6 +778,14 @@ export type Region = {
   readonly ry: number;
 };
 
+### build/index.d.ts#RegistryCell
+export type RegistryCell = Readonly<Record<string, ParamValue>> & {
+  readonly kind: string;
+};
+
+### build/index.d.ts#RngFactory
+export type RngFactory = (seed: number) => () => number;
+
 ### build/index.d.ts#RunEnv
 export interface RunEnv {
   readonly node: string;
@@ -997,6 +1127,9 @@ export declare function checkSplit(split: unknown, corpus: SplitCorpus, name?: s
 ### build/index.d.ts#compareMeasure
 export declare function compareMeasure(candidate: number, baseline: number, spec: Pick<MeasureSpec, "direction" | "minEffect">): Verdict;
 
+### build/index.d.ts#composeFamily
+export declare function composeFamily(base: CorpusFamily<LayoutInput>, steps: readonly CorpusStep[], options?: ComposeOptions): CorpusFamily<LayoutInput>;
+
 ### build/index.d.ts#configId
 export declare function configId(space: StrategySpace, config: StrategyConfig): string;
 
@@ -1015,11 +1148,20 @@ export declare function countOverlaps(boxes: readonly LayoutBox[], tolerance?: n
 ### build/index.d.ts#countPortsOffBorder
 export declare function countPortsOffBorder(boxes: readonly LayoutBox[], eps?: number): number;
 
+### build/index.d.ts#createFamilyRegistry
+export declare function createFamilyRegistry<O = LayoutInput>(families?: Iterable<CorpusFamily<O>>): FamilyRegistry<O>;
+
 ### build/index.d.ts#declaredClaimOf
 export declare function declaredClaimOf(manifest: object): DeclaredClaim | undefined;
 
 ### build/index.d.ts#declaredCounts
 export declare function declaredCounts<I>(inputs: Iterable<I>, declares: Declares<I>, ids?: readonly string[]): Record<string, number>;
+
+### build/index.d.ts#dimensionAt
+export declare function dimensionAt(dim: SpaceParam, t: number): number;
+
+### build/index.d.ts#dimensionUnit
+export declare function dimensionUnit(dim: SpaceParam, value: number): number;
 
 ### build/index.d.ts#documentHash
 export declare function documentHash(doc: object, options?: HashOptions): string;
@@ -1054,6 +1196,9 @@ export declare function joinConfigs(space: string, parts: readonly StrategyConfi
 ### build/index.d.ts#leaveOneSeedOut
 export declare function leaveOneSeedOut(seeds: readonly number[]): SplitFold[];
 
+### build/index.d.ts#levelsOf
+export declare function levelsOf(dim: CorpusDimension, steps?: number): ParamValue[];
+
 ### build/index.d.ts#marginSides
 export declare function marginSides(margin: Margin | undefined): Sides;
 
@@ -1078,8 +1223,17 @@ export declare function overlapOf(a: Rect, b: Rect): {
 ### build/index.d.ts#packHard
 export declare function packHard(input: LayoutInput, output: PackOutput, tolerance?: number, options?: ContainerTest): PackHard;
 
+### build/index.d.ts#paramActive
+export declare function paramActive(param: SpaceParam, values: Readonly<Record<string, ParamValue>>): boolean;
+
 ### build/index.d.ts#paramLevels
 export declare function paramLevels(param: SpaceParam, levels: number): ParamValue[];
+
+### build/index.d.ts#paramProblem
+export declare function paramProblem(param: SpaceParam, value: unknown): string | undefined;
+
+### build/index.d.ts#paramValue
+export declare function paramValue(param: SpaceParam, value: ParamValue): ParamValue;
 
 ### build/index.d.ts#pickMoves
 export declare function pickMoves(trace: Pick<PortfolioTrace, "picked">): {
@@ -1104,6 +1258,9 @@ export declare function rectInRegion(region: Region, rect: Rect): boolean;
 ### build/index.d.ts#regionHitsRect
 export declare function regionHitsRect(region: Region, rect: Rect): boolean;
 
+### build/index.d.ts#resolveDimensions
+export declare function resolveDimensions(dimensions: readonly CorpusDimension[], dims?: Readonly<Record<string, ParamValue>>, where?: string): DimensionValues;
+
 ### build/index.d.ts#selectBest
 export declare function selectBest(candidates: readonly SelectCandidate[], levels: readonly SelectLevel[]): Selection;
 
@@ -1121,6 +1278,9 @@ export declare function shapeKindsOf(input: Pick<LayoutInput, "boxes">): ShapeKi
 
 ### build/index.d.ts#shapesOf
 export declare function shapesOf(use: Pick<ShapeSupport, "shapes">): readonly ShapeKind[];
+
+### build/index.d.ts#sharedDimension
+export declare function sharedDimension(name: string, patch?: Partial<CorpusDimension>): CorpusDimension;
 
 ### build/index.d.ts#spaceShapeKinds
 export declare function spaceShapeKinds(space: StrategySpace): ShapeKind[];

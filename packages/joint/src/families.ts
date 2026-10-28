@@ -29,7 +29,7 @@ const CROSS_ENGINE: Readonly<Record<string, CrossEngine>> = Object.freeze({ "rec
 
 /**
  * This function gives a family of the registry for a generator of `packing`. The dimensions are the parameters of the generator.
- * A parameter of the shared table gets its dimension, with the default and the values of the generator. `generate` calls the generator with no other change.
+ * A parameter of the shared table gets its dimension, with the default and the values of the generator. `generate` starts the generator with no other change.
  * TODO(k73): use the family that `packing` registers, when it has one. Then this adapter goes.
  */
 export function packingFamily(gen: CorpusGenerator): CorpusFamily<LayoutInput> {
