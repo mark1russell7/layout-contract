@@ -9,6 +9,7 @@ The joint benchmark packs each input of a joint corpus, and then routes the pack
 - The joint-v2 run of 2026-10-28 used `packing` 0.2.6 and `highways` 0.5.1. Version 0.6.0 changes the default members of `portfolio`.
 - Thus the benchmark has 130 pairs. The runs before L32 had 120 pairs. `joint-v2` has 303 inputs, and `joint-v1` has 285 inputs.
 - The option `--lanes on` adds the 18 lane pairs of L13. Refer to "The lane pairs".
+- The option `--iterate on` adds the 18 iteration pairs of L11. Refer to "The iteration pairs".
 
 The portfolio router is `portfolioRouter()` with its defaults: the rule `collection`, the cap 1.5 and the order `fit`. Its default is deterministic. Above 40 nodes, it uses only `shared`.
 
@@ -137,6 +138,71 @@ The plan gives each lane pass the cost of 3 pairs: 2 packs, 1 route and 1 lane c
 | `--lanes on`, 130 pairs and 18 lane pairs | 468.7 minutes | 25.0 minutes |
 
 The cost of 3 pairs for each pass is high on purpose. The first pass uses the pack and the routes of the base pair again. Only the last pass routes as a pair of the default run, with 2 timed routes and the facts. Thus a lane pair with 1 pass costs approximately 1 pair and 2 packs, and the real time is likely less than the plan.
+
+## The iteration pairs
+
+The iteration pairs are the joint strategy of L11: place, route, and place again. A lane pair of L13 sets the gaps one time, from the routes of the base pair. An iteration pair measures the corridors of each new layout from its real routes, and changes the gaps again. It stops when a round gives no gain. The default run has no iteration pairs. The option `--iterate on` of `pnpm bench run` and `pnpm bench plan` adds them, and the input `iterate` of `joint-bench.yml` gives that option.
+
+### The steps of an iteration pair
+
+An iteration pair has a round cap R, a base pack entry and a router. Its id is `lanes-iter<R>.<pack entry>.<router>+<router>`, for example `lanes-iter3.maxrects-cp.corners+corners`. The base pair is `<pack entry>+<router>`.
+
+1. The runner packs and routes the input as the base pair. `sideLanes` counts the lanes along each side of each placed box.
+2. Round 1 uses the margins of `lanes-sides` (`laneMargins`). Thus round 1 has the layout of `lanes-sides`.
+3. Each next round counts the lanes of the routes of the last round with `sideLanes`. `sideCall` gives each side one of 3 calls.
+4. `iterMargins` changes the margins by the calls. The runner packs and routes again with the new margins.
+5. The runner scores each round by the pick levels of the headline cell (`compareRecords`): the hard value, the overflow area, `joint.fill`, then the ties.
+6. The chain keeps the best round. A later round replaces it only when it is better. Thus the result is not worse than round 1 at any time.
+7. The chain stops at the cap, at a round without gain, when no margin changes, or when a pack or a route fails.
+
+The 3 calls of a side:
+
+| Call | The side | The new margin |
+|---|---|---|
+| `crowded` | It has k lanes, a node faces it, and the corridor is narrower than `laneNeed(k)`. | `(laneNeed(k) - gap) / 2`, if that is larger. The 2 boxes of the corridor share the need, as in `laneMargins`. |
+| `empty` | No lane runs along it. | The floor: the margin of the input, and at least `(1 - gap) / 2`. |
+| `kept` | It has lanes and enough space, or no node faces it. | No change. |
+
+- The floor comes from decision `d7`: a margin and a gap of 0 break `no-pass-through`. Thus the space of 2 facing sides is more than 0 (`ITER_FLOOR_SPACE` is 1 unit). Only the stress cell has a margin and a gap of 0.
+- A margin does not go below the margin of the input. A smaller margin breaks the rule `no-overlap` of the pack, because the runner scores each pack against the input.
+- The gap of each pair of items of `packing` (k77) is not built yet. `iterMargins` gives a `RoundSpace`, and a later version can give a gap for each pair of facing boxes there. The corridors and the calls stay the same.
+
+The variants are `lanes-iter1`, `lanes-iter2` and `lanes-iter3`. The base pack entries and the routers are the same as for the lane pairs. Thus `iterEntries()` gives 3 × 3 × 2 = 18 iteration pairs.
+
+- The 3 variants of one pack entry and router share one chain of rounds. A cap of R reads the first R rounds of the chain. Thus `lanes-iter3` costs the same as all 3 variants.
+- `lanes-iter1` has the output of `lanes-sides`. Thus a run with `--iterate on` compares the rounds with `lanes-sides` without the lane pairs.
+
+The records of an iteration pair hold the best round. They add these measures to the measures of the lane pairs:
+
+| Measure | Value |
+|---|---|
+| `iter.rounds` | The count of the rounds that the pair used, from 1 to its cap |
+| `iter.best` | The number of the best round |
+| `iter.stop` | The end of the rounds, as the index in `ITER_STOPS`: 0 the cap, 1 no gain, 2 the same margins, 3 a failure |
+| `iter.widened`, `iter.narrowed` | The count of the sides that the rounds widened and narrowed |
+
+`pack.ms`, `joint.ms` and `ms` are the sum of the base pair and of all used rounds, also the rounds after the best round. `time.lanes.ms` is the time of the lane counts and the margins.
+
+### The iteration pairs in the analysis
+
+An iteration pair is also a lane pair, because its pack part starts with `lanes-`. Thus the rows of `lanes`, `report-without-lanes.json` and the default of `--oracle-without` include it.
+
+- Each row of an iteration pair has the field `iterate`. It gives the mean rounds, the mean best round and the inputs with a gain after round 1. It also gives the ends of the rounds and the changed sides.
+- The section "The rounds of the iteration pairs" of `report.md` shows these fields.
+- The default compare adds each iteration pair against its base pair. It also adds `lanes-iter2` and `lanes-iter3` against `lanes-iter1` of the same pack entry and router.
+
+### The plan of the iteration pairs
+
+The plan gives each round the cost of a lane pass (`LANE_PASS_COST`, 3 pairs). Each of the 6 chains has 3 rounds. Thus the 18 iteration pairs have the cost of 54 pairs (`iterPlanPairs`), and the plan has the cost of 184 pairs.
+
+| Plan at 64 shards | All shards | The most costly shard |
+|---|---|---|
+| `--iterate on`, 130 pairs and 18 iteration pairs | 426.9 minutes | 22.7 minutes |
+| `--lanes on --iterate on`, 166 pairs | 593.9 minutes | 31.6 minutes |
+
+- Run the iteration pairs without `--lanes on`. With both, the plan gives more than 30 minutes to the most costly shard.
+- The most costly shard has 1 input: one seed of the dense spec with hubs and 1000 boxes. More shards do not make it shorter.
+- In L13, this spec took 31.5 minutes, and the plan gave it 25.0 minutes. The plan counts 3 pairs for each lane pass, but a lane pass on this spec took the time of approximately 4.6 pairs.
 
 ## The cells of highways
 
@@ -888,3 +954,60 @@ The table shows a part of the 18 rows. `report.json` has all of them, in `lanes`
 - The lane need is `10 + 4(k-1)` with a cap of 8 lanes. Other values are not measured.
 - The gaps come from a margin per box or per side. A gap per channel needs a packing option, and the request text is above.
 - Do not refit the cost model from this run. The fit divides by 130 pairs, and this run has 148.
+
+## The prediction for iteration pairs (L11)
+
+This prediction comes before the full run with the iteration pairs: `joint-v2`, 303 inputs, 3 seeds, 64 shards and the input `iterate`. The run does not use the input `lanes`. The verdicts come from the 2 reports and the shard logs, by hand. The entries stay the same after the run.
+
+The run has 1 change from the run 40757153151 of L13. The runner has the 18 iteration pairs of "The iteration pairs", and not the 18 lane pairs. The lockfile keeps `packing` 0.2.17 and `highways` 0.8.1.
+
+The cells of the claims are the headline cell (the rule `all`, the cap 1.25) and the stress cell with the same rule and cap. In L13, the best pair of the headline cell was `lanes-sides.maxrects-cp.corners+corners`, with 22 misses against 47 for its base pair. Its gain over the base pair was +0.011 [-0.024, 0.050].
+
+### The claims
+
+| Id | Confidence | Claim |
+|---|---|---|
+| H1 | 0.9 | No iteration record is skipped when the record of its base pair is not skipped. |
+| H2 | 0.9 | Each `lanes-iter1` pair has the same mean `joint.fill` and the same breaks of `no-pass-through` as its `lanes-sides` pair in L13. |
+| H3 | 0.85 | In the headline cell and in the stress cell, no `lanes-iter2` or `lanes-iter3` pair misses the floor on an input where its `lanes-iter1` pair reaches it. |
+| H4 | 0.75 | Of the records of `lanes-iter3`, the end "no gain" is the most frequent end of the rounds. |
+| H5 | 0.6 | In the headline cell, the mean of `iter.rounds` of each `lanes-iter3` pair is from 1.6 to 2.6. |
+| H6 | 0.75 | In the headline cell, the best pair is an iteration pair of `maxrects-cp` and `corners`. |
+| H7 | 0.5 | In the headline cell, `lanes-iter3.maxrects-cp.corners+corners` misses the floor on at least 3 fewer inputs than `lanes-iter1.maxrects-cp.corners+corners`. |
+| H8 | 0.45 | In the headline cell, at least 1 of the 6 `lanes-iter3` pairs has a mean `joint.fill` 0.01 or more above its `lanes-iter1` pair. |
+| H9 | 0.45 | In the stress cell, each `lanes-iter3` pair has fewer records with a break of `no-pass-through` than its `lanes-iter1` pair. |
+| H10 | 0.35 | In the headline cell, the gain of `lanes-iter3.maxrects-cp.corners+corners` over `maxrects-cp+corners` has an interval with a lower end above 0. |
+| H11 | 0.75 | Each shard takes less than 30 minutes. The plan gives 22.7 minutes to the most costly shard. |
+| H12 | 0.5 | The sum of the times of the step `Run one shard` is from 330 to 430 minutes. The plan gives 426.9 minutes. |
+
+### The reasons for the confidences
+
+In L32, 8 of 11 claims held. The claims from the code held, and the misses were risky claims of a gain. Thus the claims from the code get 0.85 to 0.9, and the claims of a gain get 0.35 to 0.5. The mean confidence is 0.65. Thus approximately 8 of the 12 claims hold, if the confidences are correct.
+
+- H1 comes from the code. A failed round stops the chain with the end "failed", and the record keeps the best earlier round. Round 1 has the margins of `lanes-sides`, which gave 0 skipped records in L13.
+- H2 comes from the code: round 1 uses `laneMargins` in the mode `sides`, as `lanes-sides` does. The test `iterate.test.ts` checks the same output hash. A change of the floors of the cells changes the misses, so H2 uses only the fill and the breaks.
+- H3 comes from the code. A later round replaces the best round only when `compareRecords` gives `better` at the headline cell. H3 is not 0.95, because the floor of the analysis uses the minimum effects of the levels, and a small change can cross it.
+- H4: on 12 small inputs of `joint-v2`, the end "no gain" came on 16 of 24 chains. The end "same margins" came on the inputs without routes along a side. The cap came only once.
+- H5: on the 12 small inputs, the mean rounds was 1.8 for `rows` and 2.1 for `maxrects-cp`. Large inputs have more corridors, and each round changes more sides. Thus the mean can go up.
+- H6: an iteration pair is not worse at any time than its `lanes-iter1` pair (H3). `lanes-iter1` equals the best pair of L13. The run has no lane pairs, so only the old pairs and the iteration pairs compete.
+- H7 is a risky claim of a gain. A later round wins only on the pick levels, and the fill decides most picks. On the 12 small inputs, a round after round 1 won on 6 of 24 chains. A win counts only when it closes a miss.
+- H8 is a risky claim. The empty sides go down to the floor, and that gives area back. But a crowded side grows again, and the gain comes only on the inputs where a later round wins.
+- H9 is a risky claim. The floor of `d7` gives each side in the stress cell 0.5 units, so 2 facing sides have 1 unit. That removes the touching sides. But `compareRecords` does not count `route.no-pass-through`, so round 1 stays the best round when the fill goes down.
+- H10 is a risky claim. In L13 the interval was [-0.024, 0.050]. The iteration adds a gain only on the inputs where a later round wins, and the interval width stays the same.
+- H11: the most costly shard has 1 dense input with 1000 boxes. In L13, a lane pass on this input took approximately 0.6 minutes. 6 chains of 2.4 rounds add approximately 8.6 minutes to the 17.1 minutes of L32. That gives approximately 25.7 minutes. The cap of 3 rounds gives 27.9 minutes.
+- H12: the plan counts 3 pairs for each round, and each chain uses all 3 rounds. In L13, the real time was 415.5 minutes for a plan of 468.7 minutes. Most chains stop after 2 rounds (H4), so the real sum is likely lower than the plan.
+
+### The numbers of the claims
+
+| Id | Field | Section of the Markdown report |
+|---|---|---|
+| H1 | `lanes[].skipped` of `report.json` | The lane pairs |
+| H2 | `lanes[]` of `lanes-iter1`: `lane.fill` and `lane.broken`, and the same rows of `lanes-sides` in the report of L13 | The lane pairs |
+| H3 | `compare` of `lanes-iter2` and `lanes-iter3` against `lanes-iter1`: `onlyB` | The pairwise comparisons |
+| H4, H5 | `lanes[].iterate`: `stops` and `rounds` | The rounds of the iteration pairs |
+| H6 | `best.pair` of the headline cell of `report.json` | The cells |
+| H7 | `compare` of `lanes-iter3` against `lanes-iter1`: `missesA` and `missesB` | The pairwise comparisons |
+| H8 | `lanes[]` with the scope `headline`: `lane.fill` of `lanes-iter3` and of `lanes-iter1` | The lane pairs |
+| H9 | `lanes[]` with the scope `stress`: `lane.broken` of `lanes-iter3` and of `lanes-iter1` | The lane pairs |
+| H10 | `compare` of the headline cell: the gain and its interval for `lanes-iter3.maxrects-cp.corners+corners` | The pairwise comparisons |
+| H11, H12 | `shardTimes`: the step `Run one shard` of each shard | The shard times |

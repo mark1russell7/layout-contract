@@ -374,3 +374,150 @@ export const LANE_PASS_COST = 3;
 export function lanePlanPairs(entries: readonly LaneEntry[]): number {
   return entries.reduce((n, e) => n + LANE_PASS_COST * e.variant.passes, 0);
 }
+
+// The iteration pairs of roadmap item L11 (`docs/JOINT-BENCH.md`, "The iteration pairs"): place, route, place again, until a round gives no gain.
+
+/** The prefix of the pack part of each iteration pair. An iteration pair is also a lane pair, so the analysis reports it as a lane pair. */
+export const ITER_PREFIX: string = `${LANE_PREFIX}iter`;
+
+/** The largest count of rounds of an iteration pair. Round 1 is the layout of `lanes-sides`. */
+export const ITER_ROUNDS = 3;
+
+/**
+ * The least space between two facing sides, in units. Decision `d7` of the corpus: a margin and a gap of 0 break `no-pass-through`.
+ * Thus a side without lanes gets a margin of at least `(ITER_FLOOR_SPACE - gap) / 2`. It is not less than its margin in the input at any time.
+ */
+export const ITER_FLOOR_SPACE = 1;
+
+/** One variant of the iteration pairs: the largest count of rounds. */
+export interface IterVariant {
+  readonly name: string;
+  readonly rounds: number;
+}
+
+/**
+ * The variants of the iteration pairs of L11: `lanes-iter1` to `lanes-iter3`, with a cap of 1 to 3 rounds.
+ * The 3 variants of one pack entry and router share one chain of rounds. Thus `lanes-iter3` costs the same as all 3.
+ */
+export const ITER_VARIANTS: readonly IterVariant[] = Object.freeze(Array.from({ length: ITER_ROUNDS }, (_, i) => Object.freeze({ name: `${ITER_PREFIX}${i + 1}`, rounds: i + 1 })));
+
+/** One iteration pair: a variant, a pack entry and a router. Its id is the pack part of the pair id. */
+export interface IterEntry {
+  readonly id: string;
+  readonly variant: IterVariant;
+  readonly pack: string;
+  readonly router: string;
+}
+
+/** This function gives the iteration entries of each variant, pack entry and router, in this order. */
+export function iterEntries(variants: readonly IterVariant[] = ITER_VARIANTS, packs: readonly string[] = LANE_PACKS, routers: readonly string[] = LANE_ROUTERS): IterEntry[] {
+  return variants.flatMap((variant) => packs.flatMap((pack) => routers.map((router) => ({ id: [variant.name, pack, router].join(LANE_SEPARATOR), variant, pack, router }))));
+}
+
+/** This function tells if the pack part of a pair id is an iteration entry. */
+export function isIterPack(pack: string): boolean {
+  return pack.startsWith(ITER_PREFIX);
+}
+
+/** This function gives the round cap of the pack part of an iteration pair, or `undefined` for another pack part. */
+export function iterRoundsOf(pack: string): number | undefined {
+  const parts = laneParts(pack);
+  if (parts === undefined || !isIterPack(parts.variant)) return undefined;
+  const n = Number(parts.variant.slice(ITER_PREFIX.length));
+  return Number.isInteger(n) && n >= 1 ? n : undefined;
+}
+
+/**
+ * This function gives the plan cost of the iteration entries, in the cost of one pair.
+ * Each pack entry and router has one chain of rounds, up to the largest cap of its entries. Each round costs `LANE_PASS_COST`.
+ */
+export function iterPlanPairs(entries: readonly IterEntry[]): number {
+  const most = new Map<string, number>();
+  for (const e of entries) {
+    const key = [e.pack, e.router].join(LANE_SEPARATOR);
+    most.set(key, Math.max(most.get(key) ?? 0, e.variant.rounds));
+  }
+  return [...most.values()].reduce((n, r) => n + LANE_PASS_COST * r, 0);
+}
+
+/** What a round does with one side of a placed box. */
+export type SideCall = "crowded" | "empty" | "kept";
+
+/**
+ * This function tells what a round does with one side, from the lanes of the routes of the last round.
+ * - `crowded`: the side has lanes, a node faces it, and the corridor is narrower than `laneNeed` of its lanes. The margin grows.
+ * - `empty`: no lane runs along the side. The margin goes down to the floor.
+ * - `kept`: the side has lanes and enough space, or no node faces it. The margin stays.
+ */
+export function sideCall(side: SideLanes, options: LaneOptions = {}): SideCall {
+  if (side.lanes <= 0) return "empty";
+  return Number.isFinite(side.width) && side.width < laneNeed(side.lanes, options) - EPS ? "crowded" : "kept";
+}
+
+/** This function gives the sides of a box in the axes of the board from the sides in its own axes. It is the inverse of `itemSides`. */
+function placedSides(own: Sides, turn: Placement["turn"]): Record<BoxSide, number> {
+  if (turn !== 90) return { top: own.top, right: own.right, bottom: own.bottom, left: own.left };
+  return { top: own.left, right: own.top, bottom: own.right, left: own.bottom };
+}
+
+/** The options of the margins of a round of an iteration pair. */
+export interface IterOptions extends LaneOptions {
+  /** The least space between two facing sides. The default is `ITER_FLOOR_SPACE`. */
+  readonly floor?: number;
+}
+
+/**
+ * The space of one round: the boxes with their margins, and the count of the sides that changed.
+ * The gap for each pair of items of `packing` (k77) can replace the margins later. The same corridors then give a gap for each pair of facing boxes.
+ */
+export interface RoundSpace {
+  readonly boxes: readonly LayoutBox[];
+  /** The count of the sides with a larger margin. */
+  readonly widened: number;
+  /** The count of the sides with a smaller margin. */
+  readonly narrowed: number;
+}
+
+/**
+ * This function gives the margins of the next round from the lanes of the routes of the last round (`sideLanes`).
+ *
+ * - A `crowded` side gets the margin `(laneNeed(k) - gap) / 2`, if that is larger. The two boxes of a corridor share the need, as in `laneMargins`.
+ * - An `empty` side goes down to its floor: its margin in `inputs`, and at least `(floor - gap) / 2`. A margin below the input margin breaks `no-overlap`.
+ * - A `kept` side, a box without a placement and a box without lanes keep their margins.
+ */
+export function iterMargins(
+  boxes: readonly LayoutBox[],
+  inputs: readonly LayoutBox[],
+  placements: readonly Placement[],
+  lanes: ReadonlyMap<string, BoxLanes>,
+  gap: number,
+  options: IterOptions = {},
+): RoundSpace {
+  const at = new Map(placements.map((p) => [p.id, p]));
+  const own = new Map(inputs.map((b) => [b.id, b]));
+  const least = Math.max(0, ((options.floor ?? ITER_FLOOR_SPACE) - gap) / 2);
+  let widened = 0;
+  let narrowed = 0;
+  const out = boxes.map((box) => {
+    const p = at.get(box.id);
+    const sides = lanes.get(box.id);
+    if (p === undefined || sides === undefined) return box;
+    const now = placedSides(marginSides(box.margin), p.turn);
+    const base = placedSides(marginSides(own.get(box.id)?.margin), p.turn);
+    const next = { ...now };
+    for (const side of BOX_SIDES) {
+      const floor = Math.max(base[side], least);
+      const call = sideCall(sides[side], options);
+      if (call === "crowded") next[side] = Math.max(now[side], floor, (laneNeed(sides[side].lanes, options) - gap) / 2);
+      else if (call === "empty") next[side] = floor;
+      if (next[side] > now[side] + EPS) widened += 1;
+      else if (next[side] < now[side] - EPS) narrowed += 1;
+      else next[side] = now[side];
+    }
+    if (BOX_SIDES.every((s) => next[s] === now[s])) return box;
+    const margin = marginOf(itemSides(next, p.turn));
+    const { margin: _old, ...rest } = box;
+    return margin === undefined ? rest : { ...rest, margin };
+  });
+  return { boxes: out, widened, narrowed };
+}
