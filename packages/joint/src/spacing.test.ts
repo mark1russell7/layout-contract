@@ -92,7 +92,7 @@ describe("the pack entries and the spacing", () => {
       }
     }
     expect(bad).toEqual([]);
-    // The known fault of `packing` 0.2.6: `skyline` puts each box at one place in a free circle with identical boxes, also with no margin and no gap.
-    expect(overlaps).toEqual(["joint-v2/rect-grid.freeArea.circle.none.identical.n10.e-dense.tree.none.free.sp-margin/s1 skyline"]);
+    // `packing` 0.2.6 had a fault: `skyline` put each box at one place in a free circle with identical boxes. Version 0.2.10 corrects it.
+    expect(overlaps).toEqual([]);
   });
 });

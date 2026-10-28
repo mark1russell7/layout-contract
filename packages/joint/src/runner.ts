@@ -18,9 +18,11 @@ import { checkHard, measure, outputHash as packHash, packWith, strategy as packS
 import {
   asRouter,
   benchRun,
+  checkProperties,
+  exactStretches,
   inputGraph,
   measureName,
-  portfolioFacts,
+  mixedSegments,
   portfolioRouter,
   routeMeasures,
   routerStrategies,
@@ -40,7 +42,7 @@ export interface PackEntry {
 }
 
 /**
- * The pack entries of the joint runner: the entries of the benchmark of `packing` 0.2.6 (`bench/entries.ts`) without `push`.
+ * The pack entries of the joint runner: the entries of the benchmark of `packing` 0.2.10 (`bench/entries.ts`) without `push`.
  * The strategy `push` supports only the mode `incremental`, and each input of the joint corpora has the mode `offline`.
  */
 export const PACK_ENTRIES: readonly PackEntry[] = Object.freeze([
@@ -58,10 +60,10 @@ export const PACK_ENTRIES: readonly PackEntry[] = Object.freeze([
   { id: "maxrects-cp", strategy: "maxrects", options: { rule: "cp" } },
 ]);
 
-/** The name of the portfolio router of `highways` 0.5.1 in the pair ids. The runner uses `portfolioRouter()` with its defaults. */
+/** The name of the portfolio router of `highways` 0.6.0 in the pair ids. The runner uses `portfolioRouter()` with its defaults. */
 export const PORTFOLIO_ROUTER = "portfolio";
 
-/** The routers of the joint runner: the 9 router strategies of `highways` 0.5.1, in the order of its benchmark, and the portfolio router. */
+/** The routers of the joint runner: the 9 router strategies of `highways` 0.6.0, in the order of its benchmark, and the portfolio router. */
 export const ROUTERS: readonly string[] = Object.freeze([...Object.keys(routerStrategies), PORTFOLIO_ROUTER]);
 
 /** The stretch caps of the cells of `highways`. */
@@ -97,7 +99,7 @@ export function runEnv(): RunEnv {
   return { node: process.version, os: platform(), arch: arch(), runner: process.env["RUNNER_NAME"] ?? "local", cpu: list[0]?.model ?? "unknown", cpus: list.length };
 }
 
-/** This function gives the input of the packer: the boxes without `group` and `parent`. No strategy of `packing` 0.2.6 supports groups. */
+/** This function gives the input of the packer: the boxes without `group` and `parent`. No strategy of `packing` 0.2.10 supports groups. */
 export function packInputOf(input: LayoutInput): PackInput {
   const boxes = input.boxes.map((box) => {
     const { group: _group, parent: _parent, ...rest } = box;
@@ -138,9 +140,30 @@ export function jointHash(pack: string, route: string): string {
   return outputHash([pack, route]);
 }
 
+/** The tolerance of a stretch above a cap. `portfolioFacts` of `highways` 0.6.0 uses the same value. */
+export const CAP_EPS = 1e-9;
+
 /**
- * This function gives the measures and the hard counts of `portfolioFacts` of `highways`. The guard of its portfolio router uses the same facts.
- * `route.cap.<cap>` is the count of the edges with a stretch of the exact model above the cap. `route.mixed` is the count of the mixed shared segments.
+ * This function gives the function of the route facts of the outputs on the graph `graph`. The values are the values of `portfolioFacts` of `highways` 0.6.0.
+ * - `over(cap)` counts the edges whose stretch of `exactStretches` is above the cap. That stretch is the route length without its two plug ends, divided by the shortest way of the exact network.
+ * - An edge without a route or without a way in the network has no stretch. An edge with a shortest way of 1 unit or less also has none.
+ * - `hard` counts the breaks of each rule of `checkProperties`, and `mixed` is `mixedSegments`.
+ * The function builds the exact network one time for the graph, at the first call.
+ */
+export function routeFacts(graph: Graph): (result: Result) => PortfolioFacts {
+  let stretches: ReturnType<typeof exactStretches> | undefined;
+  return (result) => {
+    stretches ??= exactStretches(graph);
+    const values = [...stretches(result.routes).values()];
+    const hard: Record<string, number> = {};
+    for (const b of checkProperties(graph, result, 1_000_000)) hard[b.rule] = (hard[b.rule] ?? 0) + 1;
+    return { hard, over: (cap) => values.filter((v) => v > cap + CAP_EPS).length, mixed: mixedSegments(graph, result) };
+  };
+}
+
+/**
+ * This function gives the measures and the hard counts of the route facts (`routeFacts`). The guard of the portfolio router of `highways` uses the same facts.
+ * `route.cap.<cap>` is the count of the edges with a stretch of `exactStretches` above the cap. `route.mixed` is the count of the mixed shared segments.
  * `route.<rule>` is the count of the breaks of each hard rule of `checkProperties`, for the rules with a break.
  */
 export function factMeasures(facts: PortfolioFacts, caps: readonly number[] = CAPS): { readonly measures: Record<string, number>; readonly hard: Record<string, number> } {
@@ -185,7 +208,7 @@ function routerOf(name: string): Router {
   return asRouter(s);
 }
 
-/** This function routes one graph with one router and measures the result. `facts` is the function of `portfolioFacts` of the graph. */
+/** This function routes one graph with one router and measures the result. `facts` is the function of `routeFacts` of the graph. */
 function routeOnce(name: string, graph: Graph, facts: (result: Result) => PortfolioFacts, fixture: string, repeat: number): RouteRun | RouteMiss {
   const router = routerOf(name);
   if (graph.nodes.length > (router.maxNodes ?? Infinity)) return { ok: false, reason: `The graph has ${graph.nodes.length} nodes, above the limit ${router.maxNodes} of the router.` };
@@ -290,7 +313,7 @@ export function runInput(input: LayoutInput, cell: Readonly<Record<string, unkno
       const boxes: readonly LayoutBox[] = packed.input.boxes;
       const edges: readonly LayoutEdge[] = packed.input.edges ?? [];
       const graph = inputGraph(packed.input as unknown as Parameters<typeof inputGraph>[0]);
-      group = { packed, facts: placementFacts(boxes, edges), graph, check: portfolioFacts(graph), routes: new Map() };
+      group = { packed, facts: placementFacts(boxes, edges), graph, check: routeFacts(graph), routes: new Map() };
       shared.set(key, group);
     }
     const g = group;

@@ -3,8 +3,9 @@
 The joint benchmark packs each input of a joint corpus, and then routes the packed input. It runs each pair of a pack entry and a router. The package `packages/joint` holds the runner and the analysis. The workflow `joint-bench.yml` runs them in CI.
 
 - The corpus is `joint-v2` by default (`docs/JOINT-CORPUS.md`). The first run used `joint-v1`.
-- The pack entries are the 12 entries of the benchmark of `packing` 0.2.6 without `push`. The strategy `push` supports only the mode `incremental`, and each joint input is `offline`.
-- The routers are the 9 router strategies of `highways` 0.5.1, and the portfolio router `portfolio` of `highways` 0.5.1.
+- The pack entries are the 12 entries of the benchmark of `packing` 0.2.10 without `push`. The strategy `push` supports only the mode `incremental`, and each joint input is `offline`.
+- The routers are the 9 router strategies of `highways` 0.6.0, and the portfolio router `portfolio` of `highways` 0.6.0.
+- The joint-v2 run of 2026-10-28 used `packing` 0.2.6 and `highways` 0.5.1. Version 0.6.0 changes the default members of `portfolio`.
 - Thus the benchmark has 120 pairs. `joint-v2` has 303 inputs, and `joint-v1` has 285 inputs.
 
 The portfolio router is `portfolioRouter()` with its defaults: the rule `collection`, the cap 1.5 and the order `fit`. Its default is deterministic. Above 40 nodes, it uses only `shared`.
@@ -13,7 +14,7 @@ The portfolio router is `portfolioRouter()` with its defaults: the rule `collect
 
 `runInput(input, cell, options)` gives one record `layout-record/1` for each pair. The record has the stage `joint`, and the strategy `<pack entry>+<router>`.
 
-1. The runner removes `group` and `parent` from the boxes of the input of the packer. No strategy of `packing` 0.2.6 supports groups. The router reads the groups from `data.group`.
+1. The runner removes `group` and `parent` from the boxes of the input of the packer. No strategy of `packing` 0.2.10 supports groups. The router reads the groups from `data.group`.
 2. The runner packs the input two times. The time of the pack is the mean of the two times. The rule "same twice" compares the two hashes.
 3. The runner applies the pack to the input. It drops the overflow boxes and their edges (refer to "The overflow rule").
 4. The runner routes the packed input with each router, with `benchRun` of `highways` and 2 timed routes.
@@ -24,7 +25,8 @@ The record holds these values:
 - `measures`: the `pack.*` measures of `measure`, the `route.*` measures of `routeMeasures`, and the `joint.*` measures of `docs/JOINT-MEASURES.md`.
 - `measures` also holds `pack.ms`, `route.ms`, `joint.ms`, `joint.routes`, `joint.overflow.edges`, `route.mixed` and `route.cap.<cap>` for each cap.
 - `hard`: the breaks of `checkHard` with `exactContainer` as `pack.<rule>`, and the breaks of `checkProperties` as `route.<rule>`. `route.violations` is their sum.
-- `portfolioFacts(graph)(result)` of `highways` 0.5.1 gives `route.cap.<cap>`, `route.mixed` and the counts `route.<rule>`. The guard of the portfolio router uses the same facts.
+- `routeFacts(graph)(result)` of the runner gives `route.cap.<cap>`, `route.mixed` and the counts `route.<rule>`. It uses `exactStretches`, `checkProperties` and `mixedSegments` of `highways` 0.6.0.
+- These facts are the facts of `portfolioFacts`, which the guard of the portfolio router uses. The test `facts-parity.test.ts` compares the two functions.
 - `outputHash`: `outputHash([pack hash, route hash])`, as `docs/PROMOTION.md` tells.
 - The pack hash is `outputHash` of `packing`. The route hash is `outputHash` of the routes in the order of the edge ids, with the levels, the bundles and the runs.
 
@@ -47,7 +49,7 @@ The analysis has 6 cells: the rules `collection` and `all`, and the caps 1.1, 1.
 - the routes with a stretch above the cap (`route.cap.<cap>`)
 - under the rule `collection`, the shared segments with edges of 2 collections or more (`route.mixed`)
 
-The stretch of a route comes from the exact model of `highways` 0.5.1. It is the route length against the shortest way of the network of the packed input. `route.cap.<cap>` counts the edges with a stretch above the cap.
+The stretch of a route comes from `exactStretches` of `highways` 0.6.0. It is the route length without the two plug ends, divided by the shortest way of the network of the packed input. `route.cap.<cap>` counts the edges with a stretch above the cap. An edge without a route or without a way in the network does not count.
 
 The first run measured the stretch against the route of `corners` (the bundle stretch B3). The test `facts-parity.test.ts` compares the two counts on small inputs.
 
@@ -62,6 +64,27 @@ The first run measured the stretch against the route of `corners` (the bundle st
 - The field `through` counts the breaks of `no-pass-through` for each value of `spacing` and each router.
 - Each broken record of `through` has a cause: `overlap` (the pack has an overlap), `overflow` (the pack has overflow) or `router`.
 - The field `fillBySpacing` gives the mean `pack.fill` of the pack records for each value of `spacing`.
+- The field `count` holds the record count check. The field `subset` holds the headline cell on a subset of the inputs.
+
+### The record count check
+
+The analysis counts the inputs from the records, not from the manifest. The function `recordCount` gives the count.
+
+- An input of the manifest is missing when it has no record. A record of an input outside the manifest is also a failure.
+- The line "Inputs" of the report gives the count of the inputs with records, and the count of the manifest: the specs times the seeds.
+- The section "The missing inputs" lists each missing input.
+- `pnpm bench analyze` writes the report, and then fails on a missing input.
+- The option `--allow-missing <file>` gives a list of input ids. The check does not fail on a missing input of the list.
+
+### The headline on a subset
+
+The option `--subset <file>` of `pnpm bench analyze` gives a list of input ids. With it, the report also gives the headline cell on these inputs only.
+
+- The cell is `all` with the cap 1.25, outside the stress cell. The table puts it next to the headline cell on all inputs.
+- The output groups of the subset come from the inputs of the subset.
+- The file `packages/joint/data/joint-v2-recorded.txt` lists each input of `joint-v2` with records in the run `40666991882`. The workflow gives it to `analyze` on `joint-v2`.
+
+A file of ids has one id on each line. The analysis ignores the empty lines and the lines that start with `#`. An id outside the corpus is an error.
 
 ### The pick on one input
 
@@ -136,8 +159,29 @@ The test `check.test.ts` makes a corpus that breaks each claim.
 
 - The input `corpus` of the workflow selects the corpus. The default is `joint-v2`. A pull request runs `joint-v2`.
 - A pull request runs the slice `pr`: seed 1 of the specs with count 10 and of the fixed cases.
-- A manual run of the workflow, or a pull request with the label `bench:full`, runs the full corpus over 48 shards.
+- A manual run of the workflow, or a pull request with the label `bench:full`, runs the full corpus over 64 shards.
 - The job `analyze` keeps the artifact `joint-report` with `report.json` and `report.md`. Each shard keeps its raw records as `joint-records-<shard>`.
+- The job `analyze` fails when an input of the manifest has no records. It keeps the report also then.
+
+### The shards
+
+`planShards` gives the inputs to the shards by their predicted cost. Each shard job computes the same plan, so the jobs need no shared file.
+
+1. The predicted cost of an input is `inputCost(boxes, edges, pairs)`: the count of the pairs times the cost of one pair.
+2. The cost of one pair in milliseconds is `8 + 5.5 * boxes * boxes / 1000 + 1.35 * boxes * edges / 1000`.
+3. The plan takes the inputs from the most cost to the least cost. Each input goes to the shard with the least load.
+4. An input does not go to a shard with an input of the same spec, while another shard has none. Thus a lost shard loses 1 seed of a spec, not 3.
+5. In a shard, the inputs run from the least cost to the most cost. Thus a timeout loses only the costly inputs at the end.
+
+The fit of the cost comes from the wall time of each input in the logs of the run `40666991882`. That run used `highways` 0.5.1, and its exact model used a slow search.
+
+- The fit has R² 0.41. The wall time of inputs with the same counts differs by up to 10 times, because the cell and the spacing also change the time.
+- 3 shards of that run stopped at the limit of 90 minutes. The first input of each of them was a seed of the dense spec with hubs and the gap: 1000 boxes and 4000 edges.
+- That spec ran for more than 89 minutes on each seed. The fit gives it 22 minutes. Thus the fit is low for this spec.
+- The limit of a shard job is 360 minutes, the limit of GitHub. The fit gives 22 minutes to the most costly shard.
+- The 64 shards give each input with 1000 boxes a shard of its own.
+
+`pnpm bench plan --shards <n>` shows the predicted cost of the most costly shards.
 
 The benchmark measures times, so it runs only in CI.
 

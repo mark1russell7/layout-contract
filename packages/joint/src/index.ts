@@ -6,3 +6,5 @@ export * from "./check.ts";
 export * from "./joint-measures.ts";
 export * from "./runner.ts";
 export * from "./analysis.ts";
+export * from "./plan.ts";
+export * from "./record-count.ts";
