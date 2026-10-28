@@ -40,4 +40,10 @@ node scripts/bench.mjs analyze --records records --out report --subset data/join
 
 `analyze` fails when an input of the manifest has no records. The option `--allow-missing <file>` lists the inputs that can have no records.
 
+`plan` and `run` give the inputs to the shards by the cost model `data/cost-margins.json`. The script `scripts/fit-cost.mjs` writes this file from the logs of the shard jobs of a full run:
+
+```sh
+node scripts/fit-cost.mjs --logs <dir> --run <run id> --commit <sha>
+```
+
 The package is not on npm.

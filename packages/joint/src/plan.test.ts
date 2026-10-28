@@ -1,13 +1,19 @@
 import { describe, expect, it } from "vitest";
 import { jointCorpus, SET_V2 } from "./corpus.ts";
-import { inputCost, planShards, type PlanItem } from "./plan.ts";
+import { COST_MODEL, costMargin, inputCost, parseCostModel, plannedCost, planShards, type PlanItem } from "./plan.ts";
 import { PACK_ENTRIES, ROUTERS } from "./runner.ts";
 
-/** This function gives the plan items of `joint-v2`, with the cost of `inputCost` for each pair of the runner. */
+const PAIRS = PACK_ENTRIES.length * ROUTERS.length;
+const specOf = (id: string): string => id.replace(/\/s\d+$/, "");
+
+/** This function gives the plan items of `joint-v2`, with the cost of `plannedCost` for the pairs of the runner. */
 function corpusItems(): PlanItem[] {
-  const pairs = PACK_ENTRIES.length * ROUTERS.length;
-  return jointCorpus(SET_V2).inputs.map((i) => ({ id: i.id, spec: i.id.replace(/\/s\d+$/, ""), cost: inputCost(i.boxes.length, i.edges?.length ?? 0, pairs) }));
+  return jointCorpus(SET_V2).inputs.map((i) => ({ id: i.id, spec: specOf(i.id), cost: plannedCost(specOf(i.id), i.boxes.length, i.edges?.length ?? 0, PAIRS) }));
 }
+
+/** The dense spec with hubs and the gap, and its wall time on each seed in the shard logs of run 40685494092, in milliseconds. */
+const DENSE_HUBS = "joint-v2/rect-grid.freeHeight.holes.none.bimodal.n1000.e-dense.hubs.none.free.sp-gap";
+const DENSE_HUBS_WALL: Readonly<Record<string, number>> = { s1: 5190362, s2: 5574447, s3: 5086858 };
 
 describe("planShards", () => {
   const items = corpusItems();
@@ -33,12 +39,18 @@ describe("planShards", () => {
     }
   });
 
-  it("keeps the most costly shard below 1.5 times the mean cost at 48 and 64 shards", () => {
+  it("keeps the most costly shard at the most costly input, or below 1.5 times the mean cost, at 48 and 64 shards", () => {
+    const top = Math.max(...items.map((i) => i.cost));
     for (const count of [48, 64]) {
       const { loads } = planShards(items, count);
       const mean = loads.reduce((s, l) => s + l, 0) / count;
-      expect(Math.max(...loads) / mean, `${count} shards`).toBeLessThan(1.5);
+      expect(Math.max(...loads), `${count} shards`).toBeLessThanOrEqual(Math.max(top, 1.5 * mean));
     }
+  });
+
+  it("keeps the most costly shard at 64 shards below half of the limit of 360 minutes", () => {
+    const { loads } = planShards(items, 64);
+    expect(Math.max(...loads) / 60000).toBeLessThan(180);
   });
 
   it("runs the inputs of a shard from the least cost to the most cost", () => {
@@ -64,6 +76,45 @@ describe("planShards", () => {
     expect(() => planShards(items, 0)).toThrow(RangeError);
     expect(() => planShards([items[0]!, items[0]!], 2)).toThrow(RangeError);
     expect(() => planShards([{ id: "a", spec: "a", cost: Number.NaN }], 2)).toThrow(RangeError);
+  });
+
+  it("gives the dense spec with hubs a planned cost within a factor of 1.5 of its measured time", () => {
+    const inputs = jointCorpus(SET_V2).inputs.filter((i) => specOf(i.id) === DENSE_HUBS);
+    expect(inputs.map((i) => i.id.slice(DENSE_HUBS.length + 1))).toEqual(["s1", "s2", "s3"]);
+    for (const i of inputs) {
+      const ratio = plannedCost(DENSE_HUBS, i.boxes.length, i.edges?.length ?? 0, PAIRS) / DENSE_HUBS_WALL[i.id.slice(DENSE_HUBS.length + 1)]!;
+      expect(ratio, i.id).toBeGreaterThan(1 / 1.5);
+      expect(ratio, i.id).toBeLessThan(1.5);
+    }
+  });
+});
+
+describe("the cost model", () => {
+  it("comes from the full run 40685494092 of joint-v2, with the pairs of the runner", () => {
+    expect(COST_MODEL.corpus).toBe(SET_V2);
+    expect(COST_MODEL.run).toBe(40685494092);
+    expect(COST_MODEL.pairs).toBe(PAIRS);
+    expect(COST_MODEL.quantile).toBe(0.9);
+  });
+
+  it("has a margin for each spec of joint-v2, and for no other spec", () => {
+    const specs = [...new Set(jointCorpus(SET_V2).inputs.map((i) => specOf(i.id)))].sort();
+    expect(Object.keys(COST_MODEL.specs).sort()).toEqual(specs);
+  });
+
+  it("gives the default margin to a spec without a measured time", () => {
+    expect(costMargin("joint-v2/unknown.n10")).toBe(COST_MODEL.default);
+    expect(costMargin("toString")).toBe(COST_MODEL.default);
+    expect(costMargin(DENSE_HUBS)).toBe(COST_MODEL.specs[DENSE_HUBS]);
+    expect(plannedCost("joint-v2/unknown.n10", 100, 99, PAIRS)).toBeCloseTo(inputCost(100, 99, PAIRS) * COST_MODEL.default, 9);
+  });
+
+  it("refuses a coefficient or a margin that is not a finite number of 0 or more", () => {
+    const good = { corpus: "c", run: 1, commit: "x", pairs: 120, quantile: 0.9, fit: { base: 1, square: 1, cross: 1 }, default: 2, specs: { a: 1 } };
+    expect(parseCostModel(JSON.stringify(good)).specs).toEqual({ a: 1 });
+    expect(() => parseCostModel(JSON.stringify({ ...good, fit: { base: -1, square: 1, cross: 1 } }))).toThrow(RangeError);
+    expect(() => parseCostModel(JSON.stringify({ ...good, specs: { a: "1" } }))).toThrow(RangeError);
+    expect(() => parseCostModel(JSON.stringify({ ...good, default: null }))).toThrow(RangeError);
   });
 
   it("gives a cost that grows with the boxes and the edges, and with the pairs", () => {

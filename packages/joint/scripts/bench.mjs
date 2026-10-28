@@ -3,12 +3,13 @@
 //   check [--corpus <set>]                                                  examines the claims of the committed manifest
 //   smoke [--corpus <set>]                                                  packs and routes 1 input of each value of spacing with corners
 //   run --shards <n> --shard <i> --out <dir> [--slice pr] [--corpus <set>]   writes <dir>/records-<i>.jsonl
-//   plan --shards <n> [--slice pr] [--corpus <set>]                           prints the predicted cost of each shard
+//   plan --shards <n> [--slice pr] [--corpus <set>]                           prints the planned cost of each shard
 //   analyze --records <dir> --out <dir> [--slice pr] [--corpus <set>] [--allow-missing <file>] [--subset <file>]
 //                                                                            writes <dir>/report.json and <dir>/report.md
 //
 // The corpus is `joint-v2` by default. The slice `pr` is the small slice of the pull request: seed 1 of the specs with count 10 and of the fixed cases.
-// The shards get the inputs by their predicted cost (`planShards`). Each shard job computes the same plan.
+// The shards get the inputs by their planned cost (`plannedCost`, `planShards`). Each shard job computes the same plan.
+// The cost model is data/cost-margins.json. scripts/fit-cost.mjs writes it from the shard logs of a full run.
 // analyze fails when an input of the manifest has no records, unless the file of `--allow-missing` lists it. The files list one input id on each line.
 import { appendFileSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
@@ -17,10 +18,10 @@ import {
   analyze,
   checkCorpus,
   idList,
-  inputCost,
   jointCorpus,
   manifestJson,
   PACK_ENTRIES,
+  plannedCost,
   planShards,
   reportMarkdown,
   ROUTERS,
@@ -46,12 +47,15 @@ function corpusSlice() {
   return rows.filter(({ entry }) => entry.id.endsWith("/s1") && (entry.cell.count === "10" || entry.id.includes("/edge-cases.")));
 }
 
-/** This function gives the shard plan of the slice for the count of the shards of the arguments. Each input has the cost of `inputCost` for each pair. */
+/** This function gives the shard plan of the slice for the count of the shards of the arguments. Each input has the cost of `plannedCost`: the predicted cost times the margin of its spec. */
 function shardPlan() {
   const shards = Number(args.shards ?? 1);
   const rows = corpusSlice();
   const pairs = PACK_ENTRIES.length * ROUTERS.length;
-  const items = rows.map(({ input, entry }) => ({ id: entry.id, spec: entry.id.replace(/\/s\d+$/, ""), cost: inputCost(input.boxes.length, input.edges?.length ?? 0, pairs) }));
+  const items = rows.map(({ input, entry }) => {
+    const spec = entry.id.replace(/\/s\d+$/, "");
+    return { id: entry.id, spec, cost: plannedCost(spec, input.boxes.length, input.edges?.length ?? 0, pairs) };
+  });
   return { rows, shards, plan: planShards(items, shards) };
 }
 
