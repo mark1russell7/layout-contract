@@ -121,6 +121,16 @@ A greedy portfolio adds one pair at each step. Each step adds the pair that `sel
 - The share of a portfolio is its gain over the first member, divided by the gain of the oracle over the first member. The sums go over the held-out inputs of the 3 folds.
 - The report gives the share for k = 3 and for k = 8.
 
+### The baseline
+
+The option `baseline` of `analyze` names one pair. With it, each cell of the report also gives the baseline and the gains over it. The cells are the headline cells, the cell of the subset and the stress cells.
+
+- The field `baseline` of a cell gives the misses and the mean score of the baseline pair.
+- Each gain is the score of a pick minus the score of the baseline on each input, with an interval. The picks are the best pair, the oracle and the greedy portfolios.
+- The portfolios use the picks on the held-out seed of each fold. Thus each input has one held-out pick.
+- `pnpm bench analyze` uses the baseline `rows+portfolio` (`BASELINE`). The option `--baseline <pair>` gives a different pair, and `--baseline none` removes it.
+- A manual run of `joint-bench.yml` with the input `records-run` analyzes the records of that earlier run, with no new benchmark run.
+
 ### The intervals
 
 - Each interval is a 95% interval of a cluster bootstrap with 1000 samples. A cluster is the 3 inputs of one spec.
@@ -414,3 +424,49 @@ The baseline is the default pack and the default router in sequence: `rows+portf
 | B3 | 0.55 | In the headline cell, the oracle score is higher than the score of the baseline by 0.25 or more. |
 | B4 | 0.4 | In the stress cell with the cap 1.25, the score of the best pair is higher than the score of the baseline by 0.1 or more. |
 | B5 | 0.75 | In each of the 6 cells, the greedy portfolio with k = 3 has a higher score than the baseline on the held-out seeds. |
+
+## The result of the sequential baseline (L10)
+
+The run [40709328189](https://github.com/mark1russell7/layout-contract/actions/runs/40709328189) of `joint-bench.yml` analyzed the records of the run 40685494092, with the input `records-run`. It did not start the benchmark again. The records hold 303 of 303 inputs and 120 pairs. The cells of the best pair and of the oracle are the same as in the result of the L28 run.
+
+### The verdicts
+
+| Id | Confidence | Held | Facts |
+|---|---|---|---|
+| B1 | 0.7 | yes | The baseline misses the floor on 145 of 222 inputs. The best pair `maxrects-cp+corners` misses it on 42. |
+| B2 | 0.5 | yes | The best pair scores 0.299 and the baseline scores 0.226. The gain is 0.072 [0.036, 0.114]. |
+| B3 | 0.55 | yes | The oracle scores 0.516. Its gain over the baseline is 0.290 [0.226, 0.352]. |
+| B4 | 0.4 | no | In the stress cell with the cap 1.25, the best pair `shelf-first-input+corners` scores 0.209 and the baseline 0.181. The gain is 0.028 [-0.046, 0.109], open. |
+| B5 | 0.75 | yes | On the held-out seeds, the gain of k = 3 over the baseline is 0.178 to 0.261 in the 6 cells. The low end of each interval is above 0.12. |
+
+4 of 5 claims held. The risky claim B4 failed.
+
+### The cells
+
+Each gain is the score of a pick minus the score of the baseline on each input. The portfolios use the picks on the held-out seeds. The rule `collection` gives the same values as the rule `all` to 0.001, so the table shows only the rule `all`.
+
+| Inputs | Cap | Baseline misses | Baseline score | Best pair gain | Oracle gain | k = 3 gain | k = 8 gain |
+|---|---|---|---|---|---|---|---|
+| 222 | 1.1 | 166 | 0.173 | 0.115 [0.074, 0.166] | 0.338 [0.272, 0.402] | 0.261 [0.202, 0.326] | 0.302 [0.239, 0.365] |
+| 222 | 1.25 | 145 | 0.226 | 0.072 [0.036, 0.114] | 0.290 [0.226, 0.352] | 0.240 [0.181, 0.298] | 0.268 [0.205, 0.329] |
+| 222 | 1.5 | 117 | 0.292 | 0.012 [-0.027, 0.051] open | 0.231 [0.175, 0.287] | 0.178 [0.124, 0.232] | 0.222 [0.166, 0.280] |
+| stress 81 | 1.1 | 66 | 0.163 | 0.045 [-0.030, 0.129] open | 0.413 [0.315, 0.514] | 0.114 [0.040, 0.198] | 0.315 [0.233, 0.410] |
+| stress 81 | 1.25 | 64 | 0.181 | 0.028 [-0.046, 0.109] open | 0.396 [0.301, 0.498] | 0.097 [0.027, 0.174] | 0.314 [0.224, 0.415] |
+| stress 81 | 1.5 | 64 | 0.181 | 0.048 [-0.022, 0.128] open | 0.396 [0.302, 0.498] | 0.116 [0.043, 0.201] | 0.313 [0.224, 0.412] |
+
+On the subset of 207 inputs, the headline cell gives the baseline 135 misses and the score 0.231. The gain of the oracle is 0.284 [0.222, 0.348] there.
+
+### What the result shows
+
+- The oracle gets 0.290 over the baseline. This is the space for co-optimization in the headline cell. Of this gain, the best single pair gets 0.072, and k = 3 gets 0.240 on the held-out seeds.
+- The portfolio with k = 3 misses the floor on 16 held-out inputs, and the portfolio with k = 8 on 9. The baseline misses it on 145.
+- The misses of the baseline and its score do not agree. At the cap 1.5, the best pair has 82 fewer misses, but its score is only 0.012 higher. In this cell, the mean `joint.fill` of the baseline on the inputs where it reaches the floor is approximately 0.62. For the best pair it is approximately 0.36.
+- The misses of the baseline fall from 166 to 117 from the cap 1.1 to the cap 1.5. Thus the stretch of the routes of `portfolio` causes a large part of them.
+- In the stress cell, no single pair is clearly better than the baseline. The level `hard` decides most picks there. The oracle and k = 8 get a large gain, but k = 3 gets only 0.097 to 0.116.
+
+### The scope of the result
+
+- A miss is relative to the 120 pairs. The baseline misses the floor on an input when another pair has fewer hard breaks, or less excess area, on that input.
+- The score counts only `joint.fill` on the floor. A co-optimization idea that improves other measures does not show in this score.
+- The baseline is `portfolio` of `highways` 0.6.0, with its defaults, after `rows` of `packing` 0.2.10. A new version of either package needs a new run.
+- The portfolios learn their members on 2 seeds, and the held-out seed has the same specs. The baseline learns nothing. Thus the gains of the portfolios do not show the effect on new specs.
