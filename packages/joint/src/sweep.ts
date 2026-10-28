@@ -330,6 +330,76 @@ export function addToSummary(
   }
 }
 
+/** The columns of a summary row in the file `summary.json`, before the paired columns. */
+export const SUMMARY_COLUMNS: readonly string[] = Object.freeze(["config", "cell", "family", "n", "misses", "skipped", "score", "fill", "hard", "excess", "ms"]);
+
+/** The paired columns of each config of the baseline arm, after `SUMMARY_COLUMNS`. */
+export const PAIRED_COLUMNS: readonly string[] = Object.freeze(["wins", "losses", "ties", "diff"]);
+
+/** The summary as a table: one array for each row, with the columns `SUMMARY_COLUMNS`, and then `PAIRED_COLUMNS` for each name of `baseline`. */
+export interface SummaryTable {
+  readonly columns: readonly string[];
+  readonly baseline: readonly string[];
+  readonly rows: readonly (readonly (string | number | null)[])[];
+}
+
+/** This function gives the summary as a table. The sums have 6 digits after the point. A row without a paired count of a baseline config has `null` there. */
+export function summaryTable(rows: readonly SummaryRow[], baseline: readonly string[] = BASELINE_ARM): SummaryTable {
+  const r6 = (x: number): number => Number(x.toFixed(6));
+  return {
+    columns: [...SUMMARY_COLUMNS, ...baseline.flatMap((b) => PAIRED_COLUMNS.map((c) => `${b}.${c}`))],
+    baseline,
+    rows: rows.map((r) => [
+      r.config,
+      r.cell,
+      r.family,
+      r.n,
+      r.misses,
+      r.skipped,
+      r6(r.score),
+      r6(r.fill),
+      r6(r.hard),
+      r6(r.excess),
+      Math.round(r.ms),
+      ...baseline.flatMap((b) => {
+        const v = r.vs[b];
+        return v === undefined ? [null, null, null, null] : [v.wins, v.losses, v.ties, r6(v.diff)];
+      }),
+    ]),
+  };
+}
+
+/** This function gives the rows of a summary table. It is the reverse of `summaryTable`. */
+export function summaryRows(table: SummaryTable): SummaryRow[] {
+  const at = (name: string): number => {
+    const i = table.columns.indexOf(name);
+    if (i < 0) throw new RangeError(`The summary table has no column ${name}.`);
+    return i;
+  };
+  const num = (row: readonly (string | number | null)[], name: string): number => Number(row[at(name)] ?? 0);
+  return table.rows.map((row) => {
+    const vs: SummaryRow["vs"] = {};
+    for (const b of table.baseline) {
+      if (row[at(`${b}.wins`)] === null) continue;
+      vs[b] = { wins: num(row, `${b}.wins`), losses: num(row, `${b}.losses`), ties: num(row, `${b}.ties`), diff: num(row, `${b}.diff`) };
+    }
+    return {
+      config: String(row[at("config")]),
+      cell: row[at("cell")] === "stress" ? "stress" : "headline",
+      family: String(row[at("family")]),
+      n: num(row, "n"),
+      misses: num(row, "misses"),
+      skipped: num(row, "skipped"),
+      score: num(row, "score"),
+      fill: num(row, "fill"),
+      hard: num(row, "hard"),
+      excess: num(row, "excess"),
+      ms: num(row, "ms"),
+      vs,
+    };
+  });
+}
+
 /** The status of a config in the state. */
 export type ConfigStatus = "baseline" | "screened" | "alive" | "dropped" | "halved";
 

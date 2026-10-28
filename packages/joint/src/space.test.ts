@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { checkSpace, configId, enumerateSpace, spaceSize, splitConfig } from "@mark1russell7/layout-contract";
 import { laneEntries, LANE_CAP, LANE_CLEARANCE, LANE_SPACE } from "./lanes.ts";
 import { PACK_ENTRIES, ROUTERS } from "./runner.ts";
-import { BENCH_ADAPTER, configRun, JOINT_ENGINE, JOINT_SPACE, LANE_STAGE, namedId } from "./space.ts";
+import { BENCH_ADAPTER, configLabel, configRun,JOINT_ENGINE, JOINT_SPACE, LANE_STAGE, namedId } from "./space.ts";
 
 describe("the joint space of the sweep", () => {
   it("has no break, and the stages of the two parts and the stage of the lanes", () => {
@@ -72,5 +72,7 @@ describe("the joint space of the sweep", () => {
     expect(splitConfig(c, "packing").stages).toEqual({ entry: { option: "rows" } });
     expect(BENCH_ADAPTER.router(c)).toBe("portfolio");
     expect(namedId("rows+portfolio")).toMatch(/^[0-9a-f]{16}$/);
+    expect(configLabel(c)).toBe("rows+portfolio");
+    expect(configLabel(JOINT_SPACE.named!["lanes-sides2.select.portfolio+portfolio"]!)).toBe("select+portfolio sides p2 c5 s4 k8");
   });
 });

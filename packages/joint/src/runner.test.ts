@@ -65,6 +65,17 @@ describe("runInput", () => {
     expect(records.find((r) => r.strategy === "rows+corners")!.measures["route.cap.1.1"]).toBe(0);
   });
 
+  it("runs only the pairs of the list, and the lane entries with their own options", () => {
+    const records = runInput(three, undefined, { pairs: ["skyline+corners", "rows+straight"] });
+    expect(records.map((r) => r.strategy)).toEqual(["rows+straight", "skyline+corners"]);
+    const lane = { id: "lanes-sides-test.rows.corners", variant: { name: "lanes-sides-test", mode: "sides" as const, passes: 1 }, pack: "rows", router: "corners", options: { clearance: 8 } };
+    const [only, ...rest] = runInput(three, undefined, { pairs: [], lanes: [lane] });
+    expect(rest).toEqual([]);
+    expect(only!.strategy).toBe("lanes-sides-test.rows.corners+corners");
+    expect(only!.skipped).toBeUndefined();
+    expect(JSON.stringify(only!.options)).toContain('"clearance":8');
+  });
+
   it("gives the same records for the same input", () => {
     const a = runInput(three, undefined, small).map((r) => r.outputHash);
     const b = runInput(three, undefined, small).map((r) => r.outputHash);

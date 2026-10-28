@@ -13,6 +13,8 @@ import {
   sampleConfigs,
   strataCounts,
   strataOf,
+  summaryRows,
+  summaryTable,
   sweepValue,
   takeBudget,
   unitsOf,
@@ -142,6 +144,10 @@ describe("the summary", () => {
     expect(row.vs["select+portfolio"]).toMatchObject({ ties: 1 });
     expect(row.vs["missing"]).toBeUndefined();
     expect(rows.get("x|stress|cards")?.n).toBe(1);
+    // The table of the file summary.json gives the same rows back.
+    const table = summaryTable([...rows.values()], ["rows+portfolio", "select+portfolio", "missing"]);
+    expect(table.columns).toContain("rows+portfolio.wins");
+    expect(summaryRows(JSON.parse(JSON.stringify(table)))).toEqual([...rows.values()].map((r) => ({ ...r, vs: Object.fromEntries(Object.entries(r.vs).map(([k, v]) => [k, { ...v, diff: Number(v.diff.toFixed(6)) }])) })));
   });
 });
 

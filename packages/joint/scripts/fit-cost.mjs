@@ -7,7 +7,8 @@
 // The logs of single jobs also work, one file for each job:
 //   gh api repos/mark1russell7/layout-contract/actions/jobs/<job id>/logs > <dir>/run-<i>.log
 // Each shard prints one line for each input: `<input id>: <records> records, <skipped> skipped, <wall ms> ms`.
-// A shard of the sweep (`docs/SWEEP.md`) adds `, <pairs> pairs, <passes> lane passes` to the line.
+// A shard of the sweep (`docs/SWEEP.md`) prints one line for each unit: `<input id>#<k>: ..., <pairs> pairs, <passes> lane passes`.
+// The script adds the times, the pairs and the passes of the units of one input.
 // The script counts the pairs and the lane passes of each input of the run:
 // - A line with the counts gives them.
 // - A line of the bench has PACK_ENTRIES times ROUTERS pairs (130 since L32), and the lane pairs of `laneEntries` after them (18 pairs, 24 passes).
@@ -42,11 +43,20 @@ const before = existsSync(out) ? parseCostModel(readFileSync(out, "utf8")) : und
 
 // The wall time, the pairs and the lane passes of each input in the logs.
 const wall = new Map();
-const line = /\s(joint-v\d+\/\S+): (\d+) records, \d+ skipped, (\d+) ms(?:, (\d+) pairs, (\d+) lane passes)?\s*$/;
+const line = /\s(joint-v\d+\/[^\s#]+)(#\d+)?: (\d+) records, \d+ skipped, (\d+) ms(?:, (\d+) pairs, (\d+) lane passes)?\s*$/;
 for (const name of readdirSync(args.logs).sort()) {
   for (const text of readFileSync(join(args.logs, name), "utf8").split("\n")) {
-    const m = line.exec(text);
-    if (m === null) continue;
+    const found = line.exec(text);
+    if (found === null) continue;
+    // A unit of the sweep has the id `<input id>#<k>`. The script adds the units of one input.
+    const unit = found[2] !== undefined;
+    const m = [found[0], found[1], found[3], found[4], found[5], found[6]];
+    if (unit && m[4] === undefined) throw new RangeError(`The unit ${found[1]}${found[2]} has no count of pairs.`);
+    if (unit && wall.has(m[1])) {
+      const w = wall.get(m[1]);
+      wall.set(m[1], { ms: w.ms + Number(m[3]), pairs: w.pairs + Number(m[4]), passes: w.passes + Number(m[5]) });
+      continue;
+    }
     if (wall.has(m[1])) throw new RangeError(`The input ${m[1]} has two times in the logs.`);
     let pairs;
     let passes;

@@ -182,6 +182,18 @@ export function configRun(config: StrategyConfig, space: StrategySpace = JOINT_S
   return { pack, router, lane: { id, variant, pack, router, options }, pair: pairId(id, router), passes };
 }
 
+/**
+ * This function gives a short name of a config for a report: the pair, and the lane mode with its params when the config has one.
+ * For example `maxrects-cp+corners sides p1 c5 s4 k8`: 1 pass, the clearance 5, the space 4 and the cap 8.
+ */
+export function configLabel(config: StrategyConfig, space: StrategySpace = JOINT_SPACE, adapter: JointAdapter = BENCH_ADAPTER): string {
+  const run = configRun(config, space, adapter);
+  const pair = pairId(run.pack, run.router);
+  if (run.lane === undefined) return pair;
+  const o = run.lane.options ?? {};
+  return `${pair} ${run.lane.variant.mode} p${run.passes} c${o.clearance} s${o.space} k${o.cap}`;
+}
+
 /** This function gives the id of a named config of the joint space, for example of `rows+portfolio`. */
 export function namedId(name: string, space: StrategySpace = JOINT_SPACE): string {
   const c = space.named?.[name];
