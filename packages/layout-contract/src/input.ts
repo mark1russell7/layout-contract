@@ -1,4 +1,5 @@
 import type { Margin, Region, Side } from "./geometry.ts";
+import type { ShapeKind } from "./shapes.ts";
 
 /**
  * A port of a box: a place where edges go into the box.
@@ -28,6 +29,11 @@ export interface LayoutBox {
   readonly group?: string;
   /** A region relative to the origin of the box. Without it, the box is the rectangle `w` by `h`. */
   readonly shape?: Region;
+  /**
+   * The shape kind of the box (`docs/SHAPES.md`). Without it, `shapeKindOf` gives the kind of `shape`, or `rect` without a shape.
+   * The kind `free` tells that the contract knows only the bounding box `w` by `h`.
+   */
+  readonly shapeKind?: ShapeKind;
   readonly ports?: readonly Port[];
   /** A ring around the box. No other box enters it. Only a route from a port of the box enters it, at a right angle. */
   readonly margin?: Margin;
@@ -92,6 +98,8 @@ export interface LayoutCell {
   readonly edgeShape?: "random" | "clustered" | "hubChain" | "longRange" | "tree" | "bundled";
   readonly groups?: "none" | "flat" | "nested";
   readonly ports?: "free" | "sides" | "fixed";
+  /** The shape kinds of the boxes: one kind, or `mixed` for more kinds. Without it, each box is a `rect`. `itemShapeOf` gives the value. */
+  readonly itemShape?: ShapeKind | "mixed";
 }
 
 /** An input of the corpus: the format `layout-input/1`. */

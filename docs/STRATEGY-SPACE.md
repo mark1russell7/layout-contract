@@ -96,8 +96,10 @@ A config can leave out a param. Then the param has its default. A config can als
 | `meta` | A stage that is not optional has only meta options. |
 | `unknown` | A constraint or a named config has an unknown stage, option or param. |
 | `constraint` | A named config breaks a constraint. |
+| `shape` | The `supports.shape` of an option is empty, or has a kind that is not declared. |
 
-`checkConfig(space, config)` checks one config. It also finds `missing` (a stage that is not optional, without an option), `inactive`, `param` (a value out of range), `members` and `depth`. The breaks of a named config of `checkSpace` have the name of the config in `inputs`.
+`checkConfig(space, config)` checks one config. It also finds `missing` (a stage that is not optional, without an option), `inactive`, `param` (a value out of range), `members` and `depth`.
+With `{ shapes }`, it also finds `shape`: a chosen option that does not support a kind of the input. `docs/SHAPES.md` tells the rules. The breaks of a named config of `checkSpace` have the name of the config in `inputs`.
 
 ## The size and the enumeration
 
@@ -107,6 +109,7 @@ A config can leave out a param. Then the param has its default. A config can als
 - An `enum` param has each value, and a `bool` param has 2 values.
 - The result has two counts. `base` counts the configs without a meta option. `meta` counts the configs with a meta option. Each count is a `bigint`.
 - When the meta count is more than `maxMeta` (default `10n ** 18n`), `meta` is `null`.
+- With `shapes`, `spaceSize` and `enumerateSpace` count only the options that support each kind. Without `shapes`, the result does not change.
 
 `enumerateSpace(space, options)` gives configs in their canonical form:
 

@@ -1,6 +1,7 @@
 import { boundsOf, grow, overlapOf, type Rect, type Region } from "./geometry.ts";
 import type { LayoutBox, LayoutInput, Obstacle } from "./input.ts";
 import { applyPack, type PackOutput } from "./output.ts";
+import { SHAPE_KIND_IDS, shapeKindProblem, type ShapeSupport } from "./shapes.ts";
 import { DEFAULT_TOLERANCE, EPS, RECORD_EPS } from "./tolerance.ts";
 
 /** This function gives the area of a placed box: its shape or its rectangle, at its position. A box without a position gives `undefined`. */
@@ -95,6 +96,18 @@ export interface PackHard {
   readonly "locked-kept": number;
   readonly complete: number;
 }
+
+/**
+ * The hard rules of a pack, with the shape kinds that each rule supports.
+ * `no-overlap` and `in-container` test the bounding box of a shape. That count is exact only for a `rect`.
+ * `locked-kept` and `complete` read only the positions and the ids, so they support each kind.
+ */
+export const PACK_HARD_RULES: readonly ShapeSupport<keyof PackHard>[] = Object.freeze([
+  { id: "no-overlap", shapes: ["rect"] },
+  { id: "in-container", shapes: ["rect"] },
+  { id: "locked-kept", shapes: SHAPE_KIND_IDS },
+  { id: "complete", shapes: SHAPE_KIND_IDS },
+] as const);
 
 /** This function tells if the inside of `region` and the inside of `rect` have a common point. */
 export function regionHitsRect(region: Region, rect: Rect): boolean {
@@ -314,6 +327,8 @@ export function checkInput(input: LayoutInput): readonly string[] {
     ids.add(box.id);
     if (!(box.w > 0 && box.h > 0 && Number.isFinite(box.w) && Number.isFinite(box.h))) problems.push(`box ${box.id}: the size is not positive and finite`);
     if (box.locked === true && (box.x === undefined || box.y === undefined)) problems.push(`box ${box.id}: a locked box has no position`);
+    const shape = shapeKindProblem(box);
+    if (shape !== undefined) problems.push(shape);
   }
   if (countPortsOffBorder(input.boxes) > 0) problems.push("a fixed port is not on the border of its box");
   for (const edge of input.edges ?? []) {

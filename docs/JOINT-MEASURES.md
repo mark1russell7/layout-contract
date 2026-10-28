@@ -6,6 +6,7 @@ A joint run packs an input, and then routes the edges of the same input. The `jo
 - The joint selector compares two strategies on the same input. Thus a value in units of the board compares between two placements of one input.
 - `S` is the square root of the sum of the areas of the boxes. A length divided by `S` does not change with the scale of the input.
 - The hull of a run is the bounding box of the placed boxes with their margins, and of all the routes.
+- Each joint spec gives its shape kinds in `shapes`. `joint.fill` and `joint.straight.length` support only `rect`. [`SHAPES.md`](SHAPES.md) gives the reasons.
 - The promotion rule of `highways` (`docs/PROMOTION.md`) uses `floor` and `tol`. On an input where the default is within `tol` of `floor`, the rule compares the difference, not the ratio.
 
 ## The table
