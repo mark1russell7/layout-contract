@@ -96,6 +96,21 @@ describe("runInput", () => {
     }
   });
 
+  it("packs with select as with the member that it picks, and shares the routes of that member", () => {
+    const packs = PACK_ENTRIES.filter((p) => p.id === "rows" || p.id === "maxrects-bl" || p.id === "select");
+    // The fixed container has 3 boxes of different sizes, so select picks maxrects-bl. A free container with identical boxes gives rows.
+    const free: LayoutInput = { ...three, id: "test/free/s1", container: { fixed: "none" }, boxes: three.boxes.map((b) => ({ ...b, w: 10, h: 10 })) };
+    for (const [input, member] of [[three, "maxrects-bl"], [free, "rows"]] as const) {
+      const records = runInput(input, undefined, { packs, routers: ["corners"] });
+      const hash = (pack: string) => records.find((r) => r.strategy === pairId(pack, "corners"))!.outputHash;
+      const select = records.find((r) => r.strategy === "select+corners")!;
+      expect(select.skipped, input.id).toBeUndefined();
+      expect(select.deterministic, input.id).toBe(true);
+      expect(hash("select"), input.id).toBe(hash(member));
+      expect(select.measures["route.ms"], input.id).toBe(records.find((r) => r.strategy === pairId(member, "corners"))!.measures["route.ms"]);
+    }
+  });
+
   it("writes a skipped record when the strategy does not support the cell", () => {
     const records = runInput(three, { containerSize: "fixed", mode: "incremental" }, { ...small, routers: ["straight"] });
     expect(records).toHaveLength(2);
@@ -107,8 +122,9 @@ describe("runInput", () => {
 });
 
 describe("the parts of the runner", () => {
-  it("lists 12 pack entries and the 10 routers", () => {
-    expect(PACK_ENTRIES).toHaveLength(12);
+  it("lists 13 pack entries and the 10 routers", () => {
+    expect(PACK_ENTRIES).toHaveLength(13);
+    expect(PACK_ENTRIES.at(-1)).toEqual({ id: "select", strategy: "select", options: {} });
     expect(ROUTERS).toHaveLength(10);
     expect(ROUTERS).toContain("corners");
     expect(ROUTERS.at(-1)).toBe(PORTFOLIO_ROUTER);

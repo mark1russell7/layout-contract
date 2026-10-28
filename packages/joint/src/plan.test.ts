@@ -90,10 +90,12 @@ describe("planShards", () => {
 });
 
 describe("the cost model", () => {
-  it("comes from the full run 40685494092 of joint-v2, with the pairs of the runner", () => {
+  it("comes from the full run 40685494092 of joint-v2, with its 120 pairs", () => {
     expect(COST_MODEL.corpus).toBe(SET_V2);
     expect(COST_MODEL.run).toBe(40685494092);
-    expect(COST_MODEL.pairs).toBe(PAIRS);
+    // The entry select (L32) gives the runner 130 pairs. The plan multiplies the cost of one pair by 130, so it overestimates: select shares the routes of its member.
+    expect(COST_MODEL.pairs).toBe(120);
+    expect(PAIRS).toBe(130);
     expect(COST_MODEL.quantile).toBe(0.9);
   });
 
