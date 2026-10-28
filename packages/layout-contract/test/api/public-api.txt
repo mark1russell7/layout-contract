@@ -4,7 +4,7 @@
 # and private members. The command `api-report check` compares this file with the built .d.ts files.
 # To accept a change of the API, start the build, then `api-report update`, and review the diff.
 
-## . (build/index.d.ts): 57 names
+## . (build/index.d.ts): 58 names
 
 DEFAULT_TOLERANCE: build/index.d.ts#DEFAULT_TOLERANCE
 Direction: build/index.d.ts#Direction
@@ -32,6 +32,7 @@ Port: build/index.d.ts#Port
 RECORD_EPS: build/index.d.ts#RECORD_EPS
 Rect: build/index.d.ts#Rect
 Region: build/index.d.ts#Region
+RunEnv: build/index.d.ts#RunEnv
 RunFacts: build/index.d.ts#RunFacts
 SIDES: build/index.d.ts#SIDES
 Side: build/index.d.ts#Side
@@ -189,6 +190,9 @@ export interface LayoutRecord {
   readonly deterministic: boolean;
   readonly prediction?: string;
   readonly ms: number;
+  readonly msRuns?: readonly number[];
+  readonly outputHash?: string;
+  readonly env?: RunEnv;
   readonly skipped?: string;
   readonly commit?: string;
 }
@@ -306,6 +310,16 @@ export type Region = {
   readonly rx: number;
   readonly ry: number;
 };
+
+### build/index.d.ts#RunEnv
+export interface RunEnv {
+  readonly node: string;
+  readonly os: string;
+  readonly arch: string;
+  readonly runner: string;
+  readonly cpu: string;
+  readonly cpus: number;
+}
 
 ### build/index.d.ts#RunFacts
 export type RunFacts = Omit<LayoutRecord, "schema" | "input" | "inputHash" | "set" | "nodes" | "edges">;
