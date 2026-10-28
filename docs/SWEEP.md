@@ -12,7 +12,7 @@ The first night scores these claims. The summary of the night (`night.md`, and t
 | Id | Claim | Confidence |
 |---|---|---|
 | S1 | Each shard of the 2 rounds ends in less than 45 real minutes. | 0.85 |
-| S2 | The 2 rounds screen from 300 to 450 new configs. | 0.8 |
+| S2 | The 2 rounds screen from 220 to 350 new configs. | 0.8 |
 | S3 | The verdict "worse" drops from 50% to 85% of the raced configs. | 0.55 |
 | S4 | The incumbent misses the reference floor on 22 or fewer of the 222 headline inputs. | 0.85 |
 | S5 | `rows+portfolio` misses the reference floor on 120 to 145 of the 222 headline inputs. | 0.45 |
@@ -25,6 +25,7 @@ S3, S5 and S6 are the risky claims.
 - S3: most random configs have a weak pack entry or a weak router. But the screen has only 1 seed of each spec, so the verdict can give "no verdict" to many of them.
 - S4: the floor of 3 configs is not higher than the floor of the 148 pairs of L13. The incumbent missed that floor on 22 inputs.
 - S5: `rows+portfolio` packs without a search. Thus its overflow is often larger than the overflow of the incumbent.
+- S2: the local plan screens 144 new configs in each round. An iteration config costs up to 10 pairs, so the count changes with the sample.
 - S6: the lane params of the sample differ from the defaults of L13. A larger clearance or cap can give more fill, but the screen is small.
 - S7: a unit of the sweep has random configs. They share fewer packs than the pairs of the bench, so the real cost can be higher than the plan.
 
@@ -34,7 +35,9 @@ S3, S5 and S6 are the risky claims.
 
 1. `benchPackSpace()`: the engine `packing` with the stage `entry`. Its options are the 13 pack entries of the runner.
 2. `benchRouteSpace()`: the engine `highways` with the stage `router`. Its options are the 10 routers of the runner.
-3. `laneSpace()`: the engine `lanes` with the optional stage `mode`. Its options are `max` and `sides`, with the params of `LANE_PARAMS`.
+3. `laneSpace()`: the engine `lanes` with the optional stage `mode`. Its options are `max`, `sides` and `iter`.
+
+The options `max` and `sides` are the lane pairs of L13. They have the params of `LANE_PARAMS`:
 
 | Param | Values | Default | Use |
 |---|---|---|---|
@@ -43,14 +46,16 @@ S3, S5 and S6 are the risky claims.
 | `space` | 2 to 8 | 4 | The space of each more route in a lane |
 | `cap` | 1 to 16 | 8 | The largest count of routes in one lane |
 
-`jointSpace(pack, route, options)` joins the parts with `productSpace`, and adds the stage `lanes.mode`. The version of the space is `bench-1`.
+The option `iter` is the iteration of L11: place, route and place again. Its one param `rounds` is the round cap, from 1 to 3, with the default 3 (`ITER_PARAMS`). It uses the default lane options.
 
-- The space has a named config for each of the 130 pairs and for each of the 18 lane pairs of L13. A named config runs with the pair id of the bench.
-- `spaceSize(JOINT_SPACE, { levels: 3 })` gives the base 21190 and the meta 0: 130 × (1 + 2 × 3⁴).
-- `spaceSize(JOINT_SPACE, { levels: 1 })` gives 390, and the levels 2 give 4290.
-- The full integer grid has approximately 786000 configs: 130 × (1 + 2 × 3024).
+`jointSpace(pack, route, options)` joins the parts with `productSpace`, and adds the stage `lanes.mode`. The version of the space is `bench-2`. Version `bench-1` did not have the option `iter`.
 
-`configRun(config, space, adapter)` gives the run of a config: the pack entry, the router, the lane entry and the count of the passes. A `JointAdapter` reads the pack entry and the router of a config. `BENCH_ADAPTER` reads the stages `packing.entry` and `highways.router`.
+- The space has 166 named configs: the 130 pairs, the 18 lane pairs of L13 and the 18 iteration pairs of L11. A named config runs with the pair id of the bench.
+- `spaceSize(JOINT_SPACE, { levels: 3 })` gives the base 21580 and the meta 0: 130 × (1 + 2 × 3⁴ + 3).
+- `spaceSize(JOINT_SPACE, { levels: 1 })` gives 520, and the levels 2 give 4550.
+- The full integer grid has approximately 787000 configs: 130 × (1 + 2 × 3024 + 3).
+
+`configRun(config, space, adapter)` gives the run of a config. The run has the pack entry, the router, a lane entry or an iteration entry, and the counts. A `JointAdapter` reads the pack entry and the router of a config. `BENCH_ADAPTER` reads the stages `packing.entry` and `highways.router`.
 
 - A lane config with the default params gets the lane id of L13, for example `lanes-sides.maxrects-cp.corners`.
 - A lane config with other params gets a lane id with the first 8 digits of its config id. Thus 2 configs of one unit do not share a lane id.
@@ -91,20 +96,23 @@ Round 2 has these jobs, in this order:
 
 The plan of a round:
 
-1. The cost of a job is `plannedCost(spec, boxes, edges, 1, passes)` of the cost model.
-2. `unitsOf` joins the jobs of one input into units. The cost of a unit is at most a quarter of the target.
-3. `planRound` takes `ceil(cost / target)` shards, from 1 to `max-shards`. `planShards` gives the units to the shards.
+1. The cost of a job is `plannedCost(spec, boxes, edges, pairs, passes)` of the cost model. A plain config or a lane config has 1 pair.
+2. An iteration config has 1 pair and the cost of its chain: `iterPlanPairs`, 3 pairs for each round. Thus `iter` with 3 rounds costs 10 pairs.
+3. `unitsOf` joins the jobs of one input into units. The cost of a unit is at most a quarter of the target.
+4. `planRound` takes `ceil(cost / target)` shards. While the most costly shard is above the target, it adds a shard, up to `max-shards`.
+5. `planShards` gives the units to the shards.
 
-The local plan of the first night (2026-10-29) with the defaults gives these numbers:
+The local plan of the first night (2026-10-29) with the defaults gives these numbers. Round 2 comes from fake records of round 1, so its numbers are approximate.
 
 | Round | Configs | New configs | Jobs | Units | Shards | Planned minutes | Most costly shard |
 |---|---|---|---|---|---|---|---|
-| 1 | 197 | 194 | 20503 | 360 | 18 | 538.3 | 29.9 |
-| 2 | approximately 192 | approximately 187 | approximately 19900 | approximately 358 | 18 | approximately 537 | 29.8 |
+| 1 | 147 | 144 | 15453 | 362 | 18 | 536.8 | 29.8 |
+| 2 | 146 | 144 | 14948 | 362 | 19 | 538.0 | 28.6 |
 
-- Each night runs approximately 36 shards of approximately 30 minutes, and screens approximately 380 new configs.
-- The 2 rounds take approximately 70 minutes of wall time, with 18 shards at the same time.
-- 380 configs are approximately 1.8% of the grid of 3 levels. The integer grid is larger, so the coverage grows each night.
+- Round 1 has 26 plain configs, 91 lane configs and 30 iteration configs.
+- Each night runs approximately 37 shards of less than 30 planned minutes, and screens approximately 290 new configs.
+- The 2 rounds take approximately 70 minutes of wall time, with 18 or 19 shards at the same time.
+- 290 configs are approximately 1.3% of the grid of 3 levels. The integer grid is larger, so the coverage grows each night.
 
 ### The new configs
 
@@ -163,7 +171,7 @@ epochs/<epoch>/summary.json        the cumulative summary as a table
 epochs/<epoch>/nights/<date>.json  the facts of each night: the rounds, the race, the shards and the drift
 ```
 
-The epoch is `<corpus>_packing-<version>_highways-<version>_space-<version>`, for example `joint-v2_packing-0.2.17_highways-0.8.1_space-bench-1`. A new version of an engine or of the space starts a new epoch. The data of the old epochs stays.
+The epoch is `<corpus>_packing-<version>_highways-<version>_space-<version>`, for example `joint-v2_packing-0.2.17_highways-0.8.1_space-bench-2`. A new version of an engine or of the space starts a new epoch. The data of the old epochs stays.
 
 `summary.json` has one row for each config, cell and board kind:
 
@@ -182,7 +190,7 @@ The plan uses the model of `packages/joint/data/cost-margins.json`. `docs/JOINT-
 
 - The time of an input is `pairs × pair(boxes, edges) + passes × lane(boxes, edges)` milliseconds, times the margin of its spec.
 - The lane term is `8.75 + 0.853 × boxes² / 1000 + 0.782 × boxes × edges / 1000`. It comes from the run `40757153151` of L13.
-- Each unit of the sweep prints its pairs and its lane passes. `fit-cost.mjs` adds the units of one input, and fits both terms from a night.
+- Each unit of the sweep prints its pairs and its lane passes. `fit-cost.mjs` adds the units of one input, and fits both terms from a night. The pairs of a unit count each round of an iteration chain as 3 pairs.
 
 ## The settings of the repository
 

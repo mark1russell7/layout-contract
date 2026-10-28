@@ -85,6 +85,12 @@ describe("the plan of a round", () => {
     expect(jobCost({ passes: 1 }, input)).toBeGreaterThan(jobCost({ passes: 0 }, input));
   });
 
+  it("gives an iteration config the cost of 1 pair and 3 pairs for each round", () => {
+    const input = { spec: "test/a", boxes: 100, edges: 99 };
+    const iter = configRun(JOINT_SPACE.named!["lanes-iter2.rows.corners+corners"]!).iter!;
+    expect(jobCost({ passes: 0, iter }, input)).toBeCloseTo(7 * jobCost({ passes: 0 }, input), 6);
+  });
+
   it("joins the jobs of an input into units up to the largest cost", () => {
     const jobs = ["a", "b", "c", "d", "e"].map((config) => ({ config, input: "x" }));
     const units = unitsOf([...jobs, { config: "a", input: "y" }], (j) => (j.config === "c" ? 5 : 1), 3);
@@ -98,7 +104,9 @@ describe("the plan of a round", () => {
 
   it("gives a round the count of shards of its cost over the target, up to the largest count", () => {
     const units = Array.from({ length: 10 }, (_, i) => ({ id: `u${i}`, input: `i${i}`, configs: ["a"], cost: 10 }));
-    expect(planRound(units, (i) => i, 25, 8).shards).toHaveLength(4);
+    // 4 shards give the most costly shard 30, above the target 25. Thus the plan takes 5 shards.
+    expect(planRound(units, (i) => i, 25, 8).shards).toHaveLength(5);
+    expect(planRound(units, (i) => i, 30, 8).shards).toHaveLength(4);
     expect(planRound(units, (i) => i, 5, 8).shards).toHaveLength(8);
     expect(planRound([], (i) => i, 5, 8).shards).toHaveLength(1);
   });

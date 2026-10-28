@@ -11,6 +11,7 @@ import {
   type StrategySpace,
   type VerdictRecord,
 } from "@mark1russell7/layout-contract";
+import { iterPlanPairs } from "./lanes.ts";
 import { HEADLINE, PICK_LEVELS, pickValues } from "./pick.ts";
 import { plannedCost, planShards, type ShardPlan } from "./plan.ts";
 import { configRun, JOINT_SPACE, type ConfigRun } from "./space.ts";
@@ -160,9 +161,13 @@ export function sampleConfigs(options: SampleConfigsOptions, space: StrategySpac
   return out;
 }
 
-/** This function gives the planned cost of one config on one input in milliseconds. The cost is one pair and the lane passes, times the margin of the spec. */
-export function jobCost(run: Pick<ConfigRun, "passes">, input: Pick<SweepInput, "spec" | "boxes" | "edges">): number {
-  return plannedCost(input.spec, input.boxes, input.edges, 1, run.passes);
+/**
+ * This function gives the planned cost of one config on one input in milliseconds. It is one pair and the lane passes, times the margin of the spec.
+ * An iteration config also has the cost of its chain: `iterPlanPairs`, 3 pairs for each round.
+ */
+export function jobCost(run: Pick<ConfigRun, "passes"> & Partial<Pick<ConfigRun, "iter">>, input: Pick<SweepInput, "spec" | "boxes" | "edges">): number {
+  const pairs = 1 + (run.iter === undefined ? 0 : iterPlanPairs([run.iter]));
+  return plannedCost(input.spec, input.boxes, input.edges, pairs, run.passes);
 }
 
 /** One job of a round: one config on one input. */
@@ -214,16 +219,16 @@ export interface RoundPlan extends ShardPlan {
 }
 
 /**
- * This function gives the units of a round to shards with `planShards`. The count of the shards is the planned cost over `target`, from 1 to `maxShards`.
+ * This function gives the units of a round to shards with `planShards`. The first count of the shards is the planned cost over `target`.
+ * While the most costly shard is above `target`, the plan adds a shard, up to `maxShards`.
  * The spec of a unit is the spec of its input, so the units of a spec go to different shards.
  */
 export function planRound(units: readonly SweepUnit[], specOf: (input: string) => string, target: number, maxShards: number): RoundPlan {
   const sum = units.reduce((s, u) => s + u.cost, 0);
-  const count = Math.max(1, Math.min(maxShards, Math.ceil(sum / target)));
-  const plan = planShards(
-    units.map((u) => ({ id: u.id, spec: specOf(u.input), cost: u.cost })),
-    count,
-  );
+  const items = units.map((u) => ({ id: u.id, spec: specOf(u.input), cost: u.cost }));
+  let count = Math.max(1, Math.min(maxShards, Math.ceil(sum / target)));
+  let plan = planShards(items, count);
+  while (count < maxShards && Math.max(...plan.loads) > target) plan = planShards(items, ++count);
   return { ...plan, units };
 }
 

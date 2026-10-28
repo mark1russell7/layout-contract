@@ -205,6 +205,19 @@ The plan gives each round the cost of a lane pass (`LANE_PASS_COST`, 3 pairs). E
 - The most costly shard has 1 input: one seed of the dense spec with hubs and 1000 boxes. More shards do not make it shorter.
 - In L13, this spec took 31.5 minutes, and the plan gave it 25.0 minutes. The plan counts 3 pairs for each lane pass, but a lane pass on this spec took the time of approximately 4.6 pairs.
 
+The table above uses the margins of L32. L35 fits the lane term and the margins from the run of L13 (refer to "The shards").
+
+- A lane pass then has the lane term. A round of an iteration pair keeps the cost of 3 pairs (`LANE_PASS_COST`), because no run has measured the rounds yet.
+- The margins of L13 are larger. Thus the plans of L35 are larger than the table above.
+
+| Plan at 64 shards, the model of L35 | All shards | The most costly shard |
+|---|---|---|
+| `--iterate on` | 542.0 minutes | 36.8 minutes |
+| `--lanes on --iterate on` | 623.7 minutes | 41.8 minutes |
+
+- Each plan stays far below the limit of 360 minutes of a shard job.
+- A run with `--iterate on` gives the times of the rounds for a later fit. `fit-cost.mjs` does not count the rounds of a line of the bench yet.
+
 ## The cells of highways
 
 The analysis has 6 cells: the rules `collection` and `all`, and the caps 1.1, 1.25 and 1.5. In each cell, the hard value of a record is the sum of these counts:

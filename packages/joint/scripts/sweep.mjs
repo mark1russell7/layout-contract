@@ -22,6 +22,7 @@ import {
   configLabel,
   emptyState,
   INCUMBENT,
+  iterPlanPairs,
   jointCorpus,
   planRound1,
   planRound2,
@@ -168,17 +169,20 @@ if (command === "plan") {
     const unit = units.get(id);
     const { input, entry } = byInput.get(unit.input);
     const runs = unit.configs.map((c) => ({ id: c, run: plan.runs[c] }));
-    const pairs = runs.filter((r) => r.run.lane === undefined).map((r) => r.run.pair);
+    const pairs = runs.filter((r) => r.run.lane === undefined && r.run.iter === undefined).map((r) => r.run.pair);
     const lanes = runs.filter((r) => r.run.lane !== undefined).map((r) => r.run.lane);
+    const iterate = runs.filter((r) => r.run.iter !== undefined).map((r) => r.run.iter);
     const byPair = new Map(runs.map((r) => [r.run.pair, r.id]));
     const t0 = performance.now();
-    const records = runInput(input, entry.cell, { env, corpus: plan.corpus, pairs, lanes, ...(commit === undefined ? {} : { commit }) })
+    const records = runInput(input, entry.cell, { env, corpus: plan.corpus, pairs, lanes, iterate, ...(commit === undefined ? {} : { commit }) })
       .filter((r) => byPair.has(r.strategy))
       .map((r) => ({ ...r, strategy: byPair.get(r.strategy), options: { ...r.options, pair: r.strategy } }));
     appendFileSync(file, records.map((r) => JSON.stringify(r) + "\n").join(""));
     const skipped = records.filter((r) => r.skipped !== undefined).length;
     const passes = runs.reduce((n, r) => n + r.run.passes, 0);
-    console.log(`${unit.id}: ${records.length} records, ${skipped} skipped, ${Math.round(performance.now() - t0)} ms, ${runs.length} pairs, ${passes} lane passes`);
+    // The rounds of the iteration chains count as pairs, at `iterPlanPairs` (3 pairs for each round), as the plan counts them.
+    const units = runs.length + iterPlanPairs(iterate);
+    console.log(`${unit.id}: ${records.length} records, ${skipped} skipped, ${Math.round(performance.now() - t0)} ms, ${units} pairs, ${passes} lane passes`);
   }
   writeJson(join(out, `shard-${plan.round}-${shard}.json`), { round: plan.round, shard, planned: plan.loads[shard] / 60000, real: (performance.now() - start) / 60000 });
 } else if (command === "race") {

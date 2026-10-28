@@ -1,8 +1,8 @@
 import { describe, expect, it } from "vitest";
 import { checkSpace, configId, enumerateSpace, spaceSize, splitConfig } from "@mark1russell7/layout-contract";
-import { laneEntries, LANE_CAP, LANE_CLEARANCE, LANE_SPACE } from "./lanes.ts";
+import { iterEntries, iterPlanPairs, laneEntries, LANE_CAP, LANE_CLEARANCE, LANE_SPACE } from "./lanes.ts";
 import { PACK_ENTRIES, ROUTERS } from "./runner.ts";
-import { BENCH_ADAPTER, configLabel, configRun,JOINT_ENGINE, JOINT_SPACE, LANE_STAGE, namedId } from "./space.ts";
+import { BENCH_ADAPTER, configLabel, configRun, JOINT_ENGINE, JOINT_SPACE, LANE_STAGE, namedId } from "./space.ts";
 
 describe("the joint space of the sweep", () => {
   it("has no break, and the stages of the two parts and the stage of the lanes", () => {
@@ -13,19 +13,22 @@ describe("the joint space of the sweep", () => {
     expect(JOINT_SPACE.stages[1]!.options).toHaveLength(ROUTERS.length);
   });
 
-  it("has a named config for each pair of the bench and for each lane pair of L13", () => {
+  it("has a named config for each pair of the bench, each lane pair of L13 and each iteration pair of L11", () => {
     const named = Object.keys(JOINT_SPACE.named ?? {});
-    expect(named).toHaveLength(PACK_ENTRIES.length * ROUTERS.length + laneEntries().length);
+    expect(named).toHaveLength(PACK_ENTRIES.length * ROUTERS.length + laneEntries().length + iterEntries().length);
+    expect(named).toHaveLength(166);
+    expect(named).toContain("lanes-iter2.rows.corners+corners");
     expect(named).toContain("rows+portfolio");
     expect(named).toContain("lanes-sides.maxrects-cp.corners+corners");
     expect(named).toContain("lanes-sides2.select.portfolio+portfolio");
   });
 
-  it("gives the size of the grid: 130 pairs times (1 + 2 options of the lanes with 4 params)", () => {
+  it("gives the size of the grid: 130 pairs times (1 + 2 lane options with 4 params + the option iter with 1 param)", () => {
     const pairs = BigInt(PACK_ENTRIES.length * ROUTERS.length);
-    expect(spaceSize(JOINT_SPACE, { levels: 1 })).toEqual({ base: pairs * 3n, meta: 0n });
-    expect(spaceSize(JOINT_SPACE, { levels: 2 }).base).toBe(pairs * (1n + 2n * 16n));
-    expect(spaceSize(JOINT_SPACE, { levels: 3 }).base).toBe(pairs * (1n + 2n * 81n));
+    expect(spaceSize(JOINT_SPACE, { levels: 1 })).toEqual({ base: pairs * 4n, meta: 0n });
+    expect(spaceSize(JOINT_SPACE, { levels: 2 }).base).toBe(pairs * (1n + 2n * 16n + 2n));
+    expect(spaceSize(JOINT_SPACE, { levels: 3 }).base).toBe(pairs * (1n + 2n * 81n + 3n));
+    expect(spaceSize(JOINT_SPACE, { levels: 3 }).base).toBe(21580n);
   });
 
   it("runs a named config as the pair of the bench, with the same pair id", () => {
@@ -42,6 +45,15 @@ describe("the joint space of the sweep", () => {
       expect(run.passes).toBe(lane.variant.passes);
       expect(run.lane?.variant).toEqual(lane.variant);
       expect(run.lane?.options).toEqual({ clearance: LANE_CLEARANCE, space: LANE_SPACE, cap: LANE_CAP });
+    }
+    for (const it of iterEntries()) {
+      const name = `${it.id}+${it.router}`;
+      const run = configRun(JOINT_SPACE.named![name]!);
+      expect(run.pair).toBe(name);
+      expect(run.iter).toEqual(it);
+      expect(run.lane).toBeUndefined();
+      expect(run.rounds).toBe(it.variant.rounds);
+      expect(iterPlanPairs([run.iter!])).toBe(3 * it.variant.rounds);
     }
   });
 
@@ -73,6 +85,7 @@ describe("the joint space of the sweep", () => {
     expect(BENCH_ADAPTER.router(c)).toBe("portfolio");
     expect(namedId("rows+portfolio")).toMatch(/^[0-9a-f]{16}$/);
     expect(configLabel(c)).toBe("rows+portfolio");
+    expect(configLabel(JOINT_SPACE.named!["lanes-iter3.select.portfolio+portfolio"]!)).toBe("select+portfolio iter r3");
     expect(configLabel(JOINT_SPACE.named!["lanes-sides2.select.portfolio+portfolio"]!)).toBe("select+portfolio sides p2 c5 s4 k8");
   });
 });

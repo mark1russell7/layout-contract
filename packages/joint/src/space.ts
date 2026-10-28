@@ -10,7 +10,23 @@ import {
   type StrategyConfig,
   type StrategySpace,
 } from "@mark1russell7/layout-contract";
-import { LANE_CAP, LANE_CLEARANCE, LANE_PREFIX, LANE_SEPARATOR, LANE_SPACE, laneEntries, type LaneEntry, type LaneMode, type LaneOptions, type LaneVariant } from "./lanes.ts";
+import {
+  ITER_PREFIX,
+  ITER_ROUNDS,
+  ITER_VARIANTS,
+  iterEntries,
+  LANE_CAP,
+  LANE_CLEARANCE,
+  LANE_PREFIX,
+  LANE_SEPARATOR,
+  LANE_SPACE,
+  laneEntries,
+  type IterEntry,
+  type LaneEntry,
+  type LaneMode,
+  type LaneOptions,
+  type LaneVariant,
+} from "./lanes.ts";
 import { PACK_ENTRIES, pairId, ROUTERS } from "./runner.ts";
 
 /** The name of the joint space. A joint config names the space with this value. */
@@ -34,8 +50,11 @@ export const LANE_ENGINE = "lanes";
 /** The stage of the lane option in the joint space. The stage is optional, and the value `null` is no lane pass. */
 export const LANE_STAGE: string = `${LANE_ENGINE}.mode`;
 
-/** The version of the stage `lanes` and of the bench parts. A change of their options or ranges gets a new version. */
-export const BENCH_SPACE_VERSION = "bench-1";
+/** The version of the stage `lanes` and of the bench parts. A change of their options or ranges gets a new version. Version `bench-2` adds the option `iter` of L11. */
+export const BENCH_SPACE_VERSION = "bench-2";
+
+/** The option of the stage `lanes.mode` for the iteration pairs of L11. */
+export const ITER_OPTION = "iter";
 
 /** This function gives the pack part of the bench space: the stage `entry` with the 13 pack entries, and a named config for each entry. */
 export function benchPackSpace(): StrategySpace {
@@ -70,13 +89,20 @@ export const LANE_PARAMS: readonly SpaceParam[] = Object.freeze([
   { name: "cap", kind: "int", min: 1, max: 16, default: LANE_CAP },
 ]);
 
-/** The stage `mode` of the joint options: the modes `max` and `sides` of `laneMargins`, each with the params `LANE_PARAMS`. */
+/** The params of the option `iter`: the round cap `rounds` of the iteration pairs of L11, from 1 to `ITER_ROUNDS`. */
+export const ITER_PARAMS: readonly SpaceParam[] = Object.freeze([{ name: "rounds", kind: "int", min: 1, max: ITER_ROUNDS, default: ITER_ROUNDS }]);
+
+/**
+ * The stage `mode` of the joint options. The modes `max` and `sides` of `laneMargins` have the params `LANE_PARAMS`.
+ * The option `iter` is the iteration of L11 with the params `ITER_PARAMS`. It uses the default lane options.
+ */
 export const LANE_SPACE_STAGE: SpaceStage = Object.freeze({
   name: "mode",
   optional: true,
   options: [
     { id: "max", params: LANE_PARAMS },
     { id: "sides", params: LANE_PARAMS },
+    { id: ITER_OPTION, params: ITER_PARAMS },
   ],
 });
 
@@ -93,21 +119,24 @@ function laneChoice(variant: LaneVariant): StageChoice {
 /**
  * This function gives the joint space: the product of a pack space and a route space, and the part `lanes` of the joint options.
  * - The defaults are the bench parts `benchPackSpace` and `benchRouteSpace`. The engine spaces replace them when the engines publish them.
- * - The named configs are the pairs `<pack>+<router>` of the product, and the 18 lane pairs of L13 by their pair ids, for example `lanes-sides.rows.corners+corners`.
+ * - The named configs are the pairs `<pack>+<router>` of the product, the lane pairs of L13 and the iteration pairs of L11.
+ * - For example `lanes-sides.rows.corners+corners` and `lanes-iter2.rows.corners+corners`.
  */
 export function jointSpace(pack: StrategySpace = benchPackSpace(), route: StrategySpace = benchRouteSpace(), options: StrategySpace = laneSpace()): StrategySpace {
   const base = productSpace(pack, route, JOINT_ENGINE);
   const named: Record<string, StrategyConfig> = { ...base.named };
-  for (const lane of laneEntries()) {
-    const p = pack.named?.[lane.pack];
-    const r = route.named?.[lane.router];
-    if (p === undefined || r === undefined) continue;
+  const add = (id: string, packId: string, router: string, choice: StageChoice): void => {
+    const p = pack.named?.[packId];
+    const r = route.named?.[router];
+    if (p === undefined || r === undefined) return;
     const stages: Record<string, StageChoice | null> = {};
     for (const [k, c] of Object.entries(p.stages)) stages[`${pack.engine}.${k}`] = c;
     for (const [k, c] of Object.entries(r.stages)) stages[`${route.engine}.${k}`] = c;
-    stages[LANE_STAGE] = laneChoice(lane.variant);
-    named[pairId(lane.id, lane.router)] = { space: JOINT_ENGINE, stages };
-  }
+    stages[LANE_STAGE] = choice;
+    named[pairId(id, router)] = { space: JOINT_ENGINE, stages };
+  };
+  for (const lane of laneEntries()) add(lane.id, lane.pack, lane.router, laneChoice(lane.variant));
+  for (const it of iterEntries()) add(it.id, it.pack, it.router, { option: ITER_OPTION, params: { rounds: it.variant.rounds } });
   const extra = options.stages.map((x) => ({ ...x, name: `${options.engine}.${x.name}` }));
   return { ...base, version: `${base.version}+${options.engine}@${options.version}`, stages: [...base.stages, ...extra], named, parts: [pack, route, options] };
 }
@@ -115,17 +144,21 @@ export function jointSpace(pack: StrategySpace = benchPackSpace(), route: Strate
 /** The joint space of the bench: `jointSpace()` with the bench parts. */
 export const JOINT_SPACE: StrategySpace = jointSpace();
 
-/** What the runner does for one joint config: one pair of a pack entry and a router, and an optional lane entry. */
+/** What the runner does for one joint config: one pair of a pack entry and a router, and an optional lane entry or iteration entry. */
 export interface ConfigRun {
   /** The id of the pack entry of `PACK_ENTRIES`. */
   readonly pack: string;
   readonly router: string;
-  /** The lane entry of a config with the stage `lanes`. Its options are the params of the stage. */
+  /** The lane entry of a config with the mode `max` or `sides`. Its options are the params of the stage. */
   readonly lane?: LaneEntry;
-  /** The pair id of the records of the runner: `<pack>+<router>`, or `<lane id>+<router>`. */
+  /** The iteration entry of a config with the mode `iter`. */
+  readonly iter?: IterEntry;
+  /** The pair id of the records of the runner: `<pack>+<router>`, `<lane id>+<router>` or `<iteration id>+<router>`. */
   readonly pair: string;
   /** The count of the lane passes after the first pack. A config without lanes has 0. */
   readonly passes: number;
+  /** The round cap of an iteration config. Another config has 0. */
+  readonly rounds: number;
 }
 
 /**
@@ -170,7 +203,13 @@ export function configRun(config: StrategyConfig, space: StrategySpace = JOINT_S
   const pack = adapter.pack(c);
   const router = adapter.router(c);
   const choice = c.stages[LANE_STAGE] ?? null;
-  if (choice === null) return { pack, router, pair: pairId(pack, router), passes: 0 };
+  if (choice === null) return { pack, router, pair: pairId(pack, router), passes: 0, rounds: 0 };
+  if (choice.option === ITER_OPTION) {
+    const rounds = numberOf(choice, "rounds");
+    const variant = ITER_VARIANTS[rounds - 1] ?? { name: `${ITER_PREFIX}${rounds}`, rounds };
+    const id = [variant.name, pack, router].join(LANE_SEPARATOR);
+    return { pack, router, iter: { id, variant, pack, router }, pair: pairId(id, router), passes: 0, rounds };
+  }
   const mode = choice.option as LaneMode;
   const passes = numberOf(choice, "passes");
   const options: LaneOptions = { clearance: numberOf(choice, "clearance"), space: numberOf(choice, "space"), cap: numberOf(choice, "cap") };
@@ -179,7 +218,7 @@ export function configRun(config: StrategyConfig, space: StrategySpace = JOINT_S
   const name = laneVariantName(mode, passes) + (plain ? "" : `-${configId(space, c).slice(0, 8)}`);
   const variant: LaneVariant = { name, mode, passes };
   const id = [variant.name, pack, router].join(LANE_SEPARATOR);
-  return { pack, router, lane: { id, variant, pack, router, options }, pair: pairId(id, router), passes };
+  return { pack, router, lane: { id, variant, pack, router, options }, pair: pairId(id, router), passes, rounds: 0 };
 }
 
 /**
@@ -189,6 +228,7 @@ export function configRun(config: StrategyConfig, space: StrategySpace = JOINT_S
 export function configLabel(config: StrategyConfig, space: StrategySpace = JOINT_SPACE, adapter: JointAdapter = BENCH_ADAPTER): string {
   const run = configRun(config, space, adapter);
   const pair = pairId(run.pack, run.router);
+  if (run.iter !== undefined) return `${pair} iter r${run.rounds}`;
   if (run.lane === undefined) return pair;
   const o = run.lane.options ?? {};
   return `${pair} ${run.lane.variant.mode} p${run.passes} c${o.clearance} s${o.space} k${o.cap}`;

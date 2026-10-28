@@ -1,5 +1,6 @@
 import type { LayoutInput } from "@mark1russell7/layout-contract";
 import { describe, expect, it } from "vitest";
+import { ITER_VARIANTS, iterEntries } from "./lanes.ts";
 import { insideLength, jointMeasures, placementFacts, segmentsCross, spearman } from "./joint-measures.ts";
 import { factMeasures, jointHash, packedInput, packInputOf, PACK_ENTRIES, pairId, PORTFOLIO_ROUTER, ROUTERS, runInput, shardOf } from "./runner.ts";
 
@@ -74,6 +75,9 @@ describe("runInput", () => {
     expect(only!.strategy).toBe("lanes-sides-test.rows.corners+corners");
     expect(only!.skipped).toBeUndefined();
     expect(JSON.stringify(only!.options)).toContain('"clearance":8');
+    // The sweep runs an iteration entry without its base pair in the list.
+    const iter = runInput(three, undefined, { pairs: [], iterate: iterEntries(ITER_VARIANTS.slice(0, 1), ["rows"], ["corners"]) });
+    expect(iter.map((r) => r.strategy)).toEqual(["lanes-iter1.rows.corners+corners"]);
   });
 
   it("gives the same records for the same input", () => {
