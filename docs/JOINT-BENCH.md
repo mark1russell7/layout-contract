@@ -437,6 +437,7 @@ All 303 inputs have records, 36360 records in total. The line "Records: 26640" o
 
 - The output hashes of `shared` and `sections` depend on the major version of Node. The order of the lanes in a run differs between Node 24 and Node 26. No route point moves, so the break counts do not change (`highways` #129).
 - The CI of the benchmark uses Node 26. Thus the records of joint-v2 and of this run compare with each other. `highways` 0.8.0 fixes the lane order, and the hashes of these 2 routers change one time.
+- From `highways` 0.8.0 (L31), Node 24 and Node 26 give the same lane order and the same hashes.
 - The cause of the breaks through the slivers is open. See the correction under the result of the joint-v2 run.
 
 ## The prediction for the sequential baseline (L10)
