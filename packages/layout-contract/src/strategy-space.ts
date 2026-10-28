@@ -67,7 +67,7 @@ export interface OptionRef {
   readonly option: string | null;
 }
 
-/** A rule that keeps out invalid combinations: when a config has the option `if`, it also has the option `then`, or does not have the option `then.not`. */
+/** A rule that keeps out invalid combinations. A config with the option `if` also has the option `then`, or does not have the option `then.not`. */
 export interface SpaceConstraint {
   readonly if: OptionRef;
   readonly then: OptionRef | { readonly not: OptionRef };
@@ -493,7 +493,7 @@ function lastPoint(p: SpaceParam): number {
   return min + Math.floor((p.max! - min) / step + 1e-9) * step;
 }
 
-/** This function puts a number of the range of a numeric param on its step and in its range. */
+/** This function moves a value of a numeric param onto its step and into its range. */
 function snap(p: SpaceParam, x: number, digits: number): number {
   const min = p.min!;
   const step = p.step ?? (p.kind === "int" ? 1 : undefined);
