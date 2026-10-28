@@ -10,3 +10,4 @@ export * from "./strategy.ts";
 export * from "./random.ts";
 export * from "./edges.ts";
 export * from "./hash.ts";
+export * from "./portfolio.ts";

@@ -4,7 +4,7 @@
 # and private members. The command `api-report check` compares this file with the built .d.ts files.
 # To accept a change of the API, start the build, then `api-report update`, and review the diff.
 
-## . (build/index.d.ts): 81 names
+## . (build/index.d.ts): 97 names
 
 ContainerTest: build/index.d.ts#ContainerTest
 DEFAULT_TOLERANCE: build/index.d.ts#DEFAULT_TOLERANCE
@@ -29,20 +29,33 @@ LayoutInput: build/index.d.ts#LayoutInput
 LayoutRecord: build/index.d.ts#LayoutRecord
 Margin: build/index.d.ts#Margin
 MeasureSpec: build/index.d.ts#MeasureSpec
+Member: build/index.d.ts#Member
+MemberStatus: build/index.d.ts#MemberStatus
+MemberTrace: build/index.d.ts#MemberTrace
 Obstacle: build/index.d.ts#Obstacle
 OutputGroup: build/index.d.ts#OutputGroup
 PackHard: build/index.d.ts#PackHard
 PackInput: build/index.d.ts#PackInput
 PackOutput: build/index.d.ts#PackOutput
+PickSpec: build/index.d.ts#PickSpec
 Placement: build/index.d.ts#Placement
 Point: build/index.d.ts#Point
 Port: build/index.d.ts#Port
+Portfolio: build/index.d.ts#Portfolio
+PortfolioKey: build/index.d.ts#PortfolioKey
+PortfolioLevel: build/index.d.ts#PortfolioLevel
+PortfolioOptions: build/index.d.ts#PortfolioOptions
+PortfolioPick: build/index.d.ts#PortfolioPick
+PortfolioTrace: build/index.d.ts#PortfolioTrace
 RECORD_EPS: build/index.d.ts#RECORD_EPS
 Rect: build/index.d.ts#Rect
 Region: build/index.d.ts#Region
 RunEnv: build/index.d.ts#RunEnv
 RunFacts: build/index.d.ts#RunFacts
 SIDES: build/index.d.ts#SIDES
+SelectCandidate: build/index.d.ts#SelectCandidate
+SelectLevel: build/index.d.ts#SelectLevel
+Selection: build/index.d.ts#Selection
 Side: build/index.d.ts#Side
 Sides: build/index.d.ts#Sides
 Stage: build/index.d.ts#Stage
@@ -72,10 +85,13 @@ outputGroups: build/index.d.ts#outputGroups
 outputHash: build/index.d.ts#outputHash
 overlapOf: build/index.d.ts#overlapOf
 packHard: build/index.d.ts#packHard
+pickMoves: build/index.d.ts#pickMoves
 placedRect: build/index.d.ts#placedRect
+portfolio: build/index.d.ts#portfolio
 randomInt: build/index.d.ts#randomInt
 rectInRegion: build/index.d.ts#rectInRegion
 regionHitsRect: build/index.d.ts#regionHitsRect
+selectBest: build/index.d.ts#selectBest
 sha256Hex: build/index.d.ts#sha256Hex
 stepRandom: build/index.d.ts#stepRandom
 toLayoutRecord: build/index.d.ts#toLayoutRecord
@@ -275,6 +291,25 @@ export interface MeasureSpec<Id extends string = string> {
   readonly role?: "guard" | "change-guard" | "diagnostic" | "time";
 }
 
+### build/index.d.ts#Member
+export interface Member<I, O> {
+  readonly id: string;
+  run(input: I): O;
+}
+
+### build/index.d.ts#MemberStatus
+export type MemberStatus = "ran" | "cut" | "error";
+
+### build/index.d.ts#MemberTrace
+export interface MemberTrace {
+  readonly id: string;
+  readonly status: MemberStatus;
+  readonly values?: Readonly<Record<string, number>>;
+  readonly ms?: number;
+  readonly outputHash?: string;
+  readonly error?: string;
+}
+
 ### build/index.d.ts#Obstacle
 export interface Obstacle {
   readonly id: string;
@@ -322,6 +357,9 @@ export interface PackOutput {
   readonly trace?: readonly StageTrace[];
 }
 
+### build/index.d.ts#PickSpec
+export type PickSpec = Pick<MeasureSpec, "direction" | "minEffect">;
+
 ### build/index.d.ts#Placement
 export interface Placement {
   readonly id: string;
@@ -342,6 +380,53 @@ export interface Port {
   readonly side?: Side;
   readonly x?: number;
   readonly y?: number;
+}
+
+### build/index.d.ts#Portfolio
+export interface Portfolio<I, O> extends Member<I, O> {
+  pick(input: I): PortfolioPick<O>;
+}
+
+### build/index.d.ts#PortfolioKey
+export interface PortfolioKey<I, O> {
+  hard(input: I, output: O): number;
+  readonly levels: readonly PortfolioLevel<I, O>[];
+  hash?(output: O): string;
+}
+
+### build/index.d.ts#PortfolioLevel
+export interface PortfolioLevel<I, O> {
+  readonly id: string;
+  readonly spec: PickSpec;
+  value(input: I, output: O): number;
+}
+
+### build/index.d.ts#PortfolioOptions
+export interface PortfolioOptions {
+  readonly budgetMs?: number;
+  readonly maxMembers?: number;
+  readonly now?: () => number;
+}
+
+### build/index.d.ts#PortfolioPick
+export interface PortfolioPick<O> {
+  readonly output: O;
+  readonly winner: string;
+  readonly trace: PortfolioTrace;
+}
+
+### build/index.d.ts#PortfolioTrace
+export interface PortfolioTrace {
+  readonly members: readonly MemberTrace[];
+  readonly winner: string;
+  readonly winnerIndex: number;
+  readonly picked: boolean;
+  readonly totalMs: number;
+  readonly budgetMs?: number;
+  readonly maxMembers?: number;
+  readonly cut: number;
+  readonly deterministic: boolean;
+  readonly kept: readonly (readonly string[])[];
 }
 
 ### build/index.d.ts#RECORD_EPS
@@ -394,6 +479,24 @@ export type RunFacts = Omit<LayoutRecord, "schema" | "input" | "inputHash" | "se
 
 ### build/index.d.ts#SIDES
 export declare const SIDES: readonly Side[];
+
+### build/index.d.ts#SelectCandidate
+export interface SelectCandidate {
+  readonly id: string;
+  readonly values: Readonly<Record<string, number>>;
+}
+
+### build/index.d.ts#SelectLevel
+export interface SelectLevel {
+  readonly id: string;
+  readonly spec: PickSpec;
+}
+
+### build/index.d.ts#Selection
+export interface Selection {
+  readonly winner: string;
+  readonly kept: readonly (readonly string[])[];
+}
 
 ### build/index.d.ts#Side
 export type Side = "top" | "right" | "bottom" | "left";
@@ -504,8 +607,16 @@ export declare function overlapOf(a: Rect, b: Rect): {
 ### build/index.d.ts#packHard
 export declare function packHard(input: LayoutInput, output: PackOutput, tolerance?: number, options?: ContainerTest): PackHard;
 
+### build/index.d.ts#pickMoves
+export declare function pickMoves(trace: Pick<PortfolioTrace, "picked">): {
+  pick: number;
+};
+
 ### build/index.d.ts#placedRect
 export declare function placedRect(box: LayoutBox): Rect | undefined;
+
+### build/index.d.ts#portfolio
+export declare function portfolio<I, O>(id: string, members: readonly Member<I, O>[] | ((input: I) => readonly Member<I, O>[]), key: PortfolioKey<I, O>, options?: PortfolioOptions): Portfolio<I, O>;
 
 ### build/index.d.ts#randomInt
 export declare function randomInt(r: () => number, lo: number, hi: number): number;
@@ -515,6 +626,9 @@ export declare function rectInRegion(region: Region, rect: Rect): boolean;
 
 ### build/index.d.ts#regionHitsRect
 export declare function regionHitsRect(region: Region, rect: Rect): boolean;
+
+### build/index.d.ts#selectBest
+export declare function selectBest(candidates: readonly SelectCandidate[], levels: readonly SelectLevel[]): Selection;
 
 ### build/index.d.ts#sha256Hex
 export declare function sha256Hex(text: string): string;

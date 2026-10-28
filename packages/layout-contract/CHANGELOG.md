@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.2.6
+
+- `portfolio(id, members, key, options)` starts a list of members on an input and gives the output of the best member. The result is also a member.
+- `selectBest(candidates, levels)` is the pick rule. It keeps each candidate that is not worse than the best value of a level, so the minEffect ties do not drift.
+- The level 0 of a portfolio is the count of hard breaks. A member that throws, or gives a value that is not finite, gets the status `error`.
+- The options `maxMembers` and `budgetMs` cut the members. A cut by the time limit makes the trace not deterministic.
+- `pickMoves(trace)` gives the move `pick` (the trace measure `move.pick` of a record), so `exercised` reads the effect of a pick. `docs/PORTFOLIO.md` tells the rules.
+
 ## 0.2.5
 
 - `outputHash(value, options)` gives the first 16 hex characters of the SHA-256 of the canonical JSON of an output. Each number goes to the grid of `RECORD_EPS` first.
