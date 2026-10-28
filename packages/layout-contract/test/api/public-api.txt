@@ -4,7 +4,7 @@
 # and private members. The command `api-report check` compares this file with the built .d.ts files.
 # To accept a change of the API, start the build, then `api-report update`, and review the diff.
 
-## . (build/index.d.ts): 72 names
+## . (build/index.d.ts): 81 names
 
 ContainerTest: build/index.d.ts#ContainerTest
 DEFAULT_TOLERANCE: build/index.d.ts#DEFAULT_TOLERANCE
@@ -14,6 +14,8 @@ EDGE_STEP_VERSION: build/index.d.ts#EDGE_STEP_VERSION
 EPS: build/index.d.ts#EPS
 EdgeShape: build/index.d.ts#EdgeShape
 EdgeStepParams: build/index.d.ts#EdgeStepParams
+ExerciseEvidence: build/index.d.ts#ExerciseEvidence
+HashOptions: build/index.d.ts#HashOptions
 Item: build/index.d.ts#Item
 JOINT_MEASURES: build/index.d.ts#JOINT_MEASURES
 JOINT_MOVED_MIN: build/index.d.ts#JOINT_MOVED_MIN
@@ -28,6 +30,7 @@ LayoutRecord: build/index.d.ts#LayoutRecord
 Margin: build/index.d.ts#Margin
 MeasureSpec: build/index.d.ts#MeasureSpec
 Obstacle: build/index.d.ts#Obstacle
+OutputGroup: build/index.d.ts#OutputGroup
 PackHard: build/index.d.ts#PackHard
 PackInput: build/index.d.ts#PackInput
 PackOutput: build/index.d.ts#PackOutput
@@ -50,24 +53,30 @@ Tolerance: build/index.d.ts#Tolerance
 Verdict: build/index.d.ts#Verdict
 applyPack: build/index.d.ts#applyPack
 boundsOf: build/index.d.ts#boundsOf
+canonicalJson: build/index.d.ts#canonicalJson
 checkInput: build/index.d.ts#checkInput
 compareMeasure: build/index.d.ts#compareMeasure
 countObstacleHits: build/index.d.ts#countObstacleHits
 countOutside: build/index.d.ts#countOutside
 countOverlaps: build/index.d.ts#countOverlaps
 countPortsOffBorder: build/index.d.ts#countPortsOffBorder
+documentHash: build/index.d.ts#documentHash
 edgeStep: build/index.d.ts#edgeStep
+exercised: build/index.d.ts#exercised
 fnv1a32: build/index.d.ts#fnv1a32
 grow: build/index.d.ts#grow
 marginSides: build/index.d.ts#marginSides
 minEffectOf: build/index.d.ts#minEffectOf
 mulberry32: build/index.d.ts#mulberry32
+outputGroups: build/index.d.ts#outputGroups
+outputHash: build/index.d.ts#outputHash
 overlapOf: build/index.d.ts#overlapOf
 packHard: build/index.d.ts#packHard
 placedRect: build/index.d.ts#placedRect
 randomInt: build/index.d.ts#randomInt
 rectInRegion: build/index.d.ts#rectInRegion
 regionHitsRect: build/index.d.ts#regionHitsRect
+sha256Hex: build/index.d.ts#sha256Hex
 stepRandom: build/index.d.ts#stepRandom
 toLayoutRecord: build/index.d.ts#toLayoutRecord
 toPackInput: build/index.d.ts#toPackInput
@@ -111,6 +120,18 @@ export interface EdgeStepParams {
   readonly groups?: "none" | "flat" | "nested";
   readonly ports?: "free" | "sides" | "fixed";
   readonly hubBy?: "area" | "random";
+}
+
+### build/index.d.ts#ExerciseEvidence
+export interface ExerciseEvidence {
+  readonly moves?: Readonly<Record<string, number>>;
+  readonly hashes?: readonly string[];
+  readonly baseHashes?: readonly string[];
+}
+
+### build/index.d.ts#HashOptions
+export interface HashOptions {
+  readonly grid?: number;
 }
 
 ### build/index.d.ts#Item
@@ -261,6 +282,12 @@ export interface Obstacle {
   readonly move?: {
     readonly cost: number;
   };
+}
+
+### build/index.d.ts#OutputGroup
+export interface OutputGroup {
+  readonly id: string;
+  readonly members: readonly string[];
 }
 
 ### build/index.d.ts#PackHard
@@ -417,6 +444,9 @@ export declare function applyPack(input: LayoutInput, output: PackOutput): Layou
 ### build/index.d.ts#boundsOf
 export declare function boundsOf(region: Region): Rect;
 
+### build/index.d.ts#canonicalJson
+export declare function canonicalJson(value: unknown): string;
+
 ### build/index.d.ts#checkInput
 export declare function checkInput(input: LayoutInput): readonly string[];
 
@@ -435,8 +465,14 @@ export declare function countOverlaps(boxes: readonly LayoutBox[], tolerance?: n
 ### build/index.d.ts#countPortsOffBorder
 export declare function countPortsOffBorder(boxes: readonly LayoutBox[], eps?: number): number;
 
+### build/index.d.ts#documentHash
+export declare function documentHash(doc: object, options?: HashOptions): string;
+
 ### build/index.d.ts#edgeStep
 export declare function edgeStep(input: LayoutInput, params: EdgeStepParams, seed?: number): LayoutInput;
+
+### build/index.d.ts#exercised
+export declare function exercised(evidence: ExerciseEvidence): boolean;
 
 ### build/index.d.ts#fnv1a32
 export declare function fnv1a32(text: string): number;
@@ -452,6 +488,12 @@ export declare function minEffectOf(spec: Pick<MeasureSpec, "minEffect">, a?: nu
 
 ### build/index.d.ts#mulberry32
 export declare function mulberry32(seed: number): () => number;
+
+### build/index.d.ts#outputGroups
+export declare function outputGroups(hashes: Readonly<Record<string, readonly string[]>>): OutputGroup[];
+
+### build/index.d.ts#outputHash
+export declare function outputHash(value: unknown, options?: HashOptions): string;
 
 ### build/index.d.ts#overlapOf
 export declare function overlapOf(a: Rect, b: Rect): {
@@ -473,6 +515,9 @@ export declare function rectInRegion(region: Region, rect: Rect): boolean;
 
 ### build/index.d.ts#regionHitsRect
 export declare function regionHitsRect(region: Region, rect: Rect): boolean;
+
+### build/index.d.ts#sha256Hex
+export declare function sha256Hex(text: string): string;
 
 ### build/index.d.ts#stepRandom
 export declare function stepRandom(seed: number, step: string): () => number;
