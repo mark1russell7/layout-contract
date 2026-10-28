@@ -38,7 +38,7 @@ export function countOverlaps(boxes: readonly LayoutBox[], tolerance: number = D
 /** The options of the container test of `countOutside` and `packHard`. */
 export interface ContainerTest {
   /**
-   * With `true`, a box of a container with a shape and the size `fixed` must stay inside the shape itself, not only inside its bounding box.
+   * With `true`, a box of a shaped container with the size `fixed` must stay inside the shape, not only inside its bounding box.
    * The default is `false`. The default changes to `true` at the next breaking version.
    */
   readonly exactContainer?: boolean;
@@ -47,6 +47,7 @@ export interface ContainerTest {
 /**
  * This function counts the placed boxes that go out of the container.
  * Each box with its margin must stay inside the container made smaller by `inset`. Only the fixed sides of the size count. A shaped container counts as its bounding box.
+ *
  * With `exactContainer`, a box of a shaped container with the size `fixed` also counts when `rectInRegion` tells that it is not inside the shape.
  * For that test, the box grows by `inset` and becomes smaller by `tolerance` on each side. A shaped container with a free side keeps the bounding test only.
  * An input without a container gives 0.
@@ -269,6 +270,7 @@ export function countObstacleHits(
  * A locked box without a placement, or with a move of more than `RECORD_EPS`, breaks `locked-kept`.
  * A locked box without a position in the input is a bad input, not a break. `checkInput` finds it.
  * Another box without a placement that is not in `overflow` breaks `complete`.
+ *
  * `options` goes to `countOutside` for `in-container`.
  */
 export function packHard(input: LayoutInput, output: PackOutput, tolerance: number = DEFAULT_TOLERANCE.overlap, options: ContainerTest = {}): PackHard {
