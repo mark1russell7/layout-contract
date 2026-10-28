@@ -47,7 +47,7 @@ export function parseCostModel(text: string): CostModel {
   });
 }
 
-/** The cost model of the plan. The fit and the margins come from the wall times of the full run 40685494092 (`highways` 0.6.0, `packing` 0.2.10). */
+/** The cost model of the plan. The fit and the margins come from the wall times of the full run 40743187036 (`highways` 0.8.1, `packing` 0.2.16, 130 pairs). */
 export const COST_MODEL: CostModel = parseCostModel(readFileSync(new URL("../data/cost-margins.json", import.meta.url), "utf8"));
 
 /** The coefficients of the predicted time of one pair, from `COST_MODEL`. */

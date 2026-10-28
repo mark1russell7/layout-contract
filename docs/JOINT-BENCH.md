@@ -253,7 +253,7 @@ A split file of `corpus-split/1` is beside each manifest, in `packages/joint/cor
 `planShards` gives the inputs to the shards by their planned cost. Each shard job computes the same plan, so the jobs need no shared file.
 
 1. The predicted cost of an input is `inputCost(boxes, edges, pairs)`: the count of the pairs times the cost of one pair.
-2. The cost of one pair in milliseconds is `4.37 + 0.595 * boxes * boxes / 1000 + 1.16 * boxes * edges / 1000`.
+2. The cost of one pair in milliseconds is `4.38 + 0.45 * boxes * boxes / 1000 + 0.832 * boxes * edges / 1000`.
 3. The planned cost of an input is `plannedCost(spec, boxes, edges, pairs)`: the predicted cost times the margin of its spec.
 4. The plan takes the inputs from the most cost to the least cost. Each input goes to the shard with the least load.
 5. An input does not go to a shard with an input of the same spec, while another shard has none. Thus a lost shard loses 1 seed of a spec, not 3.
@@ -261,29 +261,27 @@ A split file of `corpus-split/1` is beside each manifest, in `packages/joint/cor
 
 The file `packages/joint/data/cost-margins.json` holds the cost model. The script `scripts/fit-cost.mjs` writes it from the logs of the shard jobs of a full run.
 
-- The model comes from the wall time of each input in the run `40685494092`. That run used `highways` 0.6.0 and `packing` 0.2.10. All 303 inputs have a time.
+- The model comes from the wall time of each input in the run `40743187036` of L32. That run used `highways` 0.8.1 and `packing` 0.2.16, with the 130 pairs of the runner. All 303 inputs have a time.
 - The fit makes the least sum of the squares of log(real / predicted). Thus the fit gives the typical time of an input of a size.
 - The margin of a spec is the q90 of real / predicted over the seeds of the spec. The q90 uses linear interpolation.
-- A spec without a measured time gets the default margin: the q90 of real / predicted over all inputs. This value is 2.84.
+- A spec without a measured time gets the default margin: the q90 of real / predicted over all inputs. This value is 3.
 
-The fit of the run `40666991882` gave `8 + 5.5 * boxes * boxes / 1000 + 1.35 * boxes * edges / 1000`. On the new run, the 2 fits compare as follows.
+The fit of the run `40685494092` (L29) gave `4.37 + 0.595 * boxes * boxes / 1000 + 1.16 * boxes * edges / 1000`, from 120 pairs. On the run `40743187036`, the 2 fits compare as follows.
 
 | Fit | R² of the times | R² of the logs of the times |
 |---|---|---|
-| The old fit | 0.210 | 0.581 |
-| The new fit | 0.229 | 0.762 |
+| The fit of L29 | 0.461 | 0.748 |
+| The fit of L32 | 0.638 | 0.759 |
 
-- The counts of the boxes and the edges do not tell the time well. The 12 inputs with 1000 boxes and 4000 edges take from less than 1 second to 46 seconds for each pair. The best linear fit of the times has R² 0.37 only.
-- The margins correct this spread for each spec. The dense spec with hubs and the gap has the margin 8.74. Its 3 seeds took 85, 87 and 93 minutes. The old fit gave them 21.8 minutes. The new plan gives them 91.6 minutes.
-- The next 3 margins are 4.79, 3.71 and 3.68. These specs are the dense spec with hub chains and 1000 boxes, a dense dashboard with 10 boxes and a word cloud with 100 boxes.
-- The new plan gives 717 minutes to all shards. The run took 641 minutes on the inputs.
+- The counts of the boxes and the edges do not tell the time well. The 12 inputs with 1000 boxes and 4000 edges take from 0.08 to 7.86 seconds for each pair.
+- The margins correct this spread for each spec. The dense spec with hubs and the gap has the margin 1.96, and it had 8.74 in L29. Its 3 seeds took 12.0, 17.0 and 12.1 minutes. The plan gives each seed 16.1 minutes.
+- The 3 largest margins are 3.91, 3.9 and 3.88. These specs are word clouds with 100 boxes.
+- The plan gives 301.6 minutes to all shards. The run took 257.2 minutes on the inputs. The L29 plan gave 776.7 minutes to all shards for 130 pairs.
 
-The limit of a shard job is 360 minutes, the limit of GitHub. At 64 shards, the plan gives 91.6 minutes to the most costly shard. This shard has 1 seed of the dense spec with hubs. This load is less than half of the limit, so 64 shards and the limit of 360 minutes stay.
+The limit of a shard job is 360 minutes, the limit of GitHub. At 64 shards, the plan gives 16.1 minutes to the most costly shard, and 99.2 minutes before the fit of L32. This shard has 1 seed of the dense spec with hubs.
 
-- The model gives the cost of one pair, from a run with 120 pairs. The plan multiplies this cost by the 130 pairs of the runner with `select`.
-- With 130 pairs, the plan gives 776.7 minutes to all shards, and 99.2 minutes to the most costly shard.
-- This plan overestimates the cost. `select` gives the output of one of its members, so it shares the routes of that member.
-- The margins come from `highways` 0.6.0. Version 0.8.1 routes the dense spec faster, so the margins also overestimate it. The next full run gives the data for a new fit.
+- With 11 shards, the plan keeps each shard below 30 minutes: 27.4 minutes for the most costly shard. 10 shards give 30.2 minutes.
+- The default stays 64 shards. Each shard of the plan is then far below the limit of 360 minutes.
 
 To fit the model again from a full run, write the logs of its jobs into one file. Then start `fit-cost.mjs` in `packages/joint`:
 
