@@ -407,6 +407,7 @@ export interface PortfolioOptions {
   readonly budgetMs?: number;
   readonly maxMembers?: number;
   readonly now?: () => number;
+  readonly hashes?: "all" | "pick";
 }
 
 ### build/index.d.ts#PortfolioPick
