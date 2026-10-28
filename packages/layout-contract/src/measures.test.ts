@@ -85,7 +85,7 @@ describe("compareMeasure", () => {
   });
 
   it("gives back the grid step of a value from its rounded record, also at half steps and below 0", () => {
-    expect(RECORD_EPS).toBe(1e-3);
+    expect(RECORD_EPS).toBe(1 / RECORD_SCALE);
     const r = rng(29);
     for (let i = 0; i < 20000; i++) {
       const k = Math.round((r() - 0.5) * 2e7);

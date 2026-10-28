@@ -11,7 +11,7 @@ export const RECORD_SCALE = 1000;
  * The epsilon for the float compares on a written file. A file rounds each number to 3 decimals,
  * so a difference of two values can move by up to 0.001. It is `1 / RECORD_SCALE`.
  */
-export const RECORD_EPS = 1 / RECORD_SCALE;
+export const RECORD_EPS = 1e-3;
 
 /**
  * The tolerance of each hard rule, in layout units. A record writes the tolerance that its run used,
