@@ -98,6 +98,8 @@ jobs:
     timeout-minutes: 120
     strategy:
       fail-fast: false
+      # GitHub Free runs at most 20 jobs at once for the account. 6 shards at once leave runners for checks and deploys.
+      max-parallel: 6
       matrix:
         shard: ${{ fromJSON(needs.plan.outputs.shards) }}
     steps:
@@ -170,6 +172,8 @@ jobs:
     timeout-minutes: 120
     strategy:
       fail-fast: false
+      # GitHub Free runs at most 20 jobs at once for the account. 6 shards at once leave runners for checks and deploys.
+      max-parallel: 6
       matrix:
         shard: ${{ fromJSON(needs.race.outputs.shards) }}
     steps:

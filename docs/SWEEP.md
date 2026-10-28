@@ -111,7 +111,7 @@ The local plan of the first night (2026-10-29) with the defaults gives these num
 
 - Round 1 has 26 plain configs, 91 lane configs and 30 iteration configs.
 - Each night runs approximately 37 shards of less than 30 planned minutes, and screens approximately 290 new configs.
-- The 2 rounds take approximately 70 minutes of wall time, with 18 or 19 shards at the same time.
+- The 2 rounds take approximately 180 minutes of wall time, because `max-parallel` runs 6 shards at the same time. GitHub Free runs at most 20 jobs at once for the account.
 - 290 configs are approximately 1.3% of the grid of 3 levels. The integer grid is larger, so the coverage grows each night.
 
 ### The new configs
