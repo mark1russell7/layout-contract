@@ -1,5 +1,16 @@
 // The analysis of the joint benchmark (`docs/JOINT-BENCH.md`). It reads records and the facts of the inputs, and gives a report. It has no input or output of its own.
-import { compareMeasure, JOINT_MEASURES, mulberry32, outputGroups, selectBest, type LayoutRecord, type SelectCandidate, type SelectLevel } from "@mark1russell7/layout-contract";
+import {
+  compareMeasure,
+  JOINT_MEASURES,
+  leaveOneSeedOut,
+  mulberry32,
+  outputGroups,
+  selectBest,
+  type LayoutRecord,
+  type SelectCandidate,
+  type SelectLevel,
+  type SplitFold,
+} from "@mark1russell7/layout-contract";
 import { recordCount, type RecordCount } from "./record-count.ts";
 import { CAPS, PAIR_SEPARATOR } from "./runner.ts";
 
@@ -93,13 +104,18 @@ export interface AnalysisOptions {
   readonly subset?: readonly string[];
   /** The pair of the baseline, for example `BASELINE`. With it, each cell also gives the baseline and the gains over it. */
   readonly baseline?: string;
+  /**
+   * The folds of the greedy portfolios, from a split file (`loadSplit`). The default holds out one seed of the inputs in each fold.
+   * A fold without held-out inputs gives no row. A seed of a fold without inputs adds no input.
+   */
+  readonly folds?: readonly SplitFold[];
 }
 
 /** The pair of the sequential baseline (L10): the default pack entry `rows`, then the portfolio router. */
 export const BASELINE = "rows+portfolio";
 
 /** The options of the report of one cell. */
-type CellOptions = Required<Pick<AnalysisOptions, "resamples" | "seed" | "sizes">> & Pick<AnalysisOptions, "baseline">;
+type CellOptions = Required<Pick<AnalysisOptions, "resamples" | "seed" | "sizes">> & Pick<AnalysisOptions, "baseline" | "folds">;
 
 /** A greedy portfolio of one size against the baseline, on the held-out seeds. Each input is in the test seed of one fold. */
 export interface BaselinePortfolio {
@@ -205,7 +221,10 @@ export interface OverflowSplit {
 
 /** One fold of a greedy portfolio. */
 export interface Fold {
+  /** The first held-out seed of the fold. */
   readonly test: number;
+  /** The held-out seeds of the fold, when the fold holds out more than one seed. */
+  readonly heldOut?: readonly number[];
   readonly members: readonly string[];
   /** The share of the oracle gain on the test seed, or `undefined` when the oracle has no gain. */
   readonly share?: number;
@@ -607,9 +626,14 @@ function cellReport(
   const baseline = options.baseline;
   /** The picks of each portfolio size on the held-out inputs of all folds, for the baseline. */
   const heldPicks = new Map<number, Map<string, string | undefined>>(options.sizes.map((k) => [k, new Map()]));
-  for (const test of seeds) {
-    const train = inputs.filter((i) => i.seed !== test).map((i) => i.id);
-    const held = inputs.filter((i) => i.seed === test).map((i) => i.id);
+  for (const fold of options.folds ?? leaveOneSeedOut(seeds)) {
+    const trainSeeds = new Set(fold.train);
+    const heldSeeds = new Set(fold.heldOut);
+    const test = fold.heldOut[0]!;
+    const many = fold.heldOut.length > 1 ? { heldOut: [...fold.heldOut] } : {};
+    const train = inputs.filter((i) => trainSeeds.has(i.seed)).map((i) => i.id);
+    const held = inputs.filter((i) => heldSeeds.has(i.seed)).map((i) => i.id);
+    if (held.length === 0) continue;
     const members = greedy(cell, train, reps, maxK);
     const base = picksOf(cell, held, members.slice(0, 1));
     for (const k of options.sizes) {
@@ -622,7 +646,7 @@ function cellReport(
       pooled.get(k)!.push(...rows);
       const den = rows.reduce((s, r) => s + r.weight, 0);
       const share = den > 0 ? rows.reduce((s, r) => s + r.value, 0) / den : undefined;
-      folds.get(k)!.push({ test, members: members.slice(0, k), ...(share === undefined ? {} : { share }) });
+      folds.get(k)!.push({ test, ...many, members: members.slice(0, k), ...(share === undefined ? {} : { share }) });
     }
   }
   const portfolios: PortfolioReport[] = options.sizes.map((k) => ({ k, share: bootstrap(pooled.get(k)!, options.resamples, options.seed), folds: folds.get(k)! }));
@@ -831,6 +855,7 @@ export function analyze(records: readonly LayoutRecord[], allInputs: readonly An
     seed: options.seed ?? 1,
     sizes: options.sizes ?? PORTFOLIO_SIZES,
     ...(options.baseline === undefined ? {} : { baseline: options.baseline }),
+    ...(options.folds === undefined ? {} : { folds: options.folds }),
   };
   if (options.baseline !== undefined && records.length > 0 && !records.some((r) => r.strategy === options.baseline))
     throw new RangeError(`The records have no pair "${options.baseline}" for the baseline.`);
@@ -1044,7 +1069,7 @@ export function reportMarkdown(report: Report): string {
   lines.push("|---|---|" + Object.keys(report.cells[0]?.oracle.byCount ?? {}).map(() => "---|").join(""));
   for (const c of report.cells) lines.push(`| ${c.rule} | ${c.cap} | ${Object.values(c.oracle.byCount).map(interval).join(" | ")} |`);
   lines.push("", "### The greedy portfolios", "", "| Rule | Cap | k | Test seed | Members | Share |", "|---|---|---|---|---|---|");
-  for (const c of report.cells) for (const p of c.portfolios) for (const f of p.folds) lines.push(`| ${c.rule} | ${c.cap} | ${p.k} | ${f.test} | ${f.members.join(", ")} | ${f3(f.share)} |`);
+  for (const c of report.cells) for (const p of c.portfolios) for (const f of p.folds) lines.push(`| ${c.rule} | ${c.cap} | ${p.k} | ${(f.heldOut ?? [f.test]).join(", ")} | ${f.members.join(", ")} | ${f3(f.share)} |`);
   lines.push("", "### The overflow split of the oracle picks", "", "| Rule | Cap | Part | Inputs | " + SPLIT_MEASURES.join(" | ") + " |", "|---|---|---|---|" + SPLIT_MEASURES.map(() => "---|").join(""));
   for (const c of report.cells)
     for (const [name, part] of [

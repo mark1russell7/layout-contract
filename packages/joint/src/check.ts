@@ -1,15 +1,10 @@
 // The corpus check of the joint benchmark (`docs/JOINT-BENCH.md`, "The corpus check"). It examines the claims of a manifest against its input files.
-import { marginSides, type LayoutInput } from "@mark1russell7/layout-contract";
+import { declaredCounts, marginSides, type ClaimBreak, type LayoutInput } from "@mark1russell7/layout-contract";
 import { arrayDimensions, claimsOf, SET, SET_V2, type CorpusClaims, type JointManifest, type JointSpec } from "./corpus.ts";
 import { coverage } from "./coverage.ts";
 
-/** One broken claim, with the ids of the inputs that break it. */
-export interface ClaimBreak {
-  /** The name of the claim: `spacing`, `stressOnly`, `coverage`, `minPerKind`, `maxBoxes` or `index`. */
-  readonly claim: string;
-  readonly detail: string;
-  readonly inputs: readonly string[];
-}
+/** One broken claim, with the ids of the inputs that break it. The type comes from the contract. The claims of the joint corpus are `spacing`, `stressOnly`, `coverage`, `minPerKind`, `maxBoxes` and `index`. */
+export type { ClaimBreak } from "@mark1russell7/layout-contract";
 
 /** This function gives the board kind of an input id: the first part of its family, for example `rect-grid`. */
 export function kindOf(id: string): string {
@@ -92,15 +87,15 @@ export function checkCorpus(manifest: JointManifest, inputs: readonly LayoutInpu
     if (c.share < share - 1e-12) breaks.push({ claim: "coverage", detail: `The array ${array} covers ${c.covered} of ${c.pairs} pairs, below the share ${share}. Missing: ${c.missing.slice(0, 5).join(", ")}.`, inputs: [] });
   }
 
-  const counts = new Map<string, number>();
-  for (const e of entries) counts.set(kindOf(e.id), (counts.get(kindOf(e.id)) ?? 0) + 1);
-  const thin = [...counts].filter(([, n]) => n < claims.minPerKind.count).map(([k]) => k);
+  // The board kind is the declared property of an input. The rule of minPerKind is stricter than checkDeclared: a listed kind must also be thin.
+  const counts = declaredCounts(entries, (e) => [kindOf(e.id)]);
+  const thin = Object.entries(counts).filter(([, n]) => n < claims.minPerKind.count).map(([k]) => k);
   const unlisted = thin.filter((k) => !claims.minPerKind.thin.includes(k));
   const notThin = claims.minPerKind.thin.filter((k) => !thin.includes(k));
   if (unlisted.length > 0 || notThin.length > 0) {
     const parts = [
-      ...unlisted.map((k) => `${k} has ${counts.get(k)} inputs, below ${claims.minPerKind.count}, and the list of thin kinds does not have it`),
-      ...notThin.map((k) => `${k} is in the list of thin kinds, but it has ${counts.get(k) ?? 0} inputs`),
+      ...unlisted.map((k) => `${k} has ${counts[k]} inputs, below ${claims.minPerKind.count}, and the list of thin kinds does not have it`),
+      ...notThin.map((k) => `${k} is in the list of thin kinds, but it has ${counts[k] ?? 0} inputs`),
     ];
     breaks.push({ claim: "minPerKind", detail: `${parts.join(". ")}.`, inputs: entries.filter((e) => unlisted.includes(kindOf(e.id))).map((e) => e.id) });
   }

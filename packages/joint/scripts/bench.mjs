@@ -1,6 +1,6 @@
 // The joint benchmark (`docs/JOINT-BENCH.md`). Start it with `pnpm bench <command>`.
 //
-//   check [--corpus <set>]                                                  examines the claims of the committed manifest
+//   check [--corpus <set>]                                                  examines the claims of the committed manifest and its split file
 //   smoke [--corpus <set>]                                                  packs and routes 1 input of each value of spacing with corners
 //   run --shards <n> --shard <i> --out <dir> [--slice pr] [--corpus <set>]   writes <dir>/records-<i>.jsonl
 //   plan --shards <n> [--slice pr] [--corpus <set>]                           prints the planned cost of each shard
@@ -11,6 +11,7 @@
 // The shards get the inputs by their planned cost (`plannedCost`, `planShards`). Each shard job computes the same plan.
 // The cost model is data/cost-margins.json. scripts/fit-cost.mjs writes it from the shard logs of a full run.
 // analyze gives the gains over the baseline pair of `--baseline`. The default is `BASELINE`: rows+portfolio. The value `none` removes the baseline.
+// analyze reads the folds of the greedy portfolios from the split "default" of the split file of the corpus (corpus/splits).
 // analyze fails when an input of the manifest has no records, unless the file of `--allow-missing` lists it. The files list one input id on each line.
 import { appendFileSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
@@ -21,6 +22,7 @@ import {
   checkCorpus,
   idList,
   jointCorpus,
+  loadSplit,
   manifestJson,
   PACK_ENTRIES,
   plannedCost,
@@ -84,6 +86,13 @@ if (command === "check") {
   const breaks = checkCorpus(JSON.parse(committed), inputs);
   for (const b of breaks) console.error(`claim ${b.claim}: ${b.detail} Inputs: ${b.inputs.slice(0, 10).join(", ")}${b.inputs.length > 10 ? ` and ${b.inputs.length - 10} more` : ""}.`);
   if (breaks.length > 0) failed = true;
+  try {
+    const folds = loadSplit(JSON.parse(committed));
+    console.log(`${set}: the split file has ${folds.length} folds in the split default.`);
+  } catch (error) {
+    console.error(error instanceof Error ? error.message : String(error));
+    failed = true;
+  }
   console.log(`${set}: ${inputs.length} inputs, ${breaks.length} broken claims.`);
   if (failed) process.exit(1);
 } else if (command === "smoke") {
@@ -158,6 +167,8 @@ if (command === "check") {
     ...(entry.stress === true ? { stress: true } : {}),
   }));
   const report = analyze(records, inputs, {
+    // The job check examines that the committed manifest is the manifest of the code.
+    folds: loadSplit(JSON.parse(readFileSync(join(dirname(fileURLToPath(import.meta.url)), "..", "corpus", set, "corpus.json"), "utf8"))),
     predictions: set === SET_V2 ? "joint-v2" : "joint-v1",
     ...(args["allow-missing"] === undefined ? {} : { allowMissing: idFile(args["allow-missing"]) }),
     ...(args.subset === undefined ? {} : { subset: idFile(args.subset) }),

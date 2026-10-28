@@ -21,6 +21,6 @@
   "dependencies": {
     "@mark1russell7/highways": "^0.7.0",
     "@mark1russell7/layout-contract": "workspace:*",
-    "@mark1russell7/packing": "^0.2.10"
+    "@mark1russell7/packing": "^0.2.14"
   }
 }
