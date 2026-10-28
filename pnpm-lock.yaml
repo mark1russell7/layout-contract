@@ -246,6 +246,31 @@ importers:
         specifier: ^5.0.3
         version: 5.0.5(@types/node@26.6.5)(vite@8.3.5(@types/node@26.6.5)(esbuild@0.28.2)(tsx@4.23.15))
 
+  packages/site:
+    dependencies:
+      '@mark1russell7/layout-contract':
+        specifier: workspace:*
+        version: link:../layout-contract
+      marked:
+        specifier: ^18.1.2
+        version: 18.1.2
+    devDependencies:
+      '@mark1russell7/cue':
+        specifier: ^1.0.2
+        version: 1.0.2
+      '@types/node':
+        specifier: ^26.6.4
+        version: 26.6.5
+      typescript:
+        specifier: ^7.0.2
+        version: 7.0.2
+      vite:
+        specifier: ^8.3.5
+        version: 8.3.5(@types/node@26.6.5)(esbuild@0.28.2)(tsx@4.23.15)
+      vitest:
+        specifier: ^5.0.3
+        version: 5.0.5(@types/node@26.6.5)(vite@8.3.5(@types/node@26.6.5)(esbuild@0.28.2)(tsx@4.23.15))
+
 packages:
 
   '@andrewbranch/untar.js@1.0.4':
@@ -1175,6 +1200,11 @@ packages:
 
   magic-string@1.4.4:
     resolution: {integrity: sha512-jQz9sVhrZuphH4NrAIHSgkDJCluQO7Ioi4KGRLa7aTUjAODQ13hENX0YIytqYE/rIkO485gQG2LeBxJaW53kkQ==}
+
+  marked@18.1.2:
+    resolution: {integrity: sha512-DfOnvLAQ6WYeWxWO1u4RyFOeqyHup6dks5PPqnoFiooU7ipRvidO/2j8plhAHIiZg574E9ZlzSjUiPMLAzFkgg==}
+    engines: {node: '>= 20'}
+    hasBin: true
 
   minimist@1.2.8:
     resolution: {integrity: sha512-2yyAR8qBkN3YuheJanUpWC5U3bb5osDywNB8RzDVlDwDHbocAJveqqj1u8+SVD7jkWT4yvsHCpWqqWqAxb0zCA==}
@@ -2121,6 +2151,8 @@ snapshots:
   magic-string@1.4.4:
     dependencies:
       '@jridgewell/sourcemap-codec': 1.6.0
+
+  marked@18.1.2: {}
 
   minimist@1.2.8: {}
 

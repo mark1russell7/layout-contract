@@ -11,6 +11,7 @@
     "packages/*/CHANGELOG.md",
     "docs/*.md",
     "packages/*/src/**/*.{ts,tsx}",
+    "packages/site/content/**/*.md",
     "packages/*/*.config.{ts,mts}"
   ],
   "ignore": [

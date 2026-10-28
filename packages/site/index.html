@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>layout-contract: the joint benchmark of packing and highways</title>
+    <meta name="description" content="The shared contract of the packing and highways layout engines: the latest joint benchmark, the strategy-space explorer and the news." />
+    <meta name="color-scheme" content="light dark" />
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%23202a44'/%3E%3Crect x='5' y='6' width='9' height='8' rx='1' fill='%232a78d6'/%3E%3Crect x='18' y='18' width='9' height='8' rx='1' fill='%23eb6834'/%3E%3Cpath d='M14 10h8v8' fill='none' stroke='%23fcfcfb' stroke-width='2'/%3E%3C/svg%3E" />
+  </head>
+  <body>
+    <a class="skip" href="#main">Skip to the content</a>
+    <header class="top">
+      <div class="wrap">
+        <div class="brand">
+          <h1 class="wordmark"><span class="logo" aria-hidden="true"></span>layout-contract</h1>
+          <div class="links">
+            <a href="https://github.com/mark1russell7/layout-contract">GitHub</a>
+            <a href="https://mark1russell7.github.io/packing/">packing site</a>
+            <a href="https://mark1russell7.github.io/highways/">highways site</a>
+            <button type="button" class="theme" id="theme">Theme: auto</button>
+          </div>
+        </div>
+        <div class="lead" id="lead"></div>
+      </div>
+    </header>
+    <nav class="nav" aria-label="Sections">
+      <div class="wrap">
+        <a href="#bench">Joint benchmark</a>
+        <a href="#spaces">Strategy space</a>
+        <a href="#sweeps">Sweeps</a>
+        <a href="#new">What's new</a>
+      </div>
+    </nav>
+
+    <main id="main" class="wrap">
+      <div class="problems" id="problems" role="alert" hidden></div>
+
+      <section id="bench" class="section" aria-labelledby="bench-title">
+        <h2 id="bench-title">Joint benchmark</h2>
+        <details class="more about">
+          <summary>What the words mean: pair, miss, score, oracle, gain, share</summary>
+          <div id="joint-about" class="prose"></div>
+        </details>
+        <div id="joint"></div>
+      </section>
+
+      <section id="spaces" class="section" aria-labelledby="spaces-title">
+        <h2 id="spaces-title">Strategy space</h2>
+        <div id="space-about" class="prose"></div>
+        <div id="space"></div>
+      </section>
+
+      <section id="sweeps" class="section" aria-labelledby="sweeps-title">
+        <h2 id="sweeps-title">Sweep coverage and efficacy maps</h2>
+        <p class="dataline"><span class="badge warn">Later</span> No data yet</p>
+        <div id="sweep" class="prose placeholder"></div>
+      </section>
+
+      <section id="new" class="section" aria-labelledby="new-title">
+        <h2 id="new-title">What's new</h2>
+        <div id="news"></div>
+      </section>
+    </main>
+
+    <footer class="foot">
+      <div class="wrap">
+        <p>MIT license. <a href="https://github.com/mark1russell7/layout-contract">github.com/mark1russell7/layout-contract</a> · <span id="build"></span></p>
+      </div>
+    </footer>
+
+    <script type="module" src="/src/index.ts"></script>
+  </body>
+</html>

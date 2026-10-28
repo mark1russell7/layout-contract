@@ -1,0 +1,75 @@
+{
+  "schema": "site-news/1",
+  "items": [
+    {
+      "date": "2026-10-28",
+      "item": "L32",
+      "title": "The pack entry select in the joint benchmark, and its result",
+      "prs": [
+        46,
+        48,
+        52,
+        53
+      ],
+      "summary": "The benchmark adds select, the default packer of packing. The run 40743187036 has 130 pairs. The best pair is maxrects-cp+corners, with 42 misses on 222 inputs."
+    },
+    {
+      "date": "2026-10-28",
+      "item": "VERDICT",
+      "title": "Verdicts over families, with their scope and breadth",
+      "release": "0.2.12",
+      "prs": [
+        49,
+        51
+      ],
+      "summary": "Version 0.2.11 adds familyBy, familyOf and the verdict over families. Version 0.2.12 adds the scope and the breadth of a verdict."
+    },
+    {
+      "date": "2026-10-28",
+      "item": "L34",
+      "title": "Strategy space as data (part 1)",
+      "release": "0.2.10",
+      "prs": [
+        47
+      ],
+      "summary": "An engine writes its stages, options and param ranges as data. The contract checks a space, counts its points, and gives a grid or a seeded sample."
+    },
+    {
+      "date": "2026-10-28",
+      "item": "L33",
+      "title": "highways 0.8.1 in the joint benchmark: the ROUTE-SCALE fix",
+      "prs": [
+        45
+      ],
+      "summary": "The joint runner uses highways 0.8.1. That version computes the key of each shared link one time. The output of highways does not change."
+    },
+    {
+      "date": "2026-10-28",
+      "item": "L31",
+      "title": "highways 0.8.0 in the joint benchmark: the fixed lane order",
+      "prs": [
+        43
+      ],
+      "summary": "The joint runner uses highways 0.8.0. That version fixes the lane order of a run. The route hashes of shared and sections change one time, and no point moves."
+    },
+    {
+      "date": "2026-10-28",
+      "item": "L22",
+      "title": "Corpus claims, corpus hash and split checks",
+      "release": "0.2.9",
+      "prs": [
+        42
+      ],
+      "summary": "The contract gets the corpus checks that packing, highways and the joint corpus share: the claims, the corpus hash and the folds of a split file."
+    },
+    {
+      "date": "2026-10-28",
+      "item": "L30",
+      "title": "Faster exact straight crossings, and a time for each step",
+      "prs": [
+        39
+      ],
+      "summary": "The joint runner counts the straight crossings with an exact and faster method. Each record also gives the time of each step."
+    }
+  ]
+}
