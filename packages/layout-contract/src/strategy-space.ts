@@ -2,6 +2,7 @@
 import type { ClaimBreak } from "./corpus.ts";
 import { canonicalJson, sha256Hex } from "./hash.ts";
 import { stepRandom } from "./random.ts";
+import { isShapeKind, SHAPE_KIND_IDS, type ShapeKind } from "./shapes.ts";
 
 /** The schema of a strategy space. */
 export const STRATEGY_SPACE_SCHEMA = "strategy-space/1";
@@ -47,11 +48,25 @@ export interface MemberRule {
   readonly ordered: boolean;
 }
 
+/** The inputs that an option supports. A missing field supports each value. */
+export interface OptionSupports {
+  /** The shape kinds of the boxes (`docs/SHAPES.md`). Without it, the option supports each kind. */
+  readonly shape?: readonly ShapeKind[];
+}
+
 /** One implementation of a stage. An option with `members` is a meta option: it chooses between whole configs, or wraps them. */
 export interface StageOption {
   readonly id: string;
   readonly params: readonly SpaceParam[];
   readonly members?: MemberRule;
+  /** The inputs that the option supports. It describes the option, so it is not part of a config or of its id. */
+  readonly supports?: OptionSupports;
+}
+
+/** The shape kinds of the inputs of a check, a count or an enumeration. Without `shapes`, each option counts. */
+export interface ShapeFilter {
+  /** The shape kinds of the input. Only the options that support each of these kinds count. */
+  readonly shapes?: readonly ShapeKind[];
 }
 
 /** One stage of the pipeline of an engine. A config of an `optional` stage can have no option. */
@@ -113,7 +128,7 @@ export interface SpaceSize {
 }
 
 /** The options of `spaceSize`. */
-export interface SpaceSizeOptions {
+export interface SpaceSizeOptions extends ShapeFilter {
   /** The count of the levels of each numeric param, a whole number of 1 or more. */
   readonly levels: number;
   /** The largest meta count that `spaceSize` gives. The default is `10n ** 18n`. */
@@ -121,7 +136,7 @@ export interface SpaceSizeOptions {
 }
 
 /** The options of a grid. The grid gives only the configs without a meta option. */
-export interface GridOptions {
+export interface GridOptions extends ShapeFilter {
   readonly mode: "grid";
   readonly levels: number;
   /** The largest count of configs. A larger grid causes a `RangeError`. The default is 100000. */
@@ -129,7 +144,7 @@ export interface GridOptions {
 }
 
 /** The options of a sample. */
-export interface SampleOptions {
+export interface SampleOptions extends ShapeFilter {
   readonly mode: "sample";
   /** The count of the configs, a whole number of 0 or more. */
   readonly n: number;
@@ -271,6 +286,7 @@ function optionProblems(stage: SpaceStage, o: StageOption): Problem[] {
       if (problem !== undefined) out.push(["when", `${pat} has a when value that is not a value of ${p.when.param}: ${problem}`]);
     }
   });
+  if (o.supports !== undefined) out.push(...supportsProblems(o.supports, at));
   if (o.members !== undefined) {
     const { min, max, ordered } = o.members;
     if (!Number.isInteger(min) || !Number.isInteger(max) || min < 1 || min > max || typeof ordered !== "boolean")
@@ -278,6 +294,24 @@ function optionProblems(stage: SpaceStage, o: StageOption): Problem[] {
   }
   return out;
 }
+
+/** This function gives the problems of the `supports` of an option. */
+function supportsProblems(supports: unknown, at: string): Problem[] {
+  if (!isObject(supports)) return [["shape", `the supports of ${at} are not an object`]];
+  const shape = supports["shape"];
+  if (shape === undefined) return [];
+  if (!Array.isArray(shape) || shape.length === 0) return [["shape", `${at} supports no shape kind. Remove shape to support each kind`]];
+  const out: Problem[] = [];
+  shape.forEach((k: unknown, i) => {
+    if (!isShapeKind(k)) out.push(["shape", `${at} supports the shape kind ${show(k)}, which is not one of ${SHAPE_KIND_IDS.join(", ")}`]);
+    else if (shape.indexOf(k) !== i) out.push(["duplicate", `${at} has the shape kind ${k} two times`]);
+  });
+  return out;
+}
+
+/** This function tells if an option supports each shape kind of the list. */
+const supportsShapes = (o: StageOption, shapes: readonly ShapeKind[] | undefined): boolean =>
+  shapes === undefined || o.supports?.shape === undefined || shapes.every((k) => o.supports!.shape!.includes(k));
 
 /** This function gives the problems of the params of one stage choice. */
 function choiceParamProblems(o: StageOption, params: unknown, at: string): Problem[] {
@@ -301,7 +335,7 @@ function choiceParamProblems(o: StageOption, params: unknown, at: string): Probl
 }
 
 /** This function gives the problems of a config of a space. A member of a meta option has `member: true`. */
-function configProblems(space: StrategySpace, config: unknown, member: boolean): Problem[] {
+function configProblems(space: StrategySpace, config: unknown, member: boolean, shapes?: readonly ShapeKind[]): Problem[] {
   if (!isObject(config) || !isObject(config["stages"])) return [["config", "the config is not an object with stages"]];
   const out: Problem[] = [];
   const stages = config["stages"];
@@ -339,6 +373,10 @@ function configProblems(space: StrategySpace, config: unknown, member: boolean):
     }
     chosen.set(s.name, o.id);
     const at = `the option ${s.name}.${o.id}`;
+    if (!supportsShapes(o, shapes)) {
+      const missing = shapes!.filter((k) => !o.supports!.shape!.includes(k));
+      out.push(["shape", `${at} supports the shape kinds ${o.supports!.shape!.join(", ")}, not ${missing.join(", ")}`]);
+    }
     if (meta !== undefined && meta !== s.name) out.push(["meta", `the stage ${s.name} is set, but the meta option of ${meta} replaces the other stages of its part`]);
     out.push(...choiceParamProblems(o, c["params"], at));
     if (o.members === undefined) {
@@ -349,20 +387,20 @@ function configProblems(space: StrategySpace, config: unknown, member: boolean):
       out.push(["depth", `a member has the meta option ${s.name}.${o.id}. The depth of a meta config is 1`]);
       continue;
     }
-    out.push(...memberProblems(partOf(space, s.name).space, o.members, c["members"], at));
+    out.push(...memberProblems(partOf(space, s.name).space, o.members, c["members"], at, shapes));
   }
   for (const c of space.constraints ?? []) if (!holds(c, chosen)) out.push(["constraint", `the config breaks the constraint ${describe(c)}`]);
   return out;
 }
 
 /** This function gives the problems of the members of a meta option. `part` is the space of the members. */
-function memberProblems(part: StrategySpace, rule: MemberRule, members: unknown, at: string): Problem[] {
+function memberProblems(part: StrategySpace, rule: MemberRule, members: unknown, at: string, shapes?: readonly ShapeKind[]): Problem[] {
   if (!Array.isArray(members)) return [["members", `${at} is a meta option without a list of members`]];
   const out: Problem[] = [];
   if (members.length < rule.min || members.length > rule.max) out.push(["members", `${at} has ${members.length} members, not ${rule.min} to ${rule.max}`]);
   const ids = new Map<string, number>();
   members.forEach((m: unknown, k) => {
-    const inner = configProblems(part, m, true);
+    const inner = configProblems(part, m, true, shapes);
     for (const [claim, detail] of inner) out.push([claim, `the member ${k} of ${at}: ${detail}`]);
     if (inner.length > 0) return;
     const id = idOf(canonicalOf(part, m as StrategyConfig, true));
@@ -377,9 +415,10 @@ const toBreaks = (problems: readonly Problem[], inputs: readonly string[] = []):
 /**
  * This function checks one config of a space. It gives one break for each problem. An empty list tells that the config is good.
  * The `claim` of a break is the kind of the problem, for example `missing`, `unknown`, `inactive`, `param`, `constraint`, `members` or `depth`.
+ * With `shapes`, an option that does not support a kind of the list gives the claim `shape`. A member of a meta option gets the same check.
  */
-export function checkConfig(space: StrategySpace, config: StrategyConfig): ClaimBreak[] {
-  return toBreaks(configProblems(space, config, false));
+export function checkConfig(space: StrategySpace, config: StrategyConfig, options: ShapeFilter = {}): ClaimBreak[] {
+  return toBreaks(configProblems(space, config, false, options.shapes));
 }
 
 /**
@@ -646,14 +685,40 @@ function combos(space: StrategySpace, levels: number, meta: boolean, limit: bigi
 /**
  * This function gives the count of the grid points of a space, with `levels` levels for each numeric param.
  * It counts only the active params and the combinations that keep the constraints. It gives the meta configs apart.
+ * With `shapes`, it counts only the options that support each kind of the list.
  */
 export function spaceSize(space: StrategySpace, options: SpaceSizeOptions): SpaceSize {
   assertSpace(space);
   assertWhole(options.levels, "levels", 1);
-  const limit = options.maxMeta ?? 10n ** 18n;
+  assertShapes(options.shapes);
+  return sizeOf(restrict(space, options.shapes), options.levels, options.maxMeta ?? 10n ** 18n);
+}
+
+/**
+ * This function gives the space with only the options that support each shape kind of `shapes`. Without `shapes`, it gives the same space.
+ * A stage can lose all of its options. Then the space has no config with that stage.
+ */
+function restrict(space: StrategySpace, shapes: readonly ShapeKind[] | undefined): StrategySpace {
+  if (shapes === undefined) return space;
+  return {
+    ...space,
+    stages: space.stages.map((s) => ({ ...s, options: s.options.filter((o) => supportsShapes(o, shapes)) })),
+    ...(space.parts === undefined ? {} : { parts: space.parts.map((p) => restrict(p, shapes)) }),
+  };
+}
+
+/** This function throws a `RangeError` for a list of shape kinds with a kind that is not declared. */
+function assertShapes(shapes: readonly ShapeKind[] | undefined): void {
+  if (shapes === undefined) return;
+  if (!Array.isArray(shapes)) throw new RangeError("The option shapes is not a list of shape kinds.");
+  for (const k of shapes) if (!isShapeKind(k)) throw new RangeError(`The shape kind ${show(k)} is not one of ${SHAPE_KIND_IDS.join(", ")}.`);
+}
+
+/** This function gives the count of the grid points of a space that is known to be good. */
+function sizeOf(space: StrategySpace, levels: number, limit: bigint): SpaceSize {
   let base = 0n;
   let meta: bigint | null = 0n;
-  for (const c of combos(space, options.levels, true, limit)) {
+  for (const c of combos(space, levels, true, limit)) {
     if (c.base) base += c.weight!;
     else meta = meta === null || c.weight === null || meta + c.weight > limit ? null : meta + c.weight;
   }
@@ -674,11 +739,12 @@ function* product<T>(lists: readonly (readonly T[])[], i = 0, acc: T[] = []): Ge
 }
 
 /** This function gives the configs of the grid of a space, without meta options. */
-function gridConfigs(space: StrategySpace, levels: number, limit: number): StrategyConfig[] {
-  const size = spaceSize(space, { levels, maxMeta: 0n }).base;
+function gridConfigs(space: StrategySpace, levels: number, limit: number, shapes: readonly ShapeKind[] | undefined): StrategyConfig[] {
+  const kept = restrict(space, shapes);
+  const size = sizeOf(kept, levels, 0n).base;
   if (size > BigInt(limit)) throw new RangeError(`The grid of the space ${space.engine} has ${size} configs, more than the limit ${limit}.`);
   const out: StrategyConfig[] = [];
-  for (const c of combos(space, levels, false, 0n)) {
+  for (const c of combos(kept, levels, false, 0n)) {
     const names = [...c.choices.keys()];
     const lists = names.map((k) => {
       const o = c.choices.get(k)!;
@@ -724,6 +790,7 @@ function sampleConfigs(space: StrategySpace, n: number, seed: number, meta: bool
   const lists = stages.map((s) => {
     const list: (StageOption | null)[] = s.options.filter((o) => meta || o.members === undefined);
     if (s.optional) list.push(null);
+    if (list.length === 0) throw new Error(`The stage ${s.name} of the space ${space.engine} has no option for a sample. A shape filter can remove all of its options.`);
     return list;
   });
   const points: Map<string, StageOption | null>[] = [];
@@ -794,12 +861,14 @@ function sampleConfigs(space: StrategySpace, n: number, seed: number, meta: bool
  * - The mode `grid` gives each grid point without a meta option, in a stable order. Stages, options and values go in the order of the space.
  * - The mode `sample` gives `n` configs of a seeded Latin hypercube. The options of a stage get equal strata, and each active param gets its own strata.
  * - A sample draws again when a point breaks a constraint. After `maxTries` draws, it throws an `Error`. Two sampled configs can be equal.
+ * - With `shapes`, only the options that support each kind of the list count. Without `shapes`, the result does not change.
  */
 export function enumerateSpace(space: StrategySpace, options: EnumerateOptions): StrategyConfig[] {
   assertSpace(space);
+  assertShapes(options.shapes);
   if (options.mode === "grid") {
     assertWhole(options.levels, "levels", 1);
-    return gridConfigs(space, options.levels, options.limit ?? 100_000);
+    return gridConfigs(space, options.levels, options.limit ?? 100_000, options.shapes);
   }
   if (options.mode !== "sample") throw new RangeError(`The mode ${String((options as { mode?: unknown }).mode)} is not grid or sample.`);
   assertWhole(options.n, "n", 0);
@@ -807,7 +876,16 @@ export function enumerateSpace(space: StrategySpace, options: EnumerateOptions):
   const meta = options.meta ?? "skip";
   if (meta !== "skip" && meta !== "sample") throw new RangeError(`The option meta is ${String(meta)}, not skip or sample.`);
   if (options.n === 0) return [];
-  return sampleConfigs(space, options.n, options.seed, meta === "sample", options.maxTries ?? Math.max(1000, 100 * options.n));
+  return sampleConfigs(restrict(space, options.shapes), options.n, options.seed, meta === "sample", options.maxTries ?? Math.max(1000, 100 * options.n));
+}
+
+/**
+ * This function gives the shape kinds that a space accepts, in the order of `SHAPE_KINDS`. The value comes from the `supports` of the options.
+ * A space accepts a kind when it has at least one config without a meta option on that kind.
+ */
+export function spaceShapeKinds(space: StrategySpace): ShapeKind[] {
+  assertSpace(space);
+  return SHAPE_KIND_IDS.filter((k) => sizeOf(restrict(space, [k]), 1, 0n).base > 0n);
 }
 
 /**

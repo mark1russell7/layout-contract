@@ -4,12 +4,13 @@
 # and private members. The command `api-report check` compares this file with the built .d.ts files.
 # To accept a change of the API, start the build, then `api-report update`, and review the diff.
 
-## . (build/index.d.ts): 163 names
+## . (build/index.d.ts): 181 names
 
 ClaimBreak: build/index.d.ts#ClaimBreak
 ContainerTest: build/index.d.ts#ContainerTest
 CorpusEntry: build/index.d.ts#CorpusEntry
 CorpusSplit: build/index.d.ts#CorpusSplit
+DEFAULT_SHAPES: build/index.d.ts#DEFAULT_SHAPES
 DEFAULT_TOLERANCE: build/index.d.ts#DEFAULT_TOLERANCE
 DeclaredClaim: build/index.d.ts#DeclaredClaim
 Declares: build/index.d.ts#Declares
@@ -46,7 +47,9 @@ MemberStatus: build/index.d.ts#MemberStatus
 MemberTrace: build/index.d.ts#MemberTrace
 Obstacle: build/index.d.ts#Obstacle
 OptionRef: build/index.d.ts#OptionRef
+OptionSupports: build/index.d.ts#OptionSupports
 OutputGroup: build/index.d.ts#OutputGroup
+PACK_HARD_RULES: build/index.d.ts#PACK_HARD_RULES
 PackHard: build/index.d.ts#PackHard
 PackInput: build/index.d.ts#PackInput
 PackOutput: build/index.d.ts#PackOutput
@@ -69,6 +72,8 @@ Rect: build/index.d.ts#Rect
 Region: build/index.d.ts#Region
 RunEnv: build/index.d.ts#RunEnv
 RunFacts: build/index.d.ts#RunFacts
+SHAPE_KINDS: build/index.d.ts#SHAPE_KINDS
+SHAPE_KIND_IDS: build/index.d.ts#SHAPE_KIND_IDS
 SIDES: build/index.d.ts#SIDES
 SPLIT_SCHEMA: build/index.d.ts#SPLIT_SCHEMA
 STRATEGY_SPACE_SCHEMA: build/index.d.ts#STRATEGY_SPACE_SCHEMA
@@ -76,6 +81,11 @@ SampleOptions: build/index.d.ts#SampleOptions
 SelectCandidate: build/index.d.ts#SelectCandidate
 SelectLevel: build/index.d.ts#SelectLevel
 Selection: build/index.d.ts#Selection
+ShapeFilter: build/index.d.ts#ShapeFilter
+ShapeGeometry: build/index.d.ts#ShapeGeometry
+ShapeKind: build/index.d.ts#ShapeKind
+ShapeKindSpec: build/index.d.ts#ShapeKindSpec
+ShapeSupport: build/index.d.ts#ShapeSupport
 Side: build/index.d.ts#Side
 Sides: build/index.d.ts#Sides
 SpaceConstraint: build/index.d.ts#SpaceConstraint
@@ -117,6 +127,7 @@ canonicalJson: build/index.d.ts#canonicalJson
 checkConfig: build/index.d.ts#checkConfig
 checkDeclared: build/index.d.ts#checkDeclared
 checkInput: build/index.d.ts#checkInput
+checkShapes: build/index.d.ts#checkShapes
 checkSpace: build/index.d.ts#checkSpace
 checkSplit: build/index.d.ts#checkSplit
 compareMeasure: build/index.d.ts#compareMeasure
@@ -135,6 +146,8 @@ exercised: build/index.d.ts#exercised
 familyOf: build/index.d.ts#familyOf
 fnv1a32: build/index.d.ts#fnv1a32
 grow: build/index.d.ts#grow
+isShapeKind: build/index.d.ts#isShapeKind
+itemShapeOf: build/index.d.ts#itemShapeOf
 joinConfigs: build/index.d.ts#joinConfigs
 leaveOneSeedOut: build/index.d.ts#leaveOneSeedOut
 marginSides: build/index.d.ts#marginSides
@@ -154,6 +167,11 @@ rectInRegion: build/index.d.ts#rectInRegion
 regionHitsRect: build/index.d.ts#regionHitsRect
 selectBest: build/index.d.ts#selectBest
 sha256Hex: build/index.d.ts#sha256Hex
+shapeKindOf: build/index.d.ts#shapeKindOf
+shapeKindProblem: build/index.d.ts#shapeKindProblem
+shapeKindsOf: build/index.d.ts#shapeKindsOf
+shapesOf: build/index.d.ts#shapesOf
+spaceShapeKinds: build/index.d.ts#spaceShapeKinds
 spaceSize: build/index.d.ts#spaceSize
 splitConfig: build/index.d.ts#splitConfig
 splitFileName: build/index.d.ts#splitFileName
@@ -199,6 +217,9 @@ export interface CorpusSplit {
     readonly folds: readonly SplitFold[];
   }>>;
 }
+
+### build/index.d.ts#DEFAULT_SHAPES
+export declare const DEFAULT_SHAPES: readonly ShapeKind[];
 
 ### build/index.d.ts#DEFAULT_TOLERANCE
 export declare const DEFAULT_TOLERANCE: Tolerance;
@@ -269,7 +290,7 @@ export interface FamilyVerdict {
 }
 
 ### build/index.d.ts#GridOptions
-export interface GridOptions {
+export interface GridOptions extends ShapeFilter {
   readonly mode: "grid";
   readonly levels: number;
   readonly limit?: number;
@@ -304,6 +325,7 @@ export interface LayoutBox {
   readonly parent?: string;
   readonly group?: string;
   readonly shape?: Region;
+  readonly shapeKind?: ShapeKind;
   readonly ports?: readonly Port[];
   readonly margin?: Margin;
   readonly turnable?: boolean;
@@ -322,6 +344,7 @@ export interface LayoutCell {
   readonly edgeShape?: "random" | "clustered" | "hubChain" | "longRange" | "tree" | "bundled";
   readonly groups?: "none" | "flat" | "nested";
   readonly ports?: "free" | "sides" | "fixed";
+  readonly itemShape?: ShapeKind | "mixed";
 }
 
 ### build/index.d.ts#LayoutContainer
@@ -389,6 +412,7 @@ export interface LayoutRecord {
   readonly seed: number;
   readonly nodes: number;
   readonly edges: number;
+  readonly shapes?: readonly ShapeKind[];
   readonly measures: Readonly<Record<string, number>>;
   readonly hard: Readonly<Record<string, number>>;
   readonly tolerance?: Readonly<Partial<Tolerance>>;
@@ -419,6 +443,7 @@ export interface MeasureSpec<Id extends string = string> {
     readonly rel: number;
   };
   readonly role?: "guard" | "change-guard" | "diagnostic" | "time";
+  readonly shapes?: readonly ShapeKind[];
 }
 
 ### build/index.d.ts#Member
@@ -462,11 +487,19 @@ export interface OptionRef {
   readonly option: string | null;
 }
 
+### build/index.d.ts#OptionSupports
+export interface OptionSupports {
+  readonly shape?: readonly ShapeKind[];
+}
+
 ### build/index.d.ts#OutputGroup
 export interface OutputGroup {
   readonly id: string;
   readonly members: readonly string[];
 }
+
+### build/index.d.ts#PACK_HARD_RULES
+export declare const PACK_HARD_RULES: readonly ShapeSupport<keyof PackHard>[];
 
 ### build/index.d.ts#PackHard
 export interface PackHard {
@@ -634,7 +667,13 @@ export interface RunEnv {
 }
 
 ### build/index.d.ts#RunFacts
-export type RunFacts = Omit<LayoutRecord, "schema" | "input" | "inputHash" | "set" | "nodes" | "edges">;
+export type RunFacts = Omit<LayoutRecord, "schema" | "input" | "inputHash" | "set" | "nodes" | "edges" | "shapes">;
+
+### build/index.d.ts#SHAPE_KINDS
+export declare const SHAPE_KINDS: readonly ShapeKindSpec[];
+
+### build/index.d.ts#SHAPE_KIND_IDS
+export declare const SHAPE_KIND_IDS: readonly ShapeKind[];
 
 ### build/index.d.ts#SIDES
 export declare const SIDES: readonly Side[];
@@ -646,7 +685,7 @@ export declare const SPLIT_SCHEMA = "corpus-split/1";
 export declare const STRATEGY_SPACE_SCHEMA = "strategy-space/1";
 
 ### build/index.d.ts#SampleOptions
-export interface SampleOptions {
+export interface SampleOptions extends ShapeFilter {
   readonly mode: "sample";
   readonly n: number;
   readonly seed: number;
@@ -670,6 +709,36 @@ export interface SelectLevel {
 export interface Selection {
   readonly winner: string;
   readonly kept: readonly (readonly string[])[];
+}
+
+### build/index.d.ts#ShapeFilter
+export interface ShapeFilter {
+  readonly shapes?: readonly ShapeKind[];
+}
+
+### build/index.d.ts#ShapeGeometry
+export interface ShapeGeometry {
+  readonly bounds: boolean;
+  readonly area: boolean;
+  readonly contains: boolean;
+  readonly overlap: boolean;
+}
+
+### build/index.d.ts#ShapeKind
+export type ShapeKind = "rect" | "polygon" | "circle" | "free";
+
+### build/index.d.ts#ShapeKindSpec
+export interface ShapeKindSpec {
+  readonly id: ShapeKind;
+  readonly fields: readonly string[];
+  readonly regions: readonly Region["kind"][];
+  readonly geometry: ShapeGeometry;
+}
+
+### build/index.d.ts#ShapeSupport
+export interface ShapeSupport<Id extends string = string> {
+  readonly id: Id;
+  readonly shapes?: readonly ShapeKind[];
 }
 
 ### build/index.d.ts#Side
@@ -711,7 +780,7 @@ export interface SpaceSize {
 }
 
 ### build/index.d.ts#SpaceSizeOptions
-export interface SpaceSizeOptions {
+export interface SpaceSizeOptions extends ShapeFilter {
   readonly levels: number;
   readonly maxMeta?: bigint;
 }
@@ -753,6 +822,7 @@ export interface StageOption {
   readonly id: string;
   readonly params: readonly SpaceParam[];
   readonly members?: MemberRule;
+  readonly supports?: OptionSupports;
 }
 
 ### build/index.d.ts#StageTrace
@@ -907,13 +977,16 @@ export declare function canonicalConfig(space: StrategySpace, config: StrategyCo
 export declare function canonicalJson(value: unknown): string;
 
 ### build/index.d.ts#checkConfig
-export declare function checkConfig(space: StrategySpace, config: StrategyConfig): ClaimBreak[];
+export declare function checkConfig(space: StrategySpace, config: StrategyConfig, options?: ShapeFilter): ClaimBreak[];
 
 ### build/index.d.ts#checkDeclared
 export declare function checkDeclared<I>(inputs: Iterable<I>, declares: Declares<I>, claim: DeclaredClaim, ids?: readonly string[], cellOf?: (input: I) => FamilyCell | undefined): ClaimBreak[];
 
 ### build/index.d.ts#checkInput
 export declare function checkInput(input: LayoutInput): readonly string[];
+
+### build/index.d.ts#checkShapes
+export declare function checkShapes(input: Pick<LayoutInput, "id" | "boxes">, uses: readonly ShapeSupport[]): ClaimBreak[];
 
 ### build/index.d.ts#checkSpace
 export declare function checkSpace(space: StrategySpace): ClaimBreak[];
@@ -968,6 +1041,12 @@ export declare function fnv1a32(text: string): number;
 
 ### build/index.d.ts#grow
 export declare function grow(rect: Rect, margin: Margin | undefined): Rect;
+
+### build/index.d.ts#isShapeKind
+export declare function isShapeKind(value: unknown): value is ShapeKind;
+
+### build/index.d.ts#itemShapeOf
+export declare function itemShapeOf(input: Pick<LayoutInput, "boxes">): ShapeKind | "mixed";
 
 ### build/index.d.ts#joinConfigs
 export declare function joinConfigs(space: string, parts: readonly StrategyConfig[]): StrategyConfig;
@@ -1030,6 +1109,21 @@ export declare function selectBest(candidates: readonly SelectCandidate[], level
 
 ### build/index.d.ts#sha256Hex
 export declare function sha256Hex(text: string): string;
+
+### build/index.d.ts#shapeKindOf
+export declare function shapeKindOf(box: LayoutBox): ShapeKind;
+
+### build/index.d.ts#shapeKindProblem
+export declare function shapeKindProblem(box: LayoutBox): string | undefined;
+
+### build/index.d.ts#shapeKindsOf
+export declare function shapeKindsOf(input: Pick<LayoutInput, "boxes">): ShapeKind[];
+
+### build/index.d.ts#shapesOf
+export declare function shapesOf(use: Pick<ShapeSupport, "shapes">): readonly ShapeKind[];
+
+### build/index.d.ts#spaceShapeKinds
+export declare function spaceShapeKinds(space: StrategySpace): ShapeKind[];
 
 ### build/index.d.ts#spaceSize
 export declare function spaceSize(space: StrategySpace, options: SpaceSizeOptions): SpaceSize;

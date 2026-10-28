@@ -10,9 +10,11 @@ import {
   joinConfigs,
   paramLevels,
   productSpace,
+  spaceShapeKinds,
   spaceSize,
   splitConfig,
   STRATEGY_SPACE_SCHEMA,
+  type OptionSupports,
   type StrategyConfig,
   type StrategySpace,
 } from "./index.ts";
@@ -328,5 +330,86 @@ describe("productSpace", () => {
     const meta = sample.find((c) => c.stages["pack.combine"] !== null);
     expect(meta?.stages["pack.combine"]!.members!.every((m) => m.space === "pack")).toBe(true);
     expect(meta?.stages["route.lanes"]).not.toBeNull();
+  });
+});
+
+describe("shape kinds of the options (L46)", () => {
+  const supports: Readonly<Record<string, OptionSupports>> = {
+    "placement.maxrects": { shape: ["rect"] },
+    "placement.shelf": { shape: ["rect", "circle"] },
+    "local.anneal": { shape: ["rect"] },
+  };
+  const shaped: StrategySpace = {
+    ...pack,
+    stages: pack.stages.map((s) => ({
+      ...s,
+      options: s.options.map((o) => {
+        const own = supports[`${s.name}.${o.id}`];
+        return own === undefined ? o : { ...o, supports: own };
+      }),
+    })),
+  };
+  const one = (option: object): string[] =>
+    claims({ ...shaped, named: {}, stages: shaped.stages.map((s, i) => (i === 1 ? { ...s, options: [{ ...s.options[0]!, ...option }, s.options[1]!] } : s)) as StrategySpace["stages"] });
+
+  it("keeps the configId pin and the counts of a space without a shape filter", () => {
+    expect(checkSpace(shaped)).toEqual([]);
+    expect(configId(shaped, maxrectsCp)).toBe(PINNED);
+    expect(canonicalConfig(shaped, maxrectsCp)).toEqual(canonicalConfig(pack, maxrectsCp));
+    expect(spaceSize(shaped, { levels: 3 })).toEqual(spaceSize(pack, { levels: 3 }));
+    expect(enumerateSpace(shaped, { mode: "grid", levels: 3 })).toEqual(enumerateSpace(pack, { mode: "grid", levels: 3 }));
+    expect(enumerateSpace(shaped, { mode: "sample", n: 40, seed: 7 })).toEqual(enumerateSpace(pack, { mode: "sample", n: 40, seed: 7 }));
+    expect(spaceSize(shaped, { levels: 1, shapes: ["rect"] }).base).toBe(42n);
+  });
+
+  it("finds bad supports", () => {
+    expect(one({ supports: { shape: [] } })).toEqual(["shape"]);
+    expect(one({ supports: { shape: ["hexagon"] } })).toEqual(["shape"]);
+    expect(one({ supports: { shape: ["rect", "rect"] } })).toEqual(["duplicate"]);
+    expect(one({ supports: 3 })).toEqual(["shape"]);
+    expect(one({ supports: {} })).toEqual([]);
+  });
+
+  it("refuses a config with an option that does not support a kind of the input, also in a member", () => {
+    expect(checkConfig(shaped, maxrectsCp)).toEqual([]);
+    expect(checkConfig(shaped, maxrectsCp, { shapes: ["rect"] })).toEqual([]);
+    const breaks = checkConfig(shaped, maxrectsCp, { shapes: ["rect", "circle"] });
+    expect(breaks.map((b) => b.claim)).toEqual(["shape"]);
+    expect(breaks[0]!.detail).toBe("the option placement.maxrects supports the shape kinds rect, not circle");
+    expect(checkConfig(shaped, shelfFirst, { shapes: ["circle"] })).toEqual([]);
+    expect(checkConfig(pack, maxrectsCp, { shapes: ["free"] })).toEqual([]);
+    const portfolio = shaped.named!["portfolio-k2"]!;
+    expect(checkConfig(shaped, portfolio, { shapes: ["circle"] }).map((b) => b.detail)).toEqual([
+      "the member 0 of the option combine.portfolio: the option placement.maxrects supports the shape kinds rect, not circle",
+    ]);
+  });
+
+  it("counts and enumerates only the options that support the kinds", () => {
+    expect(spaceSize(shaped, { levels: 1, shapes: ["circle"] }).base).toBe(6n);
+    expect(spaceSize(shaped, { levels: 1, shapes: ["polygon"] }).base).toBe(0n);
+    const grid = enumerateSpace(shaped, { mode: "grid", levels: 1, shapes: ["circle"] });
+    expect(grid).toHaveLength(6);
+    const all = new Set(enumerateSpace(shaped, { mode: "grid", levels: 1 }).map((c) => configId(shaped, c)));
+    for (const c of grid) {
+      expect(c.stages["placement"]?.option).toBe("shelf");
+      expect(c.stages["local"]).toBeNull();
+      expect(all.has(configId(shaped, c))).toBe(true);
+    }
+    expect(enumerateSpace(shaped, { mode: "grid", levels: 1, shapes: ["polygon"] })).toEqual([]);
+    const sample = enumerateSpace(shaped, { mode: "sample", n: 20, seed: 1, meta: "sample", shapes: ["circle"] });
+    expect(sample).toHaveLength(20);
+    for (const c of sample) expect(checkConfig(shaped, c, { shapes: ["circle"] })).toEqual([]);
+    expect(() => enumerateSpace(shaped, { mode: "sample", n: 5, seed: 1, shapes: ["polygon"] })).toThrow(/placement/);
+    expect(() => spaceSize(shaped, { levels: 1, shapes: ["hexagon" as never] })).toThrow(RangeError);
+  });
+
+  it("derives the kinds of a space from its options, and keeps supports in a product space", () => {
+    expect(spaceShapeKinds(pack)).toEqual(["rect", "polygon", "circle", "free"]);
+    expect(spaceShapeKinds(shaped)).toEqual(["rect", "circle"]);
+    const joint = productSpace(shaped, route, "joint");
+    expect(checkSpace(joint)).toEqual([]);
+    expect(spaceSize(joint, { levels: 1, shapes: ["circle"] }).base).toBe(6n * spaceSize(route, { levels: 1 }).base);
+    expect(enumerateSpace(joint, { mode: "grid", levels: 1, shapes: ["circle"] })).toHaveLength(24);
+    expect(spaceShapeKinds(joint)).toEqual(["rect", "circle"]);
   });
 });

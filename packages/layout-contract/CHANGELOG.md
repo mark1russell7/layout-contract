@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.2.13
+
+- The shape kind of an item is a dimension of the contract (L46). `docs/SHAPES.md` tells the rules.
+- `SHAPE_KINDS` declares 4 kinds: `rect`, `polygon`, `circle` and `free`. Only `rect` has all of its geometry. The other kinds have their bounding box.
+- `LayoutBox.shapeKind`, the cell dimension `itemShape` and the record field `shapes` are new and optional. A box without them is a `rect`.
+- `MeasureSpec.shapes` and `PACK_HARD_RULES` give the kinds of each measure and rule. `checkShapes` refuses a run on a kind that a measure does not support.
+- `StageOption.supports.shape` gives the kinds of an option. `checkConfig`, `spaceSize` and `enumerateSpace` take `shapes`. `spaceShapeKinds` gives the kinds of a space.
+- Each input, record, hash and `configId` of 0.2.12 stays the same.
+
 ## 0.2.12
 
 - The result of `verdict` has 3 new fields: `scope`, `breadth` and `summary`. The label and the rule do not change.

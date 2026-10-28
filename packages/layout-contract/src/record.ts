@@ -1,5 +1,6 @@
 import type { Tolerance } from "./tolerance.ts";
 import type { LayoutInput } from "./input.ts";
+import { shapeKindsOf, type ShapeKind } from "./shapes.ts";
 
 /** The stage of a record: the packer, the router, or both together. */
 export type Stage = "pack" | "route" | "joint";
@@ -21,6 +22,8 @@ export interface LayoutRecord {
   readonly seed: number;
   readonly nodes: number;
   readonly edges: number;
+  /** The shape kinds of the boxes of the input, in the order of `SHAPE_KINDS`. Without it, each box is a `rect`. */
+  readonly shapes?: readonly ShapeKind[];
   /** The value of each measure, by its name: `pack.*`, `route.*` or `joint.*`. */
   readonly measures: Readonly<Record<string, number>>;
   /** The count of the breaks of each hard rule. A good run has 0 for each rule. */
@@ -67,10 +70,15 @@ export interface RunEnv {
 }
 
 /** The facts of a run that the input does not give. */
-export type RunFacts = Omit<LayoutRecord, "schema" | "input" | "inputHash" | "set" | "nodes" | "edges">;
+export type RunFacts = Omit<LayoutRecord, "schema" | "input" | "inputHash" | "set" | "nodes" | "edges" | "shapes">;
 
-/** This function gives the record of a run. The input gives its id, its hash, its set and the counts of the nodes and the edges. */
+/**
+ * This function gives the record of a run. The input gives its id, its hash, its set and the counts of the nodes and the edges.
+ * The input also gives `shapes`. An input with only `rect` boxes gets no `shapes`, so its record does not change.
+ */
 export function toLayoutRecord(input: LayoutInput, run: RunFacts): LayoutRecord {
+  const shapes = shapeKindsOf(input);
+  const onlyRect = shapes.length === 0 || (shapes.length === 1 && shapes[0] === "rect");
   return {
     schema: "layout-record/1",
     ...run,
@@ -79,5 +87,6 @@ export function toLayoutRecord(input: LayoutInput, run: RunFacts): LayoutRecord 
     set: input.set ?? "",
     nodes: input.boxes.length,
     edges: input.edges?.length ?? 0,
+    ...(onlyRect ? {} : { shapes }),
   };
 }

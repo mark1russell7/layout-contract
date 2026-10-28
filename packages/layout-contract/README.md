@@ -9,6 +9,7 @@ The package has no runtime dependencies.
 | Part | Exports |
 |---|---|
 | Geometry | `Point`, `Rect`, `Region`, `Side`, `Sides`, `Margin`, `marginSides`, `grow`, `boundsOf`, `translate`, `overlapOf` |
+| The shape kinds | `ShapeKind`, `SHAPE_KINDS`, `SHAPE_KIND_IDS`, `ShapeKindSpec`, `ShapeGeometry`, `DEFAULT_SHAPES`, `ShapeSupport`, `isShapeKind`, `shapeKindOf`, `shapeKindsOf`, `itemShapeOf`, `shapeKindProblem`, `shapesOf`, `checkShapes` |
 | The input `layout-input/1` | `LayoutInput`, `LayoutBox` (`Item` for the packer), `Port`, `LayoutEdge`, `LayoutContainer`, `Obstacle`, `LayoutCell`, `LayoutGenerator` |
 | The packer | `PackInput`, `toPackInput`, `Placement`, `PackOutput`, `StageTrace`, `applyPack` |
 | The record `layout-record/1` | `LayoutRecord`, `Stage`, `Supports`, `RunFacts`, `RunEnv`, `toLayoutRecord` |
@@ -24,11 +25,11 @@ The package has no runtime dependencies.
 | The families | `familyOf`, `FamilyBy`, `FamilyCell`, `FAMILY_ANY_KIND` |
 | The verdict | `verdict`, `VerdictOptions`, `VerdictResult`, `VerdictRecord`, `VerdictSide`, `VerdictInterval`, `FamilyVerdict`, `VerdictPermutation`, `VerdictSignTest`, `VerdictLabel`, `VerdictScope`, `VerdictBreadth`, `VERDICT_EXACT_MAX`, `VERDICT_EXACT_CAP`, `VERDICT_RUNS`, `VERDICT_DRAWS`, `VERDICT_SEED` |
 | The split files | `checkSplit`, `splitFolds`, `leaveOneSeedOut`, `splitFileName`, `SPLIT_SCHEMA`, `CorpusSplit`, `SplitFold`, `SplitCorpus` |
-| The strategy space | `StrategySpace`, `SpaceStage`, `StageOption`, `SpaceParam`, `ParamWhen`, `MemberRule`, `SpaceConstraint`, `OptionRef`, `StrategyConfig`, `StageChoice`, `ParamKind`, `ParamValue`, `STRATEGY_SPACE_SCHEMA` |
-| The space functions | `checkSpace`, `checkConfig`, `canonicalConfig`, `configId`, `spaceSize`, `paramLevels`, `enumerateSpace`, `productSpace`, `joinConfigs`, `splitConfig`, `SpaceSize`, `SpaceSizeOptions`, `EnumerateOptions`, `GridOptions`, `SampleOptions` |
+| The strategy space | `StrategySpace`, `SpaceStage`, `StageOption`, `OptionSupports`, `ShapeFilter`, `SpaceParam`, `ParamWhen`, `MemberRule`, `SpaceConstraint`, `OptionRef`, `StrategyConfig`, `StageChoice`, `ParamKind`, `ParamValue`, `STRATEGY_SPACE_SCHEMA` |
+| The space functions | `checkSpace`, `checkConfig`, `canonicalConfig`, `configId`, `spaceSize`, `spaceShapeKinds`, `paramLevels`, `enumerateSpace`, `productSpace`, `joinConfigs`, `splitConfig`, `SpaceSize`, `SpaceSizeOptions`, `EnumerateOptions`, `GridOptions`, `SampleOptions` |
 | The turn | `turnBox`, `turnPort`, `turnMargin`, `turnRegion`, `turnSide`, `turnPoint` |
 | The tolerances | `EPS`, `RECORD_EPS`, `RECORD_SCALE`, `Tolerance`, `DEFAULT_TOLERANCE` |
-| The hard rules | `countOverlaps`, `countObstacleHits`, `regionHitsRect`, `rectInRegion`, `countOutside`, `ContainerTest`, `countPortsOffBorder`, `packHard`, `PackHard`, `placedRect`, `checkInput` |
+| The hard rules | `countOverlaps`, `countObstacleHits`, `regionHitsRect`, `rectInRegion`, `countOutside`, `ContainerTest`, `countPortsOffBorder`, `packHard`, `PackHard`, `PACK_HARD_RULES`, `placedRect`, `checkInput` |
 
 ## The rules
 
@@ -39,6 +40,7 @@ The package has no runtime dependencies.
 - **The hard rules of a pack.** `no-overlap` counts the pairs of boxes and the pairs of a box and an obstacle. A locked box without a placement, or with a move of more than `RECORD_EPS`, breaks `locked-kept`. `checkInput` refuses a locked box without a position. Another box without a placement and not in `overflow` breaks `complete`.
 - **The container rule.** `in-container` counts each box that goes out of the container made smaller by `inset`. The box counts with its margin. By default, a shaped container counts as its bounding box.
 - **The exact container.** Give `{ exactContainer: true }` to `packHard` or `countOutside`. Then a box of a shaped container with the size `fixed` must stay inside the shape. A cut corner, a notch and a hole count. A container with a free side keeps the bounding test. The default changes to the exact test at the next breaking version.
+- **The shape kinds.** An item is a `rect`, a `polygon`, a `circle` or a `free` shape. Each measure and rule declares its kinds. `checkShapes` refuses the other kinds. `docs/SHAPES.md` tells the rules.
 - **The output hash.** `outputHash` gives the first 16 hex characters of the SHA-256 of the canonical JSON of an output. Each number goes to the grid of `RECORD_EPS` first.
 - **The corpus checks.** `checkDeclared` and `checkSplit` give a list of `ClaimBreak`. An empty list tells that each claim is true. `corpusHashOf` gives the corpus hash of `packing`.
 - **The verdict.** `verdict` compares two strategies on one measure, with the family as the unit. A verdict counts only when it holds for the mean of the family means and for the mean of the inputs.
