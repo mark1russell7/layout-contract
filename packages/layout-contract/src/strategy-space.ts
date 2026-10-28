@@ -204,6 +204,21 @@ function isActive(p: SpaceParam, values: Values): boolean {
   return p.when.in.some((x) => x === v);
 }
 
+/** This function gives the problem of a value of a param, or `undefined` for a value in its range. The corpus dimensions of `families.ts` use it. */
+export function paramProblem(param: SpaceParam, value: unknown): string | undefined {
+  return valueProblem(param, value);
+}
+
+/** This function tells if a param is active for the values of the earlier params. A param without `when` is always active. */
+export function paramActive(param: SpaceParam, values: Readonly<Record<string, ParamValue>>): boolean {
+  return isActive(param, values);
+}
+
+/** This function gives the stable form of a value of a param: a real number gets 12 significant digits, and `-0` becomes `0`. */
+export function paramValue(param: SpaceParam, value: ParamValue): ParamValue {
+  return normalize(param, value);
+}
+
 /** This function gives the part of a space that has a stage, and the prefix of the names of its stages. */
 function partOf(space: StrategySpace, stage: string): { readonly space: StrategySpace; readonly prefix: string } {
   for (const part of space.parts ?? []) {
