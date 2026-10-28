@@ -120,3 +120,38 @@ This prediction came before the first full run. `checkPredictions` of the analys
 - P3b: The portfolio with k = 8 adds less than 10% of the oracle gain to the portfolio with k = 3, in most cells.
 - P4: In at least one cell, the best pair does not use the first pack entry of the pack rule.
 - P5: The fixed inputs `empty` and `one` give no routes. The runner records them with no error and no skipped record.
+
+## The result of the first run
+
+The first full run is the run `40660540762` of `joint-bench.yml`, on 2026-10-28, at the commit `0ce044e`. It took 23 minutes over 48 shards. It gave 30780 records for 285 inputs and 108 pairs, with no skipped record. The rules and the entries did not change after the prediction.
+
+The main numbers are almost the same in the 6 cells. The values of the cell `all` with the cap 1.25 are:
+
+- The best single pair is `shelf+corners`. Its mean score is 0.232, and it is below the floor on 206 of 285 inputs.
+- The oracle has the mean score 0.677. Its gain is 0.445, with the interval [0.388, 0.500].
+- The gain is 0.556 [0.478, 0.629] for count 10, 0.440 [0.351, 0.529] for count 100 and 0.336 [0.229, 0.450] for count 1k.
+- The greedy portfolio with k = 3 gets 0.480 [0.395, 0.565] of the oracle gain on the held-out seeds.
+- The portfolio with k = 8 gets 0.917 [0.880, 0.952] of the oracle gain.
+- The first entry of the pack rule is `maxrects-bl`, with the mean excess area 0.002 and the mean fill 0.842.
+
+The verdicts:
+
+| Id | Held | Facts |
+|---|---|---|
+| P1 | no | 21 of 66 fixed inputs have overflow, and 1 input with `freeAspect` also has overflow. `maxrects-bl` keeps the excess area at 0 on 3 of its 18 overflow inputs. |
+| P2 | yes | The gain is above 0 in 6 of 6 cells. |
+| P2b | no | The gain of count 10 is the largest gain, and its interval is closed in 6 of 6 cells. |
+| P3 | no | k = 3 gets approximately 48% of the oracle gain in each cell. |
+| P3b | no | k = 8 adds approximately 44% of the oracle gain to k = 3. |
+| P4 | yes | The best pair uses `shelf`, not `maxrects-bl`, in 6 of 6 cells. |
+| P5 | yes | The 6 inputs `empty` and `one` give 108 records each, with no route and no skipped record. |
+
+### A problem of the scope
+
+Each record with a route breaks the rule `no-pass-through` of `highways`. The cause is the corpus, not the runner.
+
+- The boxes of `joint-v1` have no margins. Thus the packers put the boxes edge to edge, with no space between them.
+- A router finds no channel between two boxes that touch. It gives a straight segment through the other boxes.
+- A test on the input `oversize` with a margin of 10 on each box gave 0 breaks for `corners`, `sections` and `shared`.
+
+Thus the level `hard` counts mostly these breaks. This explains the 206 misses of the best pair and the large gain of the oracle. The portfolios hold mostly `corners` pairs for the same reason. The cap and the rule `collection` change almost nothing. A next corpus needs margins, or a gap that the runner adds before the pack.
