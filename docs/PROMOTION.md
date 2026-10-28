@@ -205,3 +205,19 @@ Each threshold is a named parameter. A change of a value is a measured decision,
 
 A later corpus can show that a default fails the win test against the option that it replaced. Then the old default comes back, with the same steps. The change of the default output is MINOR.
 <!-- /shared:demotion -->
+
+<!-- shared:profiles -->
+## Caller profiles
+
+A caller can need less than all the guards. For example, a free canvas does not keep the input order, but a list in reading order keeps it. The guards follow what each input and each caller declares.
+
+- **Declared properties.** A guard of a property applies only to the inputs that declare the property. Each repository lists its properties, the input field or the caller option that declares each property, and the guard measures of each property. A property that no input of the corpus declares guards no input.
+- **The core guards.** Each input has the hard rules, the time test, the stability test and the core measures. Each repository lists its core measures. A core measure cannot be dropped, because no caller accepts a large loss there.
+- **The named profiles.** A profile is a named value of the caller options that change the output, for example the stretch cap of a router. Each repository lists its named profiles: the name, the option values, and the guard measures. The profile `all` is the profile without such options, so the current callers keep the current defaults.
+- **Other option values.** When an option value is not a named profile, the repository maps it to one named profile. The map is part of the list of the repository, and it is deterministic. A map to a stricter profile keeps every guard of the caller.
+- **A promotion.** The promotion rule applies one time for each named profile, and each profile has its own default. A repository with only `all` applies it one time. A candidate becomes the default of a profile when it passes the win test with the guards of that profile. The record names the profile. A promotion in one profile does not change the default of another profile.
+- **The noise guard.** Each profile of a screen is one more test on the same corpus. The sign test of a screen with `n` profiles uses `signP / n`. Each profile that passes has its own confirmation run.
+- **The version.** A new named profile is a new feature: a PATCH before 1.0.0, a MINOR after. This is true while the profile names are only an input. When callers match on the names, for example in an output field, a new name is a breaking change.
+- **A changed default.** A change of the default of a named profile changes the output for its callers. Thus it is a breaking change: a MINOR before 1.0.0, a MAJOR after. The removal of a named profile is a breaking change too.
+- **Demotion.** The demotion rule applies to each profile by itself.
+<!-- /shared:profiles -->
