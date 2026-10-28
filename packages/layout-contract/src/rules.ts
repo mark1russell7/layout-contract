@@ -1,7 +1,7 @@
 import { boundsOf, grow, overlapOf, type Rect, type Region } from "./geometry.ts";
 import type { LayoutBox, LayoutInput, Obstacle } from "./input.ts";
 import { applyPack, type PackOutput } from "./output.ts";
-import { DEFAULT_TOLERANCE, RECORD_EPS } from "./tolerance.ts";
+import { DEFAULT_TOLERANCE, EPS, RECORD_EPS } from "./tolerance.ts";
 
 /** This function gives the area of a placed box: its shape or its rectangle, at its position. A box without a position gives `undefined`. */
 export function placedRect(box: LayoutBox): Rect | undefined {
@@ -35,14 +35,27 @@ export function countOverlaps(boxes: readonly LayoutBox[], tolerance: number = D
   return count;
 }
 
+/** The options of the container test of `countOutside` and `packHard`. */
+export interface ContainerTest {
+  /**
+   * With `true`, a box of a shaped container with the size `fixed` must stay inside the shape, not only inside its bounding box.
+   * The default is `false`. The default changes to `true` at the next breaking version.
+   */
+  readonly exactContainer?: boolean;
+}
+
 /**
  * This function counts the placed boxes that go out of the container.
  * Each box with its margin must stay inside the container made smaller by `inset`. Only the fixed sides of the size count. A shaped container counts as its bounding box.
+ *
+ * With `exactContainer`, a box of a shaped container with the size `fixed` also counts when `rectInRegion` tells that it is not inside the shape.
+ * For that test, the box grows by `inset` and becomes smaller by `tolerance` on each side. A shaped container with a free side keeps the bounding test only.
  * An input without a container gives 0.
  */
-export function countOutside(input: LayoutInput, tolerance: number = DEFAULT_TOLERANCE.overlap): number {
+export function countOutside(input: LayoutInput, tolerance: number = DEFAULT_TOLERANCE.overlap, options: ContainerTest = {}): number {
   const c = input.container;
   if (c === undefined) return 0;
+  const shape = options.exactContainer === true && c.fixed === "size" ? c.shape : undefined;
   const area = c.shape === undefined ? { x: 0, y: 0, w: c.w ?? Infinity, h: c.h ?? Infinity } : boundsOf(c.shape);
   const inset = c.inset ?? 0;
   const fixW = c.fixed === "size" || c.fixed === "width";
@@ -55,6 +68,7 @@ export function countOutside(input: LayoutInput, tolerance: number = DEFAULT_TOL
     const outX = r.x < area.x + inset - tolerance || r.x + r.w > area.x + area.w - inset + tolerance;
     const outY = r.y < area.y + inset - tolerance || r.y + r.h > area.y + area.h - inset + tolerance;
     if ((fixW && outX) || (fixH && outY)) count++;
+    else if (shape !== undefined && !rectInRegion(shape, shrink(grow(r, inset), tolerance))) count++;
   }
   return count;
 }
@@ -109,6 +123,72 @@ export function regionHitsRect(region: Region, rect: Rect): boolean {
       return pointInRings(rect.x + rect.w / 2, rect.y + rect.h / 2, rings);
     }
   }
+}
+
+/**
+ * This function tells if all of `rect` is inside `region`. A point on the border counts as inside. No part of `rect` can overlap a hole.
+ * The test of a circle, an ellipse or a polygon accepts an error of `EPS` on the border. A polygon can be concave.
+ */
+export function rectInRegion(region: Region, rect: Rect): boolean {
+  const x1 = rect.x + rect.w;
+  const y1 = rect.y + rect.h;
+  const corners: readonly (readonly [number, number])[] = [
+    [rect.x, rect.y],
+    [x1, rect.y],
+    [x1, y1],
+    [rect.x, y1],
+  ];
+  switch (region.kind) {
+    case "rect":
+      return rect.x >= region.x && rect.y >= region.y && x1 <= region.x + region.w && y1 <= region.y + region.h;
+    case "circle":
+      return corners.every(([x, y]) => inEllipse(region.cx, region.cy, region.r, region.r, x, y));
+    case "ellipse":
+      return corners.every(([x, y]) => inEllipse(region.cx, region.cy, region.rx, region.ry, x, y));
+    case "polygon": {
+      const ring = region.points;
+      if (ring.length < 3) return false;
+      const points = [...corners, [rect.x + rect.w / 2, rect.y + rect.h / 2] as const];
+      if (!points.every(([x, y]) => onRing(x, y, ring) || pointInRings(x, y, [ring]))) return false;
+      const deep = (x: number, y: number): boolean => x > rect.x + EPS && x < x1 - EPS && y > rect.y + EPS && y < y1 - EPS;
+      for (let i = 0; i < ring.length; i++) {
+        const a = ring[i]!;
+        const b = ring[(i + 1) % ring.length]!;
+        const m = clipMid(a[0], a[1], b[0], b[1], rect);
+        if (m !== undefined && deep(m[0], m[1])) return false;
+      }
+      return (region.holes ?? []).every((hole) => !regionHitsRect({ kind: "polygon", points: hole }, rect));
+    }
+  }
+}
+
+/** This function gives the rectangle made smaller by `d` on each side. A side does not become smaller than 0. */
+function shrink(r: Rect, d: number): Rect {
+  const dx = Math.min(d, r.w / 2);
+  const dy = Math.min(d, r.h / 2);
+  return { x: r.x + dx, y: r.y + dy, w: r.w - 2 * dx, h: r.h - 2 * dy };
+}
+
+/** This function tells if a point is inside an ellipse or on its border, with an error of `EPS`. */
+function inEllipse(cx: number, cy: number, rx: number, ry: number, x: number, y: number): boolean {
+  if (rx <= 0 || ry <= 0) return false;
+  const u = (x - cx) / rx;
+  const v = (y - cy) / ry;
+  return u * u + v * v <= 1 + EPS;
+}
+
+/** This function tells if a point is on a ring of a polygon, with an error of `EPS`. */
+function onRing(x: number, y: number, ring: readonly (readonly [number, number])[]): boolean {
+  for (let i = 0; i < ring.length; i++) {
+    const [ax, ay] = ring[i]!;
+    const [bx, by] = ring[(i + 1) % ring.length]!;
+    const dx = bx - ax;
+    const dy = by - ay;
+    const len2 = dx * dx + dy * dy;
+    const t = len2 === 0 ? 0 : Math.max(0, Math.min(1, ((x - ax) * dx + (y - ay) * dy) / len2));
+    if (Math.hypot(x - (ax + t * dx), y - (ay + t * dy)) <= EPS) return true;
+  }
+  return false;
 }
 
 /** An ellipse with the radii `rx` and `ry` scales to a unit circle. The rectangle scales with it. */
@@ -190,8 +270,10 @@ export function countObstacleHits(
  * A locked box without a placement, or with a move of more than `RECORD_EPS`, breaks `locked-kept`.
  * A locked box without a position in the input is a bad input, not a break. `checkInput` finds it.
  * Another box without a placement that is not in `overflow` breaks `complete`.
+ *
+ * `options` goes to `countOutside` for `in-container`.
  */
-export function packHard(input: LayoutInput, output: PackOutput, tolerance: number = DEFAULT_TOLERANCE.overlap): PackHard {
+export function packHard(input: LayoutInput, output: PackOutput, tolerance: number = DEFAULT_TOLERANCE.overlap, options: ContainerTest = {}): PackHard {
   const after = applyPack(input, output);
   const placed = new Set(output.placements.map((p) => p.id));
   const out = new Set(output.overflow);
@@ -214,7 +296,7 @@ export function packHard(input: LayoutInput, output: PackOutput, tolerance: numb
   }
   return {
     "no-overlap": countOverlaps(kept, tolerance) + countObstacleHits(kept, after.obstacles, tolerance),
-    "in-container": countOutside({ ...after, boxes: kept }, tolerance),
+    "in-container": countOutside({ ...after, boxes: kept }, tolerance, options),
     "locked-kept": lockedMoved,
     complete: incomplete,
   };

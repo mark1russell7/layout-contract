@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.2.4
+
+- `rectInRegion(region, rect)` tells if all of a rectangle is inside a region and not over a hole. A polygon can be concave.
+- `countOutside` and `packHard` have the optional last parameter `options` (`ContainerTest`). With `{ exactContainer: true }`, `in-container` tests the shape of the container, not only its bounding box.
+- The exact test applies only to a shaped container with the size `fixed`. The default is `false`, so the counts do not change. The default changes to `true` at the next breaking version.
+
 ## 0.2.3
 
 - `edgeStep(input, params, seed)` adds edges, groups and ports to an input without positions, from its topology alone. `docs/JOINT-CORPUS.md` tells the rules and the pinned hashes.

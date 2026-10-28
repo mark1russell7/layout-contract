@@ -18,7 +18,7 @@ The package has no runtime dependencies.
 | The random numbers | `mulberry32`, `fnv1a32`, `stepRandom`, `randomInt` |
 | The turn | `turnBox`, `turnPort`, `turnMargin`, `turnRegion`, `turnSide`, `turnPoint` |
 | The tolerances | `EPS`, `RECORD_EPS`, `Tolerance`, `DEFAULT_TOLERANCE` |
-| The hard rules | `countOverlaps`, `countObstacleHits`, `regionHitsRect`, `countOutside`, `countPortsOffBorder`, `packHard`, `PackHard`, `placedRect`, `checkInput` |
+| The hard rules | `countOverlaps`, `countObstacleHits`, `regionHitsRect`, `rectInRegion`, `countOutside`, `ContainerTest`, `countPortsOffBorder`, `packHard`, `PackHard`, `placedRect`, `checkInput` |
 
 ## The rules
 
@@ -27,6 +27,8 @@ The package has no runtime dependencies.
 - **The gap.** The gap is the free space between two boxes with their margins. Routes use it. Two boxes are `mA + gap + mB` apart.
 - **The ports.** A port can have a side. Without a side, the router picks the side. A fixed port has `x` and `y` on the border of the box, relative to its top-left corner.
 - **The hard rules of a pack.** `no-overlap` counts the pairs of boxes and the pairs of a box and an obstacle. A locked box without a placement, or with a move of more than `RECORD_EPS`, breaks `locked-kept`. `checkInput` refuses a locked box without a position. Another box without a placement and not in `overflow` breaks `complete`.
+- **The container rule.** `in-container` counts each box that goes out of the container made smaller by `inset`. The box counts with its margin. By default, a shaped container counts as its bounding box.
+- **The exact container.** Give `{ exactContainer: true }` to `packHard` or `countOutside`. Then a box of a shaped container with the size `fixed` must stay inside the shape. A cut corner, a notch and a hole count. A container with a free side keeps the bounding test. The default changes to the exact test at the next breaking version.
 - **The tolerances.** `EPS` (`1e-6`) is for the float compares in an engine. `RECORD_EPS` (`1e-3`) is for the compares on a written file. A record writes the tolerance of each hard rule in its field `tolerance`. The defaults are `overlap` `0.001` and `through` `0.5`.
 
 ## An example
