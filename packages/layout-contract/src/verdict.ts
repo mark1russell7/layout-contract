@@ -91,6 +91,25 @@ export interface VerdictSignTest {
 /** The label of a verdict. `better` and `worse` tell the side of `b`. */
 export type VerdictLabel = "better" | "worse" | "depends on the mix" | "no verdict";
 
+/**
+ * The scope of a verdict. The test keeps the families of the corpus as fixed, so its claim is about these families only.
+ * It is not a claim about a new kind of input.
+ */
+export type VerdictScope = "these families";
+
+/**
+ * The breadth of a verdict: the count of the families against its side.
+ * The side is the side of the label. For `depends on the mix` and `no verdict`, it is the sign of the stratified mean.
+ */
+export interface VerdictBreadth {
+  /** The count of the families with a sign against the side. A stratified mean of exactly 0 has no side, so this count is 0. */
+  readonly against: number;
+  /** The count of the families. */
+  readonly of: number;
+  /** The count of the families with the sign 0. */
+  readonly ties: number;
+}
+
 /** The result of `verdict`. */
 export interface VerdictResult {
   readonly measure: string;
@@ -107,6 +126,12 @@ export interface VerdictResult {
   /** `true` only when the two means have the same sign, the two intervals are clear of 0 and the permutation p is below `level`. */
   readonly agree: boolean;
   readonly label: VerdictLabel;
+  /** The scope of the claim: the families of the corpus, not a new kind of input. */
+  readonly scope: VerdictScope;
+  /** The count of the families against the side of the verdict, of all the families and of the ties. */
+  readonly breadth: VerdictBreadth;
+  /** The label, the scope and the breadth in one line, for example `better on these families, worse on 2 of 6 (1 tie)`. */
+  readonly summary: string;
   /** The inputs without a pair: one side has no record, a skipped record or no value of the measure. */
   readonly dropped: readonly string[];
 }
@@ -152,6 +177,24 @@ function signP(wins: number, losses: number): number {
     c = (c * (n - i)) / (i + 1);
   }
   return Math.min(1, (2 * tail) / 2 ** n);
+}
+
+/** This function gives the breadth of a verdict with the side `side`: 1, -1, or 0 for no side. */
+function breadthOf(families: readonly FamilyVerdict[], side: number): VerdictBreadth {
+  const ties = families.filter((f) => f.sign === 0).length;
+  const against = side === 0 ? 0 : families.filter((f) => f.sign === -side).length;
+  return { against, of: families.length, ties };
+}
+
+/** This function gives the line of a verdict: its label, its scope and its breadth (`docs/VERDICT.md`). */
+function summaryOf(label: VerdictLabel, side: number, breadth: VerdictBreadth): string {
+  const ties = breadth.ties === 0 ? "" : ` (${breadth.ties} ${breadth.ties === 1 ? "tie" : "ties"})`;
+  const word = side > 0 ? "better" : "worse";
+  const other = side > 0 ? "worse" : "better";
+  const count = breadth.against === 0 ? "none" : String(breadth.against);
+  if (label === "better" || label === "worse") return `${label} on these families, ${other} on ${count} of ${breadth.of}${ties}`;
+  if (side === 0) return `${label}: the family mean is 0, on ${breadth.of} families${ties}`;
+  return `${label}: ${word} on the family mean, ${other} on ${count} of ${breadth.of}${ties}`;
 }
 
 /** This function tells if a value is a positive whole number. */
@@ -206,6 +249,7 @@ function pairsOf<R extends VerdictRecord>(records: Iterable<R>, options: Verdict
  * - `stratified` is the mean of the family means. Its bootstrap draws the seeds inside each family. `pooled` is the mean of the inputs.
  * - The permutation test changes the sign of each difference inside its family. Its statistic is the mean of the family means.
  * - The label is `better` or `worse` only when `agree` is `true`. Opposite signs of the two means give `depends on the mix`.
+ * - `scope`, `breadth` and `summary` tell that the claim is about these families, and how many families are against it.
  *
  * It throws a `RangeError` for a missing `tie` or `level`, and for no pair. Two records of one side and input, or a value that is not finite, also cause a `RangeError`.
  */
@@ -292,5 +336,7 @@ export function verdict<R extends VerdictRecord>(records: Iterable<R>, options: 
   const sign = Math.sign(stratified.mean);
   const agree = sign !== 0 && sign === Math.sign(pooled.mean) && clearOn(stratified, sign) && clearOn(pooled, sign) && permutation.p < level;
   const label: VerdictLabel = agree ? (sign > 0 ? "better" : "worse") : sign * Math.sign(pooled.mean) < 0 ? "depends on the mix" : "no verdict";
-  return { measure: measure.id, n, stratified, pooled, permutation, families, signTest, agree, label, dropped };
+  const breadth = breadthOf(families, sign);
+  const summary = summaryOf(label, sign, breadth);
+  return { measure: measure.id, n, stratified, pooled, permutation, families, signTest, agree, label, scope: "these families", breadth, summary, dropped };
 }
