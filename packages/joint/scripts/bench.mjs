@@ -42,7 +42,7 @@ import {
   jointCorpus,
   laneEntries,
   laneParts,
-  lanePlanPairs,
+  lanePasses,
   loadSplit,
   manifestJson,
   PACK_ENTRIES,
@@ -88,10 +88,12 @@ function corpusSlice() {
 function shardPlan() {
   const shards = Number(args.shards ?? 1);
   const rows = corpusSlice();
-  const pairs = PACK_ENTRIES.length * ROUTERS.length + lanePlanPairs(lanes) + iterPlanPairs(iterate);
+  // The lane passes use the lane term of the cost model. The rounds of the iteration pairs have no fit yet, so they cost `LANE_PASS_COST` pairs.
+  const pairs = PACK_ENTRIES.length * ROUTERS.length + iterPlanPairs(iterate);
+  const passes = lanePasses(lanes);
   const items = rows.map(({ input, entry }) => {
     const spec = entry.id.replace(/\/s\d+$/, "");
-    return { id: entry.id, spec, cost: plannedCost(spec, input.boxes.length, input.edges?.length ?? 0, pairs) };
+    return { id: entry.id, spec, cost: plannedCost(spec, input.boxes.length, input.edges?.length ?? 0, pairs, passes) };
   });
   return { rows, shards, plan: planShards(items, shards) };
 }

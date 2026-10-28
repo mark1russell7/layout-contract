@@ -11,16 +11,21 @@ export interface CostFit {
 /**
  * The cost model of the plan, from the file `data/cost-margins.json`. The script `scripts/fit-cost.mjs` writes the file from the shard logs of a full run.
  * - `fit` gives the predicted time of one pair. The fit makes the least sum of the squares of the logs of real / predicted.
+ * - `lane` gives the predicted time of one pass of a lane pair (L13), in the same form. A model without `lane` gives a pass no time.
  * - `specs` gives the margin of each spec: the quantile `quantile` of real / predicted over the seeds of the spec.
  * - `default` is the margin of a spec without a measured time: the same quantile over all inputs.
+ * - `pairs` and `lanePasses` are the counts of the run of the margins, for each input. `pairRun` is the run of `fit`, when another run gave it.
  */
 export interface CostModel {
   readonly corpus: string;
   readonly run: number;
   readonly commit: string;
   readonly pairs: number;
+  readonly lanePasses: number;
+  readonly pairRun: number;
   readonly quantile: number;
   readonly fit: CostFit;
+  readonly lane: CostFit;
   readonly default: number;
   readonly specs: Readonly<Record<string, number>>;
 }
@@ -32,7 +37,13 @@ export function parseCostModel(text: string): CostModel {
     if (!(typeof value === "number" && Number.isFinite(value) && value >= 0)) throw new RangeError(`The value ${name} of the cost model is a finite number of 0 or more, not ${String(value)}.`);
     return value;
   };
-  const fit: CostFit = Object.freeze({ base: check("fit.base", raw.fit?.base), square: check("fit.square", raw.fit?.square), cross: check("fit.cross", raw.fit?.cross) });
+  const fitOf = (name: "fit" | "lane"): CostFit => {
+    const f = raw[name];
+    return Object.freeze({ base: check(`${name}.base`, f?.base), square: check(`${name}.square`, f?.square), cross: check(`${name}.cross`, f?.cross) });
+  };
+  const fit = fitOf("fit");
+  // A model of the time before L13 has no lane term. Then a lane pass has no time.
+  const lane = raw.lane === undefined ? Object.freeze({ base: 0, square: 0, cross: 0 }) : fitOf("lane");
   const specs: Record<string, number> = {};
   for (const [spec, margin] of Object.entries(raw.specs ?? {})) specs[spec] = check(`specs.${spec}`, margin);
   return Object.freeze({
@@ -40,22 +51,39 @@ export function parseCostModel(text: string): CostModel {
     run: check("run", raw.run),
     commit: String(raw.commit),
     pairs: check("pairs", raw.pairs),
+    lanePasses: check("lanePasses", raw.lanePasses ?? 0),
+    pairRun: check("pairRun", raw.pairRun ?? raw.run),
     quantile: check("quantile", raw.quantile),
     fit,
+    lane,
     default: check("default", raw.default),
     specs: Object.freeze(specs),
   });
 }
 
-/** The cost model of the plan. The fit and the margins come from the wall times of the full run 40743187036 (`highways` 0.8.1, `packing` 0.2.16, 130 pairs). */
+/**
+ * The cost model of the plan. The pair fit comes from the wall times of the full run 40743187036 (L32, 130 pairs).
+ * The lane term and the margins come from the run 40757153151 (L13, 130 pairs and 18 lane pairs with 24 passes).
+ */
 export const COST_MODEL: CostModel = parseCostModel(readFileSync(new URL("../data/cost-margins.json", import.meta.url), "utf8"));
 
 /** The coefficients of the predicted time of one pair, from `COST_MODEL`. */
 export const COST_FIT: CostFit = COST_MODEL.fit;
 
-/** This function gives the predicted time of one input in milliseconds. The input has `boxes` boxes, `edges` edges and `pairs` pairs of a pack entry and a router. */
-export function inputCost(boxes: number, edges: number, pairs: number): number {
-  return pairs * (COST_FIT.base + (boxes * boxes * COST_FIT.square) / 1000 + (boxes * edges * COST_FIT.cross) / 1000);
+/** The coefficients of the predicted time of one pass of a lane pair, from `COST_MODEL`. */
+export const LANE_FIT: CostFit = COST_MODEL.lane;
+
+/** This function gives the time of one unit of a fit for an input with `boxes` boxes and `edges` edges, in milliseconds. */
+export function fitCost(fit: CostFit, boxes: number, edges: number): number {
+  return fit.base + (boxes * boxes * fit.square) / 1000 + (boxes * edges * fit.cross) / 1000;
+}
+
+/**
+ * This function gives the predicted time of one input in milliseconds. The input has `boxes` boxes, `edges` edges and `pairs` pairs of a pack entry and a router.
+ * `passes` is the count of the passes of the lane pairs of the input (`lanePasses`). Each pass has the time of the lane term `LANE_FIT`.
+ */
+export function inputCost(boxes: number, edges: number, pairs: number, passes = 0): number {
+  return pairs * fitCost(COST_FIT, boxes, edges) + passes * fitCost(LANE_FIT, boxes, edges);
 }
 
 /** This function gives the margin of a spec: its value in `COST_MODEL.specs`, or the default margin for a spec without a measured time. */
@@ -64,8 +92,8 @@ export function costMargin(spec: string): number {
 }
 
 /** This function gives the planned time of one input in milliseconds: the predicted time of `inputCost` times the margin of its spec. */
-export function plannedCost(spec: string, boxes: number, edges: number, pairs: number): number {
-  return inputCost(boxes, edges, pairs) * costMargin(spec);
+export function plannedCost(spec: string, boxes: number, edges: number, pairs: number, passes = 0): number {
+  return inputCost(boxes, edges, pairs, passes) * costMargin(spec);
 }
 
 /** One input of the plan. The inputs of one spec differ only in the seed. */

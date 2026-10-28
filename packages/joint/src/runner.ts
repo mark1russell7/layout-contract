@@ -114,6 +114,11 @@ export interface RunOptions {
   readonly packs?: readonly PackEntry[];
   /** The router names. The default is `ROUTERS`. */
   readonly routers?: readonly string[];
+  /**
+   * The ids of the pairs to run, for example `rows+corners`. The default is each pair of `packs` and `routers`.
+   * With this list, the runner runs only the pairs of the list, and packs only the entries of these pairs and of the lane pairs.
+   */
+  readonly pairs?: readonly string[];
   /** The count of the timed routes of each router. The default is 2, the least count of `benchRun`. */
   readonly repeat?: number;
   /** The id of the corpus. The default is `joint-v1`. The CLI gives the corpus of its argument. */
@@ -127,7 +132,7 @@ export interface RunOptions {
    * Each lane pair gives one more record after the records of the pack entries and the routers.
    */
   readonly lanes?: readonly LaneEntry[];
-  /** The options of the lane count and of the lane margins. */
+  /** The options of the lane count and of the lane margins. The options of a lane entry replace them for that entry. */
   readonly laneOptions?: LaneOptions;
   /**
    * The iteration pairs of L11 (`iterEntries`). The default is none, so the default plan does not change.
@@ -340,6 +345,7 @@ function fullOptions(entry: PackEntry): Record<string, unknown> {
 export function runInput(input: LayoutInput, cell: Readonly<Record<string, unknown>> | undefined, options: RunOptions = {}): LayoutRecord[] {
   const packs = options.packs ?? PACK_ENTRIES;
   const routers = options.routers ?? ROUTERS;
+  const only = options.pairs === undefined ? undefined : new Set(options.pairs);
   const repeat = options.repeat ?? 2;
   const now = options.now ?? ((): number => performance.now());
   const seed = input.seed ?? 0;
@@ -447,14 +453,16 @@ export function runInput(input: LayoutInput, cell: Readonly<Record<string, unkno
   };
 
   for (const entry of packs) {
+    const mine = only === undefined ? routers : routers.filter((router) => only.has(pairId(entry.id, router)));
+    if (mine.length === 0) continue;
     const run = packOnce(entry, packInput, cell, seed, now);
     packRuns.set(entry.id, run);
     if (!run.ok) {
-      for (const router of routers) records.push(skippedRecord(entry, router, run.reason));
+      for (const router of mine) records.push(skippedRecord(entry, router, run.reason));
       continue;
     }
     const g = groupOf(run, entry.id);
-    for (const router of routers) {
+    for (const router of mine) {
       const route = routeOf(g, router);
       if (!route.ok) {
         records.push(skippedRecord(entry, router, route.reason));
@@ -464,13 +472,14 @@ export function runInput(input: LayoutInput, cell: Readonly<Record<string, unkno
     }
   }
 
-  const laneOpts: Required<LaneOptions> = {
+  const runLane: Required<LaneOptions> = {
     clearance: options.laneOptions?.clearance ?? LANE_CLEARANCE,
     space: options.laneOptions?.space ?? LANE_SPACE,
     cap: options.laneOptions?.cap ?? LANE_CAP,
   };
   const gap = input.gap ?? 0;
   for (const lane of options.lanes ?? []) {
+    const laneOpts: Required<LaneOptions> = { ...runLane, ...lane.options };
     const entry = packs.find((p) => p.id === lane.pack) ?? PACK_ENTRIES.find((p) => p.id === lane.pack);
     if (entry === undefined) throw new RangeError(`There is no pack entry "${lane.pack}" for the lane pair "${lane.id}".`);
     const extra = { lanes: { variant: lane.variant.name, mode: lane.variant.mode, passes: lane.variant.passes, base: pairId(lane.pack, lane.router), ...laneOpts } };
