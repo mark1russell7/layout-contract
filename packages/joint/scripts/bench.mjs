@@ -3,13 +3,33 @@
 //   check [--corpus <set>]                                                  examines the claims of the committed manifest
 //   smoke [--corpus <set>]                                                  packs and routes 1 input of each value of spacing with corners
 //   run --shards <n> --shard <i> --out <dir> [--slice pr] [--corpus <set>]   writes <dir>/records-<i>.jsonl
-//   analyze --records <dir> --out <dir> [--slice pr] [--corpus <set>]        writes <dir>/report.json and <dir>/report.md
+//   plan --shards <n> [--slice pr] [--corpus <set>]                           prints the predicted cost of each shard
+//   analyze --records <dir> --out <dir> [--slice pr] [--corpus <set>] [--allow-missing <file>] [--subset <file>]
+//                                                                            writes <dir>/report.json and <dir>/report.md
 //
 // The corpus is `joint-v2` by default. The slice `pr` is the small slice of the pull request: seed 1 of the specs with count 10 and of the fixed cases.
+// The shards get the inputs by their predicted cost (`planShards`). Each shard job computes the same plan.
+// analyze fails when an input of the manifest has no records, unless the file of `--allow-missing` lists it. The files list one input id on each line.
 import { appendFileSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { analyze, checkCorpus, jointCorpus, manifestJson, PACK_ENTRIES, reportMarkdown, runEnv, runInput, SET_V2, SETS, shardOf, SPACINGS } from "../src/index.ts";
+import {
+  analyze,
+  checkCorpus,
+  idList,
+  inputCost,
+  jointCorpus,
+  manifestJson,
+  PACK_ENTRIES,
+  planShards,
+  reportMarkdown,
+  ROUTERS,
+  runEnv,
+  runInput,
+  SET_V2,
+  SETS,
+  SPACINGS,
+} from "../src/index.ts";
 
 const [command, ...rest] = process.argv.slice(2);
 const args = {};
@@ -24,6 +44,24 @@ function corpusSlice() {
   if (args.slice === undefined) return rows;
   if (args.slice !== "pr") throw new RangeError(`The slice is "pr", not "${args.slice}".`);
   return rows.filter(({ entry }) => entry.id.endsWith("/s1") && (entry.cell.count === "10" || entry.id.includes("/edge-cases.")));
+}
+
+/** This function gives the shard plan of the slice for the count of the shards of the arguments. Each input has the cost of `inputCost` for each pair. */
+function shardPlan() {
+  const shards = Number(args.shards ?? 1);
+  const rows = corpusSlice();
+  const pairs = PACK_ENTRIES.length * ROUTERS.length;
+  const items = rows.map(({ input, entry }) => ({ id: entry.id, spec: entry.id.replace(/\/s\d+$/, ""), cost: inputCost(input.boxes.length, input.edges?.length ?? 0, pairs) }));
+  return { rows, shards, plan: planShards(items, shards) };
+}
+
+/** This function reads a file of input ids. An id outside the corpus is an error. */
+function idFile(file) {
+  const ids = idList(readFileSync(file, "utf8"));
+  const known = new Set(jointCorpus(set).manifest.inputs.map((e) => e.id));
+  const bad = ids.filter((id) => !known.has(id));
+  if (bad.length > 0) throw new RangeError(`${file} has ${bad.length} ids outside the corpus ${set}, for example ${bad[0]}.`);
+  return ids;
 }
 
 if (command === "check") {
@@ -71,8 +109,14 @@ if (command === "check") {
     }
   }
   if (failed) process.exit(1);
+} else if (command === "plan") {
+  const { plan } = shardPlan();
+  const min = (ms) => (ms / 60000).toFixed(1);
+  const loads = plan.loads.map((l, i) => ({ l, i })).sort((a, b) => b.l - a.l);
+  const sum = plan.loads.reduce((s, l) => s + l, 0);
+  console.log(`${set}: ${plan.shards.length} shards, ${min(sum)} predicted minutes in all, ${min(sum / plan.shards.length)} on average.`);
+  for (const { l, i } of loads.slice(0, 10)) console.log(`shard ${i}: ${min(l)} min, ${plan.shards[i].length} inputs, the most costly ${plan.shards[i].at(-1)}`);
 } else if (command === "run") {
-  const shards = Number(args.shards ?? 1);
   const shard = Number(args.shard ?? 0);
   const out = args.out ?? "bench-out";
   mkdirSync(out, { recursive: true });
@@ -80,10 +124,12 @@ if (command === "check") {
   writeFileSync(file, "");
   const env = runEnv();
   const commit = process.env.GITHUB_SHA;
-  // The largest inputs go first, so each shard gets a fair part of them.
-  const ordered = corpusSlice().sort((a, b) => b.input.boxes.length - a.input.boxes.length);
-  const rows = shardOf(ordered, shard, shards);
-  console.log(`${set} shard ${shard} of ${shards}: ${rows.length} inputs`);
+  const { rows: all, shards, plan } = shardPlan();
+  if (!(Number.isInteger(shard) && shard >= 0 && shard < shards)) throw new RangeError(`The shard is an integer from 0 to ${shards - 1}, not ${shard}.`);
+  // The plan gives the inputs of this shard from the least predicted cost to the most.
+  const byId = new Map(all.map((row) => [row.entry.id, row]));
+  const rows = plan.shards[shard].map((id) => byId.get(id));
+  console.log(`${set} shard ${shard} of ${shards}: ${rows.length} inputs, ${(plan.loads[shard] / 60000).toFixed(1)} predicted minutes`);
   for (const { input, entry } of rows) {
     const t0 = performance.now();
     const records = runInput(input, entry.cell, { env, corpus: set, ...(commit === undefined ? {} : { commit }) });
@@ -105,12 +151,21 @@ if (command === "check") {
     cell: entry.cell,
     ...(entry.stress === true ? { stress: true } : {}),
   }));
-  const report = analyze(records, inputs, { predictions: set === SET_V2 ? "joint-v2" : "joint-v1" });
+  const report = analyze(records, inputs, {
+    predictions: set === SET_V2 ? "joint-v2" : "joint-v1",
+    ...(args["allow-missing"] === undefined ? {} : { allowMissing: idFile(args["allow-missing"]) }),
+    ...(args.subset === undefined ? {} : { subset: idFile(args.subset) }),
+  });
   mkdirSync(out, { recursive: true });
   writeFileSync(join(out, "report.json"), JSON.stringify(report, null, 2) + "\n");
   writeFileSync(join(out, "report.md"), `Corpus: ${set}.\n\n` + reportMarkdown(report));
   console.log(reportMarkdown(report));
+  const n = report.count;
+  if (!n.ok) {
+    console.error(`The record count check fails: ${n.recorded} of ${n.manifest} inputs have records, ${n.missing.length - n.allowed.length} missing inputs are not allowed, ${n.unknown.length} inputs are outside the manifest.`);
+    process.exit(1);
+  }
 } else {
-  console.error("The command is check, smoke, run or analyze.");
+  console.error("The command is check, smoke, plan, run or analyze.");
   process.exit(2);
 }

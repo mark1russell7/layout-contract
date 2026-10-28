@@ -109,6 +109,33 @@ describe("analyze", () => {
   });
 });
 
+describe("the record count check and the subset headline", () => {
+  it("counts the inputs from the records, and lists the missing inputs", () => {
+    const list = records().filter((r) => r.input !== "q/s3");
+    const r = analyze(list, inputs, { resamples: 50 });
+    expect(r.count).toMatchObject({ manifest: 6, recorded: 5, missing: ["q/s3"], allowed: [], ok: false });
+    const md = reportMarkdown(r);
+    expect(md).toContain("Inputs: 5 with records, of 6 in the manifest.");
+    expect(md).toContain("### The missing inputs");
+    expect(md).toContain("| q/s3 | no |");
+    expect(analyze(list, inputs, { resamples: 50, allowMissing: ["q/s3"] }).count.ok).toBe(true);
+    expect(analyze(records(), inputs, { resamples: 50 }).count).toMatchObject({ recorded: 6, missing: [], ok: true });
+  });
+
+  it("gives the headline cell on the subset next to the full headline cell", () => {
+    const r = analyze(records(), inputs, { resamples: 50, subset: ["p/s1", "p/s2", "p/s3", "x/s1"] });
+    expect(r.subset).toMatchObject({ ids: 4, inputs: 3 });
+    // On the spec p alone, the group of a+r is best.
+    expect(r.subset!.cell!.best.pair).toBe("a+r");
+    expect(r.subset!.cell!.oracle.gain.mean).toBeCloseTo(0, 9);
+    const md = reportMarkdown(r);
+    expect(md).toContain("### The headline cell on the subset (3 of 6 inputs)");
+    expect(md).toContain("| all (6) | b+r |");
+    expect(md).toContain("| subset (3) | a+r |");
+    expect(analyze(records(), inputs, { resamples: 50 }).subset).toBeUndefined();
+  });
+});
+
 describe("the parts of the analysis", () => {
   it("adds the cap breaks and, under the rule collection, the mixed segments", () => {
     const r = rec("x", "a+r", { "route.cap.1.1": 2, "route.mixed": 3 }, { hard: { "pack.complete": 1, "route.violations": 4, "route.complete": 4 } });

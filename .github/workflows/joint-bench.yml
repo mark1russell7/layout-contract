@@ -2,8 +2,10 @@
 # The input corpus selects the corpus. The default is joint-v2. A pull request runs the corpus joint-v2.
 # The job check examines the claims of the corpus first. The job smoke routes 1 input of each value of spacing. A break stops the run.
 # A pull request runs the small slice pr. A manual run, or a pull request with the label bench:full, runs the full corpus.
-# The full run gives the inputs to the shards of a matrix. Each shard keeps its raw records as the artifact joint-records-<shard>.
+# The full run gives the inputs to the shards of a matrix by their predicted cost (planShards). Each shard keeps its raw records as the artifact joint-records-<shard>.
 # The job analyze joins the records and keeps the report as the artifact joint-report, in JSON and in Markdown.
+# The job analyze fails when an input of the manifest has no records. The report lists the missing inputs.
+# On joint-v2, the report also gives the headline cell on the inputs of data/joint-v2-recorded.txt.
 # Only the times of these jobs count. The benchmark does not run on a local computer.
 name: Joint bench
 
@@ -13,7 +15,7 @@ on:
       shards:
         description: "The count of the shards of the full run."
         type: string
-        default: "48"
+        default: "64"
       corpus:
         description: "The joint corpus."
         type: choice
@@ -83,7 +85,7 @@ jobs:
         id: plan
         env:
           FULL: ${{ github.event_name == 'workflow_dispatch' || contains(github.event.pull_request.labels.*.name, 'bench:full') }}
-          SHARDS: ${{ inputs.shards || '48' }}
+          SHARDS: ${{ inputs.shards || '64' }}
           CORPUS: ${{ inputs.corpus || 'joint-v2' }}
         run: |
           if [ "$FULL" = "true" ]; then count="$SHARDS"; slice=""; else count=2; slice=pr; fi
@@ -97,7 +99,8 @@ jobs:
   run:
     needs: plan
     runs-on: ubuntu-latest
-    timeout-minutes: 90
+    # One input of joint-v2 ran for more than 89 minutes in run 40666991882. 360 minutes is the limit of GitHub.
+    timeout-minutes: 360
     strategy:
       fail-fast: false
       matrix:
@@ -153,10 +156,15 @@ jobs:
           SLICE: ${{ needs.plan.outputs.slice }}
           CORPUS: ${{ needs.plan.outputs.corpus }}
         run: |
-          node scripts/bench.mjs analyze --corpus "$CORPUS" --records records --out report ${SLICE:+--slice "$SLICE"}
           ls records | wc -l
-          cat report/report.md >> "$GITHUB_STEP_SUMMARY"
+          subset=""
+          if [ "$CORPUS" = joint-v2 ]; then subset=data/joint-v2-recorded.txt; fi
+          status=0
+          node scripts/bench.mjs analyze --corpus "$CORPUS" --records records --out report ${SLICE:+--slice "$SLICE"} ${subset:+--subset "$subset"} || status=$?
+          if [ -f report/report.md ]; then cat report/report.md >> "$GITHUB_STEP_SUMMARY"; fi
+          exit "$status"
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        if: ${{ !cancelled() }}
         with:
           name: joint-report
           path: packages/joint/report/

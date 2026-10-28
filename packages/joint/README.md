@@ -28,13 +28,16 @@ The package also holds the joint runner and its analysis. `docs/JOINT-BENCH.md` 
 - `analyze()` gives the report: the pack ranking, the best pair, the oracle and the greedy portfolios of each cell.
 - The workflow `joint-bench.yml` runs the benchmark in CI. Do not run it on a local computer, because it measures times.
 
-The script `scripts/bench.mjs` has the commands `check`, `smoke`, `run` and `analyze`. The option `--corpus` selects the corpus, with the default `joint-v2`:
+The script `scripts/bench.mjs` has the commands `check`, `smoke`, `plan`, `run` and `analyze`. The option `--corpus` selects the corpus, with the default `joint-v2`:
 
 ```sh
 node scripts/bench.mjs check --corpus joint-v2
 node scripts/bench.mjs smoke --corpus joint-v2
-node scripts/bench.mjs run --shards 48 --shard 0 --out records
-node scripts/bench.mjs analyze --records records --out report
+node scripts/bench.mjs plan --shards 64
+node scripts/bench.mjs run --shards 64 --shard 0 --out records
+node scripts/bench.mjs analyze --records records --out report --subset data/joint-v2-recorded.txt
 ```
+
+`analyze` fails when an input of the manifest has no records. The option `--allow-missing <file>` lists the inputs that can have no records.
 
 The package is not on npm.

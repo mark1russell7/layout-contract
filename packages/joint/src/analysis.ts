@@ -1,5 +1,6 @@
 // The analysis of the joint benchmark (`docs/JOINT-BENCH.md`). It reads records and the facts of the inputs, and gives a report. It has no input or output of its own.
 import { compareMeasure, JOINT_MEASURES, mulberry32, outputGroups, selectBest, type LayoutRecord, type SelectCandidate, type SelectLevel } from "@mark1russell7/layout-contract";
+import { recordCount, type RecordCount } from "./record-count.ts";
 import { CAPS, PAIR_SEPARATOR } from "./runner.ts";
 
 /** The facts of one input that the analysis reads. The CLI gives them from the manifest of the corpus. */
@@ -86,6 +87,10 @@ export interface AnalysisOptions {
   readonly quiet?: readonly string[];
   /** The set of predictions that the report checks. The default is `joint-v1`. */
   readonly predictions?: "joint-v1" | "joint-v2";
+  /** The ids of the inputs that can have no records. The record count check does not fail on them. */
+  readonly allowMissing?: readonly string[];
+  /** The ids of the inputs of the second headline. With it, the report also gives the headline cell on these inputs only. */
+  readonly subset?: readonly string[];
 }
 
 /** The routers of the prediction Q2 of `joint-v2`. */
@@ -217,9 +222,24 @@ export interface PredictionCheck {
   readonly detail: string;
 }
 
+/** The headline cell on a subset of the inputs, next to the headline cell on all inputs. */
+export interface SubsetReport {
+  /** The count of the ids of the subset. */
+  readonly ids: number;
+  /** The count of the inputs of the subset in the analysis, outside the stress cell. */
+  readonly inputs: number;
+  /** The headline cell on the inputs of the subset. It is absent when these inputs have no records. */
+  readonly cell?: CellReport;
+}
+
 /** The report of the analysis. */
 export interface Report {
+  /** The count of the inputs outside the stress cell. The headline cells use these inputs. */
   readonly inputs: number;
+  /** The record count check over all inputs of the analysis. */
+  readonly count: RecordCount;
+  /** The headline cell on the subset of `AnalysisOptions.subset`. */
+  readonly subset?: SubsetReport;
   readonly records: number;
   readonly skipped: Readonly<Record<string, number>>;
   readonly pairs: number;
@@ -797,8 +817,17 @@ export function analyze(records: readonly LayoutRecord[], allInputs: readonly An
       }),
   );
 
+  const count = recordCount(
+    allInputs.map((i) => i.id),
+    records.map((r) => r.input),
+    options.allowMissing,
+  );
+  const subset = options.subset === undefined ? undefined : subsetReport(records, inputs, options.subset, bestPack, opts);
+
   const base = {
     inputs: inputs.length,
+    count,
+    ...(subset === undefined ? {} : { subset }),
     records: used.length,
     skipped,
     pairs: index.pairs.length,
@@ -814,6 +843,25 @@ export function analyze(records: readonly LayoutRecord[], allInputs: readonly An
     fillBySpacing: fillOf(indexRecords(records.filter((r) => allIds.has(r.input))), allInputs),
   };
   return { ...base, predictions: options.predictions === "joint-v2" ? checkPredictionsV2(base) : checkPredictions(base) };
+}
+
+/** This function gives the headline cell on the inputs of a subset, with the pack entry of the headline as the best pack. */
+function subsetReport(
+  records: readonly LayoutRecord[],
+  inputs: readonly AnalysisInput[],
+  ids: readonly string[],
+  bestPack: string,
+  opts: Required<Pick<AnalysisOptions, "resamples" | "seed" | "sizes">>,
+): SubsetReport {
+  const wanted = new Set(ids);
+  const chosen = inputs.filter((i) => wanted.has(i.id));
+  const known = new Set(chosen.map((i) => i.id));
+  const index = indexRecords(records.filter((r) => known.has(r.input)));
+  const hashes: Record<string, string[]> = {};
+  for (const pair of index.pairs) hashes[pair] = chosen.map((i) => index.at.get(i.id)?.get(pair)?.outputHash ?? "skipped");
+  const groups = index.pairs.length === 0 ? [] : outputGroups(hashes);
+  const base = { ids: wanted.size, inputs: chosen.length };
+  return groups.length === 0 ? base : { ...base, cell: cellReport(index, chosen, groups, HEADLINE.rule, HEADLINE.cap, bestPack, opts) };
 }
 
 /** This function gives the cells of the stress inputs, with the pack entry of the headline as the best pack. */
@@ -849,7 +897,21 @@ function interval(i: Interval | undefined): string {
 /** This function writes a report as Markdown. */
 export function reportMarkdown(report: Report): string {
   const lines: string[] = [];
-  lines.push(`Inputs: ${report.inputs}. Records: ${report.records}. Pairs: ${report.pairs}, in ${report.groups} output groups.`, "");
+  const n = report.count;
+  lines.push(
+    `Inputs: ${n.recorded} with records, of ${n.manifest} in the manifest. The headline cells use the ${report.inputs} inputs outside the stress cell. Records: ${report.records}. Pairs: ${report.pairs}, in ${report.groups} output groups.`,
+    "",
+  );
+  if (n.missing.length > 0 || n.unknown.length > 0) {
+    lines.push("### The missing inputs", "", n.ok ? "The list of allowed inputs holds each missing input." : "The record count check fails.", "");
+    if (n.missing.length > 0) {
+      const allowed = new Set(n.allowed);
+      lines.push("| Input | Allowed |", "|---|---|");
+      for (const id of n.missing) lines.push(`| ${id} | ${allowed.has(id) ? "yes" : "no"} |`);
+      lines.push("");
+    }
+    if (n.unknown.length > 0) lines.push(`Inputs with records outside the manifest: ${n.unknown.join(", ")}.`, "");
+  }
   const skipped = Object.entries(report.skipped);
   if (skipped.length > 0) {
     lines.push("### Skipped records", "", "| Reason | Records |", "|---|---|");
@@ -862,6 +924,21 @@ export function reportMarkdown(report: Report): string {
   for (const c of report.cells) {
     const k = (n: number): string => interval(c.portfolios.find((p) => p.k === n)?.share);
     lines.push(`| ${c.rule} | ${c.cap} | ${c.best.pair} | ${c.best.misses} | ${f3(c.best.score)} | ${f3(c.oracle.score)} | ${interval(c.oracle.gain)} | ${c.oracle.wins} | ${k(3)} | ${k(8)} |`);
+  }
+  if (report.subset !== undefined) {
+    const full = report.cells.find((c) => c.rule === HEADLINE.rule && c.cap === HEADLINE.cap);
+    lines.push("", `### The headline cell on the subset (${report.subset.inputs} of ${report.inputs} inputs)`, "", "| Inputs | Best pair | Misses | Score | Oracle | Gain | Oracle wins | k = 3 share | k = 8 share |", "|---|---|---|---|---|---|---|---|---|");
+    for (const [name, c] of [
+      [`all (${report.inputs})`, full],
+      [`subset (${report.subset.inputs})`, report.subset.cell],
+    ] as const) {
+      if (c === undefined) {
+        lines.push(`| ${name} | - | - | - | - | - | - | - | - |`);
+        continue;
+      }
+      const k = (m: number): string => interval(c.portfolios.find((p) => p.k === m)?.share);
+      lines.push(`| ${name} | ${c.best.pair} | ${c.best.misses} | ${f3(c.best.score)} | ${f3(c.oracle.score)} | ${interval(c.oracle.gain)} | ${c.oracle.wins} | ${k(3)} | ${k(8)} |`);
+    }
   }
   lines.push("", "### The oracle gain by count", "", "| Rule | Cap | " + Object.keys(report.cells[0]?.oracle.byCount ?? {}).join(" | ") + " |");
   lines.push("|---|---|" + Object.keys(report.cells[0]?.oracle.byCount ?? {}).map(() => "---|").join(""));

@@ -134,7 +134,7 @@ describe("the parts of the runner", () => {
     expect(jointHash("a", "b")).not.toBe(jointHash("b", "a"));
   });
 
-  it("writes the facts of portfolioFacts as the cap counts, route.mixed and the hard counts", () => {
+  it("writes the route facts as the cap counts, route.mixed and the hard counts", () => {
     const facts = { hard: { "no-pass-through": 2, complete: 0 }, over: (cap: number) => (cap < 1.2 ? 3 : 0), mixed: 1 };
     expect(factMeasures(facts)).toEqual({
       measures: { "route.cap.1.1": 3, "route.cap.1.25": 0, "route.cap.1.5": 0, "route.mixed": 1 },
