@@ -256,6 +256,8 @@ Q6 compares cells with different mixes of inputs. Thus a part of the difference 
 
 The cell is `all` with the cap 1.25, on the inputs outside the stress cell.
 
+These numbers come from the easier part of the corpus. The 18 missing inputs hold the dense spec with 1000 boxes and hubs, which is the hard tail.
+
 | Best pair | Misses | Score | Oracle | Gain | k = 3 share | k = 8 share |
 |---|---|---|---|---|---|---|
 | `maxrects-cp+corners` | 55 | 0.284 | 0.480 | 0.196 [0.152, 0.249] | 0.760 [0.658, 0.850] | 0.889 [0.797, 0.947] |
