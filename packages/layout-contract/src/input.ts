@@ -1,16 +1,43 @@
-import type { Margin, Region, Side } from "./geometry.ts";
+import type { Margin, Point, Region, Side } from "./geometry.ts";
 import type { ShapeKind } from "./shapes.ts";
 
 /**
  * A port of a box: a place where edges go into the box.
  * With `x` and `y`, the port is fixed on the border of the box, relative to its top-left corner.
- * Without them, the router places the port on its `side`. Without a side, the router picks the side.
+ * With `side` and `along`, the port is fixed at a fraction of its side.
+ * With only a side, the router places the port on that side. Without a side, the router picks the side.
  */
 export interface Port {
   readonly id: string;
   readonly side?: Side;
   readonly x?: number;
   readonly y?: number;
+  /**
+   * The place of the port on its `side`: a fraction from 0 to 1, from the start of the side.
+   * The start of `left` and `right` is the top end. The start of `top` and `bottom` is the left end.
+   * It needs a `side`. A port with `along` has no `x` and no `y`.
+   */
+  readonly along?: number;
+}
+
+/**
+ * This function gives the point of a port on the border of its box, relative to the top-left corner of the box.
+ * A port with `x` and `y` gives that point. A port with `side` and `along` gives the point at that fraction of the side.
+ * Another port gives `undefined`, because the router picks its point.
+ */
+export function portPoint(box: Pick<LayoutBox, "w" | "h">, port: Port): Point | undefined {
+  if (port.x !== undefined && port.y !== undefined) return { x: port.x, y: port.y };
+  if (port.side === undefined || port.along === undefined) return undefined;
+  switch (port.side) {
+    case "top":
+      return { x: port.along * box.w, y: 0 };
+    case "bottom":
+      return { x: port.along * box.w, y: box.h };
+    case "left":
+      return { x: 0, y: port.along * box.h };
+    case "right":
+      return { x: box.w, y: port.along * box.h };
+  }
 }
 
 /** A box of an input. In the packer, its name is item. */
@@ -148,6 +175,11 @@ export interface LayoutInput {
    */
   readonly base?: string;
   readonly change?: "add" | "remove" | "resize" | "reorder" | "packed";
+  /**
+   * The fields that a corpus registry removed, because a dimension value made them wrong (`CorpusDimension.invalidates`).
+   * The names are sorted. An input with no removed field has no `invalidated`.
+   */
+  readonly invalidated?: readonly string[];
 }
 
 /** The input of a packer: a `layout-input/1` file without the edges. */

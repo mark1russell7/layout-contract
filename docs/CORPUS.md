@@ -11,7 +11,7 @@ The split of the work:
 
 ## The dimension schema
 
-A dimension is a `CorpusDimension`. It is a `SpaceParam` of `docs/STRATEGY-SPACE.md`, with 3 more fields. Thus the dimensions use the value checks of the strategy space.
+A dimension is a `CorpusDimension`. It is a `SpaceParam` of `docs/STRATEGY-SPACE.md`, with 5 more fields. Thus the dimensions use the value checks of the strategy space.
 
 | Field | Value |
 |---|---|
@@ -26,10 +26,30 @@ A dimension is a `CorpusDimension`. It is a `SpaceParam` of `docs/STRATEGY-SPACE
 | `meaning` | The meaning, in one sentence. |
 | `engines` | The engines that read the dimension. |
 | `levels` | The values of a sweep. It is optional. |
+| `supported` | The values that the family accepts. It is optional. A list is for an `enum` or a `bool`. A range `{ min?, max? }` is for an `int` or a `real`. |
+| `invalidates` | The output fields that a value other than the default makes wrong, for example `known`. It is optional. |
 
 - `levelsOf(dim, steps)` gives the values of a sweep. `levels` come first. Then an `enum` gives its values. With `steps`, a range gives `steps` points on its scale. Else the dimension gives its default.
+- With `supported`, `levelsOf` gives an `enum` and a `bool` only their supported values. The points of a range stay in the supported range.
 - `dimensionAt(dim, t)` gives the value at the fraction `t` of a range, on its scale. `dimensionUnit(dim, value)` gives the fraction of a value. A slider of a site uses the 2 functions.
-- `resolveDimensions(dimensions, dims)` gives the full values of an input. It throws a `RangeError` for an unknown dimension or a bad value.
+- `dimensionSupports(dim, value)` tells if the family accepts a value. A site uses it, and not `levelsOf`, to show the values that a family does not support.
+- `resolveDimensions(dimensions, dims)` gives the full values of an input. It throws a `RangeError` for an unknown dimension, a bad value or a value that is not supported.
+
+### The rules of `supported`
+
+- `supported` keeps the values of the shared dimension, so a site can show the full axis. It marks the values of one family only.
+- The default and each level are supported values. `register` refuses another default or level.
+- `resolve`, `generate`, `cellOf` and `rngOf` refuse a value that is not supported. The `RangeError` has the text "not supported by" and the `familyKind` of the family.
+- `cells` and `cellCount` refuse a level of `options.levels` that is not supported. `boundaryCells` uses the ends of the supported range.
+- The list form fits the `values` of an `enum`. The range form fits `min` and `max` of a numeric dimension, because a list cannot hold the values of a `real`.
+
+### The rules of `invalidates`
+
+- Without `invalidates`, the registry gives the output of the family with no change.
+- With a value other than the default, `generate` of the registry removes each field of `invalidates` that the output has.
+- Then the output gets the field `invalidated`: the sorted names of the removed fields. The registry then calculates `hash` again with the `hash` function of the family, or `documentHash`.
+- An output that has none of the fields does not change. Thus a dimension of many families changes only the outputs with the field.
+- The names `hash` and `invalidated` cannot be in `invalidates`, because the registry writes them.
 
 ### The rules of `when`
 
@@ -42,7 +62,11 @@ A dimension is a `CorpusDimension`. It is a `SpaceParam` of `docs/STRATEGY-SPACE
 
 ## The shared dimension table
 
-`CORPUS_DIMENSIONS` has the shared dimensions. A family takes a dimension with `sharedDimension(name, patch)`, or it declares its own dimension.
+`CORPUS_DIMENSIONS` has the shared dimensions. A family takes a dimension with `sharedDimension(name, patch)`, or it declares its own dimension with `ownerDimension(name, spec)`.
+
+- `sharedDimension` refuses a name that is not in the table. With `supported` or `invalidates` in the patch, it also refuses a bad dimension.
+- `ownerDimension` refuses a name of the table and the reserved name `kind`. It also refuses a bad default, level, `supported` or `invalidates`.
+- The registry examines the `when` of each dimension, because a `when` needs the earlier dimensions.
 
 | Dimension | Kind | Values or range | Default | Scale | Engines | Meaning |
 |---|---|---|---|---|---|---|
@@ -81,6 +105,7 @@ The values of `shape` are `SHAPE_KIND_IDS` of `shapes.ts` (`L46`).
 | `rng` | The random factory. The default is `DEFAULT_RNG`, the `mulberry32` of `random.ts`. |
 | `rngSeed` | The function that gives the seed of the stream from the input seed and the full dimensions. The default gives the input seed. |
 | `familyBy` | The dimensions of the family key after the kind of the cell. A dimension with `when` is not permitted. The default is no dimension. |
+| `hash` | The hash of an output after the registry removes the fields of `invalidates`. The default is `documentHash`. |
 | `generate` | The function `generate(seed, dims, context)` that gives the input or the board. |
 
 The rules of the registry:
@@ -89,6 +114,7 @@ The rules of the registry:
 2. `context.random` is `rng(rngSeed(seed, dims))`. `context.rng` is the factory, and `context.set` is the name of the corpus.
 3. `dims` has a value for each dimension of the family. The family puts into its params only the values that it needs. The registry writes no params.
 4. The registry gives the output of the family with no change. It calculates no hash. The family chooses its hash function.
+   The one exception is a dimension with `invalidates` at a value other than its default. The rules of `invalidates` tell the change.
 5. Without a version, `family(name)` gives the first version that the registry got, as `generator(name)` of `packing`.
 6. `cells(name, options)` gives the cells of a sweep, and `cellCount(name, options)` counts them with no list. The last dimension changes first.
 7. `boundaryCells(name)` gives the defaults and each end of each range. A dimension with `when` gets the first value of its `when` at each end. The other dimensions keep their defaults.

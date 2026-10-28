@@ -19,7 +19,34 @@ export interface CorpusDimension extends SpaceParam {
   readonly engines: readonly string[];
   /** The values of a sweep. Without them, a sweep uses the values of an `enum`, `false` and `true` of a `bool`, or the default. */
   readonly levels?: readonly ParamValue[];
+  /**
+   * The values that the family accepts. Without it, the family accepts each value of the dimension.
+   * A list is for an `enum` or a `bool`. A sub-range is for an `int` or a `real`.
+   * The default and each level are supported values. `resolve` and `generate` refuse a value that is not supported.
+   */
+  readonly supported?: SupportedValues;
+  /**
+   * The output fields that a value other than the default makes wrong, for example `known`.
+   * Then `generate` of a registry removes these fields from the output, and lists them in `invalidated`.
+   */
+  readonly invalidates?: readonly string[];
 }
+
+/**
+ * The supported values of a dimension (`CorpusDimension.supported`).
+ * The list form gives the values of an `enum` or a `bool`. The range form gives a sub-range of an `int` or a `real`.
+ * A range without `min` or `max` keeps that end of the dimension.
+ */
+export type SupportedValues = readonly ParamValue[] | SupportedRange;
+
+/** The range form of `SupportedValues`: the least and the largest supported value of a numeric dimension. */
+export interface SupportedRange {
+  readonly min?: number;
+  readonly max?: number;
+}
+
+/** The name of the output field that lists the fields that `generate` of a registry removed. */
+export const INVALIDATED_FIELD = "invalidated";
 
 /** The values of the dimensions of one input: one value for each name. */
 export type DimensionValues = Readonly<Record<string, ParamValue>>;
@@ -48,7 +75,8 @@ export interface GenerateContext {
 
 /**
  * A family of a corpus: a seeded generator with declared dimensions. The engine that owns it gives it to a registry.
- * The registry gives `generate` the raw seed and the full dimension values. It does not change the output, and it does not calculate a hash.
+ * The registry gives `generate` the raw seed and the full dimension values.
+ * The registry changes the output only for a dimension with `invalidates` at a value other than its default.
  */
 export interface CorpusFamily<O = LayoutInput> {
   /** The name of the family, for example `rect-grid`. */
@@ -71,6 +99,12 @@ export interface CorpusFamily<O = LayoutInput> {
   readonly rngSeed?: (seed: number, dims: DimensionValues) => number;
   /** The dimensions of the family key of `familyBy`, after the kind of the cell. A dimension with `when` is not permitted. The default is no dimension. */
   readonly familyBy?: readonly string[];
+  /**
+   * This function gives the hash of an output after the registry removes the fields of `invalidates`. The default is `documentHash` of `hash.ts`.
+   * The registry uses it only for an output with a `hash` field of text. The registry gives it an output of the family.
+   * Its parameter has the type `never`, so a family of each output type can be a `CorpusFamily<unknown>`.
+   */
+  readonly hash?: (output: never) => string;
   /** This function gives the input of a seed. `dims` has a value for each dimension, also for an inactive dimension. */
   generate(seed: number, dims: DimensionValues, context: GenerateContext): O;
 }
@@ -109,11 +143,14 @@ export interface FamilyRegistry<O = LayoutInput> {
   /** This method gives each family, in the order of registration. */
   families(): readonly CorpusFamily<O>[];
   /**
-   * This method gives the full dimension values of an input. It throws a `RangeError` for an unknown dimension or a bad value.
+   * This method gives the full dimension values of an input. It throws a `RangeError` for an unknown dimension, a bad value or a value that is not supported.
    * The methods with `dims` accept a cell of `cellOf`: they ignore a `kind` that is the `familyKind` of the family, and refuse another `kind`.
    */
   resolve(name: string, dims?: Readonly<Record<string, ParamValue>>, version?: number): DimensionValues;
-  /** This method gives the input of a seed. The output is the output of the family, with no change. */
+  /**
+   * This method gives the input of a seed: the output of the family. A dimension with `invalidates` at a value other than its default changes it.
+   * Then the method removes those fields, adds their names to `invalidated` and calculates the `hash` again. Another output has no change.
+   */
   generate(name: string, seed: number, dims?: Readonly<Record<string, ParamValue>>, options?: GenerateOptions): O;
   /** This method gives the cell of an input: the `familyKind` of the family version and the value of each active dimension. */
   cellOf(name: string, dims?: Readonly<Record<string, ParamValue>>, version?: number): RegistryCell;
@@ -187,11 +224,123 @@ export const CORPUS_DIMENSIONS: Readonly<Record<string, CorpusDimension>> = Obje
   gap: range("gap", "real", { min: 0, max: 32, value: 0 }, "The free space between two items, in units.", [P, J]),
 });
 
-/** This function gives a dimension of `CORPUS_DIMENSIONS`, with the fields of `patch` over it. It throws a `RangeError` for an unknown name. */
+/**
+ * This function gives a dimension of `CORPUS_DIMENSIONS`, with the fields of `patch` over it. It throws a `RangeError` for an unknown name.
+ * With `supported` or `invalidates` in the patch, it also throws a `RangeError` for a bad dimension, as `ownerDimension` does.
+ */
 export function sharedDimension(name: string, patch: Partial<CorpusDimension> = {}): CorpusDimension {
   const base = Object.hasOwn(CORPUS_DIMENSIONS, name) ? CORPUS_DIMENSIONS[name] : undefined;
   if (base === undefined) throw new RangeError(`The shared dimension table has no dimension "${name}".`);
-  return Object.freeze({ ...base, ...patch, name });
+  const dim: CorpusDimension = Object.freeze({ ...base, ...patch, name });
+  if (patch.supported !== undefined || patch.invalidates !== undefined) throwProblems(`sharedDimension: the dimension "${name}"`, ownProblems(dim));
+  return dim;
+}
+
+/** The fields of a dimension that the owner declares: each field of `CorpusDimension` but the name. */
+export type OwnerDimensionSpec = Omit<CorpusDimension, "name">;
+
+/**
+ * This function gives a dimension that only its owner declares, for example `cut` of a family of `packing`.
+ * It throws a `RangeError` for a name of `CORPUS_DIMENSIONS`, the reserved name `kind`, or a bad default, level, `supported` or `invalidates`.
+ * The registry examines the `when` of the dimension, because it needs the earlier dimensions.
+ */
+export function ownerDimension(name: string, spec: OwnerDimensionSpec): CorpusDimension {
+  const where = `ownerDimension: the dimension "${name}"`;
+  if (typeof name !== "string" || name === "") throw new RangeError("ownerDimension: the name of a dimension is a text that is not empty.");
+  if (name === "kind") throw new RangeError(`${where} has a reserved name: the cell of \`cellOf\` has the \`familyKind\` of the family in \`kind\`.`);
+  if (Object.hasOwn(CORPUS_DIMENSIONS, name)) throw new RangeError(`${where} is in the shared dimension table. Use sharedDimension("${name}") for it.`);
+  const dim: CorpusDimension = Object.freeze({ ...spec, name });
+  throwProblems(where, ownProblems(dim));
+  return dim;
+}
+
+/** This function throws a `RangeError` with each problem of a list. An empty list throws nothing. */
+function throwProblems(where: string, problems: readonly string[]): void {
+  if (problems.length > 0) throw new RangeError(`${where} is not good: ${problems.join("; ")}.`);
+}
+
+/** This function tells if a value of the stable form of a dimension is in its `supported` values. Without `supported`, each value is in them. */
+function inSupported(dim: CorpusDimension, value: ParamValue): boolean {
+  const s = dim.supported;
+  if (s === undefined) return true;
+  if (isSupportedList(s)) return s.some((v) => paramValue(dim, v) === value);
+  if (typeof value !== "number") return false;
+  return (s.min === undefined || value >= s.min) && (s.max === undefined || value <= s.max);
+}
+
+/** This function tells if `SupportedValues` has the list form. */
+const isSupportedList = (s: SupportedValues): s is readonly ParamValue[] => Array.isArray(s);
+
+/**
+ * This function tells if a family accepts a value of a dimension. A site uses it to show the values that a family does not support.
+ * It gives `false` for a bad value, and for a value outside `supported`. Without `supported`, it gives `true` for each good value.
+ */
+export function dimensionSupports(dim: CorpusDimension, value: unknown): boolean {
+  if (paramProblem(dim, value) !== undefined) return false;
+  return inSupported(dim, paramValue(dim, value as ParamValue));
+}
+
+/** This function gives the text of the supported values of a dimension, for a message. */
+function supportedText(dim: CorpusDimension): string {
+  const s = dim.supported;
+  if (s === undefined) return "each value";
+  if (isSupportedList(s)) return s.map((v) => JSON.stringify(v)).join(", ");
+  return `the values from ${s.min ?? dim.min} to ${s.max ?? dim.max}`;
+}
+
+/** This function gives the problems of one dimension that need no other dimension: the default, the levels, `supported` and `invalidates`. */
+function ownProblems(d: CorpusDimension): string[] {
+  const out: string[] = [];
+  const bad = paramProblem(d, d.default);
+  if (bad !== undefined) out.push(`the default of "${d.name}" is bad: ${bad}`);
+  for (const v of d.levels ?? []) {
+    const p = paramProblem(d, v);
+    if (p !== undefined) out.push(`a level of "${d.name}" is bad: ${p}`);
+  }
+  out.push(...supportProblems(d, bad === undefined));
+  out.push(...invalidatesProblems(d));
+  return out;
+}
+
+/** This function gives the problems of the `supported` values of a dimension. `goodDefault` tells that the default is a good value. */
+function supportProblems(d: CorpusDimension, goodDefault: boolean): string[] {
+  const s = d.supported;
+  if (s === undefined) return [];
+  const out: string[] = [];
+  const numeric = d.kind === "int" || d.kind === "real";
+  if (isSupportedList(s)) {
+    if (numeric) return [`the supported values of "${d.name}" are a range with min and max, because the dimension is numeric`];
+    if (s.length === 0) return [`the supported values of "${d.name}" are an empty list`];
+    for (const v of s) {
+      const p = paramProblem(d, v);
+      if (p !== undefined) out.push(`a supported value of "${d.name}" is bad: ${p}`);
+    }
+    if (new Set(s).size !== s.length) out.push(`the supported values of "${d.name}" have a value two times`);
+  } else {
+    if (s === null || typeof s !== "object") return [`the supported values of "${d.name}" are a list or a range`];
+    if (!numeric) return [`the supported values of "${d.name}" are a list, because the dimension is not numeric`];
+    for (const end of [s.min, s.max]) {
+      if (end === undefined) continue;
+      const p = paramProblem(d, end);
+      if (p !== undefined) out.push(`an end of the supported range of "${d.name}" is bad: ${p}`);
+    }
+    if (s.min !== undefined && s.max !== undefined && s.min > s.max) out.push(`the supported range of "${d.name}" has a min above its max`);
+  }
+  if (out.length > 0) return out;
+  if (goodDefault && !inSupported(d, paramValue(d, d.default))) out.push(`the default of "${d.name}" is not a supported value`);
+  for (const v of d.levels ?? []) if (paramProblem(d, v) === undefined && !inSupported(d, paramValue(d, v))) out.push(`the level ${JSON.stringify(v)} of "${d.name}" is not a supported value`);
+  return out;
+}
+
+/** This function gives the problems of the `invalidates` fields of a dimension. */
+function invalidatesProblems(d: CorpusDimension): string[] {
+  const list = d.invalidates;
+  if (list === undefined) return [];
+  if (!Array.isArray(list) || !list.every((f) => typeof f === "string" && f !== "")) return [`the invalidates of "${d.name}" is not a list of field names`];
+  const out: string[] = [];
+  if (new Set(list).size !== list.length) out.push(`the invalidates of "${d.name}" has a field two times`);
+  for (const f of ["hash", INVALIDATED_FIELD]) if (list.includes(f)) out.push(`the invalidates of "${d.name}" has the field "${f}", which the registry writes`);
+  return out;
 }
 
 /** This function tells if a log scale of a range starts at 0. Then the scale is the log of `1 + x - min`. */
@@ -224,31 +373,40 @@ export function dimensionUnit(dim: SpaceParam, value: number): number {
   return (Math.log(v) - Math.log(min)) / (Math.log(max) - Math.log(min));
 }
 
+/** This function gives the range of the supported values of a numeric dimension: its own `min` and `max` in place of the ends of `supported`. */
+function supportedSpan(dim: CorpusDimension): { readonly min: number | undefined; readonly max: number | undefined } {
+  const s = dim.supported;
+  const range = s === undefined || isSupportedList(s) ? {} : s;
+  return { min: range.min ?? dim.min, max: range.max ?? dim.max };
+}
+
 /**
  * This function gives the values of a sweep of a dimension. `levels` of the dimension come first. Then an `enum` gives its values, and a `bool` gives `false` and `true`.
  * With `steps`, a numeric dimension gives `steps` points from `min` to `max` on its scale. Else it gives its default.
+ * With `supported`, an `enum` and a `bool` give only the supported values, and the points of a numeric dimension stay in the supported range.
  */
 export function levelsOf(dim: CorpusDimension, steps?: number): ParamValue[] {
   if (dim.levels !== undefined) return [...dim.levels];
-  if (dim.kind === "enum" || dim.kind === "bool" || steps === undefined) return paramLevels(dim, 1);
+  if (dim.kind === "enum" || dim.kind === "bool") return paramLevels(dim, 1).filter((v) => inSupported(dim, paramValue(dim, v)));
+  if (steps === undefined) return paramLevels(dim, 1);
+  if (dim.supported !== undefined) {
+    const { supported: _supported, ...rest } = dim;
+    const span = supportedSpan(dim);
+    return levelsOf({ ...rest, ...(span.min === undefined ? {} : { min: span.min }), ...(span.max === undefined ? {} : { max: span.max }) }, steps);
+  }
   if (!fromZero(dim)) return paramLevels(dim, steps);
   if (!Number.isInteger(steps) || steps < 1) throw new RangeError(`The steps of a sweep are a whole number of 1 or more, not ${steps}.`);
   if (steps === 1) return [paramValue(dim, dim.default)];
   return [...new Set(Array.from({ length: steps }, (_, j) => dimensionAt(dim, j / (steps - 1))))];
 }
 
-/** This function gives the problems of the dimensions of a family: a repeated name, a bad default, a bad level or a bad `when`. */
+/** This function gives the problems of the dimensions of a family: a repeated name, a bad default, level, `supported`, `invalidates` or `when`. */
 function dimensionProblems(dims: readonly CorpusDimension[]): string[] {
   const out: string[] = [];
   const names = dims.map((d) => d.name);
   dims.forEach((d, i) => {
     if (names.indexOf(d.name) !== i) out.push(`the dimension "${d.name}" is in the list two times`);
-    const bad = paramProblem(d, d.default);
-    if (bad !== undefined) out.push(`the default of "${d.name}" is bad: ${bad}`);
-    for (const v of d.levels ?? []) {
-      const p = paramProblem(d, v);
-      if (p !== undefined) out.push(`a level of "${d.name}" is bad: ${p}`);
-    }
+    out.push(...ownProblems(d));
     if (d.when === undefined) return;
     const j = names.indexOf(d.when.param);
     if (j < 0 || j >= i) out.push(`the when of "${d.name}" names "${d.when.param}", which is not an earlier dimension`);
@@ -261,9 +419,16 @@ function dimensionProblems(dims: readonly CorpusDimension[]): string[] {
 /**
  * This function gives the full dimension values of an input. A missing dimension gets its default. An inactive dimension of `when` also gets its default.
  * Thus a default that the caller gives, a missing value and an inactive value give the same values. A real number gets its stable form.
+ *
  * The function throws a `RangeError` for an unknown dimension or a bad value, also for a bad value of an inactive dimension.
+ * It also throws a `RangeError` for a value outside `supported`, with the text "not supported by" and `by`.
  */
-export function resolveDimensions(dimensions: readonly CorpusDimension[], dims: Readonly<Record<string, ParamValue>> = {}, where: string = "The family"): DimensionValues {
+export function resolveDimensions(
+  dimensions: readonly CorpusDimension[],
+  dims: Readonly<Record<string, ParamValue>> = {},
+  where: string = "The family",
+  by: string = "the family",
+): DimensionValues {
   const known = new Set(dimensions.map((d) => d.name));
   for (const key of Object.keys(dims)) if (!known.has(key)) throw new RangeError(`${where} has no dimension "${key}".`);
   const active: Record<string, ParamValue> = {};
@@ -273,6 +438,9 @@ export function resolveDimensions(dimensions: readonly CorpusDimension[], dims: 
     if (given !== undefined) {
       const bad = paramProblem(d, given);
       if (bad !== undefined) throw new RangeError(`${where}: the dimension "${d.name}" is bad: ${bad}.`);
+      if (!inSupported(d, paramValue(d, given))) {
+        throw new RangeError(`${where}: the value ${JSON.stringify(given)} of the dimension "${d.name}" is not supported by ${by}. The supported values are ${supportedText(d)}.`);
+      }
     }
     const on = paramActive(d, active);
     const value = paramValue(d, on && given !== undefined ? given : d.default);
@@ -318,7 +486,7 @@ function countOf(dimensions: readonly CorpusDimension[], levels: readonly (reado
 }
 
 /** This function gives the levels of each dimension of a sweep. A dimension outside the sweep has `undefined`, so it keeps its default. */
-function sweepLevels(dimensions: readonly CorpusDimension[], options: CellsOptions, where: string): (readonly ParamValue[] | undefined)[] {
+function sweepLevels(dimensions: readonly CorpusDimension[], options: CellsOptions, where: string, by: string): (readonly ParamValue[] | undefined)[] {
   const names = new Set(dimensions.map((d) => d.name));
   for (const name of [...(options.sweep ?? []), ...Object.keys(options.levels ?? {})]) if (!names.has(name)) throw new RangeError(`${where} has no dimension "${name}".`);
   return dimensions.map((d) => {
@@ -327,9 +495,42 @@ function sweepLevels(dimensions: readonly CorpusDimension[], options: CellsOptio
     for (const v of lv) {
       const bad = paramProblem(d, v);
       if (bad !== undefined) throw new RangeError(`${where}: a level of "${d.name}" is bad: ${bad}.`);
+      if (!inSupported(d, paramValue(d, v))) throw new RangeError(`${where}: the level ${JSON.stringify(v)} of "${d.name}" is not supported by ${by}.`);
     }
     return lv;
   });
+}
+
+/** This function gives the output fields that the values make wrong: the `invalidates` of each dimension with a value other than its default, sorted. */
+function invalidFields(dimensions: readonly CorpusDimension[], full: DimensionValues): string[] {
+  const out = new Set<string>();
+  for (const d of dimensions) {
+    if (d.invalidates === undefined || d.invalidates.length === 0) continue;
+    if (full[d.name] !== paramValue(d, d.default)) for (const f of d.invalidates) out.add(f);
+  }
+  return [...out].sort(byCode);
+}
+
+/** This function compares two strings by their UTF-16 code units. */
+const byCode = (x: string, y: string): number => (x < y ? -1 : x > y ? 1 : 0);
+
+/**
+ * This function removes the fields of `fields` from an output, and adds their names to its field `invalidated`, sorted.
+ * Only a field of the output counts. The `hash` of text gets the value of `hash` again. An output with none of the fields is the same object.
+ */
+function dropFields<O>(output: O, fields: readonly string[], hash: (output: O) => string, where: string): O {
+  if (fields.length === 0) return output;
+  if (output === null || typeof output !== "object" || Array.isArray(output)) throw new RangeError(`${where} invalidates the fields ${fields.join(", ")}, but its output is not an object.`);
+  const o = output as Record<string, unknown>;
+  const dropped = fields.filter((f) => Object.hasOwn(o, f));
+  if (dropped.length === 0) return output;
+  const before = o[INVALIDATED_FIELD];
+  const prior = Array.isArray(before) ? before.filter((f): f is string => typeof f === "string") : [];
+  const body: Record<string, unknown> = {};
+  for (const key of Object.keys(o)) if (key !== "hash" && key !== INVALIDATED_FIELD && !dropped.includes(key)) body[key] = o[key];
+  body[INVALIDATED_FIELD] = [...new Set([...prior, ...dropped])].sort(byCode);
+  if (typeof o["hash"] !== "string") return (Object.hasOwn(o, "hash") ? { ...body, hash: o["hash"] } : body) as O;
+  return { ...body, hash: hash(body as O) } as O;
 }
 
 /** This function gives the values that make a dimension active: the first value of its `when`, and the values that make that dimension active. */
@@ -369,6 +570,9 @@ export function createFamilyRegistry<O = LayoutInput>(families: Iterable<CorpusF
     const { kind: _kind, ...rest } = dims;
     return rest;
   };
+  /** This function gives the full dimension values of an input of `f`. A message names the family as `familyKind` gives it. */
+  const resolveIn = (f: CorpusFamily<O>, dims: Readonly<Record<string, ParamValue>> | undefined): DimensionValues =>
+    resolveDimensions(f.dimensions, dims, label(f), familyKind(f.name, f.version));
   const streamOf = (f: CorpusFamily<O>, seed: number, full: DimensionValues): { readonly rng: RngFactory; readonly random: () => number } => {
     const rng = f.rng ?? DEFAULT_RNG;
     return { rng, random: rng(f.rngSeed === undefined ? seed : f.rngSeed(seed, full)) };
@@ -393,37 +597,40 @@ export function createFamilyRegistry<O = LayoutInput>(families: Iterable<CorpusF
     families: () => [...list],
     resolve(name, dims, version) {
       const f = find(name, version);
-      return resolveDimensions(f.dimensions, ownDims(f, dims), label(f));
+      return resolveIn(f, ownDims(f, dims));
     },
     generate(name, seed, dims, options = {}) {
       checkSeed(seed);
       const f = find(name, options.version);
-      const full = resolveDimensions(f.dimensions, ownDims(f, dims), label(f));
+      const full = resolveIn(f, ownDims(f, dims));
       const context: GenerateContext = { ...streamOf(f, seed, full), ...(options.set === undefined ? {} : { set: options.set }) };
-      return f.generate(seed, full, context);
+      const output = f.generate(seed, full, context);
+      const hash = (f.hash ?? documentHash) as (o: O) => string;
+      return dropFields(output, invalidFields(f.dimensions, full), hash, label(f));
     },
     cellOf(name, dims, version) {
       const f = find(name, version);
-      return { kind: familyKind(f.name, f.version), ...activeValues(f.dimensions, resolveDimensions(f.dimensions, ownDims(f, dims), label(f))) };
+      return { kind: familyKind(f.name, f.version), ...activeValues(f.dimensions, resolveIn(f, ownDims(f, dims))) };
     },
     *cells(name, options = {}) {
       const f = find(name, options.version);
-      for (const values of sweepOf(f.dimensions, sweepLevels(f.dimensions, options, label(f)))) yield resolveDimensions(f.dimensions, values, label(f));
+      for (const values of sweepOf(f.dimensions, sweepLevels(f.dimensions, options, label(f), familyKind(f.name, f.version)))) yield resolveIn(f, values);
     },
     cellCount(name, options = {}) {
       const f = find(name, options.version);
-      return countOf(f.dimensions, sweepLevels(f.dimensions, options, label(f)));
+      return countOf(f.dimensions, sweepLevels(f.dimensions, options, label(f), familyKind(f.name, f.version)));
     },
     boundaryCells(name, version) {
       const f = find(name, version);
-      const base = resolveDimensions(f.dimensions, {}, label(f));
+      const base = resolveIn(f, {});
       const out: DimensionValues[] = [base];
       const seen = new Set([JSON.stringify(base)]);
       for (const d of f.dimensions) {
         if (d.kind !== "int" && d.kind !== "real") continue;
-        for (const end of [d.min, d.max]) {
+        const span = supportedSpan(d);
+        for (const end of [span.min, span.max]) {
           if (end === undefined) continue;
-          const cell = resolveDimensions(f.dimensions, { ...activation(f.dimensions, d), [d.name]: end }, label(f));
+          const cell = resolveIn(f, { ...activation(f.dimensions, d), [d.name]: end });
           const key = JSON.stringify(cell);
           if (!seen.has(key)) {
             seen.add(key);
@@ -437,7 +644,7 @@ export function createFamilyRegistry<O = LayoutInput>(families: Iterable<CorpusF
       const f = find(name, version);
       return (seed, dims) => {
         checkSeed(seed);
-        return streamOf(f, seed, resolveDimensions(f.dimensions, ownDims(f, dims), label(f))).random;
+        return streamOf(f, seed, resolveIn(f, ownDims(f, dims))).random;
       };
     },
     familyBy() {
@@ -475,7 +682,7 @@ export interface ComposeOptions {
   /** The default is the owner of the base family. */
   readonly owner?: string;
   readonly meaning?: string;
-  /** The hash of the composed input. The default is `documentHash` of `hash.ts`. */
+  /** The hash of the composed input. The default is `documentHash` of `hash.ts`. The composed family also gives it to the registry in `hash`. */
   readonly hash?: (input: LayoutInput) => string;
 }
 
@@ -507,6 +714,7 @@ export function composeFamily(base: CorpusFamily<LayoutInput>, steps: readonly C
     ...(base.rng === undefined ? {} : { rng: base.rng }),
     ...(base.rngSeed === undefined ? {} : { rngSeed: (seed: number, full: DimensionValues) => base.rngSeed!(seed, pick(base.dimensions, full)) }),
     ...(base.familyBy === undefined ? {} : { familyBy: base.familyBy }),
+    ...(options.hash === undefined ? {} : { hash: options.hash }),
     generate(seed: number, full: DimensionValues, context: GenerateContext): LayoutInput {
       let input = base.generate(seed, pick(base.dimensions, full), context);
       const parts: string[] = [];

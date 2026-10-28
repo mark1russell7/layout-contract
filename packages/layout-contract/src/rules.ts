@@ -1,5 +1,5 @@
 import { boundsOf, grow, overlapOf, type Rect, type Region } from "./geometry.ts";
-import type { LayoutBox, LayoutInput, Obstacle, PairGap } from "./input.ts";
+import type { LayoutBox, LayoutInput, Obstacle, PairGap, Port } from "./input.ts";
 import { applyPack, type PackOutput } from "./output.ts";
 import { SHAPE_KIND_IDS, shapeKindProblem, type ShapeSupport } from "./shapes.ts";
 import { DEFAULT_TOLERANCE, EPS, RECORD_EPS } from "./tolerance.ts";
@@ -352,6 +352,7 @@ export function packHard(input: LayoutInput, output: PackOutput, tolerance: numb
  * This function gives the problems of an input file. An empty list tells that the file is good.
  * A problem is a bad input, not a break of a hard rule. Thus an engine refuses the input.
  * In `pairGaps`, an unknown box, a pair of one box, a repeated pair in either order, a bad `gap` and bad `lanes` are problems.
+ * A port with `along` and no `side`, with `x` or `y`, or with a value outside [0, 1] is a problem.
  */
 export function checkInput(input: LayoutInput): readonly string[] {
   const problems: string[] = [];
@@ -363,12 +364,25 @@ export function checkInput(input: LayoutInput): readonly string[] {
     if (box.locked === true && (box.x === undefined || box.y === undefined)) problems.push(`box ${box.id}: a locked box has no position`);
     const shape = shapeKindProblem(box);
     if (shape !== undefined) problems.push(shape);
+    for (const port of box.ports ?? []) problems.push(...alongProblems(box.id, port));
   }
   if (countPortsOffBorder(input.boxes) > 0) problems.push("a fixed port is not on the border of its box");
   for (const edge of input.edges ?? []) {
     if (!ids.has(edge.source) || !ids.has(edge.target)) problems.push(`edge ${edge.id}: a box of the edge is not in the input`);
   }
   problems.push(...pairGapProblems(input.pairGaps, ids));
+  return problems;
+}
+
+/** This function gives the problems of the `along` of a port: no side, a value outside [0, 1], or `x` or `y` with it. A port without `along` has no problem. */
+function alongProblems(boxId: string, port: Port): string[] {
+  if (port.along === undefined) return [];
+  const at = `box ${boxId} port ${port.id}`;
+  const problems: string[] = [];
+  if (port.side === undefined) problems.push(`${at}: a port with along has no side`);
+  if (typeof port.along !== "number" || !Number.isFinite(port.along) || port.along < 0 || port.along > 1)
+    problems.push(`${at}: the along value ${String(port.along)} is not a finite number from 0 to 1`);
+  if (port.x !== undefined || port.y !== undefined) problems.push(`${at}: a port with along also has x or y`);
   return problems;
 }
 

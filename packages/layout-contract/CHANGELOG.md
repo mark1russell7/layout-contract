@@ -1,5 +1,19 @@
 # Changelog
 
+## 0.2.15
+
+- PATCH: new optional exports and fields, with no break. A family, a dimension or an input without them does not change.
+- The new exports are `ownerDimension`, `OwnerDimensionSpec`, `dimensionSupports`, `SupportedValues`, `SupportedRange`, `INVALIDATED_FIELD` and `portPoint`.
+- The new optional fields are `CorpusDimension.supported`, `CorpusDimension.invalidates`, `CorpusFamily.hash`, `LayoutInput.invalidated` and `Port.along`. `resolveDimensions` has a new optional fourth parameter `by`.
+- `supported` marks the values that one family accepts (L51). A list is for an `enum` or a `bool`, and a range `{ min?, max? }` is for a numeric dimension.
+- `resolve` and `generate` of a registry refuse another value with a `RangeError` that has the text "not supported by". `levelsOf` and `boundaryCells` keep to the supported values.
+- `dimensionSupports(dim, value)` tells a site if a family accepts a value.
+- `ownerDimension(name, spec)` gives a dimension of one owner. It refuses a name of `CORPUS_DIMENSIONS`, the name `kind` and a bad default, level, `supported` or `invalidates`.
+- `invalidates` lists the output fields that a value other than the default makes wrong. `generate` of a registry removes them, lists them in `invalidated` and calculates the `hash` again.
+- `Port.along` fixes a port at a fraction of its side (L56). The start of `left` and `right` is the top end, and the start of `top` and `bottom` is the left end.
+- `checkInput` refuses `along` without a side, outside [0, 1] or with `x` or `y`. `turnPort` changes `along` of `left` and `right` to `1 - along`.
+- Each input, manifest, record and hash of 0.2.14 stays the same. The tests pin the `joint-v1` and `joint-v2` manifests, `RECT_SCATTERED_HASHES` and an input with ports.
+
 ## 0.2.14
 
 - PATCH: new optional exports and fields, with no break: `MemberRule.pool`, `PairGap`, `LayoutInput.pairGaps` and `canonicalInput`. It also has a fix of `generate`.
