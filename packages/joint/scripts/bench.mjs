@@ -4,13 +4,20 @@
 //   smoke [--corpus <set>]                                                  packs and routes 1 input of each value of spacing with corners
 //   run --shards <n> --shard <i> --out <dir> [--slice pr] [--corpus <set>]   writes <dir>/records-<i>.jsonl
 //   plan --shards <n> [--slice pr] [--corpus <set>]                           prints the planned cost of each shard
-//   analyze --records <dir> --out <dir> [--slice pr] [--corpus <set>] [--allow-missing <file>] [--subset <file>] [--baseline <pair>]
+//   analyze --records <dir> --out <dir> [--slice pr] [--corpus <set>] [--allow-missing <file>] [--subset <file>] [--baseline <pair[,pair]>]
+//           [--compare <a:b[,a:b]>] [--exclude-pack <id[,id]>] [--oracle-without <id[,id]>] [--times <spec[,spec]>] [--jobs <file>] [--rank-top <n>]
 //                                                                            writes <dir>/report.json and <dir>/report.md
 //
 // The corpus is `joint-v2` by default. The slice `pr` is the small slice of the pull request: seed 1 of the specs with count 10 and of the fixed cases.
 // The shards get the inputs by their planned cost (`plannedCost`, `planShards`). Each shard job computes the same plan.
 // The cost model is data/cost-margins.json. scripts/fit-cost.mjs writes it from the shard logs of a full run.
-// analyze gives the gains over the baseline pair of `--baseline`. The default is `BASELINE`: rows+portfolio. The value `none` removes the baseline.
+// analyze gives the gains over each baseline pair of `--baseline`. The default is `BASELINE` (rows+portfolio), and select+portfolio when the records have it.
+// `--compare a:b` gives the misses and the scores of the pairs a and b, and the gain of a over b. The default is select+portfolio:rows+portfolio when the records have both.
+// `--exclude-pack` removes the records of the pack entries before the analysis. `--oracle-without` gives a second oracle without their pairs. Its default is select.
+// When the records have the pack entry select, the report checks each of its records against the record of the member that its table picks.
+// `--times` gives the route times of the specs. The default is `DENSE_HUBS`. `--jobs` reads the output of `gh run view <id> --json jobs` and gives the shard times.
+// `--rank-top` is the count of the rows of the ranking of the output groups in report.md. The default is `RANK_TOP`. report.json holds each group.
+// The value `none` removes the default of `--baseline`, `--compare`, `--oracle-without` and `--times`.
 // analyze reads the folds of the greedy portfolios from the split "default" of the split file of the corpus (corpus/splits).
 // analyze fails when an input of the manifest has no records, unless the file of `--allow-missing` lists it. The files list one input id on each line.
 import { appendFileSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
@@ -19,18 +26,25 @@ import { fileURLToPath } from "node:url";
 import {
   analyze,
   BASELINE,
+  DENSE_HUBS,
   checkCorpus,
   idList,
   jointCorpus,
   loadSplit,
   manifestJson,
   PACK_ENTRIES,
+  packOf,
+  pairId,
+  PORTFOLIO_ROUTER,
+  RANK_TOP,
   plannedCost,
   planShards,
   reportMarkdown,
   ROUTERS,
   runEnv,
   runInput,
+  SELECT_PACK,
+  selectMemberOf,
   SET_V2,
   SETS,
   SPACINGS,
@@ -156,9 +170,11 @@ if (command === "check") {
   const dir = args.records ?? "bench-out";
   const out = args.out ?? dir;
   const records = [];
-  for (const name of readdirSync(dir).filter((n) => n.endsWith(".jsonl")).sort())
+  // The files can be in folders: `gh run download` writes each artifact into a folder of its name.
+  for (const name of readdirSync(dir, { recursive: true }).map(String).filter((n) => n.endsWith(".jsonl")).sort())
     for (const line of readFileSync(join(dir, name), "utf8").split("\n")) if (line.trim() !== "") records.push(JSON.parse(line));
-  const inputs = corpusSlice().map(({ entry }) => ({
+  const slice = corpusSlice();
+  const inputs = slice.map(({ entry }) => ({
     id: entry.id,
     seed: Number(/\/s(\d+)$/.exec(entry.id)[1]),
     spec: entry.id.replace(/\/s\d+$/, ""),
@@ -166,18 +182,47 @@ if (command === "check") {
     cell: entry.cell,
     ...(entry.stress === true ? { stress: true } : {}),
   }));
+  /** This function reads a list of ids with commas. The value `none` gives an empty list, and no value gives `undefined`. */
+  const list = (value) => (value === undefined ? undefined : value === "none" ? [] : value.split(",").map((v) => v.trim()).filter((v) => v !== ""));
+  const exclude = list(args["exclude-pack"]) ?? [];
+  const hasPair = (pair) => !exclude.includes(packOf(pair)) && records.some((r) => r.strategy === pair);
+  const hasSelect = !exclude.includes(SELECT_PACK) && records.some((r) => packOf(r.strategy) === SELECT_PACK);
+  const selectPortfolio = pairId(SELECT_PACK, PORTFOLIO_ROUTER);
+  const baselines = list(args.baseline) ?? [BASELINE, ...(hasPair(selectPortfolio) ? [selectPortfolio] : [])];
+  const compare = (list(args.compare) ?? (hasPair(selectPortfolio) && hasPair(BASELINE) ? [`${selectPortfolio}:${BASELINE}`] : [])).map((c) => {
+    const pair = c.split(":");
+    if (pair.length !== 2) throw new RangeError(`A comparison is two pairs with a colon, for example ${selectPortfolio}:${BASELINE}, not "${c}".`);
+    return pair;
+  });
+  const without = list(args["oracle-without"]) ?? (hasSelect ? [SELECT_PACK] : []);
+  const times = list(args.times) ?? (inputs.some((i) => i.spec === DENSE_HUBS) ? [DENSE_HUBS] : []);
+  // The check of select reads all records, also with --exclude-pack select.
+  const composite = records.some((r) => packOf(r.strategy) === SELECT_PACK)
+    ? { pack: SELECT_PACK, members: Object.fromEntries(slice.map(({ input, entry }) => [entry.id, selectMemberOf(input)])) }
+    : undefined;
+  const jobs = args.jobs === undefined ? undefined : JSON.parse(readFileSync(args.jobs, "utf8")).jobs;
+  if (args.jobs !== undefined && !Array.isArray(jobs)) throw new RangeError(`${args.jobs} has no list "jobs". Write it with gh run view <id> --json jobs.`);
+  const rankTop = Number(args["rank-top"] ?? RANK_TOP);
+  if (!(Number.isInteger(rankTop) && rankTop >= 0)) throw new RangeError(`The option --rank-top is an integer of 0 or more, not ${args["rank-top"]}.`);
   const report = analyze(records, inputs, {
     // The job check examines that the committed manifest is the manifest of the code.
     folds: loadSplit(JSON.parse(readFileSync(join(dirname(fileURLToPath(import.meta.url)), "..", "corpus", set, "corpus.json"), "utf8"))),
     predictions: set === SET_V2 ? "joint-v2" : "joint-v1",
     ...(args["allow-missing"] === undefined ? {} : { allowMissing: idFile(args["allow-missing"]) }),
     ...(args.subset === undefined ? {} : { subset: idFile(args.subset) }),
-    ...(args.baseline === "none" ? {} : { baseline: args.baseline ?? BASELINE }),
+    ...(baselines.length === 0 ? {} : { baseline: baselines }),
+    ...(compare.length === 0 ? {} : { compare }),
+    ...(exclude.length === 0 ? {} : { excludePacks: exclude }),
+    ...(without.length === 0 ? {} : { without }),
+    ...(times.length === 0 ? {} : { times }),
+    ...(composite === undefined ? {} : { composite }),
+    ...(jobs === undefined ? {} : { jobs }),
   });
   mkdirSync(out, { recursive: true });
   writeFileSync(join(out, "report.json"), JSON.stringify(report, null, 2) + "\n");
-  writeFileSync(join(out, "report.md"), `Corpus: ${set}.\n\n` + reportMarkdown(report));
-  console.log(reportMarkdown(report));
+  const markdown = reportMarkdown(report, { rankTop });
+  writeFileSync(join(out, "report.md"), `Corpus: ${set}.\n\n` + markdown);
+  console.log(markdown);
   const n = report.count;
   if (!n.ok) {
     console.error(`The record count check fails: ${n.recorded} of ${n.manifest} inputs have records, ${n.missing.length - n.allowed.length} missing inputs are not allowed, ${n.unknown.length} inputs are outside the manifest.`);

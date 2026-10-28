@@ -140,13 +140,52 @@ A greedy portfolio adds one pair at each step. Each step adds the pair that `sel
 
 ### The baseline
 
-The option `baseline` of `analyze` names one pair. With it, each cell of the report also gives the baseline and the gains over it. The cells are the headline cells, the cell of the subset and the stress cells.
+The option `baseline` of `analyze` names one pair or a list of pairs. With it, each cell of the report also gives each baseline and the gains over it. The cells are the headline cells, the cell of the subset and the stress cells.
 
-- The field `baseline` of a cell gives the misses and the mean score of the baseline pair.
+- The field `baseline` of a cell gives the misses and the mean score of the first baseline pair. The field `baselines` gives each baseline pair, in the order of the option.
 - Each gain is the score of a pick minus the score of the baseline on each input, with an interval. The picks are the best pair, the oracle and the greedy portfolios.
 - The portfolios use the picks on the held-out seed of each fold. Thus each input has one held-out pick.
-- `pnpm bench analyze` uses the baseline `rows+portfolio` (`BASELINE`). The option `--baseline <pair>` gives a different pair, and `--baseline none` removes it.
+- `pnpm bench analyze` uses the baseline `rows+portfolio` (`BASELINE`). When the records have the pair `select+portfolio`, it also uses that pair.
+- The option `--baseline <pair[,pair]>` gives a different list of pairs, and `--baseline none` removes the baselines.
 - A manual run of `joint-bench.yml` with the input `records-run` analyzes the records of that earlier run, with no new benchmark run.
+
+### The pairwise comparison
+
+The option `compare` of `analyze` gives a list of pairs `[a, b]`. Each cell then compares `a` with `b`.
+
+- The comparison gives the misses and the mean score of each pair.
+- The gain is the score of `a` minus the score of `b` on each input, with an interval.
+- The count `onlyA` gives the inputs where `a` reaches the floor and `b` misses it. The count `onlyB` gives the opposite case.
+- `pnpm bench analyze --compare <a>:<b>[,<a>:<b>]` gives the comparisons. When the records have `select+portfolio` and `rows+portfolio`, the default is `select+portfolio:rows+portfolio`.
+
+### The removal of a pack entry
+
+- The option `excludePacks` of `analyze` removes the records of these pack entries before the analysis. In `pnpm bench analyze`, it is `--exclude-pack <id[,id]>`.
+- The option `without` gives a second oracle in each cell, without the pairs of these pack entries. In `pnpm bench analyze`, it is `--oracle-without <id[,id]>`. When the records have `select`, the default is `select`.
+- The field `without` of a cell gives the score of the second oracle. It also gives the difference of the 2 oracles on each input, with an interval, and the count of the inputs where they differ.
+- A pack entry without records is an error.
+
+### The check of select
+
+The option `composite` of `analyze` names a composite pack entry and the member that it picks on each input. When the records have `select`, `pnpm bench analyze` gives this option.
+
+- `selectMemberOf` gives the member of an input. The table of `select` in `packing` picks `rows` or `maxrects-bl` from the features of the input.
+- A record does not hold the member. Its options are the options of `select`, and a record has no trace.
+- A record of `select` is the same as its member when the record of the member with the same router has the same output hash.
+- The output hash of a joint record is `jointHash` of the pack hash and the route hash. Thus the same output hash gives the same pack hash and the same route hash.
+- For each member, the field `composite` counts the inputs and the records. It also counts the skipped records, the same records, the different records and the records without a record of the member.
+- The field `matches` counts, for each other pack entry, the inputs where each record of `select` has the output hash of that entry. This count does not use the table.
+- The check reads all records: the stress inputs, and also the records of `--exclude-pack`.
+
+### The route times and the shard times
+
+- The option `times` of `analyze` gives a list of specs. For each seed of a spec, the report gives the median and the maximum `route.ms` of each router. The first router is `shared-all`.
+- `pnpm bench analyze --times <spec[,spec]>` gives the specs. The default is the dense spec with hubs and 1000 boxes (`DENSE_HUBS`), when the slice has it.
+- The records do not hold the wall time of an input or of a shard. The log line of each input holds the wall time of that input.
+- The option `jobs` gives the jobs of the run, from `gh run view <id> --json jobs`. `pnpm bench analyze --jobs <file>` reads that file.
+- With the jobs, the report gives the minutes of each shard job and of its step `Run one shard`. The verdict holds when each shard succeeds and each step takes less than 60 minutes.
+- The jobs `analyze` and `reanalyze` of `joint-bench.yml` read the jobs of their run with one call of `gh run view`.
+- `pnpm bench analyze` reads the files of the records also in the folders of the directory of `--records`. Thus it reads the output of `gh run download`.
 
 ### The intervals
 
@@ -156,6 +195,15 @@ The option `baseline` of `analyze` names one pair. With it, each cell of the rep
 ### The output groups
 
 `outputGroups` puts the pairs with the same output hash on each input in one group. A group counts as one candidate for the best pair and for the portfolios. Its id is its first pair in sort order.
+
+### The ranking of the output groups
+
+The field `ranking` of a cell gives the output groups from the best to the worst.
+
+- Each step takes the best of the other groups by the levels of the best pair: the misses, then the score. Thus the group of rank 1 is the best pair.
+- Each row gives the rank, the id of the group, its members, its misses and its score.
+- The field `packRanks` gives the rank of the first group of each pack entry: the first group with a pair of that entry.
+- `report.json` holds each group. `report.md` shows the first 20 groups of the headline cell (`RANK_TOP`). The option `--rank-top <n>` changes this count.
 
 ### The thin board kinds
 
@@ -236,6 +284,16 @@ The limit of a shard job is 360 minutes, the limit of GitHub. At 64 shards, the 
 - With 130 pairs, the plan gives 776.7 minutes to all shards, and 99.2 minutes to the most costly shard.
 - This plan overestimates the cost. `select` gives the output of one of its members, so it shares the routes of that member.
 - The margins come from `highways` 0.6.0. Version 0.8.1 routes the dense spec faster, so the margins also overestimate it. The next full run gives the data for a new fit.
+
+To fit the model again from a full run, write the logs of its jobs into one file. Then start `fit-cost.mjs` in `packages/joint`:
+
+```sh
+gh run view <run id> -R mark1russell7/layout-contract --log > logs/run.log
+node scripts/fit-cost.mjs --logs logs --run <run id> --commit "$(gh run view <run id> -R mark1russell7/layout-contract --json headSha --jq .headSha)"
+```
+
+- The script divides the wall time of each input by the count of the pairs of the code: 130 since L32. Use a run with the pack entries and the routers of the code.
+- The script compares the new fit with the fit of `data/cost-margins.json` before it writes the file.
 
 `pnpm bench plan --shards <n>` shows the planned cost of the most costly shards. The lines of the logs keep the words "predicted minutes".
 
@@ -557,3 +615,23 @@ In this document, 7 of 9 claims of L28 and 4 of 5 claims of L10 held. The misses
 - S9 is a risky claim of a gain over a strong pick. A pair of `select` joins 2 pairs in one candidate, so the greedy portfolio can cover more inputs with 3 members. But the portfolio learns on 2 seeds, and the new candidates can fit these seeds better than the held-out seed.
 - S10 comes from the measures of `highways` 0.8.1 on the input `s2` of the dense spec: 36 seconds for each route of `shared-all`, against 1455 seconds before. The other seeds and the other pack outputs can take longer.
 - S11 is a risky claim. The 3 shards of the dense spec took 85 to 93 minutes, and approximately 45% of that time was in the repeat route of `benchRun` (L30). `highways` 0.8.1 cuts the routes of `shared`, `shared-all` and `portfolio` by a factor of 10 or more. But `exactStretches` and the checks of each pack output stay the same, and the spec with hub chains has a plan of 38 minutes.
+
+### The numbers of the claims
+
+One analysis of the records gives the number of each claim. Start a manual run of `joint-bench.yml` with the input `records-run` set to the id of the run. The job `reanalyze` needs no other input. The defaults of `pnpm bench analyze` give each option of the table, and the job reads the shard times with one call of `gh run view`.
+
+| Id | Field of `report.json` | Section of `report.md` |
+|---|---|---|
+| S1 | `composite`: the skipped records, and the same records of `rows` and `maxrects-bl` | The check of the pack entry select |
+| S2 | `without` of each cell: the count of the inputs that differ | The oracle without select |
+| S3 | `baselines` of the headline cell: the pair `rows+portfolio` | The baseline rows+portfolio |
+| S4, S5 | `compare` of the headline cell: `missesA` and `missesB` of `select+portfolio` and `rows+portfolio` | The pairwise comparisons |
+| S6 | `compare` of the headline cell: `scoreA`, `scoreB` and `gain` | The pairwise comparisons |
+| S7 | `packRanks.select` and `ranking` of the headline cell | The ranking of the output groups |
+| S8 | `best.members` of the headline cell. `packRanks.select` is 1 when the claim holds. | The cells |
+| S9 | `baselines` of the headline cell: the gain of k = 3 over `rows+portfolio`, as in L10 | The baseline rows+portfolio |
+| S10 | `times`: the median `route.ms` of `shared-all` on each seed of `DENSE_HUBS` | The route times |
+| S11 | `shardTimes`: the step `Run one shard` of each shard, and `held` | The shard times |
+
+- The field `without` replaces the second analysis of S2. The option `--exclude-pack select` gives the full report without `select`.
+- The records of the run `40743187036` come from the code before these options. Thus the job `analyze` of that run does not give them, and the job `reanalyze` gives them.
