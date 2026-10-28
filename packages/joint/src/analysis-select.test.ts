@@ -146,6 +146,8 @@ describe("two baselines and the pairwise comparison", () => {
   it("compares two pairs: the misses, the scores and the gain with its interval", () => {
     const c = cell.compare![0]!;
     expect(c).toMatchObject({ a: "select+portfolio", b: "rows+portfolio", missesA: 0, missesB: 3, onlyA: 3, onlyB: 0 });
+    expect(c.onlyAInputs).toHaveLength(3);
+    expect(c.onlyBInputs).toEqual([]);
     expect(c.scoreA).toBeCloseTo(0.7, 9);
     expect(c.scoreB).toBeCloseTo(0.375, 9);
     expect(c.gain.mean).toBeCloseTo(0.325, 9);
