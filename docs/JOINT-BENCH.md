@@ -108,3 +108,15 @@ The portfolio of `highways` (`routePortfolio`) is not in `highways` 0.5.0 on npm
 - The job `analyze` keeps the artifact `joint-report` with `report.json` and `report.md`. Each shard keeps its raw records as `joint-records-<shard>`.
 
 The benchmark measures times, so it runs only in CI.
+
+## The prediction
+
+This prediction came before the first full run. `checkPredictions` of the analysis gives the verdict of each part. The rules and the entries stay the same after the run.
+
+- P1: Only inputs with a fixed container have overflow. The first pack entry of the pack rule keeps `pack.overflow.excessArea` at 0 on most inputs that it overflows.
+- P2: The oracle is better than the best single pair in most cells. In these cells, the low end of the interval of the gain is above 0.
+- P2b: For the inputs with count 10, the interval of the gain is open in most cells.
+- P3: The greedy portfolio with k = 3 gets at least 70% of the oracle gain on the held-out seeds, in most cells.
+- P3b: The portfolio with k = 8 adds less than 10% of the oracle gain to the portfolio with k = 3, in most cells.
+- P4: In at least one cell, the best pair does not use the first pack entry of the pack rule.
+- P5: The fixed inputs `empty` and `one` give no routes. The runner records them with no error and no skipped record.
