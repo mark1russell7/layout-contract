@@ -1,10 +1,13 @@
 # The joint benchmark
 
-The joint benchmark packs each input of the corpus `joint-v1`, and then routes the packed input. It runs each pair of a pack entry and a router. The package `packages/joint` holds the runner and the analysis. The workflow `joint-bench.yml` runs them in CI.
+The joint benchmark packs each input of a joint corpus, and then routes the packed input. It runs each pair of a pack entry and a router. The package `packages/joint` holds the runner and the analysis. The workflow `joint-bench.yml` runs them in CI.
 
-- The pack entries are the 12 entries of the benchmark of `packing` 0.2.6 without `push`. The strategy `push` supports only the mode `incremental`, and each input of `joint-v1` is `offline`.
-- The routers are the 9 router strategies of `highways` 0.5.0.
-- Thus the benchmark has 108 pairs and 285 inputs.
+- The corpus is `joint-v2` by default (`docs/JOINT-CORPUS.md`). The first run used `joint-v1`.
+- The pack entries are the 12 entries of the benchmark of `packing` 0.2.6 without `push`. The strategy `push` supports only the mode `incremental`, and each joint input is `offline`.
+- The routers are the 9 router strategies of `highways` 0.5.1, and the portfolio router `portfolio` of `highways` 0.5.1.
+- Thus the benchmark has 120 pairs. `joint-v2` has 303 inputs, and `joint-v1` has 285 inputs.
+
+The portfolio router is `portfolioRouter()` with its defaults: the rule `collection`, the cap 1.5 and the order `fit`. Its default is deterministic. Above 40 nodes, it uses only `shared`.
 
 ## The runner
 
@@ -21,6 +24,7 @@ The record holds these values:
 - `measures`: the `pack.*` measures of `measure`, the `route.*` measures of `routeMeasures`, and the `joint.*` measures of `docs/JOINT-MEASURES.md`.
 - `measures` also holds `pack.ms`, `route.ms`, `joint.ms`, `joint.routes`, `joint.overflow.edges`, `route.mixed` and `route.cap.<cap>` for each cap.
 - `hard`: the breaks of `checkHard` with `exactContainer` as `pack.<rule>`, and the breaks of `checkProperties` as `route.<rule>`. `route.violations` is their sum.
+- `portfolioFacts(graph)(result)` of `highways` 0.5.1 gives `route.cap.<cap>`, `route.mixed` and the counts `route.<rule>`. The guard of the portfolio router uses the same facts.
 - `outputHash`: `outputHash([pack hash, route hash])`, as `docs/PROMOTION.md` tells.
 - The pack hash is `outputHash` of `packing`. The route hash is `outputHash` of the routes in the order of the edge ids, with the levels, the bundles and the runs.
 
@@ -43,11 +47,21 @@ The analysis has 6 cells: the rules `collection` and `all`, and the caps 1.1, 1.
 - the routes with a stretch above the cap (`route.cap.<cap>`)
 - under the rule `collection`, the shared segments with edges of 2 collections or more (`route.mixed`)
 
-The stretch of a route is its length divided by the length of the route of `corners` for the same edge. Both routes use the same packed input. This is the bundle stretch B3 of `highways`. A base route of 1 unit or less does not count.
+The stretch of a route comes from the exact model of `highways` 0.5.1. It is the route length against the shortest way of the network of the packed input. `route.cap.<cap>` counts the edges with a stretch above the cap.
+
+The first run measured the stretch against the route of `corners` (the bundle stretch B3). The test `facts-parity.test.ts` compares the two counts on small inputs.
+
+- The two counts of `route.mixed` are the same.
+- The cap counts differ. The exact model gives a value above 0 to `corners` also, and it gives fewer breaks to `plugs` and `sections-tree`.
 
 ## The analysis
 
 `analyze(records, inputs)` gives the report. It is a pure function. `selectBest` of this package makes each pick.
+
+- The headline numbers use only the inputs outside the stress cell. The field `stress` of the report holds the 6 cells of the stress inputs.
+- The field `through` counts the breaks of `no-pass-through` for each value of `spacing` and each router.
+- Each broken record of `through` has a cause: `overlap` (the pack has an overlap), `overflow` (the pack has overflow) or `router`.
+- The field `fillBySpacing` gives the mean `pack.fill` of the pack records for each value of `spacing`.
 
 ### The pick on one input
 
@@ -97,12 +111,30 @@ A greedy portfolio adds one pair at each step. Each step adds the pair that `sel
 
 The report lists each board kind with fewer than 10 inputs. A board kind is the generator of an input. The report also gives the kinds with fewer than 10 inputs for one `containerSize`.
 
-## Not in this version
+## The corpus check
 
-The portfolio of `highways` (`routePortfolio`) is not in `highways` 0.5.0 on npm. The runner adds it as a router when a release of `highways` has it. The stretch of the exact model of `highways` is also not in 0.5.0. Thus the cap uses the stretch against `corners`.
+The manifest of `joint-v2` holds the field `claims`. The pure function `checkCorpus(manifest, inputs)` of the joint package examines each claim. It gives the broken claims with the ids of their inputs.
+
+- `spacing`: each input outside the stress cell has margin + gap above 0. Each stress input has margin 0 and gap 0.
+- `coverage`: the pairwise share of each array is 1.
+- `minPerKind`: the least count of inputs of each board kind. The list `thin` names the kinds below the count.
+- `maxBoxes`: each input has 1000 boxes or fewer.
+
+The manifest of `joint-v1` does not change. Thus its claims are in the code (`JOINT_V1_CLAIMS`). They have no claim `spacing`, but the claim `stressOnly`: each input has margin 0 and gap 0. The kind `edge-cases` is thin.
+
+The workflow uses the check as a gate:
+
+1. The job `check` writes the manifest of the code, and compares it with the committed manifest. Then it starts `checkCorpus`. A difference or a broken claim stops the run.
+2. The job `smoke` takes 1 input of each value of `spacing`, with count 10, seed 1 and edges. It packs it and routes it with `corners`.
+3. `smoke` takes the first pack entry with no overflow and no overlap. It fails when an input outside the stress cell breaks `no-pass-through`.
+4. `smoke` also fails when a stress input with routes does not break `no-pass-through`.
+5. The jobs of the run start only after `check` and `smoke`.
+
+The test `check.test.ts` makes a corpus that breaks each claim.
 
 ## Start a run
 
+- The input `corpus` of the workflow selects the corpus. The default is `joint-v2`. A pull request runs `joint-v2`.
 - A pull request runs the slice `pr`: seed 1 of the specs with count 10 and of the fixed cases.
 - A manual run of the workflow, or a pull request with the label `bench:full`, runs the full corpus over 48 shards.
 - The job `analyze` keeps the artifact `joint-report` with `report.json` and `report.md`. Each shard keeps its raw records as `joint-records-<shard>`.
@@ -155,3 +187,86 @@ Each record with a route breaks the rule `no-pass-through` of `highways`. The ca
 - A test on the input `oversize` with a margin of 10 on each box gave 0 breaks for `corners`, `sections` and `shared`.
 
 Thus the level `hard` counts mostly these breaks. This explains the 206 misses of the best pair and the large gain of the oracle. The portfolios hold mostly `corners` pairs for the same reason. The cap and the rule `collection` change almost nothing. A next corpus needs margins, or a gap that the runner adds before the pack.
+
+The corpus `joint-v2` is the fix. It adds the dimension `spacing`. The corpus `joint-v1` stays as the stress cell of decision d7.
+
+## The prediction for joint-v2
+
+This prediction comes before the full run on `joint-v2`. `checkPredictionsV2` of the analysis gives the verdict of each part. The rules and the entries stay the same after the run.
+
+The run on `joint-v2` has 2 changes from the first run, other than the corpus:
+
+- The routers include the portfolio router `portfolio` of `highways` 0.5.1. Thus the benchmark has 120 pairs.
+- `portfolioFacts` of `highways` 0.5.1 gives `route.cap.<cap>` and `route.mixed`. The cap uses the stretch of the exact model, not the stretch against `corners`.
+
+The other rules do not change: `selectBest` for each pick, the level `hard`, the floor, the folds, the intervals and `outputGroups`. The headline numbers use only the inputs outside the stress cell. The cell of the headline is `all` with the cap 1.25.
+
+- Q1: In the stress cell, each router breaks `no-pass-through` on each input with edges.
+- Q2: For the values `gap`, `margin` and `both`, the breaks of `corners`, `sections` and `shared` from boxes that touch fall to 0.
+- Q2 also: the report gives the cause of each break that stays: `overlap`, `overflow` or `router`. Q2 holds when no break has the cause `router`.
+- Q3: The oracle gain is smaller than 0.445 in each cell. Its interval is above 0 in most cells.
+- Q4: The best single pair of the headline cell is not `shelf+corners`, and its output group does not hold `shelf+corners`.
+- Q5: The greedy portfolio with k = 3 gets at least 60% of the oracle gain on the held-out seeds, in most cells.
+- Q6: The value `margin` gives a lower mean `pack.fill` than the value `gap`.
+- Q7: The rule `collection` and the caps change the joint measures in 2 cells or more. A change is a different best pair, or an oracle score that differs by more than 0.005 from the cell `all` with the cap 1.5.
+
+## The result of the joint-v2 run
+
+The run [40666991882](https://github.com/mark1russell7/layout-contract/actions/runs/40666991882) of 2026-10-28 used the commit `b77b59c`. It had 48 shards and 120 pairs.
+
+### The missing inputs
+
+3 shards of 48 stopped at the time limit of 90 minutes. Thus the report has no records for 18 of the 303 inputs.
+
+- The order of the shards puts the 3 seeds of a spec in 3 adjacent shards. Thus the 18 inputs are 6 specs, each with its 3 seeds.
+- The slow spec is `rect-grid.freeHeight.holes.none.bimodal.n1000.e-dense.hubs.none.free.sp-gap`, with 1000 boxes and 4000 edges.
+- The other 5 specs are a `freeAspect` circle grid (100 boxes), a stress `freeWidth` ellipse grid (100 boxes), a `gallery` (100 boxes), `oversize` (12 boxes) and a `dashboard` (10 boxes).
+- The records hold 207 of the 222 inputs outside the stress cell, and 78 of the 81 stress inputs. The line "Inputs: 222" of the report counts the manifest, not the records.
+- The column `1k` of the oracle gain thus has no dense spec with hubs. The other columns lose 1 or 2 specs.
+
+L28 makes the shards finish: a heavy input gets a shard of its own, and the report counts the inputs with records.
+
+### The predictions
+
+| Id | Held | Facts |
+|---|---|---|
+| Q1 | no | In the stress cell, `corners`, `sections`, `shared` and `portfolio` break the rule on 926 of 936 records with routes. `plugs` breaks it on 936, and `straight` on 934. |
+| Q2 | no | Outside the stress cell, `corners`, `sections` and `shared` have 84 broken records, all with the cause `router`. |
+| Q3 | yes | The gain is below 0.445 in 6 of 6 cells. Its interval is above 0 in 6 cells. |
+| Q4 | yes | The best pair of the cell `all` with the cap 1.25 is `maxrects-cp+corners`. |
+| Q5 | yes | The portfolio with k = 3 gets at least 60% of the oracle gain in 6 of 6 cells. |
+| Q6 | yes | The mean `pack.fill` is 0.396 for `margin`, 0.546 for `gap`, 0.541 for `both` and 0.739 for `stress`. |
+| Q7 | yes | 3 cells have a different best pair or oracle score than the cell `all` with the cap 1.5. |
+
+Q1 failed by a small margin. 10 stress records with routes have no break, because their boxes do not touch on the route.
+
+Q2 failed for the spacings with one part only:
+
+| Spacing | `corners` | `sections` | `shared` | Records with routes |
+|---|---|---|---|---|
+| `both` | 0 | 1 | 0 | 770 |
+| `gap` | 17 | 19 | 17 | 837 |
+| `margin` | 8 | 14 | 8 | 756 |
+
+The value `gap` leaves 5 units between a box and an obstacle, below the channel of 7.5. The value `margin` gives 20 units between boxes, but 10 units to an obstacle. Thus only `both` gives the router enough space. `plugs` and `straight` break the rule on almost each record, because they draw straight lines.
+
+Q6 compares cells with different mixes of inputs. Thus a part of the difference in fill comes from the mix, not from the margin.
+
+### The headline cell
+
+The cell is `all` with the cap 1.25, on the inputs outside the stress cell.
+
+| Best pair | Misses | Score | Oracle | Gain | k = 3 share | k = 8 share |
+|---|---|---|---|---|---|---|
+| `maxrects-cp+corners` | 55 | 0.284 | 0.480 | 0.196 [0.152, 0.249] | 0.760 [0.658, 0.850] | 0.889 [0.797, 0.947] |
+
+- The gain is largest at the count 100: 0.299 [0.212, 0.384]. At the count 1, it is 0.
+- The cap and the rule `collection` change the gain by at most 0.008 between the cells.
+- In the stress cell, the best pair is `shelf-first-input+corners`, and the oracle gain is 0.339. The level `hard` decides most picks there.
+
+### The scope of the result
+
+- The run used `packing` 0.2.6. Its `skyline` overlaps boxes in `freeArea` and `freeAspect` containers of the shapes circle, ellipse and polygon, with identical boxes. `packing` 0.2.10 fixes it.
+- These records stay broken in this run, and they count as breaks of `pack.no-overlap`. The report does not count them by themselves.
+- The router does not see the margins, the gap, the inset or the container. Thus the clearance comes only from the distances between the boxes.
+- L28 starts the benchmark again on `highways` 0.6.0 and `packing` 0.2.10, with `exactStretches` for the cap.

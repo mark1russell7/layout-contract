@@ -18,18 +18,19 @@ import { checkHard, measure, outputHash as packHash, packWith, strategy as packS
 import {
   asRouter,
   benchRun,
-  byCollection,
-  checkProperties,
   inputGraph,
   measureName,
+  portfolioFacts,
+  portfolioRouter,
   routeMeasures,
   routerStrategies,
   type Graph,
+  type PortfolioFacts,
   type Result,
   type Router,
   type Strategy,
 } from "@mark1russell7/highways";
-import { jointMeasures, placementFacts, polylineLength, type JointRoute, type PlacementFacts } from "./joint-measures.ts";
+import { jointMeasures, placementFacts, type PlacementFacts } from "./joint-measures.ts";
 
 /** One pack entry: a strategy of `packing` with options over its defaults. The id names the entry in the records. */
 export interface PackEntry {
@@ -40,7 +41,7 @@ export interface PackEntry {
 
 /**
  * The pack entries of the joint runner: the entries of the benchmark of `packing` 0.2.6 (`bench/entries.ts`) without `push`.
- * The strategy `push` supports only the mode `incremental`, and each input of `joint-v1` has the mode `offline`.
+ * The strategy `push` supports only the mode `incremental`, and each input of the joint corpora has the mode `offline`.
  */
 export const PACK_ENTRIES: readonly PackEntry[] = Object.freeze([
   { id: "rows", strategy: "rows", options: {} },
@@ -57,11 +58,11 @@ export const PACK_ENTRIES: readonly PackEntry[] = Object.freeze([
   { id: "maxrects-cp", strategy: "maxrects", options: { rule: "cp" } },
 ]);
 
-/** The routers of the joint runner: the 9 router strategies of `highways` 0.5.0, in the order of its benchmark. */
-export const ROUTERS: readonly string[] = Object.freeze(Object.keys(routerStrategies));
+/** The name of the portfolio router of `highways` 0.5.1 in the pair ids. The runner uses `portfolioRouter()` with its defaults. */
+export const PORTFOLIO_ROUTER = "portfolio";
 
-/** The router that gives the base routes of the stretch, as B3 of `highways`. */
-export const BASE_ROUTER = "corners";
+/** The routers of the joint runner: the 9 router strategies of `highways` 0.5.1, in the order of its benchmark, and the portfolio router. */
+export const ROUTERS: readonly string[] = Object.freeze([...Object.keys(routerStrategies), PORTFOLIO_ROUTER]);
 
 /** The stretch caps of the cells of `highways`. */
 export const CAPS: readonly number[] = Object.freeze([1.1, 1.25, 1.5]);
@@ -82,7 +83,7 @@ export interface RunOptions {
   readonly routers?: readonly string[];
   /** The count of the timed routes of each router. The default is 2, the least count of `benchRun`. */
   readonly repeat?: number;
-  /** The id of the corpus. The default is `joint-v1`. */
+  /** The id of the corpus. The default is `joint-v1`. The CLI gives the corpus of its argument. */
   readonly corpus?: string;
   readonly env?: RunEnv;
   readonly commit?: string;
@@ -137,28 +138,16 @@ export function jointHash(pack: string, route: string): string {
   return outputHash([pack, route]);
 }
 
-/** This function gives the count of the shared segments (the runs and the bundles) with edges of 2 collections or more. An edge without a collection has its own key. */
-export function mixedSegments(graph: Graph, result: Result): number {
-  const key = new Map(graph.edges.map((e) => [e.id, byCollection(e) ?? `\u0000${e.id}`]));
-  const shared = [...(result.runs ?? []).map((r) => r.edges), ...(result.bundles ?? []).map((b) => b.edges)];
-  return shared.filter((edges) => new Set(edges.map((e) => key.get(e))).size > 1).length;
-}
-
 /**
- * This function gives the count of the routes with a stretch above each cap, by the measure name `route.cap.<cap>`.
- * The stretch of a route is its length divided by the length of the base route of its edge. A base route of 1 unit or less does not count.
+ * This function gives the measures and the hard counts of `portfolioFacts` of `highways`. The guard of its portfolio router uses the same facts.
+ * `route.cap.<cap>` is the count of the edges with a stretch of the exact model above the cap. `route.mixed` is the count of the mixed shared segments.
+ * `route.<rule>` is the count of the breaks of each hard rule of `checkProperties`, for the rules with a break.
  */
-export function capBreaks(routes: readonly JointRoute[], base: readonly JointRoute[] | undefined, caps: readonly number[] = CAPS): Record<string, number> {
-  const out: Record<string, number> = Object.fromEntries(caps.map((c) => [`route.cap.${c}`, 0]));
-  if (base === undefined) return out;
-  const baseLength = new Map(base.map((r) => [r.edge, polylineLength(r.points)]));
-  for (const r of routes) {
-    const b = baseLength.get(r.edge);
-    if (b === undefined || b <= 1 || r.points.length < 2) continue;
-    const stretch = polylineLength(r.points) / b;
-    for (const c of caps) if (stretch > c + RECORD_EPS) out[`route.cap.${c}`]! += 1;
-  }
-  return out;
+export function factMeasures(facts: PortfolioFacts, caps: readonly number[] = CAPS): { readonly measures: Record<string, number>; readonly hard: Record<string, number> } {
+  const measures: Record<string, number> = Object.fromEntries(caps.map((c) => [`route.cap.${c}`, facts.over(c)]));
+  measures["route.mixed"] = facts.mixed;
+  const hard = Object.fromEntries(Object.entries(facts.hard).filter(([, v]) => v > 0).map(([rule, v]) => [`route.${rule}`, v]));
+  return { measures, hard };
 }
 
 /** The result of one router on one packed input. Pack entries with the same output share it. */
@@ -188,25 +177,26 @@ function finite(values: Readonly<Record<string, number>>): Record<string, number
   return Object.fromEntries(Object.entries(values).filter(([, v]) => typeof v === "number" && Number.isFinite(v)));
 }
 
-/** This function gives the router of a name. */
+/** This function gives the router of a name: a router strategy of `highways`, or `portfolio` for `portfolioRouter()`. */
 function routerOf(name: string): Router {
+  if (name === PORTFOLIO_ROUTER) return portfolioRouter();
   const s = (routerStrategies as unknown as Readonly<Record<string, Strategy<"router", object>>>)[name];
   if (s === undefined) throw new RangeError(`There is no router "${name}". The routers are ${ROUTERS.join(", ")}.`);
   return asRouter(s);
 }
 
-/** This function routes one graph with one router and measures the result. */
-function routeOnce(name: string, graph: Graph, fixture: string, repeat: number): RouteRun | RouteMiss {
+/** This function routes one graph with one router and measures the result. `facts` is the function of `portfolioFacts` of the graph. */
+function routeOnce(name: string, graph: Graph, facts: (result: Result) => PortfolioFacts, fixture: string, repeat: number): RouteRun | RouteMiss {
   const router = routerOf(name);
   if (graph.nodes.length > (router.maxNodes ?? Infinity)) return { ok: false, reason: `The graph has ${graph.nodes.length} nodes, above the limit ${router.maxNodes} of the router.` };
   try {
     const { row, result } = benchRun(router, fixture, graph, repeat);
-    const hard: Record<string, number> = { "route.violations": row.violations };
-    if (row.violations > 0) for (const v of checkProperties(graph, result, 1_000_000)) hard[`route.${v.rule}`] = (hard[`route.${v.rule}`] ?? 0) + 1;
+    const fact = factMeasures(facts(result));
+    const hard: Record<string, number> = { "route.violations": row.violations, ...fact.hard };
     const keyed = routeMeasures(graph, result, row);
     const measures: Record<string, number> = { "route.ms": row.ms };
     for (const [key, value] of Object.entries(keyed)) measures[measureName(key)] = value;
-    measures["route.mixed"] = mixedSegments(graph, result);
+    Object.assign(measures, fact.measures);
     return { ok: true, result, hash: routeHash(result), ms: row.ms, deterministic: row.deterministic, measures: finite(measures), hard };
   } catch (e) {
     return { ok: false, reason: `error: ${messageOf(e)}` };
@@ -272,7 +262,7 @@ export function runInput(input: LayoutInput, cell: Readonly<Record<string, unkno
   const target = input.container?.aspect ?? 1;
   const edgeCount = input.edges?.length ?? 0;
   const records: LayoutRecord[] = [];
-  const shared = new Map<string, { packed: PackedInput; facts: PlacementFacts; graph: Graph; routes: Map<string, RouteRun | RouteMiss> }>();
+  const shared = new Map<string, { packed: PackedInput; facts: PlacementFacts; graph: Graph; check: (result: Result) => PortfolioFacts; routes: Map<string, RouteRun | RouteMiss> }>();
 
   const factsOf = (entry: PackEntry, router: string) => ({
     stage: "joint" as const,
@@ -299,20 +289,19 @@ export function runInput(input: LayoutInput, cell: Readonly<Record<string, unkno
       const packed = packedInput(input, run.output, entry.id);
       const boxes: readonly LayoutBox[] = packed.input.boxes;
       const edges: readonly LayoutEdge[] = packed.input.edges ?? [];
-      group = { packed, facts: placementFacts(boxes, edges), graph: inputGraph(packed.input as unknown as Parameters<typeof inputGraph>[0]), routes: new Map() };
+      const graph = inputGraph(packed.input as unknown as Parameters<typeof inputGraph>[0]);
+      group = { packed, facts: placementFacts(boxes, edges), graph, check: portfolioFacts(graph), routes: new Map() };
       shared.set(key, group);
     }
     const g = group;
     const routeOf = (name: string): RouteRun | RouteMiss => {
       let r = g.routes.get(name);
       if (r === undefined) {
-        r = routeOnce(name, g.graph, g.packed.input.id, repeat);
+        r = routeOnce(name, g.graph, g.check, g.packed.input.id, repeat);
         g.routes.set(name, r);
       }
       return r;
     };
-    const baseRun = routeOf(BASE_ROUTER);
-    const baseRoutes = baseRun.ok ? baseRun.result.routes : undefined;
     for (const router of routers) {
       const route = routeOf(router);
       if (!route.ok) {
@@ -325,7 +314,6 @@ export function runInput(input: LayoutInput, cell: Readonly<Record<string, unkno
         ...run.measures,
         "pack.ms": run.ms,
         ...route.measures,
-        ...capBreaks(route.result.routes, baseRoutes),
         ...joint,
         "joint.overflow.edges": g.packed.dropped,
         "joint.routes": route.result.routes.length,

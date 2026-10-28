@@ -206,8 +206,8 @@ importers:
   packages/joint:
     dependencies:
       '@mark1russell7/highways':
-        specifier: ^0.5.0
-        version: 0.5.0
+        specifier: ^0.5.1
+        version: 0.5.1
       '@mark1russell7/layout-contract':
         specifier: workspace:*
         version: link:../layout-contract
@@ -462,8 +462,8 @@ packages:
     engines: {node: '>=22'}
     hasBin: true
 
-  '@mark1russell7/highways@0.5.0':
-    resolution: {integrity: sha512-yeTzmL2GfKp1ps6yL3o4/EB/aSSmN05U9omxFs+pk4uMMxQBn/G5suLa/4X9O3zUg9yrw4RhTY0GQvF0Wmi9vA==}
+  '@mark1russell7/highways@0.5.1':
+    resolution: {integrity: sha512-+ACgCt5VFAuvSo4CdFLFhjWgMNYm7XkyQNPtQEuzw2PXayLrdgw+KjsGgtf7DwO5ytMBJ65u2yDaXzXnhsmW6w==}
 
   '@mark1russell7/layout-contract@0.2.6':
     resolution: {integrity: sha512-WFAjYqXPzEaN+Ce9zTnVJk2OzJtHNSvJVty5L5dG80uDSGyS7a8QtU7k/H4q+1zuUg9tjF7rJ5RXbP0RhJ7qhw==}
@@ -1628,7 +1628,9 @@ snapshots:
 
   '@mark1russell7/cue@1.0.2': {}
 
-  '@mark1russell7/highways@0.5.0': {}
+  '@mark1russell7/highways@0.5.1':
+    dependencies:
+      '@mark1russell7/layout-contract': 0.2.6
 
   '@mark1russell7/layout-contract@0.2.6': {}
 

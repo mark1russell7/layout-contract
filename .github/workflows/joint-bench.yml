@@ -1,4 +1,6 @@
-# The joint benchmark of packages/joint (docs/JOINT-BENCH.md): each pair of a pack entry and a router on the corpus joint-v1.
+# The joint benchmark of packages/joint (docs/JOINT-BENCH.md): each pair of a pack entry and a router on a joint corpus.
+# The input corpus selects the corpus. The default is joint-v2. A pull request runs the corpus joint-v2.
+# The job check examines the claims of the corpus first. The job smoke routes 1 input of each value of spacing. A break stops the run.
 # A pull request runs the small slice pr. A manual run, or a pull request with the label bench:full, runs the full corpus.
 # The full run gives the inputs to the shards of a matrix. Each shard keeps its raw records as the artifact joint-records-<shard>.
 # The job analyze joins the records and keeps the report as the artifact joint-report, in JSON and in Markdown.
@@ -12,6 +14,11 @@ on:
         description: "The count of the shards of the full run."
         type: string
         default: "48"
+      corpus:
+        description: "The joint corpus."
+        type: choice
+        options: [joint-v2, joint-v1]
+        default: joint-v2
   pull_request:
     types: [opened, synchronize, reopened, labeled]
 
@@ -23,21 +30,65 @@ concurrency:
   cancel-in-progress: ${{ !(github.event_name == 'workflow_dispatch' || contains(github.event.pull_request.labels.*.name, 'bench:full')) }}
 
 jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 26
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Check the claims of the corpus
+        working-directory: packages/joint
+        env:
+          CORPUS: ${{ inputs.corpus || 'joint-v2' }}
+        run: node scripts/bench.mjs check --corpus "$CORPUS"
+
+  smoke:
+    needs: check
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 26
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Route 1 input of each value of spacing with corners
+        working-directory: packages/joint
+        env:
+          CORPUS: ${{ inputs.corpus || 'joint-v2' }}
+        run: node scripts/bench.mjs smoke --corpus "$CORPUS"
+
   plan:
+    needs: smoke
     runs-on: ubuntu-latest
     timeout-minutes: 5
     outputs:
       shards: ${{ steps.plan.outputs.shards }}
       count: ${{ steps.plan.outputs.count }}
       slice: ${{ steps.plan.outputs.slice }}
+      corpus: ${{ steps.plan.outputs.corpus }}
     steps:
       - name: Plan the matrix
         id: plan
         env:
           FULL: ${{ github.event_name == 'workflow_dispatch' || contains(github.event.pull_request.labels.*.name, 'bench:full') }}
           SHARDS: ${{ inputs.shards || '48' }}
+          CORPUS: ${{ inputs.corpus || 'joint-v2' }}
         run: |
           if [ "$FULL" = "true" ]; then count="$SHARDS"; slice=""; else count=2; slice=pr; fi
+          case "$CORPUS" in joint-v1|joint-v2) ;; *) echo "The corpus is joint-v1 or joint-v2, not $CORPUS."; exit 1;; esac
+          echo "corpus=$CORPUS" >> "$GITHUB_OUTPUT"
           case "$count" in ''|*[!0-9]*) echo "The count of the shards is a number, not $count."; exit 1;; esac
           echo "count=$count" >> "$GITHUB_OUTPUT"
           echo "slice=$slice" >> "$GITHUB_OUTPUT"
@@ -67,7 +118,8 @@ jobs:
           SHARD: ${{ matrix.shard }}
           COUNT: ${{ needs.plan.outputs.count }}
           SLICE: ${{ needs.plan.outputs.slice }}
-        run: node scripts/bench.mjs run --shards "$COUNT" --shard "$SHARD" --out records ${SLICE:+--slice "$SLICE"}
+          CORPUS: ${{ needs.plan.outputs.corpus }}
+        run: node scripts/bench.mjs run --corpus "$CORPUS" --shards "$COUNT" --shard "$SHARD" --out records ${SLICE:+--slice "$SLICE"}
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         if: ${{ !cancelled() }}
         with:
@@ -77,7 +129,7 @@ jobs:
 
   analyze:
     needs: [plan, run]
-    if: ${{ !cancelled() }}
+    if: ${{ !cancelled() && needs.plan.result == 'success' }}
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
@@ -99,8 +151,9 @@ jobs:
         working-directory: packages/joint
         env:
           SLICE: ${{ needs.plan.outputs.slice }}
+          CORPUS: ${{ needs.plan.outputs.corpus }}
         run: |
-          node scripts/bench.mjs analyze --records records --out report ${SLICE:+--slice "$SLICE"}
+          node scripts/bench.mjs analyze --corpus "$CORPUS" --records records --out report ${SLICE:+--slice "$SLICE"}
           ls records | wc -l
           cat report/report.md >> "$GITHUB_STEP_SUMMARY"
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2

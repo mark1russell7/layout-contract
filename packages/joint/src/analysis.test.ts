@@ -1,6 +1,6 @@
 import type { LayoutRecord } from "@mark1russell7/layout-contract";
 import { describe, expect, it } from "vitest";
-import { analyze, bootstrap, hardOf, indexRecords, packOf, rankPacks, reportMarkdown, type AnalysisInput } from "./analysis.ts";
+import { analyze, bootstrap, hardOf, indexRecords, packOf, rankPacks, reportMarkdown, routerOfPair, throughCounts, type AnalysisInput } from "./analysis.ts";
 
 /** This function makes a fake record of one pair on one input. */
 function rec(input: string, strategy: string, measures: Record<string, number>, options: { hard?: Record<string, number>; hash?: string; skipped?: string } = {}): LayoutRecord {
@@ -153,5 +153,44 @@ describe("the parts of the analysis", () => {
 
   it("gives the pack entry of a pair", () => {
     expect(packOf("maxrects-bl+corners")).toBe("maxrects-bl");
+  });
+});
+
+describe("the stress cell and the breaks by spacing", () => {
+  // The inputs of the spec q are stress inputs. Each pair breaks no-pass-through there.
+  const marked: AnalysisInput[] = inputs.map((i) => ({ ...i, cell: { ...i.cell, spacing: i.spec === "q" ? "stress" : "gap" }, ...(i.spec === "q" ? { stress: true } : {}) }));
+  const list = records().map((r) => {
+    const stress = r.input.startsWith("q/");
+    const hard = stress ? { ...r.hard, "route.no-pass-through": 3 } : r.hard;
+    return { ...r, hard, measures: { ...r.measures, "joint.routes": 2 } };
+  });
+  const report = analyze(list, marked, { resamples: 100, predictions: "joint-v2" });
+
+  it("keeps the stress inputs out of the headline, and reports them apart", () => {
+    expect(report.inputs).toBe(3);
+    expect(report.stress?.inputs).toBe(3);
+    expect(report.stress?.cells).toHaveLength(6);
+    expect(report.cells.find((c) => c.rule === "all" && c.cap === 1.25)!.best.pair).toBe("a+r");
+  });
+
+  it("counts the breaks of no-pass-through for each value of spacing and each router", () => {
+    expect(throughCounts(list, marked)).toEqual([
+      { spacing: "gap", router: "r", routed: 9, broken: 0, breaks: 0, causes: {} },
+      { spacing: "stress", router: "r", routed: 9, broken: 9, breaks: 27, causes: { router: 9 } },
+    ]);
+    expect(report.through).toEqual(throughCounts(list, marked));
+    expect(routerOfPair("maxrects-bl+corners")).toBe("corners");
+  });
+
+  it("gives the predictions of joint-v2 and writes the new tables", () => {
+    expect(report.predictions.map((p) => p.id)).toEqual(["Q1", "Q2", "Q3", "Q4", "Q5", "Q6", "Q7"]);
+    expect(report.predictions[0]!.held).toBe(true);
+    const md = reportMarkdown(report);
+    expect(md).toContain("### The breaks of no-pass-through by spacing");
+    expect(md).toContain("### The stress cell (3 inputs)");
+  });
+
+  it("gives the predictions of joint-v1 by default", () => {
+    expect(analyze(list, marked, { resamples: 50 }).predictions[0]!.id).toBe("P1");
   });
 });
