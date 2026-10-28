@@ -492,3 +492,48 @@ describe("the invalidates fields of a dimension", () => {
     expect(() => sharedDimension("margin", { invalidates: ["hash"] })).toThrow(RangeError);
   });
 });
+
+describe("the precision of a dimension (L57)", () => {
+  // A family that rounds its margin to 3 decimal places, as packing does.
+  const rounded = (precision?: number): CorpusFamily<KnownInput> => {
+    const f = knobFamily();
+    return {
+      ...f,
+      dimensions: f.dimensions.map((d) => (d.name === "margin" ? sharedDimension("margin", { invalidates: ["known"], ...(precision === undefined ? {} : { precision }) }) : d)),
+      generate: (seed, dims, ctx) => f.generate(seed, { ...dims, margin: Math.round((dims["margin"] as number) * 1000) / 1000 }, ctx),
+    };
+  };
+
+  it("compares the rounded value with the rounded default before it writes invalidated", () => {
+    const reg = createFamilyRegistry([rounded(3)]);
+    const base = reg.generate("cut", 3);
+    const small = reg.generate("cut", 3, { margin: 0.0004 });
+    expect(Object.hasOwn(small, "invalidated")).toBe(false);
+    expect(small.known).toEqual({ area: 200 });
+    expect(small.hash).toBe(base.hash);
+    expect(small).toEqual(base);
+    expect(reg.generate("cut", 3, { margin: 0.0006 }).invalidated).toEqual(["known"]);
+    expect(createFamilyRegistry([rounded()]).generate("cut", 3, { margin: 0.0004 }).invalidated).toEqual(["known"]);
+  });
+
+  it("changes no cell, cell key or random source", () => {
+    const a = createFamilyRegistry([rounded(3)]);
+    const b = createFamilyRegistry([rounded()]);
+    expect(a.resolve("cut", { margin: 0.0004 })["margin"]).toBe(0.0004);
+    expect([...a.cells("cut", { sweep: ["margin"] })]).toEqual([...b.cells("cut", { sweep: ["margin"] })]);
+    expect(a.cellOf("cut", { margin: 0.0004 })).toEqual(b.cellOf("cut", { margin: 0.0004 }));
+    expect(a.rngOf("cut")(3, { margin: 0.0004 })()).toBe(b.rngOf("cut")(3, { margin: 0.0004 })());
+  });
+
+  it("refuses a precision that is not a whole number of 0 or more, or on a dimension that is not numeric", () => {
+    expect(sharedDimension("margin", { precision: 0 }).precision).toBe(0);
+    expect(() => sharedDimension("margin", { precision: -1 })).toThrow(/the precision of "margin" is -1, not a whole number of 0 or more/);
+    expect(() => sharedDimension("margin", { precision: 1.5 })).toThrow(/not a whole number of 0 or more/);
+    expect(() => sharedDimension("shape", { precision: 2 })).toThrow(/the precision of "shape" is for a numeric dimension, but the dimension is a enum/);
+    const spec = { kind: "enum", values: ["a", "b"], default: "a", meaning: "A test.", engines: ["test"] } as const;
+    expect(() => ownerDimension("cut", { ...spec, precision: 2 })).toThrow(/is for a numeric dimension/);
+    expect(ownerDimension("depth", { kind: "real", min: 0, max: 1, default: 0, meaning: "A test.", engines: ["test"], precision: 2 }).precision).toBe(2);
+    const bad: CorpusFamily<KnownInput> = { ...knobFamily(), dimensions: [{ ...CORPUS_DIMENSIONS["margin"]!, precision: "3" as never }] };
+    expect(() => createFamilyRegistry([bad])).toThrow(/the precision of "margin" is "3"/);
+  });
+});

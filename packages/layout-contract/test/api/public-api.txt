@@ -4,7 +4,7 @@
 # and private members. The command `api-report check` compares this file with the built .d.ts files.
 # To accept a change of the API, start the build, then `api-report update`, and review the diff.
 
-## . (build/index.d.ts): 218 names
+## . (build/index.d.ts): 224 names
 
 CORPUS_DIMENSIONS: build/index.d.ts#CORPUS_DIMENSIONS
 CellsOptions: build/index.d.ts#CellsOptions
@@ -90,6 +90,7 @@ Rect: build/index.d.ts#Rect
 Region: build/index.d.ts#Region
 RegistryCell: build/index.d.ts#RegistryCell
 RngFactory: build/index.d.ts#RngFactory
+RuleLevel: build/index.d.ts#RuleLevel
 RunEnv: build/index.d.ts#RunEnv
 RunFacts: build/index.d.ts#RunFacts
 SHAPE_KINDS: build/index.d.ts#SHAPE_KINDS
@@ -101,6 +102,7 @@ SampleOptions: build/index.d.ts#SampleOptions
 SelectCandidate: build/index.d.ts#SelectCandidate
 SelectLevel: build/index.d.ts#SelectLevel
 Selection: build/index.d.ts#Selection
+ShapeCheck: build/index.d.ts#ShapeCheck
 ShapeFilter: build/index.d.ts#ShapeFilter
 ShapeGeometry: build/index.d.ts#ShapeGeometry
 ShapeKind: build/index.d.ts#ShapeKind
@@ -144,6 +146,7 @@ VerdictSide: build/index.d.ts#VerdictSide
 VerdictSignTest: build/index.d.ts#VerdictSignTest
 applyPack: build/index.d.ts#applyPack
 boundsOf: build/index.d.ts#boundsOf
+boxArea: build/index.d.ts#boxArea
 canonicalConfig: build/index.d.ts#canonicalConfig
 canonicalInput: build/index.d.ts#canonicalInput
 canonicalJson: build/index.d.ts#canonicalJson
@@ -199,13 +202,16 @@ portfolio: build/index.d.ts#portfolio
 productSpace: build/index.d.ts#productSpace
 randomInt: build/index.d.ts#randomInt
 rectInRegion: build/index.d.ts#rectInRegion
+regionArea: build/index.d.ts#regionArea
 regionHitsRect: build/index.d.ts#regionHitsRect
 resolveDimensions: build/index.d.ts#resolveDimensions
+ruleLevel: build/index.d.ts#ruleLevel
 selectBest: build/index.d.ts#selectBest
 sha256Hex: build/index.d.ts#sha256Hex
 shapeKindOf: build/index.d.ts#shapeKindOf
 shapeKindProblem: build/index.d.ts#shapeKindProblem
 shapeKindsOf: build/index.d.ts#shapeKindsOf
+shapeSupportProblems: build/index.d.ts#shapeSupportProblems
 shapesOf: build/index.d.ts#shapesOf
 sharedDimension: build/index.d.ts#sharedDimension
 spaceShapeKinds: build/index.d.ts#spaceShapeKinds
@@ -264,6 +270,7 @@ export interface CorpusDimension extends SpaceParam {
   readonly levels?: readonly ParamValue[];
   readonly supported?: SupportedValues;
   readonly invalidates?: readonly string[];
+  readonly precision?: number;
 }
 
 ### build/index.d.ts#CorpusEntry
@@ -599,6 +606,7 @@ export interface MemberRule {
   readonly max: number;
   readonly ordered: boolean;
   readonly pool?: readonly (readonly StrategyConfig[])[];
+  readonly view?: "bounds";
 }
 
 ### build/index.d.ts#MemberStatus
@@ -822,6 +830,9 @@ export type RegistryCell = Readonly<Record<string, ParamValue>> & {
 ### build/index.d.ts#RngFactory
 export type RngFactory = (seed: number) => () => number;
 
+### build/index.d.ts#RuleLevel
+export type RuleLevel = "exact" | "safe" | "none";
+
 ### build/index.d.ts#RunEnv
 export interface RunEnv {
   readonly node: string;
@@ -877,6 +888,11 @@ export interface Selection {
   readonly kept: readonly (readonly string[])[];
 }
 
+### build/index.d.ts#ShapeCheck
+export interface ShapeCheck {
+  readonly level?: "exact" | "safe";
+}
+
 ### build/index.d.ts#ShapeFilter
 export interface ShapeFilter {
   readonly shapes?: readonly ShapeKind[];
@@ -905,6 +921,7 @@ export interface ShapeKindSpec {
 export interface ShapeSupport<Id extends string = string> {
   readonly id: Id;
   readonly shapes?: readonly ShapeKind[];
+  readonly safe?: readonly ShapeKind[];
 }
 
 ### build/index.d.ts#Side
@@ -1145,6 +1162,9 @@ export declare function applyPack(input: LayoutInput, output: PackOutput): Layou
 ### build/index.d.ts#boundsOf
 export declare function boundsOf(region: Region): Rect;
 
+### build/index.d.ts#boxArea
+export declare function boxArea(box: LayoutBox): number | undefined;
+
 ### build/index.d.ts#canonicalConfig
 export declare function canonicalConfig(space: StrategySpace, config: StrategyConfig): StrategyConfig;
 
@@ -1164,7 +1184,7 @@ export declare function checkDeclared<I>(inputs: Iterable<I>, declares: Declares
 export declare function checkInput(input: LayoutInput): readonly string[];
 
 ### build/index.d.ts#checkShapes
-export declare function checkShapes(input: Pick<LayoutInput, "id" | "boxes">, uses: readonly ShapeSupport[]): ClaimBreak[];
+export declare function checkShapes(input: Pick<LayoutInput, "id" | "boxes">, uses: readonly ShapeSupport[], options?: ShapeCheck): ClaimBreak[];
 
 ### build/index.d.ts#checkSpace
 export declare function checkSpace(space: StrategySpace): ClaimBreak[];
@@ -1315,11 +1335,17 @@ export declare function randomInt(r: () => number, lo: number, hi: number): numb
 ### build/index.d.ts#rectInRegion
 export declare function rectInRegion(region: Region, rect: Rect): boolean;
 
+### build/index.d.ts#regionArea
+export declare function regionArea(region: Region): number;
+
 ### build/index.d.ts#regionHitsRect
 export declare function regionHitsRect(region: Region, rect: Rect): boolean;
 
 ### build/index.d.ts#resolveDimensions
 export declare function resolveDimensions(dimensions: readonly CorpusDimension[], dims?: Readonly<Record<string, ParamValue>>, where?: string, by?: string): DimensionValues;
+
+### build/index.d.ts#ruleLevel
+export declare function ruleLevel(rule: Pick<ShapeSupport, "shapes" | "safe">, kind: ShapeKind): RuleLevel;
 
 ### build/index.d.ts#selectBest
 export declare function selectBest(candidates: readonly SelectCandidate[], levels: readonly SelectLevel[]): Selection;
@@ -1335,6 +1361,9 @@ export declare function shapeKindProblem(box: LayoutBox): string | undefined;
 
 ### build/index.d.ts#shapeKindsOf
 export declare function shapeKindsOf(input: Pick<LayoutInput, "boxes">): ShapeKind[];
+
+### build/index.d.ts#shapeSupportProblems
+export declare function shapeSupportProblems(uses: readonly ShapeSupport[]): string[];
 
 ### build/index.d.ts#shapesOf
 export declare function shapesOf(use: Pick<ShapeSupport, "shapes">): readonly ShapeKind[];

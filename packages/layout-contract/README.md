@@ -8,8 +8,8 @@ The package has no runtime dependencies.
 
 | Part | Exports |
 |---|---|
-| Geometry | `Point`, `Rect`, `Region`, `Side`, `Sides`, `Margin`, `marginSides`, `grow`, `boundsOf`, `translate`, `overlapOf` |
-| The shape kinds | `ShapeKind`, `SHAPE_KINDS`, `SHAPE_KIND_IDS`, `ShapeKindSpec`, `ShapeGeometry`, `DEFAULT_SHAPES`, `ShapeSupport`, `isShapeKind`, `shapeKindOf`, `shapeKindsOf`, `itemShapeOf`, `shapeKindProblem`, `shapesOf`, `checkShapes` |
+| Geometry | `Point`, `Rect`, `Region`, `Side`, `Sides`, `Margin`, `marginSides`, `grow`, `boundsOf`, `regionArea`, `translate`, `overlapOf` |
+| The shape kinds | `ShapeKind`, `SHAPE_KINDS`, `SHAPE_KIND_IDS`, `ShapeKindSpec`, `ShapeGeometry`, `DEFAULT_SHAPES`, `ShapeSupport`, `RuleLevel`, `ShapeCheck`, `isShapeKind`, `shapeKindOf`, `shapeKindsOf`, `itemShapeOf`, `shapeKindProblem`, `shapesOf`, `ruleLevel`, `shapeSupportProblems`, `boxArea`, `checkShapes` |
 | The input `layout-input/1` | `LayoutInput`, `LayoutBox` (`Item` for the packer), `Port`, `portPoint`, `LayoutEdge`, `LayoutContainer`, `Obstacle`, `LayoutCell`, `LayoutGenerator`, `PairGap`, `canonicalInput` |
 | The packer | `PackInput`, `toPackInput`, `Placement`, `PackOutput`, `StageTrace`, `applyPack` |
 | The record `layout-record/1` | `LayoutRecord`, `Stage`, `Supports`, `RunFacts`, `RunEnv`, `toLayoutRecord` |
@@ -54,6 +54,12 @@ The package has no runtime dependencies.
 - **The container rule.** `in-container` counts each box that goes out of the container made smaller by `inset`. The box counts with its margin. By default, a shaped container counts as its bounding box.
 - **The exact container.** Give `{ exactContainer: true }` to `packHard` or `countOutside`. Then a box of a shaped container with the size `fixed` must stay inside the shape. A cut corner, a notch and a hole count. A container with a free side keeps the bounding test. The default changes to the exact test at the next breaking version.
 - **The shape kinds.** An item is a `rect`, a `polygon`, a `circle` or a `free` shape. Each measure and rule declares its kinds. `checkShapes` refuses the other kinds. `docs/SHAPES.md` tells the rules.
+  - `regionArea(region)` gives the exact area of a region. `boxArea(box)` gives the exact area of a box, or `undefined` for a `free` box. A box with an ellipse shape is `free`.
+  - `ShapeSupport.safe` lists the kinds with a safe count: an upper bound that does not miss a break. `ruleLevel(rule, kind)` gives `exact`, `safe` or `none`.
+  - `no-overlap` and `in-container` are safe on `polygon`, `circle` and `free`. `checkShapes` accepts a safe kind only with `{ level: "safe" }`.
+  - `shapeSupportProblems(uses)` refuses a kind in `shapes` and in `safe`.
+  - `MemberRule.view: "bounds"` gives the members of a meta option the bounding box of each item. A shape filter then checks the members with `rect`.
+- **The corpus dimensions.** `CorpusDimension.precision` is the count of decimal places of a numeric value of a family. The registry rounds the value and the default to it before the `invalidates` compare. `docs/CORPUS.md` tells the rules.
 - **The output hash.** `outputHash` gives the first 16 hex characters of the SHA-256 of the canonical JSON of an output. Each number goes to the grid of `RECORD_EPS` first.
 - **The corpus checks.** `checkDeclared` and `checkSplit` give a list of `ClaimBreak`. An empty list tells that each claim is true. `corpusHashOf` gives the corpus hash of `packing`.
 - **The verdict.** `verdict` compares two strategies on one measure, with the family as the unit. A verdict counts only when it holds for the mean of the family means and for the mean of the inputs.

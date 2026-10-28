@@ -132,11 +132,12 @@ export interface PackHard {
 /**
  * The hard rules of a pack, with the shape kinds that each rule supports.
  * `no-overlap` and `in-container` test the bounding box of a shape. That count is exact only for a `rect`.
+ * For the other kinds, the count is safe: a shape is inside its bounding box, so the count is an upper bound. A count of 0 tells that the rule has no break.
  * `locked-kept` and `complete` read only the positions and the ids, so they support each kind.
  */
 export const PACK_HARD_RULES: readonly ShapeSupport<keyof PackHard>[] = Object.freeze([
-  { id: "no-overlap", shapes: ["rect"] },
-  { id: "in-container", shapes: ["rect"] },
+  { id: "no-overlap", shapes: ["rect"], safe: ["polygon", "circle", "free"] },
+  { id: "in-container", shapes: ["rect"], safe: ["polygon", "circle", "free"] },
   { id: "locked-kept", shapes: SHAPE_KIND_IDS },
   { id: "complete", shapes: SHAPE_KIND_IDS },
 ] as const);

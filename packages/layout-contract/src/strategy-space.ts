@@ -52,6 +52,11 @@ export interface MemberRule {
    * With `pool`, a config of the option has the members of one entry, and `spaceSize` counts each entry one time.
    */
   readonly pool?: readonly (readonly StrategyConfig[])[];
+  /**
+   * The view of the items that the members get. With `bounds`, the option gives its members the bounding box of each item.
+   * Then a shape filter checks the members with the kind `rect`, and the option itself with the kinds of the input. Without `view`, the members get the kinds of the input.
+   */
+  readonly view?: "bounds";
 }
 
 /** The inputs that an option supports. A missing field supports each value. */
@@ -315,6 +320,8 @@ function optionProblems(stage: SpaceStage, o: StageOption): Problem[] {
     const pool: unknown = o.members.pool;
     if (pool !== undefined && (!Array.isArray(pool) || pool.length === 0 || !pool.every((entry: unknown) => Array.isArray(entry))))
       out.push(["pool", `${at} has a pool that is not a list of one or more member lists`]);
+    const view: unknown = o.members.view;
+    if (view !== undefined && view !== "bounds") out.push(["view", `${at} has the member view ${show(view)}, not "bounds"`]);
   }
   return out;
 }
@@ -336,6 +343,19 @@ function supportsProblems(supports: unknown, at: string): Problem[] {
 /** This function tells if an option supports each shape kind of the list. */
 const supportsShapes = (o: StageOption, shapes: readonly ShapeKind[] | undefined): boolean =>
   shapes === undefined || o.supports?.shape === undefined || shapes.every((k) => o.supports!.shape!.includes(k));
+
+/** The shape kinds that the members of an option with `view: "bounds"` see: a bounding box is a `rect`. */
+const BOUNDS_VIEW: readonly ShapeKind[] = Object.freeze(["rect"] as const);
+
+/**
+ * This function gives the shape kinds of the members of a meta option. With `view: "bounds"`, a list with a kind becomes `BOUNDS_VIEW`.
+ * Without a list, or with an empty list, the value does not change.
+ */
+const memberShapes = (rule: MemberRule, shapes: readonly ShapeKind[] | undefined): readonly ShapeKind[] | undefined =>
+  rule.view === "bounds" && shapes !== undefined && shapes.length > 0 ? BOUNDS_VIEW : shapes;
+
+/** This function tells if two lists have the same shape kinds. */
+const sameKinds = (a: readonly ShapeKind[], b: readonly ShapeKind[]): boolean => a.every((k) => b.includes(k)) && b.every((k) => a.includes(k));
 
 /** This function gives the problems of the params of one stage choice. */
 function choiceParamProblems(o: StageOption, params: unknown, at: string): Problem[] {
@@ -411,7 +431,7 @@ function configProblems(space: StrategySpace, config: unknown, member: boolean, 
       out.push(["depth", `a member has the meta option ${s.name}.${o.id}. The depth of a meta config is 1`]);
       continue;
     }
-    out.push(...memberProblems(partOf(space, s.name).space, o.members, c["members"], at, shapes));
+    out.push(...memberProblems(partOf(space, s.name).space, o.members, c["members"], at, memberShapes(o.members, shapes)));
   }
   for (const c of space.constraints ?? []) if (!holds(c, chosen)) out.push(["constraint", `the config breaks the constraint ${describe(c)}`]);
   return out;
@@ -473,6 +493,7 @@ const toBreaks = (problems: readonly Problem[], inputs: readonly string[] = []):
  *
  * A member list that is not an entry of the `pool` of its option gives the claim `pool`.
  * With `shapes`, an option that does not support a kind of the list gives the claim `shape`. A member of a meta option gets the same check.
+ * A member of an option with `view: "bounds"` gets the check with the kind `rect`.
  */
 export function checkConfig(space: StrategySpace, config: StrategyConfig, options: ShapeFilter = {}): ClaimBreak[] {
   return toBreaks(configProblems(space, config, false, options.shapes));
@@ -738,7 +759,9 @@ function combos(space: StrategySpace, levels: number, meta: boolean, limit: bigi
     for (const o of s.options) {
       if (o.members === undefined) continue;
       const choices = new Map<string, StageOption | null>(stages.map((x) => [x.name, x === s ? o : null]));
-      const lists = o.members.pool === undefined ? memberLists(base, o.members, limit) : BigInt(o.members.pool.length);
+      const own = memberSpaces.get(o);
+      const from = own === undefined ? base : baseCount(own, levels, limit);
+      const lists = o.members.pool === undefined ? memberLists(from, o.members, limit) : BigInt(o.members.pool.length);
       if (keeps(space, choices)) out.push({ choices, base: false, weight: times(countOf(o), lists, limit) });
     }
   return out;
@@ -761,6 +784,8 @@ export function spaceSize(space: StrategySpace, options: SpaceSizeOptions): Spac
  * This function gives the space with only the options that support each shape kind of `shapes`. Without `shapes`, it gives the same space.
  * A stage can lose all of its options. Then the space has no config with that stage.
  * A pool keeps only the entries whose members fit the smaller space. A meta option without such an entry goes out.
+ *
+ * The members of an option with `view: "bounds"` come from the space for the kinds of `memberShapes`. `memberSpaces` keeps that space.
  */
 function restrict(space: StrategySpace, shapes: readonly ShapeKind[] | undefined): StrategySpace {
   if (shapes === undefined) return space;
@@ -770,13 +795,26 @@ function restrict(space: StrategySpace, shapes: readonly ShapeKind[] | undefined
     ...(space.parts === undefined ? {} : { parts: space.parts.map((p) => restrict(p, shapes)) }),
   };
   const withPool = (s: SpaceStage, o: StageOption): StageOption[] => {
-    if (o.members?.pool === undefined) return [o];
-    const part = partOf(kept, s.name).space;
+    if (o.members === undefined) return [o];
+    const inner = memberShapes(o.members, shapes)!;
+    const own = sameKinds(inner, shapes) ? undefined : restrict(partOf(space, s.name).space, inner);
+    const mark = (option: StageOption): StageOption[] => {
+      if (own !== undefined) memberSpaces.set(option, own);
+      return [option];
+    };
+    if (o.members.pool === undefined) return own === undefined ? [o] : mark({ ...o });
+    const part = own ?? partOf(kept, s.name).space;
     const pool = o.members.pool.filter((entry) => fits(part, entry));
-    return pool.length === 0 ? [] : [{ ...o, members: { ...o.members, pool } }];
+    return pool.length === 0 ? [] : mark({ ...o, members: { ...o.members, pool } });
   };
   return { ...kept, stages: kept.stages.map((s) => ({ ...s, options: s.options.flatMap((o) => withPool(s, o)) })) };
 }
+
+/** The space of the members of a meta option of a restricted space, when it is not the part of the option. Only `view: "bounds"` makes such a space. */
+const memberSpaces = new WeakMap<StageOption, StrategySpace>();
+
+/** This function gives the count of the base configs of a space that is known to be good. */
+const baseCount = (space: StrategySpace, levels: number, limit: bigint): bigint => combos(space, levels, false, limit).reduce((sum, c) => sum + c.weight!, 0n);
 
 /** This function throws a `RangeError` for a list of shape kinds with a kind that is not declared. */
 function assertShapes(shapes: readonly ShapeKind[] | undefined): void {
@@ -854,13 +892,19 @@ function sampleValue(p: SpaceParam, u: number): ParamValue {
 /** This function gives a seed of 32 bits from a seed and a step name. */
 const subSeed = (seed: number, step: string): number => Math.floor(stepRandom(seed, step)() * 4294967296);
 
-/** This function gives a sample of a space: Latin hypercube strata over the options, the params and the member counts. */
-function sampleConfigs(space: StrategySpace, n: number, seed: number, meta: boolean, maxTries: number): StrategyConfig[] {
+/**
+ * This function gives a sample of a space: Latin hypercube strata over the options, the params and the member counts.
+ * `canon` is the space of `canonicalConfig`: the space before a shape filter. A member of an option with `view: "bounds"` can have an option that the filter removed.
+ */
+function sampleConfigs(space: StrategySpace, n: number, seed: number, meta: boolean, maxTries: number, canon: StrategySpace = space): StrategyConfig[] {
   const stages = space.stages;
   const prefix = prefixes(space);
+  // A stage without options can stay empty in a part with a meta option of `view: "bounds"`, because that option replaces the stage.
+  const bounded = new Set(stages.filter((s) => meta && s.options.some((o) => memberSpaces.has(o))).map((s) => prefix.get(s.name)!));
   const lists = stages.map((s) => {
     const list: (StageOption | null)[] = s.options.filter((o) => meta || o.members === undefined);
     if (s.optional) list.push(null);
+    if (list.length === 0 && bounded.has(prefix.get(s.name)!)) list.push(null);
     if (list.length === 0) throw new Error(`The stage ${s.name} of the space ${space.engine} has no option for a sample. A shape filter can remove all of its options.`);
     return list;
   });
@@ -882,7 +926,8 @@ function sampleConfigs(space: StrategySpace, n: number, seed: number, meta: bool
         const m = metaPart.get(prefix.get(s.name)!);
         if (m !== undefined && m !== s.name) choices.set(s.name, null);
       }
-      if (keeps(space, choices)) points.push(choices);
+      const filled = stages.every((s) => s.optional === true || choices.get(s.name) !== null || metaPart.has(prefix.get(s.name)!));
+      if (filled && keeps(space, choices)) points.push(choices);
     }
   }
   const values: Values[][] = points.map(() => stages.map(() => ({})));
@@ -907,7 +952,7 @@ function sampleConfigs(space: StrategySpace, n: number, seed: number, meta: bool
         });
         continue;
       }
-      const part = partOf(space, s.name).space;
+      const part = memberSpaces.get(o) ?? partOf(space, s.name).space;
       const poolSize = Math.max(n, 4 * o.members.max, 8);
       const seen = new Set<string>();
       const pool = sampleConfigs(part, poolSize, subSeed(seed, `pool:${s.name}:${o.id}`), false, Math.max(1000, 100 * poolSize)).filter((c) => {
@@ -930,7 +975,7 @@ function sampleConfigs(space: StrategySpace, n: number, seed: number, meta: bool
       const o = choices.get(s.name)!;
       out[s.name] = o === null ? null : o.members === undefined ? { option: o.id, params: values[i]![k]! } : { option: o.id, params: values[i]![k]!, members: members[i]![k]! };
     });
-    return canonicalConfig(space, { space: space.engine, stages: out });
+    return canonicalConfig(canon, { space: space.engine, stages: out });
   });
 }
 
@@ -956,7 +1001,7 @@ export function enumerateSpace(space: StrategySpace, options: EnumerateOptions):
   const meta = options.meta ?? "skip";
   if (meta !== "skip" && meta !== "sample") throw new RangeError(`The option meta is ${String(meta)}, not skip or sample.`);
   if (options.n === 0) return [];
-  return sampleConfigs(restrict(space, options.shapes), options.n, options.seed, meta === "sample", options.maxTries ?? Math.max(1000, 100 * options.n));
+  return sampleConfigs(restrict(space, options.shapes), options.n, options.seed, meta === "sample", options.maxTries ?? Math.max(1000, 100 * options.n), space);
 }
 
 /**

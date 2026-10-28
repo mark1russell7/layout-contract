@@ -531,3 +531,84 @@ describe("the pool of a meta option (L39)", () => {
     expect(breaks.every((b) => b.claim === "shape")).toBe(true);
   });
 });
+
+describe("the member view bounds (L57)", () => {
+  // The placements support only rect. The meta option portfolio gives its members the bounding box of each item.
+  const rectOnly: StrategySpace = {
+    ...pack,
+    stages: pack.stages.map((s) => ({ ...s, options: s.options.map((o) => (s.name === "placement" ? { ...o, supports: { shape: ["rect"] } } : o)) })),
+  };
+  const withMembers = (from: StrategySpace, change: (o: StageOption) => StageOption): StrategySpace => ({
+    ...from,
+    stages: from.stages.map((s) => (s.name === "combine" ? { ...s, options: s.options.map(change) } : s)),
+  });
+  const space = withMembers(rectOnly, (o) => ({ ...o, members: { ...o.members!, view: "bounds" } }));
+  const k2 = pack.named!["portfolio-k2"]!;
+
+  it("changes no count, config or id without a shape filter, or with rect only", () => {
+    expect(checkSpace(space)).toEqual([]);
+    expect(configId(space, k2)).toBe(configId(pack, k2));
+    expect(spaceSize(space, { levels: 3 })).toEqual(spaceSize(pack, { levels: 3 }));
+    expect(spaceSize(space, { levels: 3, shapes: ["rect"] })).toEqual(spaceSize(rectOnly, { levels: 3, shapes: ["rect"] }));
+    expect(enumerateSpace(space, { mode: "sample", n: 30, seed: 3, meta: "sample" })).toEqual(enumerateSpace(pack, { mode: "sample", n: 30, seed: 3, meta: "sample" }));
+    expect(enumerateSpace(space, { mode: "sample", n: 30, seed: 3, meta: "sample", shapes: ["rect"] })).toEqual(
+      enumerateSpace(rectOnly, { mode: "sample", n: 30, seed: 3, meta: "sample", shapes: ["rect"] }),
+    );
+  });
+
+  it("counts the meta configs of a non-rect input from the rect members", () => {
+    // Without view, no member supports circle, so the count is 0. With view, the 216 rect configs give C(216, 2) + C(216, 3).
+    expect(spaceSize(rectOnly, { levels: 3, shapes: ["circle"] })).toEqual({ base: 0n, meta: 0n });
+    expect(spaceSize(space, { levels: 3, shapes: ["circle"] })).toEqual({ base: 0n, meta: 1679580n });
+    expect(spaceSize(space, { levels: 3, shapes: ["polygon", "free"] }).meta).toBe(1679580n);
+    expect(spaceShapeKinds(space)).toEqual(["rect"]);
+  });
+
+  it("checks the members with rect, and the option with the kinds of the input", () => {
+    expect(checkConfig(rectOnly, k2, { shapes: ["circle"] }).map((b) => b.claim)).toEqual(["shape", "shape"]);
+    expect(checkConfig(space, k2, { shapes: ["circle"] })).toEqual([]);
+    expect(checkConfig(space, k2, { shapes: [] })).toEqual([]);
+    const own = withMembers(space, (o) => ({ ...o, supports: { shape: ["rect"] } }));
+    expect(checkSpace(own)).toEqual([]);
+    expect(checkConfig(own, k2, { shapes: ["circle"] }).map((b) => b.detail)).toEqual(["the option combine.portfolio supports the shape kinds rect, not circle"]);
+    expect(spaceSize(own, { levels: 3, shapes: ["circle"] })).toEqual({ base: 0n, meta: 0n });
+  });
+
+  it("samples meta configs with rect members for a non-rect input", () => {
+    const sample = enumerateSpace(space, { mode: "sample", n: 20, seed: 1, meta: "sample", shapes: ["circle"] });
+    expect(sample).toHaveLength(20);
+    expect(enumerateSpace(space, { mode: "sample", n: 20, seed: 1, meta: "sample", shapes: ["circle"] })).toEqual(sample);
+    for (const c of sample) {
+      expect(c.stages["combine"]?.option).toBe("portfolio");
+      expect(checkConfig(space, c, { shapes: ["circle"] })).toEqual([]);
+    }
+    expect(() => enumerateSpace(space, { mode: "sample", n: 5, seed: 1, shapes: ["circle"] })).toThrow(/placement/);
+    expect(() => enumerateSpace(rectOnly, { mode: "sample", n: 5, seed: 1, meta: "sample", shapes: ["circle"] })).toThrow(/placement/);
+    expect(enumerateSpace(space, { mode: "grid", levels: 1, shapes: ["circle"] })).toEqual([]);
+  });
+
+  it("keeps the pool entries whose members fit the rect space", () => {
+    const grid = enumerateSpace(pack, { mode: "grid", levels: 1 });
+    const cell = (view?: "bounds"): StageOption => ({
+      id: "cell",
+      params: [],
+      members: { min: 2, max: 2, ordered: false, pool: [grid.slice(0, 2)], ...(view === undefined ? {} : { view }) },
+    });
+    const add = (option: StageOption): StrategySpace => ({
+      ...space,
+      stages: space.stages.map((s) => (s.name === "combine" ? { ...s, options: [...s.options, option] } : s)),
+    });
+    const portfolio = spaceSize(space, { levels: 1, shapes: ["circle"] }).meta!;
+    expect(portfolio).toBe(42n * 41n / 2n + 42n * 41n * 40n / 6n);
+    expect(checkSpace(add(cell("bounds")))).toEqual([]);
+    expect(spaceSize(add(cell("bounds")), { levels: 1, shapes: ["circle"] })).toEqual({ base: 0n, meta: portfolio + 1n });
+    expect(spaceSize(add(cell()), { levels: 1, shapes: ["circle"] })).toEqual({ base: 0n, meta: portfolio });
+    const sample = enumerateSpace(add(cell("bounds")), { mode: "sample", n: 10, seed: 2, meta: "sample", shapes: ["circle"] });
+    expect(sample.some((c) => c.stages["combine"]?.option === "cell")).toBe(true);
+  });
+
+  it("refuses an unknown view", () => {
+    const bad = withMembers(pack, (o) => ({ ...o, members: { ...o.members!, view: "hull" as never } }));
+    expect(checkSpace(bad).map((b) => [b.claim, b.detail])).toEqual([["view", 'the option combine.portfolio has the member view "hull", not "bounds"']]);
+  });
+});

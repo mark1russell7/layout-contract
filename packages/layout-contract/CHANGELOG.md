@@ -1,5 +1,21 @@
 # Changelog
 
+## 0.2.16
+
+- PATCH: new optional exports and fields, with no break (L57). The packing engine found the 3 shape gaps when it packed shapes by their bounding boxes.
+- The new exports are `regionArea`, `boxArea`, `ruleLevel`, `RuleLevel`, `shapeSupportProblems` and `ShapeCheck`.
+- The new optional fields are `ShapeSupport.safe`, `MemberRule.view` and `CorpusDimension.precision`. `checkShapes` has a new optional third parameter `options`.
+- `regionArea` gives the exact area of a region. A polygon uses the shoelace formula, less its holes. `SHAPE_KINDS` gives `geometry.area` to `polygon` and `circle`.
+- `boxArea` gives the area of a box, or `undefined` for a `free` box. A box with an ellipse shape is `free`, so it gives `undefined`.
+- `safe` lists the kinds with a safe count. `no-overlap` and `in-container` of `PACK_HARD_RULES` are safe on `polygon`, `circle` and `free`.
+- `checkShapes` refuses a safe kind by default, as before. Its break also tells that the count is only safe. With `{ level: "safe" }`, it accepts the kind.
+- `shapeSupportProblems` refuses a kind in `shapes` and in `safe`, an unknown kind and a repeated kind.
+- With `view: "bounds"`, a meta option gives its members the bounding box of each item. A shape filter then checks the members with `rect`.
+- With `view: "bounds"`, `checkConfig`, `spaceSize`, `enumerateSpace` and the pool entries use `rect` for the members. `checkSpace` refuses another `view`.
+- `precision` rounds a numeric value and its default before the `invalidates` compare. A margin of 0.0004 with `precision: 3` keeps `known`.
+- `precision` changes only that compare. The registry, `sharedDimension` and `ownerDimension` refuse a bad `precision`, and `precision` on a dimension that is not numeric.
+- Each input, manifest, record, hash and `configId` of 0.2.15 stays the same.
+
 ## 0.2.15
 
 - PATCH: new optional exports and fields, with no break. A family, a dimension or an input without them does not change.

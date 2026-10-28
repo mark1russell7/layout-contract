@@ -1,6 +1,6 @@
 // The shape kinds of the items (`docs/SHAPES.md`): the declared set, the kind of a box and the check of the measures and rules on a run.
 import type { ClaimBreak } from "./corpus.ts";
-import type { Region } from "./geometry.ts";
+import { regionArea, type Region } from "./geometry.ts";
 import type { LayoutBox, LayoutInput } from "./input.ts";
 
 /**
@@ -13,7 +13,7 @@ export type ShapeKind = "rect" | "polygon" | "circle" | "free";
 export interface ShapeGeometry {
   /** The bounding box: `boundsOf` and `placedRect`. */
   readonly bounds: boolean;
-  /** The area of the shape. */
+  /** The area of the shape: `regionArea` and `boxArea`. */
   readonly area: boolean;
   /** The test that the shape is inside a region: `rectInRegion` for a `rect`. */
   readonly contains: boolean;
@@ -31,11 +31,14 @@ export interface ShapeKindSpec {
   readonly geometry: ShapeGeometry;
 }
 
-/** The declared shape kinds, in their order. Only `rect` has all of its geometry. The other kinds have their bounding box only. */
+/**
+ * The declared shape kinds, in their order. Only `rect` has all of its geometry.
+ * `polygon` and `circle` have their bounding box and their exact area. `free` has its bounding box only.
+ */
 export const SHAPE_KINDS: readonly ShapeKindSpec[] = Object.freeze([
   { id: "rect", fields: ["w", "h"], regions: ["rect"], geometry: { bounds: true, area: true, contains: true, overlap: true } },
-  { id: "polygon", fields: ["points", "holes?"], regions: ["polygon"], geometry: { bounds: true, area: false, contains: false, overlap: false } },
-  { id: "circle", fields: ["cx", "cy", "r"], regions: ["circle"], geometry: { bounds: true, area: false, contains: false, overlap: false } },
+  { id: "polygon", fields: ["points", "holes?"], regions: ["polygon"], geometry: { bounds: true, area: true, contains: false, overlap: false } },
+  { id: "circle", fields: ["cx", "cy", "r"], regions: ["circle"], geometry: { bounds: true, area: true, contains: false, overlap: false } },
   { id: "free", fields: ["w", "h", "shape?"], regions: ["rect", "polygon", "circle", "ellipse"], geometry: { bounds: true, area: false, contains: false, overlap: false } },
 ] as const);
 
@@ -48,7 +51,47 @@ export const DEFAULT_SHAPES: readonly ShapeKind[] = Object.freeze(["rect"] as co
 /** A measure or a rule, with the shape kinds that it supports. Without `shapes`, it supports `DEFAULT_SHAPES`. */
 export interface ShapeSupport<Id extends string = string> {
   readonly id: Id;
+  /** The kinds with an exact count or value. */
   readonly shapes?: readonly ShapeKind[];
+  /**
+   * The kinds with a safe count: the rule can count a break that is not real, but it does not miss a real break.
+   * Thus a safe count of 0 tells that the rule has no break. A kind is in `shapes` or in `safe`, not in the two lists.
+   */
+  readonly safe?: readonly ShapeKind[];
+}
+
+/** The level of a rule on a shape kind: an exact count, a safe count (an upper bound), or no support. */
+export type RuleLevel = "exact" | "safe" | "none";
+
+/** This function gives the level of a rule on a shape kind. A kind of `shapesOf` is `exact`, a kind of `safe` is `safe`, and another kind is `none`. */
+export function ruleLevel(rule: Pick<ShapeSupport, "shapes" | "safe">, kind: ShapeKind): RuleLevel {
+  if (shapesOf(rule).includes(kind)) return "exact";
+  return rule.safe?.includes(kind) === true ? "safe" : "none";
+}
+
+/**
+ * This function gives the problems of a list of measures and rules. An empty list tells that the list is good.
+ * It refuses an unknown kind, a kind two times in one list, and a kind in `safe` that is also in `shapesOf`.
+ */
+export function shapeSupportProblems(uses: readonly ShapeSupport[]): string[] {
+  const out: string[] = [];
+  for (const use of uses) {
+    for (const [name, list] of [["shapes", use.shapes], ["safe", use.safe]] as const) {
+      if (list === undefined) continue;
+      if (!Array.isArray(list)) {
+        out.push(`${use.id}: the ${name} value is not a list of shape kinds`);
+        continue;
+      }
+      list.forEach((k: unknown, i) => {
+        if (!isShapeKind(k)) out.push(`${use.id}: the ${name} kind ${String(k)} is not a declared kind`);
+        else if (list.indexOf(k) !== i) out.push(`${use.id}: the ${name} list has the kind ${k} two times`);
+      });
+    }
+    if (!Array.isArray(use.safe)) continue;
+    const exact: readonly unknown[] = use.shapes === undefined ? DEFAULT_SHAPES : Array.isArray(use.shapes) ? use.shapes : [];
+    for (const k of new Set<unknown>(use.safe)) if (exact.includes(k)) out.push(`${use.id}: the kind ${String(k)} is in shapes and in safe`);
+  }
+  return out;
 }
 
 const REGION_KIND: Readonly<Record<Region["kind"], ShapeKind>> = { rect: "rect", polygon: "polygon", circle: "circle", ellipse: "free" };
@@ -65,6 +108,19 @@ export function isShapeKind(value: unknown): value is ShapeKind {
 export function shapeKindOf(box: LayoutBox): ShapeKind {
   if (box.shapeKind !== undefined) return box.shapeKind;
   return box.shape === undefined ? "rect" : REGION_KIND[box.shape.kind];
+}
+
+/**
+ * This function gives the exact area of a box, or `undefined` when the contract knows only its bounding box.
+ * A box with `shape` gives `regionArea` of the shape. A `rect` box without `shape` gives `w` by `h`.
+ * A box of the kind `free` gives `undefined`, also with a shape. Thus a box with an ellipse shape gives `undefined`, because `shapeKindOf` makes an ellipse `free`.
+ * A box of another kind without `shape` is a bad input, and gives `undefined`.
+ */
+export function boxArea(box: LayoutBox): number | undefined {
+  const kind = shapeKindOf(box);
+  if (kind === "free") return undefined;
+  if (box.shape !== undefined) return regionArea(box.shape);
+  return kind === "rect" ? box.w * box.h : undefined;
 }
 
 /** This function gives the shape kinds of the boxes of an input, in the order of `SHAPE_KINDS`. An input without boxes gives an empty list. */
@@ -95,22 +151,34 @@ export function shapesOf(use: Pick<ShapeSupport, "shapes">): readonly ShapeKind[
   return use.shapes ?? DEFAULT_SHAPES;
 }
 
+/** The options of `checkShapes`. */
+export interface ShapeCheck {
+  /**
+   * The lowest level of a rule that `checkShapes` accepts. The default `exact` refuses a kind with only a safe count.
+   * The value `safe` also accepts a kind of `safe`. Use it only when the run claims that a rule has no break.
+   */
+  readonly level?: "exact" | "safe";
+}
+
 /**
  * This function checks that each measure and each rule of a run supports each shape kind of the input. An empty list tells that the run is good.
  * Each break has the claim `shape`, the id of the input, and the first 5 ids of the boxes of the kind.
+ * By default, a kind of `safe` is a break, because the count of the rule is not exact. With the level `safe`, it is not a break.
  */
-export function checkShapes(input: Pick<LayoutInput, "id" | "boxes">, uses: readonly ShapeSupport[]): ClaimBreak[] {
+export function checkShapes(input: Pick<LayoutInput, "id" | "boxes">, uses: readonly ShapeSupport[], options: ShapeCheck = {}): ClaimBreak[] {
   const kinds = shapeKindsOf(input);
   const out: ClaimBreak[] = [];
   for (const use of uses) {
     const shapes = shapesOf(use);
     for (const kind of kinds) {
-      if (shapes.includes(kind)) continue;
+      const level = ruleLevel(use, kind);
+      if (level === "exact" || (level === "safe" && options.level === "safe")) continue;
       const ids = input.boxes.filter((b) => shapeKindOf(b) === kind).map((b) => b.id);
       const shown = ids.slice(0, 5).join(", ") + (ids.length > 5 ? `, and ${ids.length - 5} more` : "");
+      const safe = level === "safe" ? `. The count of ${use.id} on ${kind} is only safe` : "";
       out.push({
         claim: "shape",
-        detail: `${use.id} supports only the shape kinds ${shapes.join(", ") || "(none)"}, but the input ${input.id} has ${kind} boxes: ${shown}`,
+        detail: `${use.id} supports only the shape kinds ${shapes.join(", ") || "(none)"}, but the input ${input.id} has ${kind} boxes: ${shown}${safe}`,
         inputs: [input.id],
       });
     }

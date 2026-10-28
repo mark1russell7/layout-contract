@@ -28,6 +28,7 @@ A dimension is a `CorpusDimension`. It is a `SpaceParam` of `docs/STRATEGY-SPACE
 | `levels` | The values of a sweep. It is optional. |
 | `supported` | The values that the family accepts. It is optional. A list is for an `enum` or a `bool`. A range `{ min?, max? }` is for an `int` or a `real`. |
 | `invalidates` | The output fields that a value other than the default makes wrong, for example `known`. It is optional. |
+| `precision` | The count of decimal places that the family uses for a numeric value. Only the `invalidates` compare reads it. It is optional. |
 
 - `levelsOf(dim, steps)` gives the values of a sweep. `levels` come first. Then an `enum` gives its values. With `steps`, a range gives `steps` points on its scale. Else the dimension gives its default.
 - With `supported`, `levelsOf` gives an `enum` and a `bool` only their supported values. The points of a range stay in the supported range.
@@ -50,6 +51,10 @@ A dimension is a `CorpusDimension`. It is a `SpaceParam` of `docs/STRATEGY-SPACE
 - Then the output gets the field `invalidated`: the sorted names of the removed fields. The registry then calculates `hash` again with the `hash` function of the family, or `documentHash`.
 - An output that has none of the fields does not change. Thus a dimension of many families changes only the outputs with the field.
 - The names `hash` and `invalidated` cannot be in `invalidates`, because the registry writes them.
+- With `precision`, the registry rounds the value and the default to `precision` decimal places before the compare. A family that rounds its values gets no `invalidated` field for a change that its output does not show.
+- For example, with `precision: 3`, a margin of 0.0004 is the default 0. A margin of 0.0006 is 0.001, so it removes `known`.
+- `precision` changes only that compare. The cells, the cell keys, `rngOf` and the value that the family gets do not change. Thus no hash changes.
+- `register`, `sharedDimension` and `ownerDimension` refuse a `precision` that is not a whole number of 0 or more. They also refuse it on a dimension that is not numeric.
 
 ### The rules of `when`
 
@@ -64,8 +69,8 @@ A dimension is a `CorpusDimension`. It is a `SpaceParam` of `docs/STRATEGY-SPACE
 
 `CORPUS_DIMENSIONS` has the shared dimensions. A family takes a dimension with `sharedDimension(name, patch)`, or it declares its own dimension with `ownerDimension(name, spec)`.
 
-- `sharedDimension` refuses a name that is not in the table. With `supported` or `invalidates` in the patch, it also refuses a bad dimension.
-- `ownerDimension` refuses a name of the table and the reserved name `kind`. It also refuses a bad default, level, `supported` or `invalidates`.
+- `sharedDimension` refuses a name that is not in the table. With `supported`, `invalidates` or `precision` in the patch, it also refuses a bad dimension.
+- `ownerDimension` refuses a name of the table and the reserved name `kind`. It also refuses a bad default, level, `supported`, `invalidates` or `precision`.
 - The registry examines the `when` of each dimension, because a `when` needs the earlier dimensions.
 
 | Dimension | Kind | Values or range | Default | Scale | Engines | Meaning |

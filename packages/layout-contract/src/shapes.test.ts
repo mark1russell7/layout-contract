@@ -1,14 +1,19 @@
 import { describe, expect, it } from "vitest";
 import {
+  boxArea,
   checkInput,
   checkShapes,
+  countOverlaps,
   itemShapeOf,
   JOINT_MEASURES,
   PACK_HARD_RULES,
+  regionArea,
+  ruleLevel,
   SHAPE_KIND_IDS,
   SHAPE_KINDS,
   shapeKindOf,
   shapeKindsOf,
+  shapeSupportProblems,
   toLayoutRecord,
   type LayoutBox,
   type LayoutInput,
@@ -81,5 +86,78 @@ describe("checkShapes", () => {
     const many = Array.from({ length: 7 }, (_, i) => ({ ...circle, id: `c${i}` }));
     const breaks = checkShapes(input(many), [{ id: "pack.fill" }, { id: "any", shapes: SHAPE_KIND_IDS }]);
     expect(breaks.map((b) => b.detail)).toEqual(["pack.fill supports only the shape kinds rect, but the input t has circle boxes: c0, c1, c2, c3, c4, and 2 more"]);
+  });
+});
+
+describe("the area of a region and of a box (L57)", () => {
+  it("gives the exact area of each region kind", () => {
+    expect(regionArea({ kind: "rect", x: 5, y: 5, w: 3, h: 4 })).toBe(12);
+    expect(regionArea({ kind: "circle", cx: 0, cy: 0, r: 2 })).toBeCloseTo(4 * Math.PI, 12);
+    expect(regionArea({ kind: "ellipse", cx: 0, cy: 0, rx: 5, ry: 2 })).toBeCloseTo(10 * Math.PI, 12);
+    expect(regionArea({ kind: "polygon", points: [[0, 0], [10, 0], [0, 10]] })).toBe(50);
+    expect(regionArea({ kind: "polygon", points: [[0, 0], [0, 10], [10, 0]] })).toBe(50);
+    expect(regionArea({ kind: "polygon", points: [[0, 0], [4, 0], [4, 1], [1, 1], [1, 4], [0, 4]] })).toBe(7);
+    const holed = { kind: "polygon", points: [[0, 0], [10, 0], [10, 10], [0, 10]], holes: [[[2, 2], [2, 4], [4, 4], [4, 2]]] } as const;
+    expect(regionArea(holed)).toBe(96);
+    expect(regionArea({ kind: "polygon", points: [[0, 0], [1, 1]] })).toBe(0);
+  });
+
+  it("gives the area of a box from its shape, w by h for a rect, and undefined for free", () => {
+    expect(boxArea(rect)).toBe(100);
+    expect(boxArea(circle)).toBeCloseTo(25 * Math.PI, 12);
+    expect(boxArea(tri)).toBe(50);
+    expect(boxArea({ ...rect, shape: { kind: "rect", x: 1, y: 1, w: 8, h: 8 } })).toBe(64);
+    expect(boxArea(ellipse)).toBeUndefined();
+    expect(boxArea({ ...ellipse, shapeKind: "free" })).toBeUndefined();
+    expect(boxArea({ ...rect, shapeKind: "free" })).toBeUndefined();
+    expect(boxArea({ ...tri, shapeKind: "free" })).toBeUndefined();
+    expect(boxArea({ ...rect, shapeKind: "circle" })).toBeUndefined();
+  });
+
+  it("declares the area of polygon and circle, and not of free", () => {
+    expect(SHAPE_KINDS.filter((k) => k.geometry.area).map((k) => k.id)).toEqual(["rect", "polygon", "circle"]);
+    expect(SHAPE_KINDS.filter((k) => k.geometry.contains).map((k) => k.id)).toEqual(["rect"]);
+  });
+});
+
+describe("the safe level of a rule (L57)", () => {
+  const noOverlap = PACK_HARD_RULES.find((r) => r.id === "no-overlap")!;
+  const inContainer = PACK_HARD_RULES.find((r) => r.id === "in-container")!;
+
+  it("gives the level of each hard rule on each kind", () => {
+    expect(SHAPE_KIND_IDS.map((k) => ruleLevel(noOverlap, k))).toEqual(["exact", "safe", "safe", "safe"]);
+    expect(SHAPE_KIND_IDS.map((k) => ruleLevel(inContainer, k))).toEqual(["exact", "safe", "safe", "safe"]);
+    for (const id of ["locked-kept", "complete"]) expect(SHAPE_KIND_IDS.map((k) => ruleLevel(PACK_HARD_RULES.find((r) => r.id === id)!, k))).toEqual(["exact", "exact", "exact", "exact"]);
+    expect(SHAPE_KIND_IDS.map((k) => ruleLevel({}, k))).toEqual(["exact", "none", "none", "none"]);
+    expect(ruleLevel({ shapes: ["circle"], safe: ["free"] }, "rect")).toBe("none");
+  });
+
+  it("refuses a kind in shapes and in safe, an unknown kind and a repeated kind", () => {
+    expect(shapeSupportProblems([...JOINT_MEASURES, ...PACK_HARD_RULES])).toEqual([]);
+    expect(shapeSupportProblems([{ id: "a", shapes: ["rect", "circle"], safe: ["circle", "free"] }])).toEqual(["a: the kind circle is in shapes and in safe"]);
+    expect(shapeSupportProblems([{ id: "b", safe: ["rect"] }])).toEqual(["b: the kind rect is in shapes and in safe"]);
+    expect(shapeSupportProblems([{ id: "c", safe: ["hexagon" as never] }])).toEqual(["c: the safe kind hexagon is not a declared kind"]);
+    expect(shapeSupportProblems([{ id: "d", shapes: ["rect", "rect"], safe: ["free", "free"] }])).toEqual([
+      "d: the shapes list has the kind rect two times",
+      "d: the safe list has the kind free two times",
+    ]);
+    expect(shapeSupportProblems([{ id: "e", safe: "free" as never }])).toEqual(["e: the safe value is not a list of shape kinds"]);
+  });
+
+  it("refuses a safe kind by default, and accepts it with the level safe", () => {
+    const exact = checkShapes(input([rect, tri]), PACK_HARD_RULES);
+    expect(exact.map((b) => b.detail)).toEqual([
+      "no-overlap supports only the shape kinds rect, but the input t has polygon boxes: p. The count of no-overlap on polygon is only safe",
+      "in-container supports only the shape kinds rect, but the input t has polygon boxes: p. The count of in-container on polygon is only safe",
+    ]);
+    expect(checkShapes(input([rect, tri, circle, ellipse]), PACK_HARD_RULES, { level: "safe" })).toEqual([]);
+    const measures = checkShapes(input([tri]), [...JOINT_MEASURES, ...PACK_HARD_RULES], { level: "safe" });
+    expect(measures.map((b) => b.detail.split(" ")[0])).toEqual(["joint.fill", "joint.straight.length"]);
+  });
+
+  it("over-counts two triangles whose bounding boxes overlap, and gives 0 when the boxes do not overlap", () => {
+    const other: LayoutBox = { id: "q", w: 10, h: 10, shape: { kind: "polygon", points: [[10, 0], [10, 10], [0, 10]] } };
+    expect(countOverlaps([{ ...tri, x: 0, y: 0 }, { ...other, x: 0, y: 0 }])).toBe(1);
+    expect(countOverlaps([{ ...tri, x: 0, y: 0 }, { ...other, x: 10, y: 0 }])).toBe(0);
   });
 });
