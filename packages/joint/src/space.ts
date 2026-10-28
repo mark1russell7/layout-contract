@@ -183,7 +183,7 @@ export function configRun(config: StrategyConfig, space: StrategySpace = JOINT_S
 }
 
 /**
- * This function gives a short name of a config for a report: the pair, and the lane mode with its params when the config has one.
+ * This function gives a short name of a config for a report. The name has the pair, and the lane mode with its params.
  * For example `maxrects-cp+corners sides p1 c5 s4 k8`: 1 pass, the clearance 5, the space 4 and the cap 8.
  */
 export function configLabel(config: StrategyConfig, space: StrategySpace = JOINT_SPACE, adapter: JointAdapter = BENCH_ADAPTER): string {

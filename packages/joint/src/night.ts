@@ -210,8 +210,8 @@ function freshFor(state: SweepState, seed: number, screen: readonly SweepInput[]
 
 /**
  * This function plans round 1 of a night, in the order of priority:
- * - the baseline arm on each input of the corpus, for the paired comparisons and the check of the drift;
- * - the screened configs without each input of the screen (seed 1 of each spec);
+ * - the baseline arm on each input of the corpus, for the paired comparisons and the check of the drift,
+ * - the screened configs without each input of the screen (seed 1 of each spec),
  * - a sample of new configs on the screen, seeded by the date, while the budget lasts.
  */
 export function planRound1(state: SweepState, inputs: readonly SweepInput[], options: PlanOptions): NightPlan {
@@ -364,7 +364,7 @@ export function raceNight(state: SweepState, inputs: readonly SweepInput[], opti
 
 /**
  * This function plans round 2 of a night, in the order of priority:
- * - the alive configs without each input of the corpus, from the largest mean against the incumbent, while the budget lasts;
+ * - the alive configs without each input of the corpus, from the largest mean against the incumbent, while the budget lasts,
  * - a second sample of new configs on the screen, from the least covered strata, with the rest of the budget.
  */
 export function planRound2(state: SweepState, inputs: readonly SweepInput[], options: PlanOptions): NightPlan {

@@ -160,7 +160,7 @@ export function sampleConfigs(options: SampleConfigsOptions, space: StrategySpac
   return out;
 }
 
-/** This function gives the planned cost of one config on one input in milliseconds: one pair, and the lane passes of the config, times the margin of the spec. */
+/** This function gives the planned cost of one config on one input in milliseconds. The cost is one pair and the lane passes, times the margin of the spec. */
 export function jobCost(run: Pick<ConfigRun, "passes">, input: Pick<SweepInput, "spec" | "boxes" | "edges">): number {
   return plannedCost(input.spec, input.boxes, input.edges, 1, run.passes);
 }
@@ -284,7 +284,7 @@ export interface SummaryRow {
   hard: number;
   excess: number;
   ms: number;
-  /** The paired comparison with each config of the baseline arm, by its name: the wins, the losses and the ties on `sweep.score`, and the sum of the differences. */
+  /** The paired comparison with each config of the baseline arm, by its name. It has the wins, the losses, the ties and the sum of the differences. */
   vs: Record<string, { wins: number; losses: number; ties: number; diff: number }>;
 }
 
