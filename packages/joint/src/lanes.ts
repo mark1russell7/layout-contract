@@ -385,7 +385,7 @@ export const ITER_ROUNDS = 3;
 
 /**
  * The least space between two facing sides, in units. Decision `d7` of the corpus: a margin and a gap of 0 break `no-pass-through`.
- * Thus a side without lanes gets a margin of at least `(ITER_FLOOR_SPACE - gap) / 2`, and never less than its margin in the input.
+ * Thus a side without lanes gets a margin of at least `(ITER_FLOOR_SPACE - gap) / 2`. It is not less than its margin in the input at any time.
  */
 export const ITER_FLOOR_SPACE = 1;
 
