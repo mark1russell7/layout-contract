@@ -39,7 +39,10 @@ A joint run packs an input, and then routes the edges of the same input. The `jo
 
 ## The minimum effects
 
-`compareMeasure` of this package gives `better`, `worse` or `tie` for one measure on one input. A change of at most `max(RECORD_EPS, minEffect)` is a tie, and a tie is not better. The tie applies only to the classification of each input: the sign test, the wins and the flips. The tests of the median, the tail and the bootstrap read the raw values.
+`compareMeasure` of this package gives `better`, `worse` or `tie` for one measure on one input. A change of at most `max(RECORD_EPS, minEffect)` is a tie, and a tie is not better.
+
+`compareMeasure` rounds the two values to whole steps of `RECORD_EPS` before the compare. Thus a live pick and the replay of its record give the same verdict. A change of exactly `minEffect` on 3-decimal records is a tie, also when the float difference is a little larger.
+ The tie applies only to the classification of each input: the sign test, the wins and the flips. The tests of the median, the tail and the bootstrap read the raw values.
 
 - `joint.fill` and `joint.spill` (0.001): a share of 0.001 is the precision of a written file of 1000 boxes.
 - `joint.aspectError` (0.01): the same value as `pack.aspectError`, so the two aspects compare.

@@ -21,7 +21,7 @@ The package has no runtime dependencies.
 | The portfolio | `portfolio`, `Portfolio`, `PortfolioKey`, `PortfolioLevel`, `PortfolioOptions`, `PortfolioPick`, `PortfolioTrace`, `Member`, `MemberTrace`, `MemberStatus`, `pickMoves` |
 | The pick rule | `selectBest`, `SelectCandidate`, `SelectLevel`, `Selection`, `PickSpec` |
 | The turn | `turnBox`, `turnPort`, `turnMargin`, `turnRegion`, `turnSide`, `turnPoint` |
-| The tolerances | `EPS`, `RECORD_EPS`, `Tolerance`, `DEFAULT_TOLERANCE` |
+| The tolerances | `EPS`, `RECORD_EPS`, `RECORD_SCALE`, `Tolerance`, `DEFAULT_TOLERANCE` |
 | The hard rules | `countOverlaps`, `countObstacleHits`, `regionHitsRect`, `rectInRegion`, `countOutside`, `ContainerTest`, `countPortsOffBorder`, `packHard`, `PackHard`, `placedRect`, `checkInput` |
 
 ## The rules

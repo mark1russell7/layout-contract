@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { compareMeasure, JOINT_MEASURES, minEffectOf, RECORD_EPS, type MeasureSpec, type Verdict } from "./index.ts";
+import { compareMeasure, JOINT_MEASURES, minEffectOf, RECORD_EPS, RECORD_SCALE, type MeasureSpec, type Verdict } from "./index.ts";
 
 /** A small seeded generator, so each run tests the same values. */
 function rng(seed: number): () => number {
@@ -37,9 +37,9 @@ describe("compareMeasure", () => {
       const t = minEffectOf(lower);
       const inside = base + (r() * 2 - 1) * t * 0.999;
       expect(compareMeasure(inside, base, lower)).toBe("tie");
-      expect(compareMeasure(base - t * 1.001, base, lower)).toBe("better");
-      expect(compareMeasure(base + t * 1.001, base, lower)).toBe("worse");
-      expect(compareMeasure(base + t * 1.001, base, higher)).toBe("better");
+      expect(compareMeasure(base - t - RECORD_EPS, base, lower)).toBe("better");
+      expect(compareMeasure(base + t + RECORD_EPS, base, lower)).toBe("worse");
+      expect(compareMeasure(base + t + RECORD_EPS, base, higher)).toBe("better");
     }
   });
 
@@ -57,6 +57,42 @@ describe("compareMeasure", () => {
     expect(minEffectOf({ minEffect: 0 })).toBe(RECORD_EPS);
     expect(compareMeasure(1, 0, { direction: "lower", minEffect: 0 })).toBe("worse");
     expect(compareMeasure(0.0005, 0, { direction: "lower" })).toBe("tie");
+  });
+
+  it("gives a tie at exactly minEffect on 3-decimal records, with no float noise", () => {
+    const fill: Pick<MeasureSpec, "direction" | "minEffect"> = { direction: "higher", minEffect: 0.005 };
+    expect(0.723 - 0.718).toBeGreaterThan(0.005);
+    expect(compareMeasure(0.723, 0.718, fill)).toBe("tie");
+    expect(compareMeasure(0.718, 0.723, fill)).toBe("tie");
+    expect(compareMeasure(0.724, 0.718, fill)).toBe("better");
+    expect(compareMeasure(0.7, 0.693, { direction: "lower", minEffect: 0.007 })).toBe("tie");
+    expect(compareMeasure(5.05, 5, { direction: "lower", minEffect: { rel: 0.01 } })).toBe("tie");
+  });
+
+  it("gives the verdict of the rounded record for a live value", () => {
+    const r = rng(23);
+    const round3 = (x: number): number => Math.round(x * RECORD_SCALE) / RECORD_SCALE;
+    for (let i = 0; i < 20000; i++) {
+      const spec: Pick<MeasureSpec, "direction" | "minEffect"> = {
+        direction: r() < 0.5 ? "lower" : "higher",
+        minEffect: r() < 0.3 ? { rel: Math.round(r() * 20) / 100 } : Math.round(r() * 20) / 1000,
+      };
+      const half = r() < 0.3;
+      const a = half ? (Math.round((r() - 0.5) * 20000) + 0.5) / 1000 : (r() - 0.5) * 10 ** Math.floor(r() * 4);
+      const b = half ? (Math.round((r() - 0.5) * 20000) + 0.5) / 1000 : a + (r() - 0.5) * 0.06;
+      expect(compareMeasure(a, b, spec)).toBe(compareMeasure(round3(a), round3(b), spec));
+    }
+  });
+
+  it("gives back the grid step of a value from its rounded record, also at half steps and below 0", () => {
+    expect(RECORD_EPS).toBe(1e-3);
+    const r = rng(29);
+    for (let i = 0; i < 20000; i++) {
+      const k = Math.round((r() - 0.5) * 2e7);
+      const v = i % 3 === 0 ? (k + 0.5) / RECORD_SCALE : i % 3 === 1 ? k / RECORD_SCALE : (r() - 0.5) * 10 ** Math.floor(r() * 7);
+      const step = Math.round(v * RECORD_SCALE);
+      expect(Math.round((step / RECORD_SCALE) * RECORD_SCALE)).toBe(step);
+    }
   });
 
   it("gives a tie for equal infinite values, and an error for NaN", () => {

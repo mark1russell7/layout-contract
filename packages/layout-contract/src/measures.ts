@@ -1,4 +1,4 @@
-import { RECORD_EPS } from "./tolerance.ts";
+import { RECORD_EPS, RECORD_SCALE } from "./tolerance.ts";
 
 /** The direction of a measure: the side of the better values. */
 export type Direction = "lower" | "higher";
@@ -73,16 +73,30 @@ export function minEffectOf(spec: Pick<MeasureSpec, "minEffect">, a = 0, b = 0):
   return Math.max(RECORD_EPS, Number.isFinite(t) ? t : 0);
 }
 
+/** The slack of the threshold in grid steps. It absorbs only the float noise of the threshold, because the change is a whole number. */
+const STEP_NOISE = 1e-6;
+
 /**
  * This function compares the value `candidate` with the value `baseline` of one measure on one input.
- * A change of at most `minEffectOf(spec, candidate, baseline)` is a tie. The test is symmetric: a swap of the two values swaps better and worse.
+ * The compare uses whole grid steps of `RECORD_EPS`. Thus a live value and its rounded record give the same verdict.
+ * A change of at most the threshold of `minEffectOf` in grid steps is a tie. A swap of the two values swaps better and worse.
  * Two equal values are a tie, also two infinite values. A value `NaN` is an error.
  */
 export function compareMeasure(candidate: number, baseline: number, spec: Pick<MeasureSpec, "direction" | "minEffect">): Verdict {
   if (Number.isNaN(candidate) || Number.isNaN(baseline)) throw new RangeError("compareMeasure: a value is NaN");
   if (candidate === baseline) return "tie";
-  const delta = candidate - baseline;
-  if (!(Math.abs(delta) > minEffectOf(spec, candidate, baseline))) return "tie";
+  const a = Math.round(candidate * RECORD_SCALE);
+  const b = Math.round(baseline * RECORD_SCALE);
+  let delta: number;
+  if (Number.isSafeInteger(a) && Number.isSafeInteger(b)) {
+    delta = a - b;
+    const m = spec.minEffect ?? 0;
+    const t = typeof m === "number" ? m * RECORD_SCALE : m.rel * Math.max(Math.abs(a), Math.abs(b));
+    if (Math.abs(delta) <= Math.max(1, Number.isFinite(t) ? t : 0) + STEP_NOISE) return "tie";
+  } else {
+    delta = candidate - baseline;
+    if (!(Math.abs(delta) > minEffectOf(spec, candidate, baseline))) return "tie";
+  }
   const better = spec.direction === "lower" ? delta < 0 : delta > 0;
   return better ? "better" : "worse";
 }
