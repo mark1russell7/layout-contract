@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.2.1
+
+- A record can have `outputHash`, the hash of the output of the stage. A reader compares two runs with one field.
+- A record can have `msRuns`, the time of each timed repeat. `ms` is their median.
+- A record can have `env` (`RunEnv`), the facts of the computer of the run.
+
 ## 0.2.0
 
 The first version on npm. The version 0.1.0 is only in git, at commit `52fefbb`. npm does not have it.
