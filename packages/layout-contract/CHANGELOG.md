@@ -2,7 +2,7 @@
 
 ## 0.2.9
 
-- The corpus checks of `packing`, `highways` and the joint corpus are now in the contract. `docs/CORPUS-CHECKS.md` tells the rules.
+- The contract has the corpus checks of `packing`, `highways` and the joint corpus. `docs/CORPUS-CHECKS.md` tells the rules.
 - `ClaimBreak` is one broken claim of a corpus. It has the name of the claim, a text and the ids of the inputs.
 - `checkDeclared(inputs, declares, claim, ids)` checks the claim `claims.declared`. The hook `declares` gives the properties of one input.
 - `declaredCounts` counts the inputs of each property. `declaredClaimOf` reads `claims.declared` of a manifest. `DeclaredClaim` and `Declares` are their types.
