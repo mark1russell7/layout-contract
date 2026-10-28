@@ -1,5 +1,21 @@
 import { describe, expect, it } from "vitest";
-import { canonicalInput, checkInput, documentHash, outputHash, toPackInput, type LayoutInput, type PairGap } from "./index.ts";
+import {
+  canonicalInput,
+  checkInput,
+  countOverlaps,
+  DEFAULT_TOLERANCE,
+  documentHash,
+  grow,
+  outputHash,
+  overlapOf,
+  packHard,
+  placedRect,
+  stepRandom,
+  toPackInput,
+  type LayoutBox,
+  type LayoutInput,
+  type PairGap,
+} from "./index.ts";
 
 // L49: the pair gaps of an input. The pins come from `documentHash` of 0.2.13 (main at e6b9550), before the field existed.
 
@@ -104,5 +120,89 @@ describe("checkInput and pairGaps", () => {
   it("refuses an entry without string ids and a value that is not a list", () => {
     expect(check([{ a: 3, b: "b1", gap: 1 } as unknown as PairGap])).toEqual(["pair gap 0: the entry has no string ids a and b"]);
     expect(checkInput({ ...full, pairGaps: {} as unknown as readonly PairGap[] })).toEqual(["pairGaps: the value is not a list"]);
+  });
+});
+
+describe("the hard rule no-overlap and pairGaps", () => {
+  // a and b are 3 units apart on the x axis. With margins of 2, the two rings overlap by 1.
+  const a: LayoutBox = { id: "a", w: 10, h: 10, x: 0, y: 0, margin: 2 };
+  const b: LayoutBox = { id: "b", w: 10, h: 10, x: 13, y: 0, margin: 2 };
+  const bare = [{ ...a, margin: 0 }, { ...b, margin: 0 }];
+
+  it("does not count a pair whose distance is at least its gap, also when the gap is less than both margins", () => {
+    expect(countOverlaps([a, b])).toBe(1);
+    expect(countOverlaps([a, b], DEFAULT_TOLERANCE.overlap, [{ a: "a", b: "b", gap: 1 }])).toBe(0);
+    expect(countOverlaps([a, b], DEFAULT_TOLERANCE.overlap, [{ a: "a", b: "b", gap: 3 }])).toBe(0);
+  });
+
+  it("counts a pair whose distance is less than its gap, also without margins", () => {
+    expect(countOverlaps(bare)).toBe(0);
+    expect(countOverlaps(bare, DEFAULT_TOLERANCE.overlap, [{ a: "a", b: "b", gap: 5 }])).toBe(1);
+    expect(countOverlaps(bare, DEFAULT_TOLERANCE.overlap, [{ a: "a", b: "b", gap: 3.0005 }])).toBe(0);
+    expect(countOverlaps(bare, DEFAULT_TOLERANCE.overlap, [{ a: "a", b: "b", gap: 3.01 }])).toBe(1);
+    // Far apart on the y axis: the gap alone does not make an overlap.
+    expect(countOverlaps([bare[0]!, { ...bare[1]!, y: 50 }], DEFAULT_TOLERANCE.overlap, [{ a: "a", b: "b", gap: 5 }])).toBe(0);
+  });
+
+  it("reads a reversed pair as the same pair", () => {
+    expect(countOverlaps([a, b], DEFAULT_TOLERANCE.overlap, [{ a: "b", b: "a", gap: 1 }])).toBe(0);
+    expect(countOverlaps(bare, DEFAULT_TOLERANCE.overlap, [{ a: "b", b: "a", gap: 5 }])).toBe(1);
+  });
+
+  it("keeps the margins for the pairs that are not in the list", () => {
+    const c: LayoutBox = { id: "c", w: 10, h: 10, x: -3, y: 13, margin: 2 };
+    expect(countOverlaps([a, b, c])).toBe(2);
+    expect(countOverlaps([a, b, c], DEFAULT_TOLERANCE.overlap, [{ a: "a", b: "b", gap: 1 }])).toBe(1);
+    expect(countOverlaps([a, b, c], DEFAULT_TOLERANCE.overlap, [{ a: "a", b: "x", gap: 1 }])).toBe(2);
+    expect(countOverlaps([a, b, c], DEFAULT_TOLERANCE.overlap, [])).toBe(2);
+  });
+
+  it("goes through packHard", () => {
+    const out = { overflow: [], size: { w: 100, h: 100 }, moved: [], placements: [{ id: "a", x: 0, y: 0 }, { id: "b", x: 13, y: 0 }] };
+    const i: LayoutInput = { schema: "layout-input/1", id: "t", container: { w: 100, h: 100, fixed: "size" }, boxes: [{ id: "a", w: 10, h: 10, margin: 2 }, { id: "b", w: 10, h: 10, margin: 2 }] };
+    expect(packHard(i, out)["no-overlap"]).toBe(1);
+    expect(packHard({ ...i, pairGaps: [{ a: "b", b: "a", gap: 1 }] }, out)["no-overlap"]).toBe(0);
+    expect(packHard({ ...i, pairGaps: [{ a: "a", b: "b", gap: 4 }] }, out)["no-overlap"]).toBe(1);
+  });
+
+  it("gives the count of a pair by pair reference on random layouts, with and without pairGaps", () => {
+    const tol = DEFAULT_TOLERANCE.overlap;
+    /** The reference: each pair once, with the margins, or with the gap of its entry in place of the margins. */
+    const reference = (boxes: readonly LayoutBox[], gapOf: (x: string, y: string) => number | undefined): number => {
+      let n = 0;
+      for (let i = 0; i < boxes.length; i++)
+        for (let j = i + 1; j < boxes.length; j++) {
+          const p = placedRect(boxes[i]!)!;
+          const q = placedRect(boxes[j]!)!;
+          const g = gapOf(boxes[i]!.id, boxes[j]!.id);
+          const o = g === undefined ? overlapOf(grow(p, boxes[i]!.margin), grow(q, boxes[j]!.margin)) : overlapOf(grow(p, g), q);
+          if (o.x > tol && o.y > tol) n++;
+        }
+      return n;
+    };
+    for (let seed = 1; seed <= 40; seed++) {
+      const r = stepRandom(seed, "overlaps");
+      const boxes: LayoutBox[] = Array.from({ length: 30 }, (_, i) => ({
+        id: `n${i}`,
+        w: 2 + r() * 12,
+        h: 2 + r() * 12,
+        x: r() * 80,
+        y: r() * 80,
+        ...(r() < 0.5 ? { margin: r() * 3 } : r() < 0.5 ? { margin: { top: r() * 3, right: r() * 3, bottom: r() * 3, left: r() * 3 } } : {}),
+      }));
+      expect(countOverlaps(boxes)).toBe(reference(boxes, () => undefined));
+      const pairs: PairGap[] = [];
+      const seen = new Set<string>();
+      for (let k = 0; k < 25; k++) {
+        const x = Math.floor(r() * 30);
+        const y = Math.floor(r() * 30);
+        const key = x < y ? `${x},${y}` : `${y},${x}`;
+        if (x === y || seen.has(key)) continue;
+        seen.add(key);
+        pairs.push(r() < 0.5 ? { a: `n${x}`, b: `n${y}`, gap: r() * 8 } : { a: `n${y}`, b: `n${x}`, gap: r() * 8, lanes: 2 });
+      }
+      const gapOf = (x: string, y: string): number | undefined => pairs.find((p) => (p.a === x && p.b === y) || (p.a === y && p.b === x))?.gap;
+      expect(countOverlaps(boxes, tol, pairs)).toBe(reference(boxes, gapOf));
+    }
   });
 });

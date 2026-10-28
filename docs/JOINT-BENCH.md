@@ -118,7 +118,7 @@ The request text for `packing`:
 
 > Request for `packing`: add an option for the space between two items, or for the space of one channel. The joint benchmark of `layout-contract` (L13) counts the routes in each gap after a first pack. Today it can give a margin only to each side of an item. Thus a channel that needs space gives it to both boxes, and the fill drops more than necessary. The option takes pairs of item ids with a space, or a list of channels with a space. A pair without an entry keeps the global gap.
 
-The contract 0.2.14 has the input field of this request: `pairGaps`, a list of `{ a, b, gap, lanes? }` (L49). The `README.md` of the package tells its rules.
+The contract 0.2.14 has the input field of this request: `pairGaps`, a list of `{ a, b, gap, lanes? }` (L49). The hard rule `no-overlap` uses the gap of a pair in place of its two margins. The `README.md` of the package tells its rules.
 
 ### The lane pairs in the analysis
 

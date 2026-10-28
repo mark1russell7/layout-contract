@@ -1164,7 +1164,7 @@ export declare function countObstacleHits(boxes: readonly LayoutBox[], obstacles
 export declare function countOutside(input: LayoutInput, tolerance?: number, options?: ContainerTest): number;
 
 ### build/index.d.ts#countOverlaps
-export declare function countOverlaps(boxes: readonly LayoutBox[], tolerance?: number): number;
+export declare function countOverlaps(boxes: readonly LayoutBox[], tolerance?: number, pairGaps?: readonly PairGap[]): number;
 
 ### build/index.d.ts#countPortsOffBorder
 export declare function countPortsOffBorder(boxes: readonly LayoutBox[], eps?: number): number;

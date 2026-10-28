@@ -41,9 +41,10 @@ The package has no runtime dependencies.
   - `lanes` is the count of the channels that the gap has space for. It is information only.
   - `checkInput` refuses an unknown box, a pair of one box, a repeated pair in either order, a negative or infinite `gap` and bad `lanes`.
   - `canonicalInput` puts `a` before `b` in each pair and sorts the list. `documentHash` uses this form, so an input without `pairGaps` keeps its hash.
-  - The hard rule `no-overlap` does not read `pairGaps` in 0.2.14. It counts the boxes with their margins.
+  - The hard rule `no-overlap` reads `pairGaps`. For a pair of the list, in either order, the `gap` replaces the two margins. The pair breaks the rule only when the boxes are nearer than the gap.
+  - The pairs that are not in the list keep their margins. Without `pairGaps`, the verdicts and the hashes of the records do not change.
 - **The ports.** A port can have a side. Without a side, the router picks the side. A fixed port has `x` and `y` on the border of the box, relative to its top-left corner.
-- **The hard rules of a pack.** `no-overlap` counts the pairs of boxes and the pairs of a box and an obstacle. A locked box without a placement, or with a move of more than `RECORD_EPS`, breaks `locked-kept`. `checkInput` refuses a locked box without a position. Another box without a placement and not in `overflow` breaks `complete`.
+- **The hard rules of a pack.** `no-overlap` counts the pairs of boxes and the pairs of a box and an obstacle. A pair of `pairGaps` uses its gap in place of the margins. A locked box without a placement, or with a move of more than `RECORD_EPS`, breaks `locked-kept`. `checkInput` refuses a locked box without a position. Another box without a placement and not in `overflow` breaks `complete`.
 - **The container rule.** `in-container` counts each box that goes out of the container made smaller by `inset`. The box counts with its margin. By default, a shaped container counts as its bounding box.
 - **The exact container.** Give `{ exactContainer: true }` to `packHard` or `countOutside`. Then a box of a shaped container with the size `fixed` must stay inside the shape. A cut corner, a notch and a hole count. A container with a free side keeps the bounding test. The default changes to the exact test at the next breaking version.
 - **The shape kinds.** An item is a `rect`, a `polygon`, a `circle` or a `free` shape. Each measure and rule declares its kinds. `checkShapes` refuses the other kinds. `docs/SHAPES.md` tells the rules.

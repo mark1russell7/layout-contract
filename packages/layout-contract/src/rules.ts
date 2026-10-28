@@ -15,20 +15,52 @@ export function placedRect(box: LayoutBox): Rect | undefined {
 /**
  * This function counts the pairs of placed boxes whose insides, with their margins, overlap by more than `tolerance` on each axis.
  * A box with a shape counts as its bounding box. That area is larger, thus the count is safe.
+ *
+ * A pair of `pairGaps`, in either order, uses its `gap` in place of the two margins. One box grows by the gap, and the other box does not grow.
+ * Thus the pair breaks the rule only when the boxes are nearer than the gap on each axis. The other pairs do not change.
  */
-export function countOverlaps(boxes: readonly LayoutBox[], tolerance: number = DEFAULT_TOLERANCE.overlap): number {
-  const rects: Rect[] = [];
+export function countOverlaps(boxes: readonly LayoutBox[], tolerance: number = DEFAULT_TOLERANCE.overlap, pairGaps?: readonly PairGap[]): number {
+  if (pairGaps === undefined || pairGaps.length === 0) return marginOverlaps(boxes, tolerance, undefined);
+  const gaps = new Map<string, number>();
+  for (const p of pairGaps) {
+    const key = pairKey(p.a, p.b);
+    if (p.a !== p.b && !gaps.has(key)) gaps.set(key, p.gap);
+  }
+  const raw = new Map<string, Rect>();
   for (const box of boxes) {
     const r = placedRect(box);
-    if (r !== undefined) rects.push(grow(r, box.margin));
+    if (r !== undefined && !raw.has(box.id)) raw.set(box.id, r);
   }
-  rects.sort((a, b) => a.x - b.x);
+  let count = marginOverlaps(boxes, tolerance, gaps);
+  for (const [key, gap] of gaps) {
+    const [a, b] = JSON.parse(key) as [string, string];
+    const ra = raw.get(a);
+    const rb = raw.get(b);
+    if (ra === undefined || rb === undefined) continue;
+    const o = overlapOf(grow(ra, gap), rb);
+    if (o.x > tolerance && o.y > tolerance) count++;
+  }
+  return count;
+}
+
+/** This function gives the key of a pair of box ids, with the same key for each order. */
+const pairKey = (a: string, b: string): string => JSON.stringify(a < b ? [a, b] : [b, a]);
+
+/** This function counts the overlaps of the boxes with their margins. It skips the pairs of `skip`. Without `skip`, it is the rule of 0.2.13. */
+function marginOverlaps(boxes: readonly LayoutBox[], tolerance: number, skip: ReadonlyMap<string, number> | undefined): number {
+  const rects: { readonly id: string; readonly r: Rect }[] = [];
+  for (const box of boxes) {
+    const r = placedRect(box);
+    if (r !== undefined) rects.push({ id: box.id, r: grow(r, box.margin) });
+  }
+  rects.sort((a, b) => a.r.x - b.r.x);
   let count = 0;
   for (let i = 0; i < rects.length; i++) {
-    const a = rects[i]!;
+    const a = rects[i]!.r;
     for (let j = i + 1; j < rects.length; j++) {
-      const b = rects[j]!;
+      const b = rects[j]!.r;
       if (b.x >= a.x + a.w - tolerance) break;
+      if (skip !== undefined && skip.has(pairKey(rects[i]!.id, rects[j]!.id))) continue;
       const o = overlapOf(a, b);
       if (o.x > tolerance && o.y > tolerance) count++;
     }
@@ -279,7 +311,8 @@ export function countObstacleHits(
 /**
  * This function gives the count of each hard rule of the output of a packer.
  * It applies the output with `applyPack`. Only the placed boxes and the locked boxes count for the overlaps and the container.
- * `no-overlap` counts the pairs of boxes and the pairs of a box and an obstacle.
+ * `no-overlap` counts the pairs of boxes and the pairs of a box and an obstacle. A pair of `pairGaps` uses its gap in place of the margins.
+ *
  * A locked box without a placement, or with a move of more than `RECORD_EPS`, breaks `locked-kept`.
  * A locked box without a position in the input is a bad input, not a break. `checkInput` finds it.
  * Another box without a placement that is not in `overflow` breaks `complete`.
@@ -308,7 +341,7 @@ export function packHard(input: LayoutInput, output: PackOutput, tolerance: numb
     }
   }
   return {
-    "no-overlap": countOverlaps(kept, tolerance) + countObstacleHits(kept, after.obstacles, tolerance),
+    "no-overlap": countOverlaps(kept, tolerance, input.pairGaps) + countObstacleHits(kept, after.obstacles, tolerance),
     "in-container": countOutside({ ...after, boxes: kept }, tolerance, options),
     "locked-kept": lockedMoved,
     complete: incomplete,
