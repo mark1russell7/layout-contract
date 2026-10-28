@@ -33,6 +33,7 @@ import {
   type Strategy,
 } from "@mark1russell7/highways";
 import { jointMeasures, placementFacts, type PlacementFacts } from "./joint-measures.ts";
+import { LANE_CAP, LANE_CLEARANCE, LANE_SPACE, laneMargins, marginGrowth, maxLanes, shortSides, sideLanes, type LaneEntry, type LaneOptions } from "./lanes.ts";
 
 /** One pack entry: a strategy of `packing` with options over its defaults. The id names the entry in the records. */
 export interface PackEntry {
@@ -104,6 +105,13 @@ export interface RunOptions {
   readonly commit?: string;
   /** The clock in milliseconds. The default is `performance.now`. */
   readonly now?: () => number;
+  /**
+   * The lane pairs of the joint strategy of L13 (`laneEntries`). The default is none, so the default plan does not change.
+   * Each lane pair gives one more record after the records of the pack entries and the routers.
+   */
+  readonly lanes?: readonly LaneEntry[];
+  /** The options of the lane count and of the lane margins. */
+  readonly laneOptions?: LaneOptions;
 }
 
 /** This function gives the facts of the computer of this run. */
@@ -264,8 +272,11 @@ type PackRun =
     }
   | { readonly ok: false; readonly reason: string };
 
-/** This function packs one input with one entry two times, for the time and for the rule "same twice". */
-function packOnce(entry: PackEntry, input: PackInput, cell: Readonly<Record<string, unknown>> | undefined, seed: number, now: () => number): PackRun {
+/**
+ * This function packs one input with one entry two times, for the time and for the rule "same twice".
+ * The hard breaks and the measures use `score`, the default is the packed input. A lane pass packs an input with larger margins, and scores the pack on the input of the corpus.
+ */
+function packOnce(entry: PackEntry, input: PackInput, cell: Readonly<Record<string, unknown>> | undefined, seed: number, now: () => number, score: PackInput = input): PackRun {
   const s = packStrategy(entry.strategy);
   if (cell !== undefined) {
     const miss = unsupportedOf(s.supports, { ...(cell as Record<string, string>), groups: "none" });
@@ -278,8 +289,8 @@ function packOnce(entry: PackEntry, input: PackInput, cell: Readonly<Record<stri
     const again = packWith(entry.strategy, input, entry.options, seed);
     const t2 = now();
     const hash = packHash(output);
-    const hard = Object.fromEntries(Object.entries(checkHard(input, output, undefined, { exactContainer: true })).map(([k, v]) => [`pack.${k}`, v]));
-    const measures = finite(measure(input, output) as unknown as Record<string, number>);
+    const hard = Object.fromEntries(Object.entries(checkHard(score, output, undefined, { exactContainer: true })).map(([k, v]) => [`pack.${k}`, v]));
+    const measures = finite(measure(score, output) as unknown as Record<string, number>);
     return { ok: true, output, hash, ms: (t1 - t0 + (t2 - t1)) / 2, deterministic: packHash(again) === hash, measures, hard };
   } catch (e) {
     return { ok: false, reason: `error: ${messageOf(e)}` };
@@ -300,6 +311,7 @@ function fullOptions(entry: PackEntry): Record<string, unknown> {
  * - The `hard` field holds the breaks of `checkHard` (`pack.*`) and of `checkProperties` (`route.*`).
  * - The measures hold `pack.*`, `route.*`, `joint.*`, the cap counts `route.cap.<cap>`, `route.mixed` and `joint.overflow.edges`.
  * - The measures `time.*` hold the time of the steps after the pack, in milliseconds. `docs/JOINT-BENCH.md` ("The runner") tells each step.
+ * - With `lanes`, each lane pair gives one more record. Its pack part is the id of the lane entry, and `docs/JOINT-BENCH.md` ("The lane pairs") tells its passes.
  */
 export function runInput(input: LayoutInput, cell: Readonly<Record<string, unknown>> | undefined, options: RunOptions = {}): LayoutRecord[] {
   const packs = options.packs ?? PACK_ENTRIES;
@@ -311,86 +323,235 @@ export function runInput(input: LayoutInput, cell: Readonly<Record<string, unkno
   const target = input.container?.aspect ?? 1;
   const edgeCount = input.edges?.length ?? 0;
   const records: LayoutRecord[] = [];
-  const shared = new Map<
-    string,
-    { packed: PackedInput; facts: PlacementFacts; graph: Graph; check: (result: Result) => PortfolioFacts; routes: Map<string, RouteRun | RouteMiss>; placementMs: number }
-  >();
+  const shared = new Map<string, PackGroup>();
+  const packRuns = new Map<string, PackRun>();
 
-  const factsOf = (entry: PackEntry, router: string) => ({
+  const factsOf = (entry: PackEntry, router: string, id: string = entry.id, extra: Readonly<Record<string, unknown>> = {}) => ({
     stage: "joint" as const,
     step: "joint",
-    strategy: pairId(entry.id, router),
-    options: { pack: entry.id, packStrategy: entry.strategy, packOptions: fullOptions(entry), router },
+    strategy: pairId(id, router),
+    options: { pack: id, packStrategy: entry.strategy, packOptions: fullOptions(entry), router, ...extra },
     corpus: options.corpus ?? "joint-v1",
     seed,
     ...(options.env === undefined ? {} : { env: options.env }),
     ...(options.commit === undefined ? {} : { commit: options.commit }),
   });
-  const skippedRecord = (entry: PackEntry, router: string, reason: string): LayoutRecord =>
-    toLayoutRecord(input, { ...factsOf(entry, router), measures: {}, hard: {}, deterministic: true, ms: 0, skipped: reason });
+  const skippedRecord = (entry: PackEntry, router: string, reason: string, id?: string, extra?: Readonly<Record<string, unknown>>): LayoutRecord =>
+    toLayoutRecord(input, { ...factsOf(entry, router, id, extra), measures: {}, hard: {}, deterministic: true, ms: 0, skipped: reason });
 
-  for (const entry of packs) {
-    const run = packOnce(entry, packInput, cell, seed, now);
-    if (!run.ok) {
-      for (const router of routers) records.push(skippedRecord(entry, router, run.reason));
-      continue;
-    }
+  /** This function gives the shared group of a pack output: the packed input, its graph and its routes. Pack outputs with the same hash share one group. */
+  const groupOf = (run: Extract<PackRun, { ok: true }>, packId: string): PackGroup => {
     const key = `${run.hash}:${JSON.stringify(run.output.moved)}`;
     let group = shared.get(key);
     if (group === undefined) {
       const t0 = now();
-      const packed = packedInput(input, run.output, entry.id);
+      const packed = packedInput(input, run.output, packId);
       const boxes: readonly LayoutBox[] = packed.input.boxes;
       const edges: readonly LayoutEdge[] = packed.input.edges ?? [];
       const graph = inputGraph(packed.input as unknown as Parameters<typeof inputGraph>[0]);
       const facts = placementFacts(boxes, edges);
-      group = { packed, facts, graph, check: routeFacts(graph), routes: new Map(), placementMs: now() - t0 };
+      group = { packed, facts, graph, check: routeFacts(graph), routes: new Map(), plain: new Map(), placementMs: now() - t0 };
       shared.set(key, group);
     }
-    const g = group;
-    const routeOf = (name: string): RouteRun | RouteMiss => {
-      let r = g.routes.get(name);
-      if (r === undefined) {
-        r = routeOnce(name, g.graph, g.check, g.packed.input.id, repeat, now);
-        g.routes.set(name, r);
-      }
-      return r;
-    };
+    return group;
+  };
+  const routeOf = (g: PackGroup, name: string): RouteRun | RouteMiss => {
+    let r = g.routes.get(name);
+    if (r === undefined) {
+      r = routeOnce(name, g.graph, g.check, g.packed.input.id, repeat, now);
+      g.routes.set(name, r);
+    }
+    return r;
+  };
+  /** This function gives the routes of one router on a group without the measures: the routes of `routeOf` when they exist, else one plain route. */
+  const plainOf = (g: PackGroup, name: string): PlainRoute | RouteMiss => {
+    const full = g.routes.get(name);
+    if (full !== undefined) return full.ok ? { ok: true, routes: full.result.routes, ms: full.ms } : full;
+    let r = g.plain.get(name);
+    if (r === undefined) {
+      r = plainRoute(name, g.graph, now);
+      g.plain.set(name, r);
+    }
+    return r;
+  };
+  const recordOf = (
+    entry: PackEntry,
+    router: string,
+    run: Extract<PackRun, { ok: true }>,
+    g: PackGroup,
+    route: RouteRun,
+    packMs: number,
+    totalMs: number,
+    deterministic: boolean,
+    id?: string,
+    extra?: Readonly<Record<string, unknown>>,
+    more: Readonly<Record<string, number>> = {},
+  ): LayoutRecord => {
+    const t0 = now();
+    const joint = jointMeasures(g.facts, route.result.routes, edgeCount - g.packed.dropped, target);
+    const jointMs = now() - t0;
+    const measures = finite({
+      ...run.measures,
+      "pack.ms": packMs,
+      ...route.measures,
+      ...joint,
+      "joint.overflow.edges": g.packed.dropped,
+      "joint.routes": route.result.routes.length,
+      "joint.ms": totalMs,
+      ...route.times,
+      "time.placement.ms": g.placementMs,
+      "time.joint.ms": jointMs,
+      ...more,
+    });
+    return toLayoutRecord(input, {
+      ...factsOf(entry, router, id, extra),
+      measures,
+      hard: { ...run.hard, ...route.hard },
+      deterministic,
+      ms: totalMs,
+      outputHash: jointHash(run.hash, route.hash),
+    });
+  };
+
+  for (const entry of packs) {
+    const run = packOnce(entry, packInput, cell, seed, now);
+    packRuns.set(entry.id, run);
+    if (!run.ok) {
+      for (const router of routers) records.push(skippedRecord(entry, router, run.reason));
+      continue;
+    }
+    const g = groupOf(run, entry.id);
     for (const router of routers) {
-      const route = routeOf(router);
+      const route = routeOf(g, router);
       if (!route.ok) {
         records.push(skippedRecord(entry, router, route.reason));
         continue;
       }
-      const t0 = now();
-      const joint = jointMeasures(g.facts, route.result.routes, edgeCount - g.packed.dropped, target);
-      const jointMs = now() - t0;
-      const ms = run.ms + route.ms;
-      const measures = finite({
-        ...run.measures,
-        "pack.ms": run.ms,
-        ...route.measures,
-        ...joint,
-        "joint.overflow.edges": g.packed.dropped,
-        "joint.routes": route.result.routes.length,
-        "joint.ms": ms,
-        ...route.times,
-        "time.placement.ms": g.placementMs,
-        "time.joint.ms": jointMs,
-      });
-      records.push(
-        toLayoutRecord(input, {
-          ...factsOf(entry, router),
-          measures,
-          hard: { ...run.hard, ...route.hard },
-          deterministic: run.deterministic && route.deterministic,
-          ms,
-          outputHash: jointHash(run.hash, route.hash),
-        }),
-      );
+      records.push(recordOf(entry, router, run, g, route, run.ms, run.ms + route.ms, run.deterministic && route.deterministic));
     }
   }
+
+  const laneOpts: Required<LaneOptions> = {
+    clearance: options.laneOptions?.clearance ?? LANE_CLEARANCE,
+    space: options.laneOptions?.space ?? LANE_SPACE,
+    cap: options.laneOptions?.cap ?? LANE_CAP,
+  };
+  const gap = input.gap ?? 0;
+  for (const lane of options.lanes ?? []) {
+    const entry = packs.find((p) => p.id === lane.pack) ?? PACK_ENTRIES.find((p) => p.id === lane.pack);
+    if (entry === undefined) throw new RangeError(`There is no pack entry "${lane.pack}" for the lane pair "${lane.id}".`);
+    const extra = { lanes: { variant: lane.variant.name, mode: lane.variant.mode, passes: lane.variant.passes, base: pairId(lane.pack, lane.router), ...laneOpts } };
+    const skip = (reason: string): void => void records.push(skippedRecord(entry, lane.router, reason, lane.id, extra));
+    let run = packRuns.get(lane.pack) ?? packOnce(entry, packInput, cell, seed, now);
+    packRuns.set(lane.pack, run);
+    if (!run.ok) {
+      skip(run.reason);
+      continue;
+    }
+    let g = groupOf(run, entry.id);
+    let routes = plainOf(g, lane.router);
+    if (!routes.ok) {
+      skip(routes.reason);
+      continue;
+    }
+    // The first pass is the base pair: its pack time and its route time count in the time of the lane pair.
+    let packMs = run.ms;
+    let totalMs = run.ms + routes.ms;
+    let deterministic = run.deterministic;
+    let laneMs = 0;
+    let boxes: readonly LayoutBox[] = input.boxes;
+    const ids = new Set(input.boxes.map((b) => b.id));
+    let t0 = now();
+    const first = sideLanes(g.graph, routes.routes, ids, laneOpts);
+    laneMs += now() - t0;
+    let lanes = first;
+    let failed: string | undefined;
+    let final: RouteRun | undefined;
+    for (let pass = 1; pass <= lane.variant.passes; pass++) {
+      if (pass > 1) {
+        t0 = now();
+        lanes = sideLanes(g.graph, routes.routes, ids, laneOpts);
+        laneMs += now() - t0;
+      }
+      boxes = laneMargins(boxes, run.output.placements, lanes, gap, lane.variant.mode, laneOpts);
+      const next = packInputOf({ ...input, boxes });
+      run = packOnce(entry, next, cell, seed, now, packInput);
+      if (!run.ok) {
+        failed = run.reason;
+        break;
+      }
+      packMs += run.ms;
+      deterministic &&= run.deterministic;
+      g = groupOf(run, lane.id);
+      if (pass < lane.variant.passes) {
+        routes = plainOf(g, lane.router);
+        if (!routes.ok) {
+          failed = routes.reason;
+          break;
+        }
+        totalMs += run.ms + routes.ms;
+      } else {
+        const route = routeOf(g, lane.router);
+        if (!route.ok) {
+          failed = route.reason;
+          break;
+        }
+        totalMs += run.ms + route.ms;
+        deterministic &&= route.deterministic;
+        final = route;
+      }
+    }
+    if (failed !== undefined || final === undefined || !run.ok) {
+      skip(failed ?? "error: the lane pair has no final route");
+      continue;
+    }
+    t0 = now();
+    const last = sideLanes(g.graph, final.result.routes, ids, laneOpts);
+    laneMs += now() - t0;
+    const more = {
+      "lanes.short.base": shortSides(first, laneOpts),
+      "lanes.short": shortSides(last, laneOpts),
+      "lanes.max.base": maxLanes(first),
+      "lanes.max": maxLanes(last),
+      "lanes.margin": marginGrowth(input.boxes, boxes),
+      "time.lanes.ms": laneMs,
+    };
+    records.push(recordOf(entry, lane.router, run, g, final, packMs, totalMs, deterministic, lane.id, extra, more));
+  }
   return records;
+}
+
+/** The shared facts of one pack output: the packed input, its graph and the routes of each router. Pack entries with the same output share them. */
+interface PackGroup {
+  readonly packed: PackedInput;
+  readonly facts: PlacementFacts;
+  readonly graph: Graph;
+  readonly check: (result: Result) => PortfolioFacts;
+  /** The routes of `routeOnce`, with the measures, by router. */
+  readonly routes: Map<string, RouteRun | RouteMiss>;
+  /** The plain routes of the passes of a lane pair before its last pass, by router. */
+  readonly plain: Map<string, PlainRoute | RouteMiss>;
+  readonly placementMs: number;
+}
+
+/** The routes of one router without the measures, for a pass of a lane pair before its last pass. */
+interface PlainRoute {
+  readonly ok: true;
+  readonly routes: readonly Result["routes"][number][];
+  readonly ms: number;
+}
+
+/** This function routes one graph one time with one router, without the measures. */
+function plainRoute(name: string, graph: Graph, now: () => number): PlainRoute | RouteMiss {
+  const router = routerOf(name);
+  if (graph.nodes.length > (router.maxNodes ?? Infinity)) return { ok: false, reason: `The graph has ${graph.nodes.length} nodes, above the limit ${router.maxNodes} of the router.` };
+  try {
+    const t0 = now();
+    const result = router.route(graph);
+    return { ok: true, routes: result.routes, ms: now() - t0 };
+  } catch (e) {
+    return { ok: false, reason: `error: ${messageOf(e)}` };
+  }
 }
 
 /** This function gives the inputs of one shard: each input whose place in the list, modulo `shards`, is `shard`. */

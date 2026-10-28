@@ -2,11 +2,12 @@
 //
 //   check [--corpus <set>]                                                  examines the claims of the committed manifest and its split file
 //   smoke [--corpus <set>]                                                  packs and routes 1 input of each value of spacing with corners
-//   run --shards <n> --shard <i> --out <dir> [--slice pr] [--corpus <set>]   writes <dir>/records-<i>.jsonl
-//   plan --shards <n> [--slice pr] [--corpus <set>]                           prints the planned cost of each shard
+//   run --shards <n> --shard <i> --out <dir> [--slice pr] [--corpus <set>] [--lanes on]   writes <dir>/records-<i>.jsonl
+//   plan --shards <n> [--slice pr] [--corpus <set>] [--lanes on]                           prints the planned cost of each shard
 //   analyze --records <dir> --out <dir> [--slice pr] [--corpus <set>] [--allow-missing <file>] [--subset <file>] [--baseline <pair[,pair]>]
 //           [--compare <a:b[,a:b]>] [--exclude-pack <id[,id]>] [--oracle-without <id[,id]>] [--times <spec[,spec]>] [--jobs <file>] [--rank-top <n>]
 //                                                                            writes <dir>/report.json and <dir>/report.md
+//                                                                            with lane pairs, also <dir>/report-without-lanes.json and .md
 //
 // The corpus is `joint-v2` by default. The slice `pr` is the small slice of the pull request: seed 1 of the specs with count 10 and of the fixed cases.
 // The shards get the inputs by their planned cost (`plannedCost`, `planShards`). Each shard job computes the same plan.
@@ -18,6 +19,8 @@
 // `--times` gives the route times of the specs. The default is `DENSE_HUBS`. `--jobs` reads the output of `gh run view <id> --json jobs` and gives the shard times.
 // `--rank-top` is the count of the rows of the ranking of the output groups in report.md. The default is `RANK_TOP`. report.json holds each group.
 // The value `none` removes the default of `--baseline`, `--compare`, `--oracle-without` and `--times`.
+// `--lanes on` adds the lane pairs of L13 (`laneEntries`) to run and to plan. The default is off.
+// With the records of lane pairs, analyze compares each lane pair with its base pair, and the default of `--oracle-without` is the lane entries.
 // analyze reads the folds of the greedy portfolios from the split "default" of the split file of the corpus (corpus/splits).
 // analyze fails when an input of the manifest has no records, unless the file of `--allow-missing` lists it. The files list one input id on each line.
 import { appendFileSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
@@ -29,7 +32,11 @@ import {
   DENSE_HUBS,
   checkCorpus,
   idList,
+  isLanePack,
   jointCorpus,
+  laneEntries,
+  laneParts,
+  lanePlanPairs,
   loadSplit,
   manifestJson,
   PACK_ENTRIES,
@@ -55,6 +62,9 @@ const args = {};
 for (let i = 0; i < rest.length; i += 2) args[rest[i].replace(/^--/, "")] = rest[i + 1];
 const set = args.corpus ?? SET_V2;
 if (!SETS.includes(set)) throw new RangeError(`The corpus is one of ${SETS.join(", ")}, not "${set}".`);
+// The lane pairs of L13 run only with `--lanes on`. Thus the default plan and the default records do not change.
+if (args.lanes !== undefined && args.lanes !== "on" && args.lanes !== "off") throw new RangeError(`The option --lanes is on or off, not "${args.lanes}".`);
+const lanes = args.lanes === "on" ? laneEntries() : [];
 
 /** This function gives the inputs and their manifest entries, in the order of the corpus, for the slice of the arguments. */
 function corpusSlice() {
@@ -69,7 +79,7 @@ function corpusSlice() {
 function shardPlan() {
   const shards = Number(args.shards ?? 1);
   const rows = corpusSlice();
-  const pairs = PACK_ENTRIES.length * ROUTERS.length;
+  const pairs = PACK_ENTRIES.length * ROUTERS.length + lanePlanPairs(lanes);
   const items = rows.map(({ input, entry }) => {
     const spec = entry.id.replace(/\/s\d+$/, "");
     return { id: entry.id, spec, cost: plannedCost(spec, input.boxes.length, input.edges?.length ?? 0, pairs) };
@@ -161,7 +171,7 @@ if (command === "check") {
   console.log(`${set} shard ${shard} of ${shards}: ${rows.length} inputs, ${(plan.loads[shard] / 60000).toFixed(1)} predicted minutes`);
   for (const { input, entry } of rows) {
     const t0 = performance.now();
-    const records = runInput(input, entry.cell, { env, corpus: set, ...(commit === undefined ? {} : { commit }) });
+    const records = runInput(input, entry.cell, { env, corpus: set, lanes, ...(commit === undefined ? {} : { commit }) });
     appendFileSync(file, records.map((r) => JSON.stringify(r) + "\n").join(""));
     const skipped = records.filter((r) => r.skipped !== undefined).length;
     console.log(`${input.id}: ${records.length} records, ${skipped} skipped, ${Math.round(performance.now() - t0)} ms`);
@@ -189,12 +199,21 @@ if (command === "check") {
   const hasSelect = !exclude.includes(SELECT_PACK) && records.some((r) => packOf(r.strategy) === SELECT_PACK);
   const selectPortfolio = pairId(SELECT_PACK, PORTFOLIO_ROUTER);
   const baselines = list(args.baseline) ?? [BASELINE, ...(hasPair(selectPortfolio) ? [selectPortfolio] : [])];
-  const compare = (list(args.compare) ?? (hasPair(selectPortfolio) && hasPair(BASELINE) ? [`${selectPortfolio}:${BASELINE}`] : [])).map((c) => {
+  // The lane pairs of L13: each lane pair against its base pair, the pair of the same pack entry and router.
+  const lanePairs = [...new Set(records.map((r) => r.strategy))].filter((p) => isLanePack(packOf(p)) && hasPair(p)).sort();
+  const laneCompare = lanePairs.flatMap((p) => {
+    const parts = laneParts(packOf(p));
+    const base = parts === undefined ? undefined : pairId(parts.pack, parts.router);
+    return base !== undefined && hasPair(base) ? [`${p}:${base}`] : [];
+  });
+  const defaultCompare = [...(hasPair(selectPortfolio) && hasPair(BASELINE) ? [`${selectPortfolio}:${BASELINE}`] : []), ...laneCompare];
+  const compare = (list(args.compare) ?? defaultCompare).map((c) => {
     const pair = c.split(":");
     if (pair.length !== 2) throw new RangeError(`A comparison is two pairs with a colon, for example ${selectPortfolio}:${BASELINE}, not "${c}".`);
     return pair;
   });
-  const without = list(args["oracle-without"]) ?? (hasSelect ? [SELECT_PACK] : []);
+  const lanePacks = [...new Set(lanePairs.map(packOf))];
+  const without = list(args["oracle-without"]) ?? (lanePacks.length > 0 ? lanePacks : hasSelect ? [SELECT_PACK] : []);
   const times = list(args.times) ?? (inputs.some((i) => i.spec === DENSE_HUBS) ? [DENSE_HUBS] : []);
   // The check of select reads all records, also with --exclude-pack select.
   const composite = records.some((r) => packOf(r.strategy) === SELECT_PACK)
@@ -204,7 +223,7 @@ if (command === "check") {
   if (args.jobs !== undefined && !Array.isArray(jobs)) throw new RangeError(`${args.jobs} has no list "jobs". Write it with gh run view <id> --json jobs.`);
   const rankTop = Number(args["rank-top"] ?? RANK_TOP);
   if (!(Number.isInteger(rankTop) && rankTop >= 0)) throw new RangeError(`The option --rank-top is an integer of 0 or more, not ${args["rank-top"]}.`);
-  const report = analyze(records, inputs, {
+  const options = {
     // The job check examines that the committed manifest is the manifest of the code.
     folds: loadSplit(JSON.parse(readFileSync(join(dirname(fileURLToPath(import.meta.url)), "..", "corpus", set, "corpus.json"), "utf8"))),
     predictions: set === SET_V2 ? "joint-v2" : "joint-v1",
@@ -217,11 +236,24 @@ if (command === "check") {
     ...(times.length === 0 ? {} : { times }),
     ...(composite === undefined ? {} : { composite }),
     ...(jobs === undefined ? {} : { jobs }),
-  });
+  };
+  const report = analyze(records, inputs, options);
   mkdirSync(out, { recursive: true });
   writeFileSync(join(out, "report.json"), JSON.stringify(report, null, 2) + "\n");
   const markdown = reportMarkdown(report, { rankTop });
   writeFileSync(join(out, "report.md"), `Corpus: ${set}.\n\n` + markdown);
+  // The lane pairs move the floor. The second report removes them, so the misses of the other pairs compare with the runs before L13.
+  if (lanePacks.length > 0) {
+    const { compare: _compare, without: _without, ...rest } = options;
+    const old = analyze(records, inputs, {
+      ...rest,
+      excludePacks: [...exclude, ...lanePacks],
+      ...(hasPair(selectPortfolio) && hasPair(BASELINE) ? { compare: [[selectPortfolio, BASELINE]] } : {}),
+      ...(hasSelect ? { without: [SELECT_PACK] } : {}),
+    });
+    writeFileSync(join(out, "report-without-lanes.json"), JSON.stringify(old, null, 2) + "\n");
+    writeFileSync(join(out, "report-without-lanes.md"), `Corpus: ${set}, without the lane pairs.\n\n` + reportMarkdown(old, { rankTop }));
+  }
   console.log(markdown);
   const n = report.count;
   if (!n.ok) {

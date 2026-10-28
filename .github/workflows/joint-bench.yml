@@ -9,6 +9,7 @@
 # Each report gives the gains over the baseline pair rows+portfolio (L10). With the records of select, it gives the numbers of the claims of L32.
 # The jobs analyze and reanalyze read the jobs of the run with one call of gh run view. The report then gives the time of each shard.
 # A manual run with the input records-run does not run the benchmark. The job reanalyze downloads the records of that earlier run and analyzes them.
+# A manual run with the input lanes adds the lane pairs of L13 to each shard. The default plan does not change.
 # Only the times of these jobs count. The benchmark does not run on a local computer.
 name: Joint bench
 
@@ -28,6 +29,10 @@ on:
         description: "The id of an earlier full run. With it, only the job reanalyze runs, on the records of that run."
         type: string
         default: ""
+      lanes:
+        description: "Add the lane pairs of L13 (routing-aware gaps) to the run."
+        type: boolean
+        default: false
   pull_request:
     types: [opened, synchronize, reopened, labeled]
 
@@ -130,7 +135,8 @@ jobs:
           COUNT: ${{ needs.plan.outputs.count }}
           SLICE: ${{ needs.plan.outputs.slice }}
           CORPUS: ${{ needs.plan.outputs.corpus }}
-        run: node scripts/bench.mjs run --corpus "$CORPUS" --shards "$COUNT" --shard "$SHARD" --out records ${SLICE:+--slice "$SLICE"}
+          LANES: ${{ inputs.lanes && 'on' || '' }}
+        run: node scripts/bench.mjs run --corpus "$CORPUS" --shards "$COUNT" --shard "$SHARD" --out records ${SLICE:+--slice "$SLICE"} ${LANES:+--lanes on}
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         if: ${{ !cancelled() }}
         with:

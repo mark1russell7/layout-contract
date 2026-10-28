@@ -12,7 +12,8 @@ import {
   type SplitFold,
 } from "@mark1russell7/layout-contract";
 import { recordCount, type RecordCount } from "./record-count.ts";
-import { CAPS, PAIR_SEPARATOR, ROUTERS } from "./runner.ts";
+import { CAPS, PAIR_SEPARATOR, pairId, ROUTERS } from "./runner.ts";
+import { isLanePack, laneParts } from "./lanes.ts";
 
 /** The facts of one input that the analysis reads. The CLI gives them from the manifest of the corpus. */
 export interface AnalysisInput {
@@ -490,6 +491,109 @@ export interface Report {
   readonly times?: readonly SpecTimes[];
   /** The times of the shard jobs of `AnalysisOptions.jobs`. */
   readonly shardTimes?: ShardTimes;
+  /** Each lane pair of L13 against its base pair, outside and in the stress cell. It is absent when the records have no lane pair. */
+  readonly lanes?: readonly LaneRow[];
+}
+
+/** The means of one pair over the inputs of a row of `LaneRow`. */
+export interface LaneSide {
+  /** The count of the records with one break of `no-pass-through` or more. */
+  readonly broken: number;
+  /** The sum of the breaks of `no-pass-through`. */
+  readonly breaks: number;
+  /** The count of the records with overflow. */
+  readonly overflowing: number;
+  /** The mean `joint.fill`. */
+  readonly fill: number;
+  /** The mean `pack.fill`. */
+  readonly packFill: number;
+  /** The mean `pack.overflow.excessArea`. */
+  readonly excess: number;
+  /** The mean `joint.ms`, in milliseconds. */
+  readonly ms: number;
+}
+
+/** One lane pair against its base pair, the pair of the same pack entry and router, on the inputs where both have a record. */
+export interface LaneRow {
+  readonly pair: string;
+  readonly base: string;
+  /** `headline`: the inputs outside the stress cell. `stress`: the stress inputs. */
+  readonly scope: "headline" | "stress";
+  readonly inputs: number;
+  /** The count of the inputs where the base pair has a record, and the lane pair has no record or a skipped record. A skipped base record does not count. */
+  readonly skipped: number;
+  /** The count of the inputs where the lane pair has the output hash of the base pair. */
+  readonly same: number;
+  readonly lane: LaneSide;
+  readonly baseSide: LaneSide;
+  /** The mean count of the sides that are too narrow for their lanes, in the layout of the base pair (`lanes.short.base`). */
+  readonly shortBase: number;
+  /** The mean count of the sides that are too narrow for their lanes, in the layout of the lane pair (`lanes.short`). */
+  readonly short: number;
+  /** The mean growth of the margins of the lane pair, in units (`lanes.margin`). */
+  readonly margin: number;
+}
+
+/** This function gives the means of one pair over a list of records. */
+function laneSide(list: readonly LayoutRecord[]): LaneSide {
+  const m = (key: string): number => mean(list.map((r) => r.measures[key] ?? 0));
+  const breaks = list.map((r) => r.hard["route.no-pass-through"] ?? 0);
+  return {
+    broken: breaks.filter((n) => n > 0).length,
+    breaks: breaks.reduce((s, n) => s + n, 0),
+    overflowing: list.filter((r) => (r.measures["pack.overflow"] ?? 0) > 0).length,
+    fill: m("joint.fill"),
+    packFill: m("pack.fill"),
+    excess: m("pack.overflow.excessArea"),
+    ms: m("joint.ms"),
+  };
+}
+
+/** This function gives each lane pair against its base pair, outside and in the stress cell. A skipped record does not count. */
+export function laneRows(records: readonly LayoutRecord[], inputs: readonly AnalysisInput[]): LaneRow[] {
+  const at = new Map<string, Map<string, LayoutRecord>>();
+  for (const r of records) {
+    if (r.skipped !== undefined) continue;
+    const m = at.get(r.input) ?? new Map<string, LayoutRecord>();
+    m.set(r.strategy, r);
+    at.set(r.input, m);
+  }
+  const pairs = [...new Set(records.map((r) => r.strategy))].filter((p) => isLanePack(packOf(p))).sort();
+  const rows: LaneRow[] = [];
+  for (const pair of pairs) {
+    const parts = laneParts(packOf(pair));
+    if (parts === undefined) continue;
+    const base = pairId(parts.pack, parts.router);
+    for (const scope of ["headline", "stress"] as const) {
+      const lane: LayoutRecord[] = [];
+      const own: LayoutRecord[] = [];
+      let skipped = 0;
+      for (const i of inputs) {
+        if ((i.stress === true) !== (scope === "stress")) continue;
+        const a = at.get(i.id)?.get(pair);
+        const b = at.get(i.id)?.get(base);
+        if (b !== undefined && a === undefined) skipped++;
+        if (a === undefined || b === undefined) continue;
+        lane.push(a);
+        own.push(b);
+      }
+      if (lane.length === 0 && skipped === 0) continue;
+      rows.push({
+        pair,
+        base,
+        scope,
+        inputs: lane.length,
+        skipped,
+        same: lane.filter((r, k) => r.outputHash === own[k]!.outputHash).length,
+        lane: laneSide(lane),
+        baseSide: laneSide(own),
+        shortBase: mean(lane.map((r) => r.measures["lanes.short.base"] ?? 0)),
+        short: mean(lane.map((r) => r.measures["lanes.short"] ?? 0)),
+        margin: mean(lane.map((r) => r.measures["lanes.margin"] ?? 0)),
+      });
+    }
+  }
+  return rows;
 }
 
 /** This function gives the pack entry of a pair id. */
@@ -1006,7 +1110,7 @@ function routerOrder(names: Iterable<string>): string[] {
   return [...new Set(names)].sort((a, b) => rank(a) - rank(b) || (a < b ? -1 : a > b ? 1 : 0));
 }
 
-/** This function gives the median and the maximum `route.ms` of each router on each seed of each spec. A skipped record does not count. */
+/** This function gives the median and the maximum `route.ms` of each router on each seed of each spec. A skipped record and a lane pair do not count. */
 export function routeTimes(records: readonly LayoutRecord[], inputs: readonly AnalysisInput[], specs: readonly string[]): SpecTimes[] {
   return specs.map((spec) => {
     const seeds = inputs.filter((i) => i.spec === spec).sort((a, b) => a.seed - b.seed);
@@ -1016,7 +1120,7 @@ export function routeTimes(records: readonly LayoutRecord[], inputs: readonly An
         const byRouter = new Map<string, number[]>();
         for (const r of records) {
           const ms = r.measures["route.ms"];
-          if (r.input !== input.id || r.skipped !== undefined || typeof ms !== "number") continue;
+          if (r.input !== input.id || r.skipped !== undefined || typeof ms !== "number" || isLanePack(packOf(r.strategy))) continue;
           const router = routerOfPair(r.strategy);
           byRouter.set(router, [...(byRouter.get(router) ?? []), ms]);
         }
@@ -1119,13 +1223,16 @@ function causeOf(record: LayoutRecord): string {
   return "router";
 }
 
-/** This function counts the breaks of `no-pass-through` for each value of spacing and each router. An input with no value has the value `none`. */
+/**
+ * This function counts the breaks of `no-pass-through` for each value of spacing and each router. An input with no value has the value `none`.
+ * The lane pairs do not count. The field `lanes` of the report holds their breaks.
+ */
 export function throughCounts(records: readonly LayoutRecord[], inputs: readonly AnalysisInput[]): ThroughCount[] {
   const spacing = new Map(inputs.map((i) => [i.id, i.cell["spacing"] ?? "none"]));
   const out = new Map<string, { spacing: string; router: string; routed: number; broken: number; breaks: number; causes: Record<string, number> }>();
   for (const r of records) {
     const sp = spacing.get(r.input);
-    if (sp === undefined || r.skipped !== undefined || (r.measures["joint.routes"] ?? 0) <= 0) continue;
+    if (sp === undefined || r.skipped !== undefined || (r.measures["joint.routes"] ?? 0) <= 0 || isLanePack(packOf(r.strategy))) continue;
     const router = routerOfPair(r.strategy);
     const key = `${sp}\u0000${router}`;
     const c = out.get(key) ?? { spacing: sp, router, routed: 0, broken: 0, breaks: 0, causes: {} };
@@ -1142,12 +1249,13 @@ export function throughCounts(records: readonly LayoutRecord[], inputs: readonly
   return [...out.values()].sort((a, b) => (a.spacing < b.spacing ? -1 : a.spacing > b.spacing ? 1 : a.router < b.router ? -1 : a.router > b.router ? 1 : 0));
 }
 
-/** This function gives the mean `pack.fill` of the pack records of each value of spacing. A pack record is the first record of each pack entry on an input. */
+/** This function gives the mean `pack.fill` of the pack records of each value of spacing. A pack record is the first record of each pack entry on an input. The lane pairs do not count. */
 function fillOf(index: RecordIndex, inputs: readonly AnalysisInput[]): Record<string, number> {
   const values = new Map<string, number[]>();
   for (const i of inputs) {
     const sp = i.cell["spacing"] ?? "none";
     for (const r of index.pack.get(i.id)?.values() ?? []) {
+      if (isLanePack(packOf(r.strategy))) continue;
       const v = r.measures["pack.fill"];
       if (typeof v === "number" && Number.isFinite(v)) values.set(sp, [...(values.get(sp) ?? []), v]);
     }
@@ -1315,11 +1423,13 @@ export function analyze(allRecords: readonly LayoutRecord[], allInputs: readonly
     fillBySpacing: fillOf(indexRecords(records.filter((r) => allIds.has(r.input))), allInputs),
   };
   const runRecords = allRecords.filter((r) => allIds.has(r.input));
+  const lanes = laneRows(records, allInputs);
   const extra = {
     ...(exclude.size === 0 ? {} : { excluded: [...exclude] }),
     ...(options.composite === undefined ? {} : { composite: compositeCheck(runRecords, allInputs, options.composite.pack, options.composite.members) }),
     ...(options.times === undefined ? {} : { times: routeTimes(runRecords, allInputs, options.times) }),
     ...(options.jobs === undefined ? {} : { shardTimes: shardTimes(options.jobs) }),
+    ...(lanes.length === 0 ? {} : { lanes }),
   };
   return { ...base, predictions: options.predictions === "joint-v2" ? checkPredictionsV2(base) : checkPredictions(base), ...extra };
 }
@@ -1622,6 +1732,21 @@ export function reportMarkdown(report: Report, options: MarkdownOptions = {}): s
   }
   const fill = Object.entries(report.fillBySpacing);
   if (fill.length > 0) lines.push("", "### The pack fill by spacing", "", fill.map(([k, v]) => `- ${k}: ${f3(v)}`).join("\n"));
+  if (report.lanes !== undefined && report.lanes.length > 0) {
+    lines.push(
+      "",
+      "### The lane pairs",
+      "",
+      "Each lane pair against its base pair, with the value of the base pair in parentheses. Broken: the records with a break of no-pass-through. Short: the mean count of the sides too narrow for their lanes.",
+      "",
+      "| Lane pair | Scope | Inputs | Skipped | Same | Broken | Breaks | Overflow | Joint fill | Pack fill | Short | Margin | ms |",
+      "|---|---|---|---|---|---|---|---|---|---|---|---|---|",
+    );
+    for (const r of report.lanes)
+      lines.push(
+        `| ${r.pair} | ${r.scope} | ${r.inputs} | ${r.skipped} | ${r.same} | ${r.lane.broken} (${r.baseSide.broken}) | ${r.lane.breaks} (${r.baseSide.breaks}) | ${r.lane.overflowing} (${r.baseSide.overflowing}) | ${f3(r.lane.fill)} (${f3(r.baseSide.fill)}) | ${f3(r.lane.packFill)} (${f3(r.baseSide.packFill)}) | ${f3(r.short)} (${f3(r.shortBase)}) | ${f3(r.margin)} | ${Math.round(r.lane.ms)} (${Math.round(r.baseSide.ms)}) |`,
+      );
+  }
   if (report.stress !== undefined) {
     lines.push("", `### The stress cell (${report.stress.inputs} inputs)`, "", "| Rule | Cap | Best pair | Misses | Score | Oracle | Gain | k = 3 share | k = 8 share |", "|---|---|---|---|---|---|---|---|---|");
     for (const c of report.stress.cells) {
