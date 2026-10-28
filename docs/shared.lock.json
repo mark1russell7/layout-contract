@@ -1,0 +1,21 @@
+{
+  "file": "docs/PROMOTION.md",
+  "blocks": {
+    "activation": "a0d70dd5dbcb5d97a963613660341d7676a4d99f9fe98d462bb06effa265d126",
+    "bound-by-count": "7db163918c5ebc220dc9f7faa05553816ee8b0e00db99e1696efc3d6959d6ee6",
+    "classification": "bb7d770b40b2b3e38890dafef578e0526f1a6cd7ac323a86ded1ecedb6ec159a",
+    "confirmation-run": "6833aeed9e5ef9a4f47108efe61f53a5bdeedc06762c1c6536cc619fcc9acf6a",
+    "demotion": "c05c1cae39f2446d47f188f8bd493cdb1147b41b814f6e58c517aedf9ccf03e1",
+    "deterministic-defaults": "65278d752bc4dcac725ad3279f9a8d41e239f44dd9f072a1cab36d4cc79c7d27",
+    "distinctness": "6ca4256351870c9228a1d397f70e11f6ee1a878a86e831f1f388299c23bb3a80",
+    "floor-rule": "d2e91dca77d81b19195901ada9213a190afbc17939d37f08bc5639add87dd8f0",
+    "joint-selector": "514400a3eeb0eb370d355c1c9edb6f5ce4240f7e78fb0e10c89dc27c8cd68633",
+    "noise-guard": "d97d587c9cc04f2b86ddc841a4fb10bf939f30ebcf0b647a5fc00ace374c333d",
+    "order-of-promotions": "eec7c8ea7aad268852aba977a282cd543f7332db90d469c7d90d0122a7369ae2",
+    "output-hash": "5843260398a7f0588156b9344b8e8a016a60aae977b0fc9310a5e2776d232d22",
+    "paired-ratio": "ba1300b44524d9b3265decca67f0f1b0c0c3568e91375879c8cc4e4a50450e33",
+    "parameters": "b5c6f3d155c4dc46a55c96a558609cac7ad9203aad16a32fd29b5f25e906125d",
+    "selector": "e02471b951bcf3dd3f64ed627c9e0c1e3938830bb2c3ca64bde9f0f5fb15f28c",
+    "win-test": "13ab872f355e116ca11801c15280f85191a2da65e35308aa380884f161b0c831"
+  }
+}
