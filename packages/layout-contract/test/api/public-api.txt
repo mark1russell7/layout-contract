@@ -4,7 +4,7 @@
 # and private members. The command `api-report check` compares this file with the built .d.ts files.
 # To accept a change of the API, start the build, then `api-report update`, and review the diff.
 
-## . (build/index.d.ts): 114 names
+## . (build/index.d.ts): 142 names
 
 ClaimBreak: build/index.d.ts#ClaimBreak
 ContainerTest: build/index.d.ts#ContainerTest
@@ -19,7 +19,9 @@ EDGE_STEP_VERSION: build/index.d.ts#EDGE_STEP_VERSION
 EPS: build/index.d.ts#EPS
 EdgeShape: build/index.d.ts#EdgeShape
 EdgeStepParams: build/index.d.ts#EdgeStepParams
+EnumerateOptions: build/index.d.ts#EnumerateOptions
 ExerciseEvidence: build/index.d.ts#ExerciseEvidence
+GridOptions: build/index.d.ts#GridOptions
 HashOptions: build/index.d.ts#HashOptions
 Item: build/index.d.ts#Item
 JOINT_MEASURES: build/index.d.ts#JOINT_MEASURES
@@ -35,13 +37,18 @@ LayoutRecord: build/index.d.ts#LayoutRecord
 Margin: build/index.d.ts#Margin
 MeasureSpec: build/index.d.ts#MeasureSpec
 Member: build/index.d.ts#Member
+MemberRule: build/index.d.ts#MemberRule
 MemberStatus: build/index.d.ts#MemberStatus
 MemberTrace: build/index.d.ts#MemberTrace
 Obstacle: build/index.d.ts#Obstacle
+OptionRef: build/index.d.ts#OptionRef
 OutputGroup: build/index.d.ts#OutputGroup
 PackHard: build/index.d.ts#PackHard
 PackInput: build/index.d.ts#PackInput
 PackOutput: build/index.d.ts#PackOutput
+ParamKind: build/index.d.ts#ParamKind
+ParamValue: build/index.d.ts#ParamValue
+ParamWhen: build/index.d.ts#ParamWhen
 PickSpec: build/index.d.ts#PickSpec
 Placement: build/index.d.ts#Placement
 Point: build/index.d.ts#Point
@@ -60,26 +67,41 @@ RunEnv: build/index.d.ts#RunEnv
 RunFacts: build/index.d.ts#RunFacts
 SIDES: build/index.d.ts#SIDES
 SPLIT_SCHEMA: build/index.d.ts#SPLIT_SCHEMA
+STRATEGY_SPACE_SCHEMA: build/index.d.ts#STRATEGY_SPACE_SCHEMA
+SampleOptions: build/index.d.ts#SampleOptions
 SelectCandidate: build/index.d.ts#SelectCandidate
 SelectLevel: build/index.d.ts#SelectLevel
 Selection: build/index.d.ts#Selection
 Side: build/index.d.ts#Side
 Sides: build/index.d.ts#Sides
+SpaceConstraint: build/index.d.ts#SpaceConstraint
+SpaceParam: build/index.d.ts#SpaceParam
+SpaceSize: build/index.d.ts#SpaceSize
+SpaceSizeOptions: build/index.d.ts#SpaceSizeOptions
+SpaceStage: build/index.d.ts#SpaceStage
 SplitCorpus: build/index.d.ts#SplitCorpus
 SplitFold: build/index.d.ts#SplitFold
 Stage: build/index.d.ts#Stage
+StageChoice: build/index.d.ts#StageChoice
+StageOption: build/index.d.ts#StageOption
 StageTrace: build/index.d.ts#StageTrace
+StrategyConfig: build/index.d.ts#StrategyConfig
 StrategyInfo: build/index.d.ts#StrategyInfo
+StrategySpace: build/index.d.ts#StrategySpace
 Supports: build/index.d.ts#Supports
 Tolerance: build/index.d.ts#Tolerance
 Verdict: build/index.d.ts#Verdict
 applyPack: build/index.d.ts#applyPack
 boundsOf: build/index.d.ts#boundsOf
+canonicalConfig: build/index.d.ts#canonicalConfig
 canonicalJson: build/index.d.ts#canonicalJson
+checkConfig: build/index.d.ts#checkConfig
 checkDeclared: build/index.d.ts#checkDeclared
 checkInput: build/index.d.ts#checkInput
+checkSpace: build/index.d.ts#checkSpace
 checkSplit: build/index.d.ts#checkSplit
 compareMeasure: build/index.d.ts#compareMeasure
+configId: build/index.d.ts#configId
 corpusHashOf: build/index.d.ts#corpusHashOf
 countObstacleHits: build/index.d.ts#countObstacleHits
 countOutside: build/index.d.ts#countOutside
@@ -89,9 +111,11 @@ declaredClaimOf: build/index.d.ts#declaredClaimOf
 declaredCounts: build/index.d.ts#declaredCounts
 documentHash: build/index.d.ts#documentHash
 edgeStep: build/index.d.ts#edgeStep
+enumerateSpace: build/index.d.ts#enumerateSpace
 exercised: build/index.d.ts#exercised
 fnv1a32: build/index.d.ts#fnv1a32
 grow: build/index.d.ts#grow
+joinConfigs: build/index.d.ts#joinConfigs
 leaveOneSeedOut: build/index.d.ts#leaveOneSeedOut
 marginSides: build/index.d.ts#marginSides
 minEffectOf: build/index.d.ts#minEffectOf
@@ -100,14 +124,18 @@ outputGroups: build/index.d.ts#outputGroups
 outputHash: build/index.d.ts#outputHash
 overlapOf: build/index.d.ts#overlapOf
 packHard: build/index.d.ts#packHard
+paramLevels: build/index.d.ts#paramLevels
 pickMoves: build/index.d.ts#pickMoves
 placedRect: build/index.d.ts#placedRect
 portfolio: build/index.d.ts#portfolio
+productSpace: build/index.d.ts#productSpace
 randomInt: build/index.d.ts#randomInt
 rectInRegion: build/index.d.ts#rectInRegion
 regionHitsRect: build/index.d.ts#regionHitsRect
 selectBest: build/index.d.ts#selectBest
 sha256Hex: build/index.d.ts#sha256Hex
+spaceSize: build/index.d.ts#spaceSize
+splitConfig: build/index.d.ts#splitConfig
 splitFileName: build/index.d.ts#splitFileName
 splitFolds: build/index.d.ts#splitFolds
 stepRandom: build/index.d.ts#stepRandom
@@ -188,11 +216,21 @@ export interface EdgeStepParams {
   readonly hubBy?: "area" | "random";
 }
 
+### build/index.d.ts#EnumerateOptions
+export type EnumerateOptions = GridOptions | SampleOptions;
+
 ### build/index.d.ts#ExerciseEvidence
 export interface ExerciseEvidence {
   readonly moves?: Readonly<Record<string, number>>;
   readonly hashes?: readonly string[];
   readonly baseHashes?: readonly string[];
+}
+
+### build/index.d.ts#GridOptions
+export interface GridOptions {
+  readonly mode: "grid";
+  readonly levels: number;
+  readonly limit?: number;
 }
 
 ### build/index.d.ts#HashOptions
@@ -347,6 +385,13 @@ export interface Member<I, O> {
   run(input: I): O;
 }
 
+### build/index.d.ts#MemberRule
+export interface MemberRule {
+  readonly min: number;
+  readonly max: number;
+  readonly ordered: boolean;
+}
+
 ### build/index.d.ts#MemberStatus
 export type MemberStatus = "ran" | "cut" | "error";
 
@@ -367,6 +412,12 @@ export interface Obstacle {
   readonly move?: {
     readonly cost: number;
   };
+}
+
+### build/index.d.ts#OptionRef
+export interface OptionRef {
+  readonly stage: string;
+  readonly option: string | null;
 }
 
 ### build/index.d.ts#OutputGroup
@@ -405,6 +456,18 @@ export interface PackOutput {
     readonly y: number;
   }[];
   readonly trace?: readonly StageTrace[];
+}
+
+### build/index.d.ts#ParamKind
+export type ParamKind = "int" | "real" | "enum" | "bool";
+
+### build/index.d.ts#ParamValue
+export type ParamValue = number | string | boolean;
+
+### build/index.d.ts#ParamWhen
+export interface ParamWhen {
+  readonly param: string;
+  readonly in: readonly ParamValue[];
 }
 
 ### build/index.d.ts#PickSpec
@@ -537,6 +600,18 @@ export declare const SIDES: readonly Side[];
 ### build/index.d.ts#SPLIT_SCHEMA
 export declare const SPLIT_SCHEMA = "corpus-split/1";
 
+### build/index.d.ts#STRATEGY_SPACE_SCHEMA
+export declare const STRATEGY_SPACE_SCHEMA = "strategy-space/1";
+
+### build/index.d.ts#SampleOptions
+export interface SampleOptions {
+  readonly mode: "sample";
+  readonly n: number;
+  readonly seed: number;
+  readonly meta?: "skip" | "sample";
+  readonly maxTries?: number;
+}
+
 ### build/index.d.ts#SelectCandidate
 export interface SelectCandidate {
   readonly id: string;
@@ -566,6 +641,46 @@ export interface Sides {
   readonly left: number;
 }
 
+### build/index.d.ts#SpaceConstraint
+export interface SpaceConstraint {
+  readonly if: OptionRef;
+  readonly then: OptionRef | {
+    readonly not: OptionRef;
+  };
+}
+
+### build/index.d.ts#SpaceParam
+export interface SpaceParam {
+  readonly name: string;
+  readonly kind: ParamKind;
+  readonly min?: number;
+  readonly max?: number;
+  readonly step?: number;
+  readonly scale?: "linear" | "log";
+  readonly values?: readonly (string | number)[];
+  readonly default: ParamValue;
+  readonly when?: ParamWhen;
+}
+
+### build/index.d.ts#SpaceSize
+export interface SpaceSize {
+  readonly base: bigint;
+  readonly meta: bigint | null;
+}
+
+### build/index.d.ts#SpaceSizeOptions
+export interface SpaceSizeOptions {
+  readonly levels: number;
+  readonly maxMeta?: bigint;
+}
+
+### build/index.d.ts#SpaceStage
+export interface SpaceStage {
+  readonly name: string;
+  readonly options: readonly StageOption[];
+  readonly optional?: boolean;
+}
+
 ### build/index.d.ts#SplitCorpus
 export interface SplitCorpus {
   readonly corpus: string;
@@ -584,11 +699,31 @@ export interface SplitFold {
 ### build/index.d.ts#Stage
 export type Stage = "pack" | "route" | "joint";
 
+### build/index.d.ts#StageChoice
+export interface StageChoice {
+  readonly option: string;
+  readonly params?: Readonly<Record<string, ParamValue>>;
+  readonly members?: readonly StrategyConfig[];
+}
+
+### build/index.d.ts#StageOption
+export interface StageOption {
+  readonly id: string;
+  readonly params: readonly SpaceParam[];
+  readonly members?: MemberRule;
+}
+
 ### build/index.d.ts#StageTrace
 export interface StageTrace {
   readonly id: string;
   readonly ms?: number;
   readonly measures?: Readonly<Record<string, number>>;
+}
+
+### build/index.d.ts#StrategyConfig
+export interface StrategyConfig {
+  readonly space: string;
+  readonly stages: Readonly<Record<string, StageChoice | null>>;
 }
 
 ### build/index.d.ts#StrategyInfo
@@ -599,6 +734,17 @@ export interface StrategyInfo<O = unknown, S extends Supports = Supports> {
   readonly supports: S;
   readonly defaults: O;
   readonly deterministic: boolean;
+}
+
+### build/index.d.ts#StrategySpace
+export interface StrategySpace {
+  readonly schema: typeof STRATEGY_SPACE_SCHEMA;
+  readonly engine: string;
+  readonly version: string;
+  readonly stages: readonly SpaceStage[];
+  readonly constraints?: readonly SpaceConstraint[];
+  readonly named?: Readonly<Record<string, StrategyConfig>>;
+  readonly parts?: readonly StrategySpace[];
 }
 
 ### build/index.d.ts#Supports
@@ -619,8 +765,14 @@ export declare function applyPack(input: LayoutInput, output: PackOutput): Layou
 ### build/index.d.ts#boundsOf
 export declare function boundsOf(region: Region): Rect;
 
+### build/index.d.ts#canonicalConfig
+export declare function canonicalConfig(space: StrategySpace, config: StrategyConfig): StrategyConfig;
+
 ### build/index.d.ts#canonicalJson
 export declare function canonicalJson(value: unknown): string;
+
+### build/index.d.ts#checkConfig
+export declare function checkConfig(space: StrategySpace, config: StrategyConfig): ClaimBreak[];
 
 ### build/index.d.ts#checkDeclared
 export declare function checkDeclared<I>(inputs: Iterable<I>, declares: Declares<I>, claim: DeclaredClaim, ids?: readonly string[]): ClaimBreak[];
@@ -628,11 +780,17 @@ export declare function checkDeclared<I>(inputs: Iterable<I>, declares: Declares
 ### build/index.d.ts#checkInput
 export declare function checkInput(input: LayoutInput): readonly string[];
 
+### build/index.d.ts#checkSpace
+export declare function checkSpace(space: StrategySpace): ClaimBreak[];
+
 ### build/index.d.ts#checkSplit
 export declare function checkSplit(split: unknown, corpus: SplitCorpus, name?: string): ClaimBreak[];
 
 ### build/index.d.ts#compareMeasure
 export declare function compareMeasure(candidate: number, baseline: number, spec: Pick<MeasureSpec, "direction" | "minEffect">): Verdict;
+
+### build/index.d.ts#configId
+export declare function configId(space: StrategySpace, config: StrategyConfig): string;
 
 ### build/index.d.ts#corpusHashOf
 export declare function corpusHashOf(corpus: string, inputs: readonly CorpusEntry[]): string;
@@ -661,6 +819,9 @@ export declare function documentHash(doc: object, options?: HashOptions): string
 ### build/index.d.ts#edgeStep
 export declare function edgeStep(input: LayoutInput, params: EdgeStepParams, seed?: number): LayoutInput;
 
+### build/index.d.ts#enumerateSpace
+export declare function enumerateSpace(space: StrategySpace, options: EnumerateOptions): StrategyConfig[];
+
 ### build/index.d.ts#exercised
 export declare function exercised(evidence: ExerciseEvidence): boolean;
 
@@ -669,6 +830,9 @@ export declare function fnv1a32(text: string): number;
 
 ### build/index.d.ts#grow
 export declare function grow(rect: Rect, margin: Margin | undefined): Rect;
+
+### build/index.d.ts#joinConfigs
+export declare function joinConfigs(space: string, parts: readonly StrategyConfig[]): StrategyConfig;
 
 ### build/index.d.ts#leaveOneSeedOut
 export declare function leaveOneSeedOut(seeds: readonly number[]): SplitFold[];
@@ -697,6 +861,9 @@ export declare function overlapOf(a: Rect, b: Rect): {
 ### build/index.d.ts#packHard
 export declare function packHard(input: LayoutInput, output: PackOutput, tolerance?: number, options?: ContainerTest): PackHard;
 
+### build/index.d.ts#paramLevels
+export declare function paramLevels(param: SpaceParam, levels: number): ParamValue[];
+
 ### build/index.d.ts#pickMoves
 export declare function pickMoves(trace: Pick<PortfolioTrace, "picked">): {
   pick: number;
@@ -707,6 +874,9 @@ export declare function placedRect(box: LayoutBox): Rect | undefined;
 
 ### build/index.d.ts#portfolio
 export declare function portfolio<I, O>(id: string, members: readonly Member<I, O>[] | ((input: I) => readonly Member<I, O>[]), key: PortfolioKey<I, O>, options?: PortfolioOptions): Portfolio<I, O>;
+
+### build/index.d.ts#productSpace
+export declare function productSpace(a: StrategySpace, b: StrategySpace, name: string): StrategySpace;
 
 ### build/index.d.ts#randomInt
 export declare function randomInt(r: () => number, lo: number, hi: number): number;
@@ -722,6 +892,12 @@ export declare function selectBest(candidates: readonly SelectCandidate[], level
 
 ### build/index.d.ts#sha256Hex
 export declare function sha256Hex(text: string): string;
+
+### build/index.d.ts#spaceSize
+export declare function spaceSize(space: StrategySpace, options: SpaceSizeOptions): SpaceSize;
+
+### build/index.d.ts#splitConfig
+export declare function splitConfig(config: StrategyConfig, engine: string): StrategyConfig;
 
 ### build/index.d.ts#splitFileName
 export declare function splitFileName(corpus: string, hash: string): string;
