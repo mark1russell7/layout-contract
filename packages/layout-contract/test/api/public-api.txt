@@ -4,7 +4,7 @@
 # and private members. The command `api-report check` compares this file with the built .d.ts files.
 # To accept a change of the API, start the build, then `api-report update`, and review the diff.
 
-## . (build/index.d.ts): 97 names
+## . (build/index.d.ts): 98 names
 
 ContainerTest: build/index.d.ts#ContainerTest
 DEFAULT_TOLERANCE: build/index.d.ts#DEFAULT_TOLERANCE
@@ -48,6 +48,7 @@ PortfolioOptions: build/index.d.ts#PortfolioOptions
 PortfolioPick: build/index.d.ts#PortfolioPick
 PortfolioTrace: build/index.d.ts#PortfolioTrace
 RECORD_EPS: build/index.d.ts#RECORD_EPS
+RECORD_SCALE: build/index.d.ts#RECORD_SCALE
 Rect: build/index.d.ts#Rect
 Region: build/index.d.ts#Region
 RunEnv: build/index.d.ts#RunEnv
@@ -431,6 +432,9 @@ export interface PortfolioTrace {
 
 ### build/index.d.ts#RECORD_EPS
 export declare const RECORD_EPS = .001;
+
+### build/index.d.ts#RECORD_SCALE
+export declare const RECORD_SCALE = 1e3;
 
 ### build/index.d.ts#Rect
 export interface Rect {

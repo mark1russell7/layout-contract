@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.2.7
+
+- `compareMeasure` compares whole grid steps of `RECORD_EPS`. Before, a change of exactly `minEffect` on 3-decimal records was sometimes not a tie, because of float noise. An example is 0.723 against 0.718 with a `minEffect` of 0.005.
+- A live value and its rounded record give the same verdict. A test checks this on random values.
+- A change below one grid step is a tie. Infinite values and values outside the safe grid keep the old compare.
+- `RECORD_SCALE` (1000) is the count of grid steps in one unit, and `RECORD_EPS` is `1 / RECORD_SCALE`. The value of `RECORD_EPS` does not change.
+- Round with `Math.round(v * RECORD_SCALE)`, as the records do. A division by `RECORD_EPS` rounds some half steps to the other side.
+
 ## 0.2.6
 
 - `portfolio(id, members, key, options)` starts a list of members on an input and gives the output of the best member. The result is also a member.

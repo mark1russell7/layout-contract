@@ -2,8 +2,14 @@
 export const EPS = 1e-6;
 
 /**
+ * The count of grid steps in one unit of a written file. A file rounds each number `v` to `Math.round(v * RECORD_SCALE) / RECORD_SCALE`.
+ * Use a multiplication by this value, not a division by `RECORD_EPS`. The two differ at some half steps.
+ */
+export const RECORD_SCALE = 1000;
+
+/**
  * The epsilon for the float compares on a written file. A file rounds each number to 3 decimals,
- * so a difference of two values can move by up to 0.001.
+ * so a difference of two values can move by up to 0.001. It is `1 / RECORD_SCALE`.
  */
 export const RECORD_EPS = 1e-3;
 
