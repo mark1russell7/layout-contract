@@ -31,7 +31,17 @@ export interface LayoutRecord {
   readonly deterministic: boolean;
   /** The id of the prediction that was written before the run. */
   readonly prediction?: string;
+  /** The median of `msRuns`, or the time of the one run. */
   readonly ms: number;
+  /** The time of each timed repeat, in milliseconds. */
+  readonly msRuns?: readonly number[];
+  /**
+   * The first 16 hex characters of the SHA-256 of the canonical output of the stage.
+   * The packer hashes its placements by the order of the ids. The router hashes its routes by the order of the edge ids.
+   */
+  readonly outputHash?: string;
+  /** The facts of the computer of the run. */
+  readonly env?: RunEnv;
   /** The reason when the strategy did not run, for example an input over its `maxNodes`. Then the record has no measures. */
   readonly skipped?: string;
   readonly commit?: string;
@@ -42,6 +52,19 @@ export interface LayoutRecord {
  * The dimension names are in `docs/FORMAT.md` of `packing` and `docs/LAYOUT-RECORDS.md` of `highways`.
  */
 export type Supports = Readonly<Record<string, readonly string[]>>;
+
+/** The facts of the computer of a run. */
+export interface RunEnv {
+  readonly node: string;
+  readonly os: string;
+  readonly arch: string;
+  /** The name of the runner, for example `ubuntu-latest` or `local`. */
+  readonly runner: string;
+  /** The model of the processor. */
+  readonly cpu: string;
+  /** The count of the logical processors. */
+  readonly cpus: number;
+}
 
 /** The facts of a run that the input does not give. */
 export type RunFacts = Omit<LayoutRecord, "schema" | "input" | "inputHash" | "set" | "nodes" | "edges">;
