@@ -11,9 +11,9 @@ function corpusItems(): PlanItem[] {
   return jointCorpus(SET_V2).inputs.map((i) => ({ id: i.id, spec: specOf(i.id), cost: plannedCost(specOf(i.id), i.boxes.length, i.edges?.length ?? 0, PAIRS) }));
 }
 
-/** The dense spec with hubs and the gap, and its wall time on each seed in the shard logs of run 40685494092, in milliseconds. */
+/** The dense spec with hubs and the gap, and its wall time on each seed in the shard logs of run 40743187036, in milliseconds. */
 const DENSE_HUBS = "joint-v2/rect-grid.freeHeight.holes.none.bimodal.n1000.e-dense.hubs.none.free.sp-gap";
-const DENSE_HUBS_WALL: Readonly<Record<string, number>> = { s1: 5190362, s2: 5574447, s3: 5086858 };
+const DENSE_HUBS_WALL: Readonly<Record<string, number>> = { s1: 718004, s2: 1021865, s3: 724746 };
 
 describe("planShards", () => {
   const items = corpusItems();
@@ -90,11 +90,11 @@ describe("planShards", () => {
 });
 
 describe("the cost model", () => {
-  it("comes from the full run 40685494092 of joint-v2, with its 120 pairs", () => {
+  it("comes from the full run 40743187036 of joint-v2, with its 130 pairs", () => {
     expect(COST_MODEL.corpus).toBe(SET_V2);
-    expect(COST_MODEL.run).toBe(40685494092);
-    // The entry select (L32) gives the runner 130 pairs. The plan multiplies the cost of one pair by 130, so it overestimates: select shares the routes of its member.
-    expect(COST_MODEL.pairs).toBe(120);
+    expect(COST_MODEL.run).toBe(40743187036);
+    // The fit of L32 divides the wall time of each input by the 130 pairs of the runner, with the pairs of select.
+    expect(COST_MODEL.pairs).toBe(130);
     expect(PAIRS).toBe(130);
     expect(COST_MODEL.quantile).toBe(0.9);
   });

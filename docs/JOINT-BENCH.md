@@ -253,7 +253,7 @@ A split file of `corpus-split/1` is beside each manifest, in `packages/joint/cor
 `planShards` gives the inputs to the shards by their planned cost. Each shard job computes the same plan, so the jobs need no shared file.
 
 1. The predicted cost of an input is `inputCost(boxes, edges, pairs)`: the count of the pairs times the cost of one pair.
-2. The cost of one pair in milliseconds is `4.37 + 0.595 * boxes * boxes / 1000 + 1.16 * boxes * edges / 1000`.
+2. The cost of one pair in milliseconds is `4.38 + 0.45 * boxes * boxes / 1000 + 0.832 * boxes * edges / 1000`.
 3. The planned cost of an input is `plannedCost(spec, boxes, edges, pairs)`: the predicted cost times the margin of its spec.
 4. The plan takes the inputs from the most cost to the least cost. Each input goes to the shard with the least load.
 5. An input does not go to a shard with an input of the same spec, while another shard has none. Thus a lost shard loses 1 seed of a spec, not 3.
@@ -261,29 +261,27 @@ A split file of `corpus-split/1` is beside each manifest, in `packages/joint/cor
 
 The file `packages/joint/data/cost-margins.json` holds the cost model. The script `scripts/fit-cost.mjs` writes it from the logs of the shard jobs of a full run.
 
-- The model comes from the wall time of each input in the run `40685494092`. That run used `highways` 0.6.0 and `packing` 0.2.10. All 303 inputs have a time.
+- The model comes from the wall time of each input in the run `40743187036` of L32. That run used `highways` 0.8.1 and `packing` 0.2.16, with the 130 pairs of the runner. All 303 inputs have a time.
 - The fit makes the least sum of the squares of log(real / predicted). Thus the fit gives the typical time of an input of a size.
 - The margin of a spec is the q90 of real / predicted over the seeds of the spec. The q90 uses linear interpolation.
-- A spec without a measured time gets the default margin: the q90 of real / predicted over all inputs. This value is 2.84.
+- A spec without a measured time gets the default margin: the q90 of real / predicted over all inputs. This value is 3.
 
-The fit of the run `40666991882` gave `8 + 5.5 * boxes * boxes / 1000 + 1.35 * boxes * edges / 1000`. On the new run, the 2 fits compare as follows.
+The fit of the run `40685494092` (L29) gave `4.37 + 0.595 * boxes * boxes / 1000 + 1.16 * boxes * edges / 1000`, from 120 pairs. On the run `40743187036`, the 2 fits compare as follows.
 
 | Fit | R² of the times | R² of the logs of the times |
 |---|---|---|
-| The old fit | 0.210 | 0.581 |
-| The new fit | 0.229 | 0.762 |
+| The fit of L29 | 0.461 | 0.748 |
+| The fit of L32 | 0.638 | 0.759 |
 
-- The counts of the boxes and the edges do not tell the time well. The 12 inputs with 1000 boxes and 4000 edges take from less than 1 second to 46 seconds for each pair. The best linear fit of the times has R² 0.37 only.
-- The margins correct this spread for each spec. The dense spec with hubs and the gap has the margin 8.74. Its 3 seeds took 85, 87 and 93 minutes. The old fit gave them 21.8 minutes. The new plan gives them 91.6 minutes.
-- The next 3 margins are 4.79, 3.71 and 3.68. These specs are the dense spec with hub chains and 1000 boxes, a dense dashboard with 10 boxes and a word cloud with 100 boxes.
-- The new plan gives 717 minutes to all shards. The run took 641 minutes on the inputs.
+- The counts of the boxes and the edges do not tell the time well. The 12 inputs with 1000 boxes and 4000 edges take from 0.08 to 7.86 seconds for each pair.
+- The margins correct this spread for each spec. The dense spec with hubs and the gap has the margin 1.96, and it had 8.74 in L29. Its 3 seeds took 12.0, 17.0 and 12.1 minutes. The plan gives each seed 16.1 minutes.
+- The 3 largest margins are 3.91, 3.9 and 3.88. These specs are word clouds with 100 boxes.
+- The plan gives 301.6 minutes to all shards. The run took 257.2 minutes on the inputs. The L29 plan gave 776.7 minutes to all shards for 130 pairs.
 
-The limit of a shard job is 360 minutes, the limit of GitHub. At 64 shards, the plan gives 91.6 minutes to the most costly shard. This shard has 1 seed of the dense spec with hubs. This load is less than half of the limit, so 64 shards and the limit of 360 minutes stay.
+The limit of a shard job is 360 minutes, the limit of GitHub. At 64 shards, the plan gives 16.1 minutes to the most costly shard, and 99.2 minutes before the fit of L32. This shard has 1 seed of the dense spec with hubs.
 
-- The model gives the cost of one pair, from a run with 120 pairs. The plan multiplies this cost by the 130 pairs of the runner with `select`.
-- With 130 pairs, the plan gives 776.7 minutes to all shards, and 99.2 minutes to the most costly shard.
-- This plan overestimates the cost. `select` gives the output of one of its members, so it shares the routes of that member.
-- The margins come from `highways` 0.6.0. Version 0.8.1 routes the dense spec faster, so the margins also overestimate it. The next full run gives the data for a new fit.
+- With 11 shards, the plan keeps each shard below 30 minutes: 27.4 minutes for the most costly shard. 10 shards give 30.2 minutes.
+- The default stays 64 shards. Each shard of the plan is then far below the limit of 360 minutes.
 
 To fit the model again from a full run, write the logs of its jobs into one file. Then start `fit-cost.mjs` in `packages/joint`:
 
@@ -635,3 +633,59 @@ One analysis of the records gives the number of each claim. Start a manual run o
 
 - The field `without` replaces the second analysis of S2. The option `--exclude-pack select` gives the full report without `select`.
 - The records of the run `40743187036` come from the code before these options. Thus the job `analyze` of that run does not give them, and the job `reanalyze` gives them.
+
+## The result of the select packer (L32)
+
+The run [40743187036](https://github.com/mark1russell7/layout-contract/actions/runs/40743187036) of `joint-bench.yml` used the commit `dba25d4`, with `highways` 0.8.1 and `packing` 0.2.16. It had 64 shards and 130 pairs, and each shard ended with success. The run [40746401999](https://github.com/mark1russell7/layout-contract/actions/runs/40746401999) analyzed its records again, with the options of the claims. The records hold 303 of 303 inputs.
+
+### The verdicts
+
+| Id | Confidence | Held | Facts |
+|---|---|---|---|
+| S1 | 0.95 | yes | The 3030 records of `select` have no skipped record. Each record has the output hash of its member: `rows` on 216 inputs (2160 records) and `maxrects-bl` on 87 inputs (870 records). |
+| S2 | 0.9 | yes | In each of the 6 cells, the oracle score is the same without the pairs of `select`. 0 inputs differ. |
+| S3 | 0.6 | yes | The baseline `rows+portfolio` misses the floor on 145 of 222 inputs, and its score is 0.226. These are the numbers of L10. |
+| S4 | 0.7 | yes | `select+portfolio` misses the floor on 141 inputs, and `rows+portfolio` on 145. |
+| S5 | 0.45 | no | `select+portfolio` has 4 fewer misses than `rows+portfolio`, not 15 or more. |
+| S6 | 0.5 | yes | `select+portfolio` scores 0.239, and the baseline scores 0.226. The gain is 0.012 [-0.003, 0.032]. The claim holds on the point value, but the interval is open. |
+| S7 | 0.5 | yes | `select+corners` is the output group 3 of 130, with 67 misses and the score 0.387. |
+| S8 | 0.3 | no | The best pair is `maxrects-cp+corners` again, with 42 misses and the score 0.299. |
+| S9 | 0.4 | no | On the held-out seeds, the gain of k = 3 over the baseline is 0.240 [0.181, 0.298]. This is the gain of L10. |
+| S10 | 0.65 | yes | The median `route.ms` of `shared-all` is 1.9, 2.2 and 1.8 seconds on the seeds s1, s2 and s3. The maximum is 28.2, 42.7 and 24.9 seconds. |
+| S11 | 0.5 | yes | The longest step `Run one shard` took 17.1 minutes, on shard 1. The plan gave 99.2 minutes to the most costly shard. |
+
+8 of 11 claims held. The prediction expected approximately 6 or 7. The Brier score of the confidences is 0.144.
+
+- The 3 misses were risky claims of a gain: S5, S8 and S9.
+- The reason of S10 was wrong. The measure of 36 seconds for each route of `shared-all` is approximately 16 times the median on s2. The maximum on s2, 42.7 seconds, is near the measure.
+- The plan of S11 gave the most costly shard approximately 6 times its real time.
+
+### The cells
+
+The gain is the score of `select+portfolio` minus the score of `rows+portfolio` on each input. The rank is the rank of the first output group of `select`. The table shows only the rule `all`. The rule `collection` gives the same misses and gains.
+
+| Inputs | Cap | `rows+portfolio` misses | `select+portfolio` misses | Gain | Rank of `select` | Best pair |
+|---|---|---|---|---|---|---|
+| 222 | 1.1 | 166 | 158 | 0.020 [0.003, 0.041] | 4 | `maxrects-cp+corners` |
+| 222 | 1.25 | 145 | 141 | 0.012 [-0.003, 0.032] open | 3 | `maxrects-cp+corners` |
+| 222 | 1.5 | 117 | 113 | 0.017 [-0.006, 0.046] open | 4 | `maxrects-cp+corners` |
+| stress 81 | 1.1 | 66 | 69 | -0.025 [-0.066, 0.000] open | 54 | `shelf-first-input+corners` |
+| stress 81 | 1.25 | 64 | 68 | -0.034 [-0.075, 0.000] open | 54 | `shelf-first-input+corners` |
+| stress 81 | 1.5 | 64 | 68 | -0.034 [-0.075, 0.000] open | 55 | `shelf-first-input+portfolio` |
+
+On the subset of 207 inputs, the headline cell gives `select+portfolio` 131 misses and `rows+portfolio` 135. The gain is 0.014 [-0.002, 0.034] there.
+
+### What the result shows
+
+1. `select` adds nothing to the oracle. This follows from the code: each pair of `select` has the values of a pair of `rows` or of `maxrects-bl`. In the headline cell, `select+portfolio` has 4 fewer misses, and its gain of 0.012 is not clear. Only at the cap 1.1 is the gain clear: 0.020 [0.003, 0.041].
+2. In the stress cell with the cap 1.25, `select+portfolio` is worse: 4 more misses, and the gain -0.034 [-0.075, 0.000]. On the 57 stress inputs with `rows`, the records of `select` are the records of `rows`. Thus the 4 extra misses come from the 24 inputs where the table picks `maxrects-bl`. On these 4 inputs, `rows+portfolio` reaches the floor and `select+portfolio` does not. On all 81 stress inputs, `maxrects-bl+portfolio` misses the floor on 71 and `rows+portfolio` on 64.
+3. The router decides the misses more than the pack. The first 13 output groups of the headline cell are `<pack>+corners`, one for each pack entry. The first group of another router is `maxrects-cp+trunks`, at rank 14 with 114 misses. `maxrects-cp+corners` leads by 23 misses: 42 against 65 for `maxrects-blsf+corners`.
+4. `highways` 0.8.1 and `packing` 0.2.16 changed no number of the old pairs in the cells. The baseline, the best pair and the oracle have the numbers of L10 in each of the 6 cells. Only the time changed. The inputs took 257.2 minutes in all, and the plan gave them 776.7 minutes. The longest shard took 17.1 minutes, and the run took approximately 19 minutes from start to end.
+5. The next step for `select` is a rule that learns its pick from the joint records, not from the 4 features of the pack input. This is a new roadmap item, and this result does not build it.
+
+### The scope of the result
+
+- The pairs of `select` repeat the values of other pairs, so they do not move the floor. Thus the misses of the old pairs compare with L10.
+- The table of `select` comes from `packing` 0.2.16. A new table needs a new run.
+- The verdicts of S2 and S5 to S8 come from the job `reanalyze` of the run 40746401999. The job `analyze` of the run 40743187036 used the code before the options of the claims.
+- The cost model of the shards comes from this run. Refer to "The shards".
