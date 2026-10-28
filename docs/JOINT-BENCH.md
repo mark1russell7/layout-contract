@@ -133,6 +133,7 @@ A greedy portfolio adds one pair at each step. Each step adds the pair that `sel
 
 - The portfolio picks on each input by `selectBest` over its members, in their order.
 - The analysis builds the portfolios on 2 seeds, and scores them on the third seed. It does this for each of the 3 seeds.
+- The folds come from the split `default` of the split file of the corpus ("The split files"). Its 3 folds hold out one seed each.
 - The share of a portfolio is its gain over the first member, divided by the gain of the oracle over the first member. The sums go over the held-out inputs of the 3 folds.
 - The report gives the share for k = 3 and for k = 8.
 
@@ -179,6 +180,16 @@ The workflow uses the check as a gate:
 5. The jobs of the run start only after `check` and `smoke`.
 
 The test `check.test.ts` makes a corpus that breaks each claim.
+
+### The split files
+
+A split file of `corpus-split/1` is beside each manifest, in `packages/joint/corpus/splits`. Its name has the corpus hash, so the manifest does not change. `docs/CORPUS-CHECKS.md` tells the format and the checks.
+
+- The split `default` of `joint-v1` and of `joint-v2` has 3 folds. Each fold holds out one seed and trains on the other 2 seeds.
+- The job `check` reads the split file with `loadSplit`. A missing file, a wrong corpus hash or a bad fold stops the run.
+- `pnpm bench analyze` gives the folds of the split `default` to `analyze`. These folds are the folds of leave-one-seed-out, so the report does not change.
+- On the slice `pr`, a fold without held-out inputs gives no row. A training seed without inputs adds no input.
+- The pinned corpus hashes are `277ffd12181e74ef` for `joint-v1` and `1d0909caec40631e` for `joint-v2`. A change of an input needs a new split file.
 
 ## Start a run
 

@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.2.9
+
+- The contract has the corpus checks of `packing`, `highways` and the joint corpus. `docs/CORPUS-CHECKS.md` tells the rules.
+- `ClaimBreak` is one broken claim of a corpus. It has the name of the claim, a text and the ids of the inputs.
+- `checkDeclared(inputs, declares, claim, ids)` checks the claim `claims.declared`. The hook `declares` gives the properties of one input.
+- `declaredCounts` counts the inputs of each property. `declaredClaimOf` reads `claims.declared` of a manifest. `DeclaredClaim` and `Declares` are their types.
+- `corpusHashOf(corpus, inputs)` gives the hash of a corpus. The value is equal to the corpus hash of `packing`.
+- `checkSplit(split, corpus, name)` checks a split file `corpus-split/1`. `splitFolds` gives the folds of one split, and throws for a problem.
+- `leaveOneSeedOut(seeds)` gives one fold for each seed. `splitFileName`, `SPLIT_SCHEMA`, `CorpusSplit`, `SplitFold`, `SplitCorpus` and `CorpusEntry` are the other parts.
+
 ## 0.2.8
 
 - `portfolio` has the option `hashes`. The default `all` keeps the behavior of 0.2.7.

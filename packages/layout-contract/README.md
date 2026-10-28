@@ -20,6 +20,8 @@ The package has no runtime dependencies.
 | The promotion guards | `outputGroups`, `OutputGroup`, `exercised`, `ExerciseEvidence` |
 | The portfolio | `portfolio`, `Portfolio`, `PortfolioKey`, `PortfolioLevel`, `PortfolioOptions`, `PortfolioPick`, `PortfolioTrace`, `Member`, `MemberTrace`, `MemberStatus`, `pickMoves` |
 | The pick rule | `selectBest`, `SelectCandidate`, `SelectLevel`, `Selection`, `PickSpec` |
+| The corpus checks | `ClaimBreak`, `checkDeclared`, `declaredCounts`, `declaredClaimOf`, `DeclaredClaim`, `Declares`, `corpusHashOf`, `CorpusEntry` |
+| The split files | `checkSplit`, `splitFolds`, `leaveOneSeedOut`, `splitFileName`, `SPLIT_SCHEMA`, `CorpusSplit`, `SplitFold`, `SplitCorpus` |
 | The turn | `turnBox`, `turnPort`, `turnMargin`, `turnRegion`, `turnSide`, `turnPoint` |
 | The tolerances | `EPS`, `RECORD_EPS`, `RECORD_SCALE`, `Tolerance`, `DEFAULT_TOLERANCE` |
 | The hard rules | `countOverlaps`, `countObstacleHits`, `regionHitsRect`, `rectInRegion`, `countOutside`, `ContainerTest`, `countPortsOffBorder`, `packHard`, `PackHard`, `placedRect`, `checkInput` |
@@ -34,6 +36,7 @@ The package has no runtime dependencies.
 - **The container rule.** `in-container` counts each box that goes out of the container made smaller by `inset`. The box counts with its margin. By default, a shaped container counts as its bounding box.
 - **The exact container.** Give `{ exactContainer: true }` to `packHard` or `countOutside`. Then a box of a shaped container with the size `fixed` must stay inside the shape. A cut corner, a notch and a hole count. A container with a free side keeps the bounding test. The default changes to the exact test at the next breaking version.
 - **The output hash.** `outputHash` gives the first 16 hex characters of the SHA-256 of the canonical JSON of an output. Each number goes to the grid of `RECORD_EPS` first.
+- **The corpus checks.** `checkDeclared` and `checkSplit` give a list of `ClaimBreak`. An empty list tells that each claim is true. `corpusHashOf` gives the corpus hash of `packing`.
 - **The tolerances.** `EPS` (`1e-6`) is for the float compares in an engine. `RECORD_EPS` (`1e-3`) is for the compares on a written file. A record writes the tolerance of each hard rule in its field `tolerance`. The defaults are `overlap` `0.001` and `through` `0.5`.
 
 ## An example
@@ -53,4 +56,4 @@ const placed = applyPack(input, output);
 const hard = packHard(input, output);
 ```
 
-The formats are in `docs/FORMAT.md` of `packing` and `docs/LAYOUT-RECORDS.md` of `highways`. The joint measures are in `docs/JOINT-MEASURES.md` of this repository, and the joint corpus is in `docs/JOINT-CORPUS.md`. The promotion guards are in `docs/PROMOTION.md`. The portfolio and its pick rule are in `docs/PORTFOLIO.md`.
+The formats are in `docs/FORMAT.md` of `packing` and `docs/LAYOUT-RECORDS.md` of `highways`. The joint measures are in `docs/JOINT-MEASURES.md` of this repository, and the joint corpus is in `docs/JOINT-CORPUS.md`. The promotion guards are in `docs/PROMOTION.md`. The portfolio and its pick rule are in `docs/PORTFOLIO.md`. The corpus checks and the split files are in `docs/CORPUS-CHECKS.md`.

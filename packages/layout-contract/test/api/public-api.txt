@@ -4,10 +4,15 @@
 # and private members. The command `api-report check` compares this file with the built .d.ts files.
 # To accept a change of the API, start the build, then `api-report update`, and review the diff.
 
-## . (build/index.d.ts): 98 names
+## . (build/index.d.ts): 114 names
 
+ClaimBreak: build/index.d.ts#ClaimBreak
 ContainerTest: build/index.d.ts#ContainerTest
+CorpusEntry: build/index.d.ts#CorpusEntry
+CorpusSplit: build/index.d.ts#CorpusSplit
 DEFAULT_TOLERANCE: build/index.d.ts#DEFAULT_TOLERANCE
+DeclaredClaim: build/index.d.ts#DeclaredClaim
+Declares: build/index.d.ts#Declares
 Direction: build/index.d.ts#Direction
 EDGE_DENSITY: build/index.d.ts#EDGE_DENSITY
 EDGE_STEP_VERSION: build/index.d.ts#EDGE_STEP_VERSION
@@ -54,11 +59,14 @@ Region: build/index.d.ts#Region
 RunEnv: build/index.d.ts#RunEnv
 RunFacts: build/index.d.ts#RunFacts
 SIDES: build/index.d.ts#SIDES
+SPLIT_SCHEMA: build/index.d.ts#SPLIT_SCHEMA
 SelectCandidate: build/index.d.ts#SelectCandidate
 SelectLevel: build/index.d.ts#SelectLevel
 Selection: build/index.d.ts#Selection
 Side: build/index.d.ts#Side
 Sides: build/index.d.ts#Sides
+SplitCorpus: build/index.d.ts#SplitCorpus
+SplitFold: build/index.d.ts#SplitFold
 Stage: build/index.d.ts#Stage
 StageTrace: build/index.d.ts#StageTrace
 StrategyInfo: build/index.d.ts#StrategyInfo
@@ -68,17 +76,23 @@ Verdict: build/index.d.ts#Verdict
 applyPack: build/index.d.ts#applyPack
 boundsOf: build/index.d.ts#boundsOf
 canonicalJson: build/index.d.ts#canonicalJson
+checkDeclared: build/index.d.ts#checkDeclared
 checkInput: build/index.d.ts#checkInput
+checkSplit: build/index.d.ts#checkSplit
 compareMeasure: build/index.d.ts#compareMeasure
+corpusHashOf: build/index.d.ts#corpusHashOf
 countObstacleHits: build/index.d.ts#countObstacleHits
 countOutside: build/index.d.ts#countOutside
 countOverlaps: build/index.d.ts#countOverlaps
 countPortsOffBorder: build/index.d.ts#countPortsOffBorder
+declaredClaimOf: build/index.d.ts#declaredClaimOf
+declaredCounts: build/index.d.ts#declaredCounts
 documentHash: build/index.d.ts#documentHash
 edgeStep: build/index.d.ts#edgeStep
 exercised: build/index.d.ts#exercised
 fnv1a32: build/index.d.ts#fnv1a32
 grow: build/index.d.ts#grow
+leaveOneSeedOut: build/index.d.ts#leaveOneSeedOut
 marginSides: build/index.d.ts#marginSides
 minEffectOf: build/index.d.ts#minEffectOf
 mulberry32: build/index.d.ts#mulberry32
@@ -94,6 +108,8 @@ rectInRegion: build/index.d.ts#rectInRegion
 regionHitsRect: build/index.d.ts#regionHitsRect
 selectBest: build/index.d.ts#selectBest
 sha256Hex: build/index.d.ts#sha256Hex
+splitFileName: build/index.d.ts#splitFileName
+splitFolds: build/index.d.ts#splitFolds
 stepRandom: build/index.d.ts#stepRandom
 toLayoutRecord: build/index.d.ts#toLayoutRecord
 toPackInput: build/index.d.ts#toPackInput
@@ -107,13 +123,46 @@ turnSide: build/index.d.ts#turnSide
 
 ## Declarations
 
+### build/index.d.ts#ClaimBreak
+export interface ClaimBreak {
+  readonly claim: string;
+  readonly detail: string;
+  readonly inputs: readonly string[];
+}
+
 ### build/index.d.ts#ContainerTest
 export interface ContainerTest {
   readonly exactContainer?: boolean;
 }
 
+### build/index.d.ts#CorpusEntry
+export interface CorpusEntry {
+  readonly id: string;
+  readonly hash: string;
+}
+
+### build/index.d.ts#CorpusSplit
+export interface CorpusSplit {
+  readonly schema: typeof SPLIT_SCHEMA;
+  readonly corpus: string;
+  readonly corpusHash: string;
+  readonly splits: Readonly<Record<string, {
+    readonly folds: readonly SplitFold[];
+  }>>;
+}
+
 ### build/index.d.ts#DEFAULT_TOLERANCE
 export declare const DEFAULT_TOLERANCE: Tolerance;
+
+### build/index.d.ts#DeclaredClaim
+export interface DeclaredClaim {
+  readonly minCount: number;
+  readonly thin: readonly string[];
+  readonly counts: Readonly<Record<string, number>>;
+}
+
+### build/index.d.ts#Declares
+export type Declares<I> = (input: I) => readonly string[];
 
 ### build/index.d.ts#Direction
 export type Direction = "lower" | "higher";
@@ -485,6 +534,9 @@ export type RunFacts = Omit<LayoutRecord, "schema" | "input" | "inputHash" | "se
 ### build/index.d.ts#SIDES
 export declare const SIDES: readonly Side[];
 
+### build/index.d.ts#SPLIT_SCHEMA
+export declare const SPLIT_SCHEMA = "corpus-split/1";
+
 ### build/index.d.ts#SelectCandidate
 export interface SelectCandidate {
   readonly id: string;
@@ -512,6 +564,21 @@ export interface Sides {
   readonly right: number;
   readonly bottom: number;
   readonly left: number;
+}
+
+### build/index.d.ts#SplitCorpus
+export interface SplitCorpus {
+  readonly corpus: string;
+  readonly specs: readonly {
+    readonly seeds: readonly number[];
+  }[];
+  readonly inputs: readonly CorpusEntry[];
+}
+
+### build/index.d.ts#SplitFold
+export interface SplitFold {
+  readonly train: readonly number[];
+  readonly heldOut: readonly number[];
 }
 
 ### build/index.d.ts#Stage
@@ -555,11 +622,20 @@ export declare function boundsOf(region: Region): Rect;
 ### build/index.d.ts#canonicalJson
 export declare function canonicalJson(value: unknown): string;
 
+### build/index.d.ts#checkDeclared
+export declare function checkDeclared<I>(inputs: Iterable<I>, declares: Declares<I>, claim: DeclaredClaim, ids?: readonly string[]): ClaimBreak[];
+
 ### build/index.d.ts#checkInput
 export declare function checkInput(input: LayoutInput): readonly string[];
 
+### build/index.d.ts#checkSplit
+export declare function checkSplit(split: unknown, corpus: SplitCorpus, name?: string): ClaimBreak[];
+
 ### build/index.d.ts#compareMeasure
 export declare function compareMeasure(candidate: number, baseline: number, spec: Pick<MeasureSpec, "direction" | "minEffect">): Verdict;
+
+### build/index.d.ts#corpusHashOf
+export declare function corpusHashOf(corpus: string, inputs: readonly CorpusEntry[]): string;
 
 ### build/index.d.ts#countObstacleHits
 export declare function countObstacleHits(boxes: readonly LayoutBox[], obstacles: readonly Obstacle[] | undefined, tolerance?: number): number;
@@ -572,6 +648,12 @@ export declare function countOverlaps(boxes: readonly LayoutBox[], tolerance?: n
 
 ### build/index.d.ts#countPortsOffBorder
 export declare function countPortsOffBorder(boxes: readonly LayoutBox[], eps?: number): number;
+
+### build/index.d.ts#declaredClaimOf
+export declare function declaredClaimOf(manifest: object): DeclaredClaim | undefined;
+
+### build/index.d.ts#declaredCounts
+export declare function declaredCounts<I>(inputs: Iterable<I>, declares: Declares<I>, ids?: readonly string[]): Record<string, number>;
 
 ### build/index.d.ts#documentHash
 export declare function documentHash(doc: object, options?: HashOptions): string;
@@ -587,6 +669,9 @@ export declare function fnv1a32(text: string): number;
 
 ### build/index.d.ts#grow
 export declare function grow(rect: Rect, margin: Margin | undefined): Rect;
+
+### build/index.d.ts#leaveOneSeedOut
+export declare function leaveOneSeedOut(seeds: readonly number[]): SplitFold[];
 
 ### build/index.d.ts#marginSides
 export declare function marginSides(margin: Margin | undefined): Sides;
@@ -637,6 +722,12 @@ export declare function selectBest(candidates: readonly SelectCandidate[], level
 
 ### build/index.d.ts#sha256Hex
 export declare function sha256Hex(text: string): string;
+
+### build/index.d.ts#splitFileName
+export declare function splitFileName(corpus: string, hash: string): string;
+
+### build/index.d.ts#splitFolds
+export declare function splitFolds(split: unknown, corpus: SplitCorpus, name: string, where?: string): SplitFold[];
 
 ### build/index.d.ts#stepRandom
 export declare function stepRandom(seed: number, step: string): () => number;

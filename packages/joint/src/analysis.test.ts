@@ -1,4 +1,4 @@
-import type { LayoutRecord } from "@mark1russell7/layout-contract";
+import { leaveOneSeedOut, type LayoutRecord } from "@mark1russell7/layout-contract";
 import { describe, expect, it } from "vitest";
 import { analyze, bootstrap, hardOf, indexRecords, packOf, rankPacks, reportMarkdown, routerOfPair, throughCounts, type AnalysisInput } from "./analysis.ts";
 
@@ -263,5 +263,29 @@ describe("the baseline", () => {
 
   it("refuses a baseline pair that the records do not have", () => {
     expect(() => analyze(list, inputs, { resamples: 50, baseline: "none+r" })).toThrow(RangeError);
+  });
+});
+
+describe("the folds of a split file", () => {
+  const folds = leaveOneSeedOut([1, 2, 3]);
+
+  it("gives the report of the default folds with the folds of leave-one-seed-out", () => {
+    expect(analyze(records(), inputs, { resamples: 200, folds })).toEqual(analyze(records(), inputs, { resamples: 200 }));
+  });
+
+  it("gives the report of the default folds on a slice of seed 1", () => {
+    const slice = inputs.filter((i) => i.seed === 1);
+    const ids = new Set(slice.map((i) => i.id));
+    const list = records().filter((r) => ids.has(r.input));
+    expect(analyze(list, slice, { resamples: 200, folds })).toEqual(analyze(list, slice, { resamples: 200 }));
+  });
+
+  it("uses the seeds of the folds, and lists the held-out seeds of a fold with more than one", () => {
+    const report = analyze(records(), inputs, { resamples: 200, folds: [{ train: [1], heldOut: [2, 3] }] });
+    const fold = report.cells[0]!.portfolios[0]!.folds;
+    expect(fold).toHaveLength(1);
+    expect(fold[0]!.test).toBe(2);
+    expect(fold[0]!.heldOut).toEqual([2, 3]);
+    expect(reportMarkdown(report)).toContain("| 2, 3 |");
   });
 });

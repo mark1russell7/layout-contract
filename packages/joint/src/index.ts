@@ -8,3 +8,4 @@ export * from "./runner.ts";
 export * from "./analysis.ts";
 export * from "./plan.ts";
 export * from "./record-count.ts";
+export * from "./split.ts";
