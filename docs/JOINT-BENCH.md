@@ -42,7 +42,7 @@ The measures `time.*` give the time of each step after the pack, in milliseconds
 | `time.joint.ms` | `jointMeasures` of the record |
 
 - The records of a shared route have the same route times. The records of a shared pack output have the same `time.placement.ms`.
-- The exact network of `exactStretches` and the shortest ways of its edges come at the first call for a graph. Thus `time.facts.ms` of the first router of a pack output holds most of that time.
+- The exact network of `exactStretches` and the shortest ways of its edges come at the first use for a graph. Thus `time.facts.ms` of the first router of a pack output holds most of that time.
 - With 2 timed routes, `route.ms` is the time of the longer route. Thus `time.bench.ms` minus `route.ms` is the time of the shorter route and of the checks of `benchRun`.
 
 A strategy that does not support the cell of an input gives a record with `skipped` and no measures. An error and a graph above the node limit of a router also give a skipped record.
