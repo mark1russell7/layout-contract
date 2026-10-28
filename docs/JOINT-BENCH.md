@@ -837,3 +837,54 @@ The job `analyze` of the run gives both reports in the artifact `joint-report`. 
 
 - The rows of `lanes` do not depend on the rule or the cap. Thus G4 to G7 use one row for each lane pair and scope.
 - The report has each number of the claims. The rows of `lanes` do not split the inputs by the value of `spacing`. A claim for one value of `spacing` needs a new field.
+
+## The result of routing-aware gaps (L13)
+
+Run [40757153151](https://github.com/mark1russell7/layout-contract/actions/runs/40757153151) ran the 148 pairs on the 222 inputs of `joint-v2`, with `lanes` on, in 64 shards. 8 of the 12 claims held. The Brier score is 0.220.
+
+### The verdicts
+
+| Claim | Confidence | Verdict | The numbers |
+|---|---|---|---|
+| G1 | 0.9 | Held | The 36 rows of `lanes` have 0 skipped records. |
+| G2 | 0.75 | Held | The old report gives 145 misses to `rows+portfolio`, 141 to `select+portfolio`, and 42 to the best pair `maxrects-cp+corners`. |
+| G3 | 0.9 | Held | In the headline cell, the two baselines keep 145 and 141 misses. In the stress cell, they go from 64 and 68 to 80 and 80. |
+| G4 | 0.8 | Held | In the stress cell, the 6 pairs of `lanes-max` have 0 to 2 broken records. Their base pairs have 80. |
+| G5 | 0.4 | Missed | The 6 pairs of `lanes-sides` have 76 to 78 broken records against 80. This is less than 10% fewer. |
+| G6 | 0.55 | Held | `lanes-sides2` has fewer breaks than `lanes-sides` on 6 of 6 pairs, for example 1541 against 4463 for `select+portfolio`. |
+| G7 | 0.75 | Held | All 18 lane pairs have a lower mean `joint.fill` than their base pairs, by 0.05 to 0.11. |
+| G8 | 0.65 | Missed | 12 of the 18 lane pairs miss the floor on fewer inputs than their base pairs. All 9 pairs with the router `corners` are in these 12. |
+| G9 | 0.7 | Missed | The best pair is `lanes-sides.maxrects-cp.corners+corners`, with 22 misses. Its base pair has 47. |
+| G10 | 0.3 | Held | `lanes-max.maxrects-cp.portfolio+portfolio` has 111 misses, against 145 for `rows+portfolio` and 141 for `select+portfolio`. |
+| G11 | 0.55 | Held | The best pair of the stress cell is `lanes-max.maxrects-cp.corners+corners`, with 14 misses on 81 inputs. Each baseline has 80. |
+| G12 | 0.7 | Missed | The most costly shard took 31.5 minutes, and all shards took 415.5 minutes. The cost model has no term for the lane pairs. |
+
+### The headline cell
+
+| Lane pair | Misses | Base misses | Score gain [interval] |
+|---|---|---|---|
+| `lanes-sides.maxrects-cp.corners` | 22 | 47 | +0.011 [-0.024, 0.050] |
+| `lanes-sides2.maxrects-cp.corners` | 25 | 47 | +0.003 [-0.034, 0.044] |
+| `lanes-max.maxrects-cp.corners` | 41 | 47 | -0.035 [-0.055, -0.019] |
+| `lanes-sides.select.corners` | 44 | 67 | -0.002 [-0.031, 0.030] |
+| `lanes-sides.rows.corners` | 48 | 75 | +0.014 [-0.009, 0.044] |
+| `lanes-max.maxrects-cp.portfolio` | 111 | 131 | -0.010 [-0.028, 0.008] |
+| `lanes-sides2.rows.portfolio` | 152 | 145 | -0.025 [-0.041, -0.009] |
+
+The table shows a part of the 18 rows. `report.json` has all of them, in `lanes` and in `compare` of the headline cell.
+
+### What the result shows
+
+- Gaps from the lanes make the router `corners` miss the floor on fewer inputs. The count goes down on each of the 9 pairs of `corners`. On `maxrects-cp` it goes from 47 to 22.
+- A margin per side (`lanes-sides`) keeps the score. Its gain interval holds 0 on 5 of 6 pairs. One margin per box (`lanes-max`) lowers the score on 5 of 6 pairs.
+- One margin per box removes almost all breaks of `no-pass-through` in the stress cell. A margin per side removes almost none of them. A second pass cuts the break count by 11% to 65%.
+- With the router `portfolio`, the gaps help only `maxrects-cp`. On `rows` and `select` the misses go up by 2 to 7.
+- The cost of the gaps is fill. Each lane pair loses 0.05 to 0.11 of `joint.fill`.
+- `lanes-sides.maxrects-cp.corners+corners` is the new candidate for the first joint default. L40 confirms it on fresh seeds against `maxrects-cp+corners` and both baselines.
+
+### The scope of the result
+
+- The result holds for `joint-v2`, the seeds 1 to 3, and the floor of each cell. A lane pair moves the floor of a cell, because the floor comes from the best pair of each input.
+- The lane need is `10 + 4(k-1)` with a cap of 8 lanes. Other values are not measured.
+- The gaps come from a margin per box or per side. A gap per channel needs a packing option, and the request text is above.
+- Do not refit the cost model from this run. The fit divides by 130 pairs, and this run has 148.
