@@ -57,6 +57,7 @@ describe("runInput", () => {
       expect(r.measures["joint.routes"]).toBe(2);
       expect(r.measures["pack.fill"]).toBeGreaterThan(0);
       expect(r.measures["joint.ms"]).toBeCloseTo((r.measures["pack.ms"] ?? 0) + (r.measures["route.ms"] ?? 0), 6);
+      for (const step of ["bench", "facts", "measures", "hash", "placement", "joint"]) expect(r.measures[`time.${step}.ms`]).toBeGreaterThanOrEqual(0);
       expect(r.measures["route.cap.1.1"]).toBeGreaterThanOrEqual(0);
       expect(r.hard["route.violations"]).toBeGreaterThanOrEqual(0);
       expect(r.hard["pack.no-overlap"]).toBe(0);

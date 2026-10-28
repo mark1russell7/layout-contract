@@ -65,10 +65,13 @@ function withMargin(box: Placed): JointRect {
   return { x: box.x - m.left, y: box.y - m.top, w: box.w + m.left + m.right, h: box.h + m.top + m.bottom };
 }
 
+/** The tolerance of `turn`. A turn value of this size or less gives the sign 0. */
+const TURN_EPS = 1e-12;
+
 /** This function gives the sign of the turn from `a` to `b` to `c`: 1, -1, or 0 for three points on one line. */
 function turn(a: JointPoint, b: JointPoint, c: JointPoint): number {
   const v = (b.x - a.x) * (c.y - a.y) - (b.y - a.y) * (c.x - a.x);
-  return v > 1e-12 ? 1 : v < -1e-12 ? -1 : 0;
+  return v > TURN_EPS ? 1 : v < -TURN_EPS ? -1 : 0;
 }
 
 /** This function tells if two segments cross at one point inside the two segments. A touch at an end and a collinear overlap do not count. */
@@ -88,25 +91,91 @@ export function placementFacts(boxes: readonly LayoutBox[], edges: readonly Layo
   const placed = boxes.filter(isPlaced);
   const area = placed.reduce((sum, b) => sum + b.w * b.h, 0);
   const center = new Map(placed.map((b) => [b.id, { x: b.x + b.w / 2, y: b.y + b.h / 2 }]));
-  const segments: { readonly edge: LayoutEdge; readonly a: JointPoint; readonly b: JointPoint }[] = [];
+  const segments: StraightSegment[] = [];
   const straight = new Map<string, number>();
   for (const edge of edges) {
     const a = center.get(edge.source);
     const b = center.get(edge.target);
     if (a === undefined || b === undefined) continue;
-    segments.push({ edge, a, b });
+    segments.push({ source: edge.source, target: edge.target, a, b });
     straight.set(edge.id, Math.abs(a.x - b.x) + Math.abs(a.y - b.y));
   }
-  let crossings = 0;
-  for (let i = 0; i < segments.length; i++) {
+  return { scale: Math.sqrt(area), area, bounds: rectHull(placed.map(withMargin)), straight, crossings: straightCrossings(segments) };
+}
+
+/** The straight segment of one edge: the ids of its end boxes, and the centers of the two boxes. */
+export interface StraightSegment {
+  readonly source: string;
+  readonly target: string;
+  readonly a: JointPoint;
+  readonly b: JointPoint;
+}
+
+/**
+ * This function counts the pairs of segments that cross (`segmentsCross`). A pair with a shared end box does not count.
+ * It examines each pair, as `segmentsCross` does, with the same arithmetic. Thus its count is equal to the count of `segmentsCross` for each input.
+ * It keeps the coordinates in typed arrays and gives each box id a number. It stops the test of a pair after the first two turns when they do not change sign.
+ * A filter by bounding boxes is not exact here: the turns of near-collinear segments with disjoint bounding boxes can have opposite signs after rounding.
+ */
+export function straightCrossings(segments: readonly StraightSegment[]): number {
+  const n = segments.length;
+  const ids = new Map<string, number>();
+  const idOf = (id: string): number => {
+    let k = ids.get(id);
+    if (k === undefined) {
+      k = ids.size;
+      ids.set(id, k);
+    }
+    return k;
+  };
+  const src = new Int32Array(n);
+  const dst = new Int32Array(n);
+  const ax = new Float64Array(n);
+  const ay = new Float64Array(n);
+  const bx = new Float64Array(n);
+  const by = new Float64Array(n);
+  const dx = new Float64Array(n);
+  const dy = new Float64Array(n);
+  for (let i = 0; i < n; i++) {
     const s = segments[i]!;
-    for (let j = i + 1; j < segments.length; j++) {
-      const t = segments[j]!;
-      const shared = s.edge.source === t.edge.source || s.edge.source === t.edge.target || s.edge.target === t.edge.source || s.edge.target === t.edge.target;
-      if (!shared && segmentsCross(s.a, s.b, t.a, t.b)) crossings += 1;
+    src[i] = idOf(s.source);
+    dst[i] = idOf(s.target);
+    ax[i] = s.a.x;
+    ay[i] = s.a.y;
+    bx[i] = s.b.x;
+    by[i] = s.b.y;
+    // These are the differences `b.x - a.x` and `b.y - a.y` of `turn`, with the same rounding.
+    dx[i] = s.b.x - s.a.x;
+    dy[i] = s.b.y - s.a.y;
+  }
+  let crossings = 0;
+  for (let i = 0; i < n; i++) {
+    const si = src[i]!;
+    const ti = dst[i]!;
+    const axi = ax[i]!;
+    const ayi = ay[i]!;
+    const bxi = bx[i]!;
+    const byi = by[i]!;
+    const dxi = dx[i]!;
+    const dyi = dy[i]!;
+    for (let j = i + 1; j < n; j++) {
+      const sj = src[j]!;
+      const tj = dst[j]!;
+      if (si === sj || si === tj || ti === sj || ti === tj) continue;
+      const cx = ax[j]!;
+      const cy = ay[j]!;
+      // The value of `turn(a, b, c)` before its sign is `(b.x - a.x) * (c.y - a.y) - (b.y - a.y) * (c.x - a.x)`.
+      const v1 = dxi * (cy - ayi) - dyi * (cx - axi);
+      const v2 = dxi * (by[j]! - ayi) - dyi * (bx[j]! - axi);
+      if (!((v1 > TURN_EPS && v2 < -TURN_EPS) || (v1 < -TURN_EPS && v2 > TURN_EPS))) continue;
+      const dxj = dx[j]!;
+      const dyj = dy[j]!;
+      const v3 = dxj * (ayi - cy) - dyj * (axi - cx);
+      const v4 = dxj * (byi - cy) - dyj * (bxi - cx);
+      if ((v3 > TURN_EPS && v4 < -TURN_EPS) || (v3 < -TURN_EPS && v4 > TURN_EPS)) crossings += 1;
     }
   }
-  return { scale: Math.sqrt(area), area, bounds: rectHull(placed.map(withMargin)), straight, crossings };
+  return crossings;
 }
 
 /** This function gives the length of a polyline. */
