@@ -19,6 +19,7 @@
   --warn-soft: #fbf0d9;
   --bad: #b3261e;
   --bad-soft: #fbe5e3;
+  --route: #c4501f;
   --mono: ui-monospace, "SFMono-Regular", "Cascadia Mono", Menlo, Consolas, monospace;
   --sans: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
 }
@@ -43,6 +44,7 @@
     --warn-soft: #352a12;
     --bad: #ff8a80;
     --bad-soft: #3a1b19;
+    --route: #f08a5d;
   }
 }
 :root[data-theme="dark"] {
@@ -65,6 +67,7 @@
   --warn-soft: #352a12;
   --bad: #ff8a80;
   --bad-soft: #3a1b19;
+  --route: #f08a5d;
 }
 
 * { box-sizing: border-box; }
@@ -202,6 +205,72 @@ button { cursor: pointer; }
 .news-item h3 { margin: 0 0 4px; font-size: 1rem; }
 .news-item p { margin: 4px 0; }
 
+/* The joint pages: the compare and the playground */
+.page-title { font-size: 1.6rem; line-height: 1.2; margin: 0 0 0.75rem; letter-spacing: -0.01em; }
+.wordmark .home { color: inherit; text-decoration: none; display: flex; align-items: center; gap: 10px; }
+.nav a.page-link { margin-left: auto; }
+.nav a.page-link + a.page-link { margin-left: 0; }
+.nav a[aria-current="page"] { color: var(--ink); border-bottom-color: var(--accent); }
+/* The links to the sites of the two engines: plain links after the pages, with an arrow that tells "another site". */
+.nav a.ext-link::after { content: " \2197"; font-size: 0.85em; color: var(--ink-3); }
+.panel-title { font-size: 1.05rem; margin: 18px 0 8px; }
+.panel-title:first-child { margin-top: 0; }
+.count-note { font-weight: 400; font-size: 0.85rem; color: var(--ink-3); }
+.panel { min-width: 0; }
+.strategy-rows { display: grid; gap: 6px; margin-top: 8px; }
+.strategy-row { display: grid; grid-template-columns: 7.5em minmax(0, 1fr); gap: 8px; align-items: start; }
+.strategy-name { padding-top: 6px; font-size: 0.9rem; }
+.go { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; margin: 16px 0 8px; }
+.primary, .secondary { border-radius: 999px; padding: 8px 18px; font-weight: 600; min-height: 40px; }
+.primary { background: var(--accent); color: #fff; border: 1px solid var(--accent); }
+.secondary { background: var(--surface); border: 1px solid var(--line); }
+.primary:disabled, .secondary:disabled { opacity: 0.5; cursor: default; }
+.status { margin: 12px 0; min-height: 1.5em; }
+.progress-line { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 12px; font-size: 0.9rem; color: var(--ink-2); }
+.progress-line progress { width: min(320px, 100%); accent-color: var(--accent); }
+.view-filter { margin: 14px 0; }
+.view-filter button[aria-pressed="true"], .filter button[aria-pressed="true"] { background: var(--accent-soft); border-color: var(--accent); color: var(--accent-ink); font-weight: 600; }
+.pair-cards { list-style: none; margin: 12px 0 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 12px; }
+.pair-card { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 10px 12px; min-width: 0; display: flex; flex-direction: column; gap: 8px; }
+.pair-card.floor { border-left: 4px solid var(--good); }
+.pair-card.miss { border-left: 4px solid var(--bad); }
+.pair-card.skip { border-left: 4px solid var(--warn); opacity: 0.85; }
+.pc-head { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 8px; }
+.pc-rank { font-weight: 700; font-variant-numeric: tabular-nums; color: var(--ink-3); min-width: 2.2em; }
+.pc-name { font-size: 0.9rem; min-width: 0; overflow-wrap: anywhere; flex: 1 1 auto; }
+.pc-name code { background: none; padding: 0; }
+.pc-facts { font-size: 0.85rem; }
+.pc-skip, .pc-breaks { font-size: 0.85rem; color: var(--ink-2); margin: 0; }
+.pc-open { font-size: 0.85rem; margin-top: auto; }
+.pair-svg { display: block; width: 100%; height: auto; aspect-ratio: 4 / 3; background: var(--surface-2); border-radius: 8px; }
+.pair-svg .area { fill: var(--surface); stroke: var(--line); stroke-width: 1; }
+.pair-svg .boxes { fill: var(--accent-soft); stroke: var(--accent); stroke-width: 1; }
+.pair-svg .routes { fill: none; stroke: var(--route); stroke-width: 1.2; stroke-linejoin: round; opacity: 0.85; }
+.picker-part { margin-top: 4px; }
+.fields { display: grid; gap: 10px; margin-top: 8px; }
+.grid-dims { grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); }
+.field { display: grid; gap: 3px; min-width: 0; }
+.field[hidden] { display: none; }
+.field.wide select { width: 100%; }
+.field-name { font-size: 0.85rem; color: var(--ink-2); }
+.field select, .field input[type="number"] { min-height: 36px; padding: 4px 8px; border-radius: 8px; border: 1px solid var(--line); background: var(--surface); max-width: 100%; min-width: 0; }
+.field input[type="checkbox"] { width: 22px; height: 22px; accent-color: var(--accent); }
+.field-help { font-size: 0.82rem; color: var(--ink-3); }
+.field-help .range { white-space: nowrap; }
+.field.fixed { opacity: 0.8; }
+.fixed-value { font-size: 0.88rem; font-style: italic; color: var(--ink-2); }
+.num-pair { display: grid; grid-template-columns: minmax(0, 1fr) 6.5em; gap: 8px; align-items: center; }
+.slider { width: 100%; accent-color: var(--accent); min-height: 28px; }
+.option-pick select { font-weight: 600; }
+.member { border: 1px dashed var(--accent); border-radius: 10px; margin: 12px 0 0; padding: 8px 12px; min-width: 0; }
+.member legend { font-size: 0.85rem; color: var(--ink-2); padding: 0 4px; }
+.ids .facts dd { overflow-wrap: anywhere; }
+.config-id { font-size: 1rem; font-weight: 700; }
+.result { display: grid; gap: 12px; }
+.result-figure { margin: 0; background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 10px; }
+.result-figure .pair-svg { aspect-ratio: auto; max-height: 70vh; }
+.result-figure figcaption { font-size: 0.85rem; color: var(--ink-3); margin-top: 6px; overflow-wrap: anywhere; }
+
 .foot { color: var(--ink-3); font-size: 0.85rem; padding: 24px 0 40px; }
 
 /* The phone layout */
@@ -212,4 +281,11 @@ button { cursor: pointer; }
   h2 { font-size: 1.35rem; }
   .hero-pair { font-size: 1.25rem; }
   .arrow { display: none; }
+  .strategy-row { grid-template-columns: minmax(0, 1fr); gap: 2px; }
+  .pair-cards { grid-template-columns: minmax(0, 1fr); }
+  .page-title { font-size: 1.35rem; }
+  .nav a.page-link { margin-left: 0; }
+  /* At phone width the links wrap to a second row, so no link is out of view. */
+  .nav .wrap { flex-wrap: wrap; overflow-x: visible; gap: 0 2px; }
+  .nav a { padding: 8px 8px; }
 }

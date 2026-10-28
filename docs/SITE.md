@@ -7,13 +7,24 @@ The project site is at <https://mark1russell7.github.io/layout-contract/>. It ha
 3. **Sweep coverage and efficacy maps:** a placeholder. The roadmap items L35 and L36 fill it.
 4. **What's new:** a dated list of the work items, with their releases and pull requests.
 
-Each section with data shows the date and the source of its data. The site links to the sites of [packing](https://mark1russell7.github.io/packing/) and [highways](https://mark1russell7.github.io/highways/).
+Each section with data shows the date and the source of its data.
+
+The navigation of each page links to the sites of [highways](https://mark1russell7.github.io/highways/) and [packing](https://mark1russell7.github.io/packing/). The two engine sites link back to this site.
+
+- `ENGINE_SITES` in `packages/site/src/links.ts` holds the two addresses. No other file of the site holds them.
+- Each page has the mark `<!-- engine-sites -->` in its navigation. The Vite plugin `engineSites` puts the links there, and a page without the mark stops the build.
+- The test `src/links.test.ts` examines each page of the site.
+- At phone width, the links of the navigation go onto a second row, so each link stays in view.
 
 ## How the site is built
 
 - The package `packages/site` (`@layout-contract/site`) holds the site. It is a Vite site with TypeScript and no framework, from the preset `vite`.
 - The workflow `.github/workflows/pages.yml` builds the site on each push to `main`. It uses `reusable-pages.yml` of the template (`CI.md`, section "Pages").
 - The workflow sets `SITE_BASE` to `/layout-contract`. A local build uses the root `/`.
+- The step `site-pages` of the shared workflow adds the Releases page (`releases/`), the Status page (`status/`), `data/releases.json` and `data/status.json`. Its inputs are `packages: "@mark1russell7/layout-contract"` and `site-name: layout-contract`.
+- The repository has no `docs/ROADMAP.md`, so the input `roadmap` is empty. The Status page shows the open pull requests and the open issues.
+- After the deployment, the job `served` of `pages.yml` reads the 4 paths from the public site. A missing path fails the job.
+- The home page links to the Releases page and to the Status page. A local build does not have them.
 - The site reads only the files in `packages/site/data`, at build time. The build does not download a CI artifact.
 - The prose of the site is in `packages/site/content/*.md`. `pnpm lint:ste` examines it.
 
@@ -67,6 +78,43 @@ Add the item at the top of `items` in `packages/site/data/news.json`. Take the d
 
 The items L35 and L36 add a data folder for the sweep results, its check in `src/data.ts`, and the section. Until then, the section shows no data.
 
+## The joint pages
+
+The site has two more pages: `compare.html` and `playground.html`. Both use the joint runner of the benchmark in a Web Worker, one pair at a time. The page stays responsive, and the button "Stop" ends the worker.
+
+- **Compare all pairs:** pick one input, then the packers, the routers and the joint pairs. All are on by default. The page draws each pair, with its verdict of the floor, its score, `joint.fill`, the pass-through count, the overflow and the time. The order is the order of the benchmark: the fewest misses, then the highest score.
+- **Playground:** pick any packer, any router and any joint option, and set each option. The page shows the config id of the joint config and the record of the pair.
+
+A joint pair packs, routes, then packs again with more space for the lanes of the routes. The joint options are the stage `lanes.mode` of the joint space:
+
+- `max` and `sides` are the lane pairs of L13. Their params are `passes`, `clearance`, `space` and `cap`.
+- `iter` is the iteration of L11, with the param `rounds`.
+- The option `none` of the playground sets no lane pass. It is not an option of the space, because the stage is optional.
+
+The compare takes inputs of up to 100 boxes. The playground takes each input, and it shows a warning above 100 boxes.
+
+### Where the lists come from
+
+The Vite plugin `jointCatalog` makes the module `virtual:joint-catalog` at build time. A new strategy or option of an engine shows up after the next build, with no change of the site.
+
+| List | Source |
+|---|---|
+| The packers | `strategies` and `composites` of `@mark1russell7/packing`. The bench entries are `PACK_ENTRIES` of `@layout-contract/joint`. Each other strategy gets one entry, marked "not in the bench". |
+| The routers | `listStrategies(STRATEGIES, "router")` of `@mark1russell7/highways`, then `portfolio`. They are `ROUTERS` of the joint benchmark. |
+| The options of a router | The field `schema` of each strategy, with `optionDefaults`. `portfolio` has no schema, so the site makes one from `PORTFOLIO_RULES`, `PORTFOLIO_CAPS`, `PORTFOLIO_KS_API` and `PORTFOLIO_HASHES`. |
+| The options of a packer | The field `defaults` of each strategy. `packing` declares no schema, so the site makes a range from each default and tags it "site range". `PACK_EXTRAS` in `src/engines.ts` lists the options without a default. |
+| The joint pairs | `laneEntries()` and `iterEntries()` of `@layout-contract/joint`: 18 lane pairs and 18 iteration pairs. They are the named configs of `JOINT_SPACE` after the pairs of the product. |
+| The joint options | `laneSpace()` of `@layout-contract/joint`. |
+| The inputs | `jointCorpus("joint-v2")`. The build compares each hash with the committed manifest. |
+
+The spaces come from `packSpace` and `routeSpace` when an engine exports them. Until then, the site makes the two spaces from the lists.
+
+The joint space is `jointSpace(pack, route)` of `@layout-contract/joint`, the function that also makes `JOINT_SPACE`. Thus the site and the benchmark have one joint space. It has 196 named pairs: 16 pack entries × 10 routers, then the 36 joint pairs.
+
+The worker gives the joint pairs to `pairRuns` as `lanes` and `iterate`. For a lane choice of the playground, `configRun` gives the lane entry or the iteration entry.
+
+The test `src/completeness.test.ts` fails when a strategy, a router or an option has no place on the pages.
+
 ## Local commands
 
 From the root of the repository:
@@ -100,3 +148,33 @@ W5 and W6 are the risky claims. The tables, the long pair names and the strategy
 | W4 | held (local) | A joint file without its fields and a file with broken JSON each stopped the build with exit code 1. |
 | W5 | open | The local checks start no browser. |
 | W6 | open | CI starts after the push. |
+
+## The prediction for the joint compare and the playground
+
+This prediction comes before the code of roadmap item L43. Before this prediction, we read the registries of the engines and timed 2 inputs in Node.
+
+| Id | Confidence | Claim |
+|---|---|---|
+| J1 | 0.7 | The full compare of 130 pairs on a 100-box input of `joint-v2` finishes in less than 8 seconds in a desktop browser. |
+| J2 | 0.5 | The new pages and their worker add less than 300 KB of JavaScript after gzip. |
+| J3 | 0.9 | The joint runner operates in a browser bundle after one change: `runEnv` moves to a Node file. `packages/layout-contract` does not change. |
+| J4 | 0.85 | The completeness test finds 3 strategies of `packing` that the bench does not use: `push`, `portfolio` and `aspect-fit`. It finds no such router. |
+| J5 | 0.45 | The spaces that the site makes from the registries pass `checkSpace` at the first test run, with no fix. |
+| J6 | 0.8 | Each declared option has a control. At least 85% of the controls set a value. The other controls show a fixed value, for example a function. |
+| J7 | 0.6 | The records of the new pair-by-pair runner are the same as the records of `runInput`, so the parity tests pass with no change. |
+| J8 | 0.4 | The CI of the pull request passes on the first push, with no fix commit. |
+
+J2, J5 and J8 are the risky claims. The size of `highways` is the risk of J2: its build is 945 KB before minification. The special values of `highways` (for example `Infinity`) are the risk of J5.
+
+### The local scores of the joint prediction
+
+| Id | Score | Facts |
+|---|---|---|
+| J1 | open | The local checks start no browser. In Node, the built worker did 160 pairs on the preset "bundled" (100 boxes) in 7.7 seconds. The 130 bench pairs on a corpus input of 100 boxes took 2.4 seconds. |
+| J2 | held (local) | After gzip, the worker is 143 KB, the catalog 16 KB, the compare page 4 KB and the playground 6 KB. A shared chunk is 21 KB. The total is less than 200 KB. |
+| J3 | held | `runEnv` moved to `src/env.ts`. The new entry `@layout-contract/joint/browser` does not export it, `plan.ts` or `split.ts`. `packages/layout-contract` did not change. |
+| J4 | held | The extra packers are `push`, `portfolio` and `aspect-fit(select)`. Each router of `highways` is a bench router. |
+| J5 | held | The two spaces and the joint space passed `checkSpace` at the first probe, with no fix. |
+| J6 | held | Each declared option has a control. 103 of the 117 controls set a value (88%): 101 params and the 2 controls of the wrapped strategy. 14 controls show a fixed value: a function, a list or an object. |
+| J7 | held | The parity tests of `packages/joint` passed with no change. A new test compares `pairRuns` with `runInput`. |
+| J8 | open | CI starts after the push. |

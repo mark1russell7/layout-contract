@@ -1004,6 +1004,42 @@ function rankGroups(cell: CellValues, ids: readonly string[], groups: readonly {
   return out;
 }
 
+/** One pair in the ranking of `rankPairs`. */
+export interface PairRank {
+  /** The rank, from 1. A skipped pair has no rank. */
+  readonly rank: number | undefined;
+  readonly pair: string;
+  /** The count of the inputs where the pair misses the floor. A skipped pair misses each input. */
+  readonly misses: number;
+  /** The mean score: the `joint.fill` of the pair on each input where it reaches the floor, else 0. */
+  readonly score: number;
+  /** The hard value of the pair in the cell, summed over the inputs: `hardOf`. */
+  readonly hard: number;
+  /** The reason of a skipped pair. */
+  readonly skipped?: string;
+}
+
+/**
+ * This function ranks each pair of some records in one cell. It uses the order of the ranking of the output groups: the misses, then the score.
+ * The floor of each input and the score of each pair are the values of the analysis. Each pair is its own group.
+ * A pair that skipped each input comes last, without a rank. The default cell is `HEADLINE`.
+ */
+export function rankPairs(records: readonly LayoutRecord[], rule: "collection" | "all" = HEADLINE.rule, cap: number = HEADLINE.cap): PairRank[] {
+  const index = indexRecords(records);
+  const ids = [...index.at.keys()];
+  const inputs: AnalysisInput[] = ids.map((id) => ({ id, seed: 0, spec: id, kind: "", cell: {} }));
+  const cell = cellValues(index, inputs, rule, cap);
+  const ranked = new Set<string>();
+  for (const byPair of index.at.values()) for (const pair of byPair.keys()) ranked.add(pair);
+  const groups = [...ranked].sort().map((pair) => ({ id: pair, members: [pair] }));
+  const hardSum = (pair: string): number => ids.reduce((s, i) => s + (cell.values.get(i)?.get(pair)?.["hard"] ?? 0), 0);
+  const out: PairRank[] = (groups.length === 0 ? [] : rankGroups(cell, ids, groups)).map((g) => ({ rank: g.rank, pair: g.group, misses: g.misses, score: g.score, hard: hardSum(g.group) }));
+  const skipped = new Map<string, string>();
+  for (const r of records) if (r.skipped !== undefined && !ranked.has(r.strategy) && !skipped.has(r.strategy)) skipped.set(r.strategy, r.skipped);
+  for (const [pair, reason] of [...skipped].sort((a, b) => (a[0] < b[0] ? -1 : 1))) out.push({ rank: undefined, pair, misses: Math.max(1, ids.length), score: 0, hard: 0, skipped: reason });
+  return out;
+}
+
 /** This function gives the index without the pairs of some pack entries. */
 function dropPacks(index: RecordIndex, packs: ReadonlySet<string>): RecordIndex {
   const at = new Map<string, ReadonlyMap<string, LayoutRecord>>();

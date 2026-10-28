@@ -1,5 +1,5 @@
 // The joint runner of roadmap item L9 (`docs/JOINT-BENCH.md`). It packs each input, then routes the packed input, for each pair of a pack entry and a router.
-import { arch, cpus, platform } from "node:os";
+// It does not use Node, so the site operates it in a Web Worker. `runEnv` is in `src/env.ts`.
 import {
   applyPack,
   outputHash,
@@ -97,6 +97,22 @@ export const PORTFOLIO_ROUTER = "portfolio";
 /** The routers of the joint runner: the 9 router strategies of `highways` 0.6.0, in the order of its benchmark, and the portfolio router. */
 export const ROUTERS: readonly string[] = Object.freeze([...Object.keys(routerStrategies), PORTFOLIO_ROUTER]);
 
+/**
+ * One router entry: a router strategy of `highways`, or `portfolio`, with options over its defaults. The id names the entry in the pair ids.
+ * A router name of `RunOptions.routers` is the entry with that id and no options.
+ */
+export interface RouterEntry {
+  readonly id: string;
+  /** The name of a router strategy of `highways`, or `portfolio` for `portfolioRouter`. */
+  readonly router: string;
+  readonly options: Readonly<Record<string, unknown>>;
+}
+
+/** This function gives the router entry of a router name or of an entry. A name gives the entry with no options. */
+export function routerEntryOf(router: string | RouterEntry): RouterEntry {
+  return typeof router === "string" ? { id: router, router, options: {} } : router;
+}
+
 /** The stretch caps of the cells of `highways`. */
 export const CAPS: readonly number[] = Object.freeze([1.1, 1.25, 1.5]);
 
@@ -112,8 +128,8 @@ export function pairId(pack: string, router: string): string {
 export interface RunOptions {
   /** The pack entries. The default is `PACK_ENTRIES`. */
   readonly packs?: readonly PackEntry[];
-  /** The router names. The default is `ROUTERS`. */
-  readonly routers?: readonly string[];
+  /** The router names or router entries. The default is `ROUTERS`. */
+  readonly routers?: readonly (string | RouterEntry)[];
   /**
    * The ids of the pairs to run, for example `rows+corners`. The default is each pair of `packs` and `routers`.
    * With this list, the runner runs only the pairs of the list, and packs only the entries of these pairs and of the lane pairs.
@@ -141,12 +157,6 @@ export interface RunOptions {
   readonly iterate?: readonly IterEntry[];
   /** The least space between two facing sides of an iteration pair. The default is `ITER_FLOOR_SPACE`. */
   readonly iterFloor?: number;
-}
-
-/** This function gives the facts of the computer of this run. */
-export function runEnv(): RunEnv {
-  const list = cpus();
-  return { node: process.version, os: platform(), arch: arch(), runner: process.env["RUNNER_NAME"] ?? "local", cpu: list[0]?.model ?? "unknown", cpus: list.length };
 }
 
 /** This function gives the input of the packer: the boxes without `group` and `parent`. No strategy of `packing` 0.2.10 supports groups. */
@@ -252,19 +262,20 @@ function finite(values: Readonly<Record<string, number>>): Record<string, number
   return Object.fromEntries(Object.entries(values).filter(([, v]) => typeof v === "number" && Number.isFinite(v)));
 }
 
-/** This function gives the router of a name: a router strategy of `highways`, or `portfolio` for `portfolioRouter()`. */
-function routerOf(name: string): Router {
-  if (name === PORTFOLIO_ROUTER) return portfolioRouter();
-  const s = (routerStrategies as unknown as Readonly<Record<string, Strategy<"router", object>>>)[name];
-  if (s === undefined) throw new RangeError(`There is no router "${name}". The routers are ${ROUTERS.join(", ")}.`);
-  return asRouter(s);
+/** This function gives the router of an entry: a router strategy of `highways`, or `portfolio` for `portfolioRouter()`, with the options of the entry. */
+function routerOf(entry: RouterEntry): Router {
+  const custom = Object.keys(entry.options).length > 0;
+  if (entry.router === PORTFOLIO_ROUTER) return custom ? portfolioRouter(entry.options) : portfolioRouter();
+  const s = (routerStrategies as unknown as Readonly<Record<string, Strategy<"router", object>>>)[entry.router];
+  if (s === undefined) throw new RangeError(`There is no router "${entry.router}". The routers are ${ROUTERS.join(", ")}.`);
+  return custom ? asRouter(s, entry.options) : asRouter(s);
 }
 
 /**
  * This function routes one graph with one router and measures the result. `facts` is the function of `routeFacts` of the graph.
  * The result holds the time of each step in `times` (`time.bench.ms`, `time.facts.ms`, `time.measures.ms` and `time.hash.ms`).
  */
-function routeOnce(name: string, graph: Graph, facts: (result: Result) => PortfolioFacts, fixture: string, repeat: number, now: () => number): RouteRun | RouteMiss {
+function routeOnce(name: RouterEntry, graph: Graph, facts: (result: Result) => PortfolioFacts, fixture: string, repeat: number, now: () => number): RouteRun | RouteMiss {
   const router = routerOf(name);
   if (graph.nodes.length > (router.maxNodes ?? Infinity)) return { ok: false, reason: `The graph has ${graph.nodes.length} nodes, above the limit ${router.maxNodes} of the router.` };
   try {
@@ -331,20 +342,27 @@ function fullOptions(entry: PackEntry): Record<string, unknown> {
   return { ...(packStrategy(entry.strategy).defaults as Record<string, unknown>), ...entry.options };
 }
 
+/** The result of one pair: its record, and the pack and the routes of a pair that did not skip. The site draws them. */
+export interface PairRun {
+  readonly record: LayoutRecord;
+  /** The packed input that the router got: the placed boxes and their edges. A pair with a skipped pack has none. */
+  readonly packed?: PackedInput;
+  /** The output of the pack. A pair with a skipped pack has none. */
+  readonly pack?: PackOutput;
+  /** The output of the router. A skipped pair has none. */
+  readonly result?: Result;
+}
+
 /**
- * This function runs each pair of a pack entry and a router on one input, and gives one `layout-record/1` for each pair.
- *
- * - The runner packs the input, drops the overflow boxes and their edges, and routes the placed boxes.
- * - Pack entries with the same output share the routes of each router.
- * - A strategy that does not support the cell, an error and a graph above the limit of a router give a record with `skipped`.
- * - The `hard` field holds the breaks of `checkHard` (`pack.*`) and of `checkProperties` (`route.*`).
- * - The measures hold `pack.*`, `route.*`, `joint.*`, the cap counts `route.cap.<cap>`, `route.mixed` and `joint.overflow.edges`.
- * - The measures `time.*` hold the time of the steps after the pack, in milliseconds. `docs/JOINT-BENCH.md` ("The runner") tells each step.
- * - With `lanes`, each lane pair gives one more record. Its pack part is the id of the lane entry, and `docs/JOINT-BENCH.md` ("The lane pairs") tells its passes.
+ * This function packs and routes one input with each pair of a pack entry and a router, one pair at each step. It gives the result of each pair.
+ * The records are the records of `runInput`, in the same order. A caller can stop after each pair, for example to show progress.
  */
-export function runInput(input: LayoutInput, cell: Readonly<Record<string, unknown>> | undefined, options: RunOptions = {}): LayoutRecord[] {
+export function* pairRuns(input: LayoutInput, cell: Readonly<Record<string, unknown>> | undefined, options: RunOptions = {}): Generator<PairRun, void, undefined> {
   const packs = options.packs ?? PACK_ENTRIES;
-  const routers = options.routers ?? ROUTERS;
+  const routerEntries = (options.routers ?? ROUTERS).map(routerEntryOf);
+  const routers = routerEntries.map((r) => r.id);
+  const byId = new Map(routerEntries.map((r) => [r.id, r]));
+  const entryOf = (id: string): RouterEntry => byId.get(id) ?? routerEntryOf(id);
   const only = options.pairs === undefined ? undefined : new Set(options.pairs);
   const repeat = options.repeat ?? 2;
   const now = options.now ?? ((): number => performance.now());
@@ -352,7 +370,6 @@ export function runInput(input: LayoutInput, cell: Readonly<Record<string, unkno
   const packInput = packInputOf(input);
   const target = input.container?.aspect ?? 1;
   const edgeCount = input.edges?.length ?? 0;
-  const records: LayoutRecord[] = [];
   const shared = new Map<string, PackGroup>();
   const packRuns = new Map<string, PackRun>();
   const iterating = (options.iterate?.length ?? 0) > 0;
@@ -362,7 +379,7 @@ export function runInput(input: LayoutInput, cell: Readonly<Record<string, unkno
     stage: "joint" as const,
     step: "joint",
     strategy: pairId(id, router),
-    options: { pack: id, packStrategy: entry.strategy, packOptions: fullOptions(entry), router, ...extra },
+    options: { pack: id, packStrategy: entry.strategy, packOptions: fullOptions(entry), router, ...routerFacts(entryOf(router)), ...extra },
     corpus: options.corpus ?? "joint-v1",
     seed,
     ...(options.env === undefined ? {} : { env: options.env }),
@@ -390,7 +407,7 @@ export function runInput(input: LayoutInput, cell: Readonly<Record<string, unkno
   const routeOf = (g: PackGroup, name: string): RouteRun | RouteMiss => {
     let r = g.routes.get(name);
     if (r === undefined) {
-      r = routeOnce(name, g.graph, g.check, g.packed.input.id, repeat, now);
+      r = routeOnce(entryOf(name), g.graph, g.check, g.packed.input.id, repeat, now);
       g.routes.set(name, r);
     }
     return r;
@@ -401,7 +418,7 @@ export function runInput(input: LayoutInput, cell: Readonly<Record<string, unkno
     if (full !== undefined) return full.ok ? { ok: true, routes: full.result.routes, ms: full.ms } : full;
     let r = g.plain.get(name);
     if (r === undefined) {
-      r = plainRoute(name, g.graph, now);
+      r = plainRoute(entryOf(name), g.graph, now);
       g.plain.set(name, r);
     }
     return r;
@@ -458,17 +475,17 @@ export function runInput(input: LayoutInput, cell: Readonly<Record<string, unkno
     const run = packOnce(entry, packInput, cell, seed, now);
     packRuns.set(entry.id, run);
     if (!run.ok) {
-      for (const router of mine) records.push(skippedRecord(entry, router, run.reason));
+      for (const router of mine) yield { record: skippedRecord(entry, router, run.reason) };
       continue;
     }
     const g = groupOf(run, entry.id);
     for (const router of mine) {
       const route = routeOf(g, router);
       if (!route.ok) {
-        records.push(skippedRecord(entry, router, route.reason));
+        yield { record: skippedRecord(entry, router, route.reason), packed: g.packed, pack: run.output };
         continue;
       }
-      records.push(recordOf(entry, router, run, g, route, run.ms, run.ms + route.ms, run.deterministic && route.deterministic));
+      yield { record: recordOf(entry, router, run, g, route, run.ms, run.ms + route.ms, run.deterministic && route.deterministic), packed: g.packed, pack: run.output, result: route.result };
     }
   }
 
@@ -483,17 +500,18 @@ export function runInput(input: LayoutInput, cell: Readonly<Record<string, unkno
     const entry = packs.find((p) => p.id === lane.pack) ?? PACK_ENTRIES.find((p) => p.id === lane.pack);
     if (entry === undefined) throw new RangeError(`There is no pack entry "${lane.pack}" for the lane pair "${lane.id}".`);
     const extra = { lanes: { variant: lane.variant.name, mode: lane.variant.mode, passes: lane.variant.passes, base: pairId(lane.pack, lane.router), ...laneOpts } };
-    const skip = (reason: string): void => void records.push(skippedRecord(entry, lane.router, reason, lane.id, extra));
+    // A generator cannot yield in a closure, so each skip of a lane pair yields its record here.
+    const skip = (reason: string): PairRun => ({ record: skippedRecord(entry, lane.router, reason, lane.id, extra) });
     let run = packRuns.get(lane.pack) ?? packOnce(entry, packInput, cell, seed, now);
     packRuns.set(lane.pack, run);
     if (!run.ok) {
-      skip(run.reason);
+      yield skip(run.reason);
       continue;
     }
     let g = groupOf(run, entry.id);
     let routes = plainOf(g, lane.router);
     if (!routes.ok) {
-      skip(routes.reason);
+      yield skip(routes.reason);
       continue;
     }
     // The first pass is the base pair: its pack time and its route time count in the time of the lane pair.
@@ -544,7 +562,7 @@ export function runInput(input: LayoutInput, cell: Readonly<Record<string, unkno
       }
     }
     if (failed !== undefined || final === undefined || !run.ok) {
-      skip(failed ?? "error: the lane pair has no final route");
+      yield skip(failed ?? "error: the lane pair has no final route");
       continue;
     }
     t0 = now();
@@ -558,7 +576,7 @@ export function runInput(input: LayoutInput, cell: Readonly<Record<string, unkno
       "lanes.margin": marginGrowth(input.boxes, boxes),
       "time.lanes.ms": laneMs,
     };
-    records.push(recordOf(entry, lane.router, run, g, final, packMs, totalMs, deterministic, lane.id, extra, more));
+    yield { record: recordOf(entry, lane.router, run, g, final, packMs, totalMs, deterministic, lane.id, extra, more), packed: g.packed, pack: run.output, result: final.result };
   }
 
   // The iteration pairs of L11. Each pack entry and router has one chain of rounds. The round caps of its iteration pairs read prefixes of the chain.
@@ -644,7 +662,7 @@ export function runInput(input: LayoutInput, cell: Readonly<Record<string, unkno
       chains.set(key, chain);
     }
     if (!chain.ok) {
-      records.push(skippedRecord(entry, it.router, chain.reason, it.id, extra));
+      yield { record: skippedRecord(entry, it.router, chain.reason, it.id, extra) };
       continue;
     }
     growChain(chain, it.variant.rounds);
@@ -667,9 +685,34 @@ export function runInput(input: LayoutInput, cell: Readonly<Record<string, unkno
       "lanes.margin": marginGrowth(input.boxes, best.boxes),
       "time.lanes.ms": last.totals.laneMs + (best === last ? own.ms : 0),
     };
-    records.push(recordOf(entry, it.router, best.run, best.g, best.route, last.totals.packMs, last.totals.totalMs, last.totals.deterministic, it.id, extra, more));
+    yield {
+      record: recordOf(entry, it.router, best.run, best.g, best.route, last.totals.packMs, last.totals.totalMs, last.totals.deterministic, it.id, extra, more),
+      packed: best.g.packed,
+      pack: best.run.output,
+      result: best.route.result,
+    };
   }
-  return records;
+}
+
+/**
+ * This function packs and routes one input with each pair of a pack entry and a router. It gives one `layout-record/1` for each pair.
+ *
+ * - The runner packs the input, drops the overflow boxes and their edges, and routes the placed boxes.
+ * - Pack entries with the same output share the routes of each router.
+ * - A strategy that does not support the cell, an error and a graph above the limit of a router give a record with `skipped`.
+ * - The `hard` field holds the breaks of `checkHard` (`pack.*`) and of `checkProperties` (`route.*`).
+ * - The measures hold `pack.*`, `route.*`, `joint.*`, the cap counts `route.cap.<cap>`, `route.mixed` and `joint.overflow.edges`.
+ * - The measures `time.*` hold the time of the steps after the pack, in milliseconds. `docs/JOINT-BENCH.md` ("The runner") tells each step.
+ * - With `lanes`, each lane pair gives one more record. Its pack part is the id of the lane entry, and `docs/JOINT-BENCH.md` ("The lane pairs") tells its passes.
+ * - A router entry with options or with an id that is not its router name also writes `routerStrategy` and `routerOptions` in `options`.
+ */
+export function runInput(input: LayoutInput, cell: Readonly<Record<string, unknown>> | undefined, options: RunOptions = {}): LayoutRecord[] {
+  return Array.from(pairRuns(input, cell, options), (r) => r.record);
+}
+
+/** This function gives the facts of a router entry for the options of a record. A plain router name gives none, so the records of the benchmark do not change. */
+function routerFacts(entry: RouterEntry): Readonly<Record<string, unknown>> {
+  return entry.id === entry.router && Object.keys(entry.options).length === 0 ? {} : { routerStrategy: entry.router, routerOptions: entry.options };
 }
 
 /** The part of the packed input id of a round of an iteration pair. */
@@ -741,7 +784,7 @@ interface PlainRoute {
 }
 
 /** This function routes one graph one time with one router, without the measures. */
-function plainRoute(name: string, graph: Graph, now: () => number): PlainRoute | RouteMiss {
+function plainRoute(name: RouterEntry, graph: Graph, now: () => number): PlainRoute | RouteMiss {
   const router = routerOf(name);
   if (graph.nodes.length > (router.maxNodes ?? Infinity)) return { ok: false, reason: `The graph has ${graph.nodes.length} nodes, above the limit ${router.maxNodes} of the router.` };
   try {

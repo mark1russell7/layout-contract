@@ -146,7 +146,7 @@ export interface JointCorpus {
 }
 
 /** This function gives the full parameters of `edgeStep` of a row. */
-function edgesOf(row: Row): EdgeParams {
+export function jointEdgesOf(row: Row): EdgeParams {
   return {
     edgeDensity: row["edgeDensity"] as EdgeParams["edgeDensity"],
     edgeShape: row["edgeShape"] as EdgeParams["edgeShape"],
@@ -157,7 +157,7 @@ function edgesOf(row: Row): EdgeParams {
 }
 
 /** This function gives a spec with the full parameters of its generator. With a value of `spacing`, the spec also has the step `spacing`. */
-function specOf(array: JointSpec["array"], name: string, params: GeneratorParams, edges: EdgeParams, spacing?: Spacing): JointSpec {
+export function jointSpecOf(array: JointSpec["array"], name: string, params: GeneratorParams, edges: EdgeParams, spacing?: Spacing): JointSpec {
   const gen = generator(name);
   const edgesStamp: EdgesStamp = { name: "edges", version: EDGE_STEP_VERSION, params: edges };
   return {
@@ -180,18 +180,18 @@ const spacingOf = (row: Row): Spacing | undefined => row["spacing"] as Spacing |
 export function jointSpecs(set: JointSet = SET): JointSpec[] {
   const dims = arrayDimensions(set);
   const grid = pairwise(dims.grid, ARRAY_SEED).map((row) =>
-    specOf(
+    jointSpecOf(
       "grid",
       "rect-grid",
       { containerSize: row["containerSize"]!, containerShape: row["containerShape"]!, obstacles: row["obstacles"]!, sizes: row["sizes"]!, count: COUNTS[row["count"]!]! },
-      edgesOf(row),
+      jointEdgesOf(row),
       spacingOf(row),
     ),
   );
-  const ui = pairwise(dims.ui, ARRAY_SEED).map((row) => specOf("ui", row["family"]!, { containerSize: row["containerSize"]! }, edgesOf(row), spacingOf(row)));
-  const fixedEdges = edgesOf({ edgeDensity: "medium", edgeShape: "random", groups: "none", ports: "free" });
+  const ui = pairwise(dims.ui, ARRAY_SEED).map((row) => jointSpecOf("ui", row["family"]!, { containerSize: row["containerSize"]! }, jointEdgesOf(row), spacingOf(row)));
+  const fixedEdges = jointEdgesOf({ edgeDensity: "medium", edgeShape: "random", groups: "none", ports: "free" });
   const fixed = FIXED_CASES.flatMap((c) =>
-    set === SET ? [specOf("fixed", "edge-cases", { case: c }, fixedEdges)] : FIXED_SPACINGS[c]!.map((s) => specOf("fixed", "edge-cases", { case: c }, fixedEdges, s)),
+    set === SET ? [jointSpecOf("fixed", "edge-cases", { case: c }, fixedEdges)] : FIXED_SPACINGS[c]!.map((s) => jointSpecOf("fixed", "edge-cases", { case: c }, fixedEdges, s)),
   );
   return [...grid, ...ui, ...fixed];
 }
@@ -232,6 +232,26 @@ export const JOINT_V2_CLAIMS: CorpusClaims = Object.freeze({
 });
 
 /**
+ * This function gives the input file of one seed of a spec, and its entry in the manifest. `jointCorpus` makes each input with it.
+ * The site makes one input with it, so it does not make the full corpus.
+ */
+export function jointInput(spec: JointSpec, seed: number, set: JointSet, registry: ReturnType<typeof jointRegistry> = jointRegistry(set)): { readonly input: LayoutInput; readonly entry: JointEntry } {
+  const gen = generator(spec.generator);
+  const edges = spec.steps[0].params;
+  const spacing = spec.steps[1]?.params.spacing;
+  const cell: JointCell = {
+    ...gen.cell(spec.params),
+    edgeDensity: edges.edgeDensity,
+    edgeShape: edges.edgeShape,
+    groups: edges.groups,
+    ports: edges.ports,
+    ...(spacing === undefined ? {} : { spacing }),
+  };
+  const input = registry.generate(spec.generator, seed, { ...spec.params, ...edges, ...(spacing === undefined ? {} : { spacing }) }, { set });
+  return { input, entry: { id: input.id, hash: input.hash!, cell, ...(spacing === "stress" ? { stress: true as const } : {}) } };
+}
+
+/**
  * This function gives a corpus: `joint-v1` (the default) or `joint-v2`. The same version of the packages gives the same files, byte for byte.
  * For each spec and seed, the family of `jointRegistry` gives the input: the generator of `packing`, then `edgeStep` with the same seed.
  * In `joint-v2`, `spacingStep` then sets the margins and the gap, and the part `.sp-<spacing>` ends the family.
@@ -244,23 +264,12 @@ export function jointCorpus(set: JointSet = SET): JointCorpus {
   const ids = new Set<string>();
   const registry = jointRegistry(set);
   for (const spec of specs) {
-    const gen = generator(spec.generator);
-    const edges = spec.steps[0].params;
-    const spacing = spec.steps[1]?.params.spacing;
-    const cell: JointCell = {
-      ...gen.cell(spec.params),
-      edgeDensity: edges.edgeDensity,
-      edgeShape: edges.edgeShape,
-      groups: edges.groups,
-      ports: edges.ports,
-      ...(spacing === undefined ? {} : { spacing }),
-    };
     for (const seed of spec.seeds) {
-      const file = registry.generate(spec.generator, seed, { ...spec.params, ...edges, ...(spacing === undefined ? {} : { spacing }) }, { set });
-      if (ids.has(file.id)) throw new RangeError(`The corpus has 2 inputs with the id "${file.id}".`);
-      ids.add(file.id);
-      inputs.push(file);
-      entries.push({ id: file.id, hash: file.hash!, cell, ...(spacing === "stress" ? { stress: true as const } : {}) });
+      const { input, entry } = jointInput(spec, seed, set, registry);
+      if (ids.has(entry.id)) throw new RangeError(`The corpus has 2 inputs with the id "${entry.id}".`);
+      ids.add(entry.id);
+      inputs.push(input);
+      entries.push(entry);
     }
   }
   const manifest: JointManifest = { schema: "layout-corpus/1", corpus: set, ...(set === SET ? {} : { claims: JOINT_V2_CLAIMS }), specs, inputs: entries };
