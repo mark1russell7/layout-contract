@@ -345,6 +345,8 @@ export interface LaneEntry {
   readonly variant: LaneVariant;
   readonly pack: string;
   readonly router: string;
+  /** The options of the lane count and of the lane margins of this pair. They replace the options of the run (`RunOptions.laneOptions`). */
+  readonly options?: LaneOptions;
 }
 
 /** This function gives the lane entries of each variant, pack entry and router, in this order. */
@@ -364,15 +366,9 @@ export function laneParts(pack: string): { readonly variant: string; readonly pa
   return parts.length === 3 ? { variant: parts[0]!, pack: parts[1]!, router: parts[2]! } : undefined;
 }
 
-/**
- * The plan cost of one pass of a lane pair, in the cost of one pair of the plan.
- * A pass makes a new pack output, so it builds a new exact network for the facts. The 10 routers of a pack entry share that cost in the other pairs.
- */
-export const LANE_PASS_COST = 3;
-
-/** This function gives the plan cost of the lane entries, in the cost of one pair: `LANE_PASS_COST` for each pass. */
-export function lanePlanPairs(entries: readonly LaneEntry[]): number {
-  return entries.reduce((n, e) => n + LANE_PASS_COST * e.variant.passes, 0);
+/** This function gives the count of the passes of the lane entries. The cost model gives each pass the time of its lane term (`inputCost`). */
+export function lanePasses(entries: readonly LaneEntry[]): number {
+  return entries.reduce((n, e) => n + e.variant.passes, 0);
 }
 
 // The iteration pairs of roadmap item L11 (`docs/JOINT-BENCH.md`, "The iteration pairs"): place, route, place again, until a round gives no gain.
@@ -426,6 +422,12 @@ export function iterRoundsOf(pack: string): number | undefined {
   const n = Number(parts.variant.slice(ITER_PREFIX.length));
   return Number.isInteger(n) && n >= 1 ? n : undefined;
 }
+
+/**
+ * The plan cost of one round of an iteration pair, in the cost of one pair of the plan.
+ * No run has measured the rounds yet. Thus the plan keeps the cost of 3 pairs, the cost of a lane pass before the lane term of L35.
+ */
+export const LANE_PASS_COST = 3;
 
 /**
  * This function gives the plan cost of the iteration entries, in the cost of one pair.

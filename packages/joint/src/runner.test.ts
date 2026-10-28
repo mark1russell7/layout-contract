@@ -1,5 +1,6 @@
 import type { LayoutInput } from "@mark1russell7/layout-contract";
 import { describe, expect, it } from "vitest";
+import { ITER_VARIANTS, iterEntries } from "./lanes.ts";
 import { insideLength, jointMeasures, placementFacts, segmentsCross, spearman } from "./joint-measures.ts";
 import { factMeasures, jointHash, packedInput, packInputOf, PACK_ENTRIES, pairId, PORTFOLIO_ROUTER, ROUTERS, runInput, shardOf } from "./runner.ts";
 
@@ -63,6 +64,20 @@ describe("runInput", () => {
       expect(r.hard["pack.no-overlap"]).toBe(0);
     }
     expect(records.find((r) => r.strategy === "rows+corners")!.measures["route.cap.1.1"]).toBe(0);
+  });
+
+  it("runs only the pairs of the list, and the lane entries with their own options", () => {
+    const records = runInput(three, undefined, { pairs: ["skyline+corners", "rows+straight"] });
+    expect(records.map((r) => r.strategy)).toEqual(["rows+straight", "skyline+corners"]);
+    const lane = { id: "lanes-sides-test.rows.corners", variant: { name: "lanes-sides-test", mode: "sides" as const, passes: 1 }, pack: "rows", router: "corners", options: { clearance: 8 } };
+    const [only, ...rest] = runInput(three, undefined, { pairs: [], lanes: [lane] });
+    expect(rest).toEqual([]);
+    expect(only!.strategy).toBe("lanes-sides-test.rows.corners+corners");
+    expect(only!.skipped).toBeUndefined();
+    expect(JSON.stringify(only!.options)).toContain('"clearance":8');
+    // The sweep runs an iteration entry without its base pair in the list.
+    const iter = runInput(three, undefined, { pairs: [], iterate: iterEntries(ITER_VARIANTS.slice(0, 1), ["rows"], ["corners"]) });
+    expect(iter.map((r) => r.strategy)).toEqual(["lanes-iter1.rows.corners+corners"]);
   });
 
   it("gives the same records for the same input", () => {

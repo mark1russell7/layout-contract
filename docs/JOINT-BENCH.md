@@ -10,6 +10,7 @@ The joint benchmark packs each input of a joint corpus, and then routes the pack
 - Thus the benchmark has 130 pairs. The runs before L32 had 120 pairs. `joint-v2` has 303 inputs, and `joint-v1` has 285 inputs.
 - The option `--lanes on` adds the 18 lane pairs of L13. Refer to "The lane pairs".
 - The option `--iterate on` adds the 18 iteration pairs of L11. Refer to "The iteration pairs".
+- The nightly sweep runs the same runner on configs of the joint strategy space. `docs/SWEEP.md` tells it.
 
 The portfolio router is `portfolioRouter()` with its defaults: the rule `collection`, the cap 1.5 and the order `fit`. Its default is deterministic. Above 40 nodes, it uses only `shared`.
 
@@ -130,16 +131,16 @@ The lane pairs are pairs of the analysis, as each other pair. They join the floo
 - The default compare of `pnpm bench analyze` adds each lane pair against its base pair. The default of `--oracle-without` is the lane pack entries when the records have lane pairs.
 - When the records have lane pairs, `pnpm bench analyze` also writes `report-without-lanes.json` and `report-without-lanes.md`. These reports remove the lane pairs. Their misses compare with the runs before L13.
 - The fields `through`, `fillBySpacing` and `times` do not count the lane pairs. Thus they compare with the runs before L13.
-- `fit-cost.mjs` divides each time by the 130 pairs of the default run. Do not fit the cost model from a run with the lane pairs.
+- `fit-cost.mjs` counts the pairs and the lane passes of each input of the run. Thus a run with the lane pairs gives a fit of the lane term.
 
-The plan gives each lane pass the cost of 3 pairs: 2 packs, 1 route and 1 lane count (`LANE_PASS_COST`). Thus the 18 lane pairs have the cost of 72 pairs, and the plan has the cost of 202 pairs.
+The plan gives each lane pass the time of the lane term of the cost model. The 18 lane pairs have 24 passes (`lanePasses`). Refer to "The shards".
 
 | Plan at 64 shards | All shards | The most costly shard |
 |---|---|---|
 | The default run, 130 pairs | 301.6 minutes | 16.1 minutes |
-| `--lanes on`, 130 pairs and 18 lane pairs | 468.7 minutes | 25.0 minutes |
+| `--lanes on`, 130 pairs and 18 lane pairs | 464.6 minutes | 31.0 minutes |
 
-The cost of 3 pairs for each pass is high on purpose. The first pass uses the pack and the routes of the base pair again. Only the last pass routes as a pair of the default run, with 2 timed routes and the facts. Thus a lane pair with 1 pass costs approximately 1 pair and 2 packs, and the real time is likely less than the plan.
+The run `40757153151` of L13 took 31.5 real minutes in its most costly shard. The plan before the lane term gave this shard 25.0 minutes.
 
 ## The iteration pairs
 
@@ -205,6 +206,19 @@ The plan gives each round the cost of a lane pass (`LANE_PASS_COST`, 3 pairs). E
 - Run the iteration pairs without `--lanes on`. With both, the plan gives more than 30 minutes to the most costly shard.
 - The most costly shard has 1 input: one seed of the dense spec with hubs and 1000 boxes. More shards do not make it shorter.
 - In L13, this spec took 31.5 minutes, and the plan gave it 25.0 minutes. The plan counts 3 pairs for each lane pass, but a lane pass on this spec took the time of approximately 4.6 pairs.
+
+The table above uses the margins of L32. L35 fits the lane term and the margins from the run of L13 (refer to "The shards").
+
+- A lane pass then has the lane term. A round of an iteration pair keeps the cost of 3 pairs (`LANE_PASS_COST`), because no run has measured the rounds yet.
+- The margins of L13 are larger. Thus the plans of L35 are larger than the table above.
+
+| Plan at 64 shards, the model of L35 | All shards | The most costly shard |
+|---|---|---|
+| `--iterate on` | 542.0 minutes | 36.8 minutes |
+| `--lanes on --iterate on` | 623.7 minutes | 41.8 minutes |
+
+- Each plan stays far below the limit of 360 minutes of a shard job.
+- A run with `--iterate on` gives the times of the rounds for a later fit. `fit-cost.mjs` does not count the rounds of a line of the bench yet.
 
 ## The cells of highways
 
@@ -401,19 +415,31 @@ A split file of `corpus-split/1` is beside each manifest, in `packages/joint/cor
 
 `planShards` gives the inputs to the shards by their planned cost. Each shard job computes the same plan, so the jobs need no shared file.
 
-1. The predicted cost of an input is `inputCost(boxes, edges, pairs)`: the count of the pairs times the cost of one pair.
+1. The predicted cost of an input is `inputCost(boxes, edges, pairs, passes)`. It adds the cost of the pairs and the cost of the lane passes.
 2. The cost of one pair in milliseconds is `4.38 + 0.45 * boxes * boxes / 1000 + 0.832 * boxes * edges / 1000`.
-3. The planned cost of an input is `plannedCost(spec, boxes, edges, pairs)`: the predicted cost times the margin of its spec.
-4. The plan takes the inputs from the most cost to the least cost. Each input goes to the shard with the least load.
-5. An input does not go to a shard with an input of the same spec, while another shard has none. Thus a lost shard loses 1 seed of a spec, not 3.
-6. In a shard, the inputs run from the least cost to the most cost. Thus a timeout loses only the costly inputs at the end.
+3. The cost of one lane pass in milliseconds is `8.75 + 0.853 * boxes * boxes / 1000 + 0.782 * boxes * edges / 1000`.
+4. The planned cost of an input is `plannedCost(spec, boxes, edges, pairs, passes)`: the predicted cost times the margin of its spec.
+5. The plan takes the inputs from the most cost to the least cost. Each input goes to the shard with the least load.
+6. An input does not go to a shard with an input of the same spec, while another shard has none. Thus a lost shard loses 1 seed of a spec, not 3.
+7. In a shard, the inputs run from the least cost to the most cost. Thus a timeout loses only the costly inputs at the end.
 
 The file `packages/joint/data/cost-margins.json` holds the cost model. The script `scripts/fit-cost.mjs` writes it from the logs of the shard jobs of a full run.
 
-- The model comes from the wall time of each input in the run `40743187036` of L32. That run used `highways` 0.8.1 and `packing` 0.2.16, with the 130 pairs of the runner. All 303 inputs have a time.
+- The pair term comes from the wall time of each input in the run `40743187036` of L32. That run used `highways` 0.8.1 and `packing` 0.2.16, with the 130 pairs of the runner. All 303 inputs have a time.
+- The lane term and the margins come from the run `40757153151` of L13. That run had 130 pairs and 18 lane pairs with 24 passes on each input.
+- In that run, each input has the same ratio of passes to pairs. Thus the fit keeps the pair term of L32 and fits only the lane term.
 - The fit makes the least sum of the squares of log(real / predicted). Thus the fit gives the typical time of an input of a size.
 - The margin of a spec is the q90 of real / predicted over the seeds of the spec. The q90 uses linear interpolation.
-- A spec without a measured time gets the default margin: the q90 of real / predicted over all inputs. This value is 3.
+- A spec without a measured time gets the default margin: the q90 of real / predicted over all inputs. This value is 2.91.
+
+On the run `40757153151`, the model before the lane term gave each pass the cost of 3 pairs.
+
+| Model | R² of the times | R² of the logs of the times |
+|---|---|---|
+| Each pass costs 3 pairs | 0.490 | 0.732 |
+| The lane term | 0.543 | 0.744 |
+
+On a small input, one lane pass costs approximately 2 pairs. Its term of the boxes and the edges is approximately the term of 1 pair.
 
 The fit of the run `40685494092` (L29) gave `4.37 + 0.595 * boxes * boxes / 1000 + 1.16 * boxes * edges / 1000`, from 120 pairs. On the run `40743187036`, the 2 fits compare as follows.
 
@@ -423,13 +449,16 @@ The fit of the run `40685494092` (L29) gave `4.37 + 0.595 * boxes * boxes / 1000
 | The fit of L32 | 0.638 | 0.759 |
 
 - The counts of the boxes and the edges do not tell the time well. The 12 inputs with 1000 boxes and 4000 edges take from 0.08 to 7.86 seconds for each pair.
-- The margins correct this spread for each spec. The dense spec with hubs and the gap has the margin 1.96, and it had 8.74 in L29. Its 3 seeds took 12.0, 17.0 and 12.1 minutes. The plan gives each seed 16.1 minutes.
-- The 3 largest margins are 3.91, 3.9 and 3.88. These specs are word clouds with 100 boxes.
-- The plan gives 301.6 minutes to all shards. The run took 257.2 minutes on the inputs. The L29 plan gave 776.7 minutes to all shards for 130 pairs.
+- The margins correct this spread for each spec. The dense spec with hubs and the gap had the margin 1.96 in L32, and it has 3.17 since L35.
+- In L32, the 3 seeds of this spec took 12.0, 17.0 and 12.1 minutes.
+- The 3 largest margins are 3.72, 3.72 and 3.65. These specs have 100 boxes and medium edges with hubs.
+- The L32 plan gave 301.6 minutes to all shards, and the run took 257.2 minutes on the inputs. The L29 plan gave 776.7 minutes for 130 pairs.
 
-The limit of a shard job is 360 minutes, the limit of GitHub. At 64 shards, the plan gives 16.1 minutes to the most costly shard, and 99.2 minutes before the fit of L32. This shard has 1 seed of the dense spec with hubs.
+The margins of L13 are larger than the margins of L32. Thus the plan of a default run is 383.0 minutes since L35, with 26.0 minutes for the most costly shard.
 
-- With 11 shards, the plan keeps each shard below 30 minutes: 27.4 minutes for the most costly shard. 10 shards give 30.2 minutes.
+The limit of a shard job is 360 minutes, the limit of GitHub. At 64 shards, the most costly shard has 1 seed of the dense spec with hubs. Before the fit of L32, the plan gave it 99.2 minutes.
+
+- With 13 shards, the plan keeps each shard of a default run below 30 minutes: 29.5 minutes for the most costly shard. 12 shards give 31.9 minutes.
 - The default stays 64 shards. Each shard of the plan is then far below the limit of 360 minutes.
 
 To fit the model again from a full run, write the logs of its jobs into one file. Then start `fit-cost.mjs` in `packages/joint`:
@@ -439,7 +468,10 @@ gh run view <run id> -R mark1russell7/layout-contract --log > logs/run.log
 node scripts/fit-cost.mjs --logs logs --run <run id> --commit "$(gh run view <run id> -R mark1russell7/layout-contract --json headSha --jq .headSha)"
 ```
 
-- The script divides the wall time of each input by the count of the pairs of the code: 130 since L32. Use a run with the pack entries and the routers of the code.
+- A line of the bench gives no counts. The script then counts the pairs and the passes of the code: 130 pairs since L32, and 24 passes with `--lanes on`.
+- Use a run with the pack entries, the routers and the lane pairs of the code.
+- A unit of the sweep prints its counts. The script adds the units of one input. `docs/SWEEP.md` tells the sweep.
+- The option `--terms` selects the terms to fit: `pair`, `lane`, `all` or `auto`. The default `auto` fits both terms only when the ratio of passes to pairs changes between the inputs.
 - The script compares the new fit with the fit of `data/cost-margins.json` before it writes the file.
 
 `pnpm bench plan --shards <n>` shows the planned cost of the most costly shards. The lines of the logs keep the words "predicted minutes".

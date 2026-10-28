@@ -11,3 +11,6 @@ export * from "./analysis.ts";
 export * from "./plan.ts";
 export * from "./record-count.ts";
 export * from "./split.ts";
+export * from "./space.ts";
+export * from "./sweep.ts";
+export * from "./night.ts";

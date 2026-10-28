@@ -9,7 +9,7 @@ import {
   laneMargins,
   laneNeed,
   laneParts,
-  lanePlanPairs,
+  lanePasses,
   marginGrowth,
   maxLanes,
   shortSides,
@@ -110,7 +110,7 @@ describe("laneMargins", () => {
 });
 
 describe("laneEntries", () => {
-  it("gives 18 lane pairs with ids that parse, and their plan cost", () => {
+  it("gives 18 lane pairs with ids that parse, and their 24 passes", () => {
     const entries = laneEntries();
     expect(entries).toHaveLength(18);
     expect(entries[0]!.id).toBe("lanes-max.rows.corners");
@@ -121,7 +121,7 @@ describe("laneEntries", () => {
     }
     expect(laneParts("rows")).toBeUndefined();
     expect(LANE_VARIANTS.map((v) => v.passes)).toEqual([1, 1, 2]);
-    expect(lanePlanPairs(entries)).toBe(72);
+    expect(lanePasses(entries)).toBe(24);
   });
 });
 

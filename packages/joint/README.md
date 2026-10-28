@@ -24,6 +24,8 @@ pnpm --filter @layout-contract/joint corpus
 
 The package also holds the joint runner and its analysis. `docs/JOINT-BENCH.md` of this repository tells the rules.
 
+The package also holds the nightly sweep over the joint strategy space: the space, the sampler, the planner and the race. `docs/SWEEP.md` tells the sweep.
+
 - `runInput()` packs an input with each pack entry and routes it with each router. It gives one record for each pair.
 - `analyze()` gives the report: the pack ranking, the best pair, the oracle and the greedy portfolios of each cell.
 - The workflow `joint-bench.yml` runs the benchmark in CI. Do not run it on a local computer, because it measures times.

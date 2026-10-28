@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { jointCorpus, SET_V2 } from "./corpus.ts";
-import { COST_MODEL, costMargin, inputCost, parseCostModel, plannedCost, planShards, type PlanItem } from "./plan.ts";
+import { COST_FIT, COST_MODEL, costMargin, fitCost, inputCost, LANE_FIT, parseCostModel, plannedCost, planShards, type PlanItem } from "./plan.ts";
+import { laneEntries, lanePasses } from "./lanes.ts";
 import { PACK_ENTRIES, ROUTERS } from "./runner.ts";
 
 const PAIRS = PACK_ENTRIES.length * ROUTERS.length;
@@ -11,9 +12,12 @@ function corpusItems(): PlanItem[] {
   return jointCorpus(SET_V2).inputs.map((i) => ({ id: i.id, spec: specOf(i.id), cost: plannedCost(specOf(i.id), i.boxes.length, i.edges?.length ?? 0, PAIRS) }));
 }
 
-/** The dense spec with hubs and the gap, and its wall time on each seed in the shard logs of run 40743187036, in milliseconds. */
+/** The dense spec with hubs and the gap, and its wall time on each seed in the shard logs of run 40757153151 (L13, with the lane pairs), in milliseconds. */
 const DENSE_HUBS = "joint-v2/rect-grid.freeHeight.holes.none.bimodal.n1000.e-dense.hubs.none.free.sp-gap";
-const DENSE_HUBS_WALL: Readonly<Record<string, number>> = { s1: 718004, s2: 1021865, s3: 724746 };
+const DENSE_HUBS_WALL: Readonly<Record<string, number>> = { s1: 1760697, s2: 1884750, s3: 1765378 };
+
+/** The lane passes of the 18 lane pairs of L13. */
+const PASSES = lanePasses(laneEntries());
 
 describe("planShards", () => {
   const items = corpusItems();
@@ -78,11 +82,11 @@ describe("planShards", () => {
     expect(() => planShards([{ id: "a", spec: "a", cost: Number.NaN }], 2)).toThrow(RangeError);
   });
 
-  it("gives the dense spec with hubs a planned cost within a factor of 1.5 of its measured time", () => {
+  it("gives the dense spec with hubs a planned cost within a factor of 1.5 of its measured time with the lane pairs", () => {
     const inputs = jointCorpus(SET_V2).inputs.filter((i) => specOf(i.id) === DENSE_HUBS);
     expect(inputs.map((i) => i.id.slice(DENSE_HUBS.length + 1))).toEqual(["s1", "s2", "s3"]);
     for (const i of inputs) {
-      const ratio = plannedCost(DENSE_HUBS, i.boxes.length, i.edges?.length ?? 0, PAIRS) / DENSE_HUBS_WALL[i.id.slice(DENSE_HUBS.length + 1)]!;
+      const ratio = plannedCost(DENSE_HUBS, i.boxes.length, i.edges?.length ?? 0, PAIRS, PASSES) / DENSE_HUBS_WALL[i.id.slice(DENSE_HUBS.length + 1)]!;
       expect(ratio, i.id).toBeGreaterThan(1 / 1.5);
       expect(ratio, i.id).toBeLessThan(1.5);
     }
@@ -90,13 +94,22 @@ describe("planShards", () => {
 });
 
 describe("the cost model", () => {
-  it("comes from the full run 40743187036 of joint-v2, with its 130 pairs", () => {
+  it("has the pair fit of the run 40743187036 (L32), and the lane term and the margins of the run 40757153151 (L13)", () => {
     expect(COST_MODEL.corpus).toBe(SET_V2);
-    expect(COST_MODEL.run).toBe(40743187036);
-    // The fit of L32 divides the wall time of each input by the 130 pairs of the runner, with the pairs of select.
+    expect(COST_MODEL.pairRun).toBe(40743187036);
+    expect(COST_MODEL.run).toBe(40757153151);
+    // The run of L13 has the 130 pairs of the runner and the 18 lane pairs, with 24 passes.
     expect(COST_MODEL.pairs).toBe(130);
     expect(PAIRS).toBe(130);
+    expect(COST_MODEL.lanePasses).toBe(24);
+    expect(PASSES).toBe(24);
     expect(COST_MODEL.quantile).toBe(0.9);
+  });
+
+  it("gives a lane pass more time than one pair on a small input", () => {
+    expect(fitCost(LANE_FIT, 10, 9)).toBeGreaterThan(fitCost(COST_FIT, 10, 9));
+    expect(inputCost(100, 99, 0, 1)).toBeCloseTo(fitCost(LANE_FIT, 100, 99), 9);
+    expect(inputCost(100, 99, 130, 24)).toBeCloseTo(inputCost(100, 99, 130) + 24 * fitCost(LANE_FIT, 100, 99), 9);
   });
 
   it("has a margin for each spec of joint-v2, and for no other spec", () => {
@@ -117,6 +130,12 @@ describe("the cost model", () => {
     expect(() => parseCostModel(JSON.stringify({ ...good, fit: { base: -1, square: 1, cross: 1 } }))).toThrow(RangeError);
     expect(() => parseCostModel(JSON.stringify({ ...good, specs: { a: "1" } }))).toThrow(RangeError);
     expect(() => parseCostModel(JSON.stringify({ ...good, default: null }))).toThrow(RangeError);
+    expect(() => parseCostModel(JSON.stringify({ ...good, lane: { base: 1, square: Number.NaN, cross: 1 } }))).toThrow(RangeError);
+    // A model before L13 has no lane term, so a lane pass has no time.
+    const old = parseCostModel(JSON.stringify(good));
+    expect(old.lane).toEqual({ base: 0, square: 0, cross: 0 });
+    expect(old.lanePasses).toBe(0);
+    expect(old.pairRun).toBe(1);
   });
 
   it("gives a cost that grows with the boxes and the edges, and with the pairs", () => {
