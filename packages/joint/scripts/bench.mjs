@@ -7,6 +7,7 @@
 //   analyze --records <dir> --out <dir> [--slice pr] [--corpus <set>] [--allow-missing <file>] [--subset <file>] [--baseline <pair[,pair]>]
 //           [--compare <a:b[,a:b]>] [--exclude-pack <id[,id]>] [--oracle-without <id[,id]>] [--times <spec[,spec]>] [--jobs <file>] [--rank-top <n>]
 //                                                                            writes <dir>/report.json and <dir>/report.md
+//   probe --inputs <id[,id]> --out <dir> [--corpus <set>]                  writes <dir>/records-probe.jsonl and <dir>/probe.jsonl (L77)
 //                                                                            with lane pairs, also <dir>/report-without-lanes.json and .md
 //
 // The corpus is `joint-v2` by default. The slice `pr` is the small slice of the pull request: seed 1 of the specs with count 10 and of the fixed cases.
@@ -201,6 +202,64 @@ if (command === "check") {
     const skipped = records.filter((r) => r.skipped !== undefined).length;
     console.log(`${input.id}: ${records.length} records, ${skipped} skipped, ${Math.round(performance.now() - t0)} ms`);
   }
+} else if (command === "probe") {
+  // The memory probe of L77. It runs the inputs of `--inputs`, one after the other, and writes one line of memory facts for each pair.
+  // With `node --expose-gc`, the probe forces a full GC after each pair. Then `heapLive` is the heap that the pair keeps.
+  const out = args.out ?? "probe-out";
+  mkdirSync(out, { recursive: true });
+  const ids = (args.inputs ?? "").split(",").filter((x) => x !== "");
+  if (ids.length === 0) throw new RangeError("The probe needs --inputs <id[,id]>.");
+  const byId = new Map(corpusSlice().map((row) => [row.entry.id, row]));
+  const env = runEnv();
+  const commit = process.env.GITHUB_SHA;
+  const gc = typeof globalThis.gc === "function" ? globalThis.gc : undefined;
+  const mb = (bytes) => Math.round(bytes / 2 ** 20);
+  const records = join(out, "records-probe.jsonl");
+  const facts = join(out, "probe.jsonl");
+  writeFileSync(records, "");
+  writeFileSync(facts, "");
+  console.log(`probe: ${ids.length} inputs, forced GC ${gc === undefined ? "off" : "on"}, ${process.execArgv.join(" ") || "no node flags"}`);
+  for (const id of ids) {
+    const row = byId.get(id);
+    if (row === undefined) throw new RangeError(`The corpus ${set} has no input "${id}".`);
+    gc?.();
+    const t0 = performance.now();
+    let last = t0;
+    let peakHeap = 0;
+    let peakPair = "";
+    const lines = [];
+    for (const run of pairRuns(row.input, row.entry.cell, { env, corpus: set, lanes, iterate, freeRoutes: true, ...(commit === undefined ? {} : { commit }) })) {
+      appendFileSync(records, JSON.stringify(run.record) + "\n");
+      const before = process.memoryUsage();
+      gc?.();
+      const after = process.memoryUsage();
+      const now = performance.now();
+      const fact = { input: id, pair: run.record.strategy, ms: Math.round(now - last), heapBefore: mb(before.heapUsed), heapLive: gc === undefined ? null : mb(after.heapUsed), rss: mb(before.rss), maxRss: mb(process.resourceUsage().maxRSS * 1024) };
+      lines.push(JSON.stringify(fact) + "\n");
+      if (fact.heapBefore > peakHeap) {
+        peakHeap = fact.heapBefore;
+        peakPair = fact.pair;
+      }
+      last = performance.now();
+    }
+    appendFileSync(facts, lines.join(""));
+    console.log(`  peak rss ${mb(process.resourceUsage().maxRSS * 1024)} MB after ${id}`);
+    console.log(`  the largest heap after a pair: ${peakHeap} MB, after ${peakPair}`);
+    console.log(`${id}: ${lines.length} pairs, ${Math.round(performance.now() - t0)} ms`);
+  }
+  // probe.md has the 10 pairs with the largest heap after the pair, for the summary of the job.
+  const all = readFileSync(facts, "utf8").split("\n").filter((l) => l !== "").map((l) => JSON.parse(l));
+  const top = [...all].sort((a, b) => b.heapBefore - a.heapBefore).slice(0, 10);
+  const md = [
+    `### Memory probe: ${process.execArgv.join(" ") || "no node flags"}`,
+    "",
+    `The peak RSS is ${Math.max(...all.map((f) => f.maxRss))} MB. The largest live heap after a forced GC is ${gc === undefined ? "not measured" : `${Math.max(...all.map((f) => f.heapLive))} MB`}.`,
+    "",
+    "| Input | Pair | Heap after the pair (MB) | Live heap (MB) | RSS (MB) | ms |",
+    "| --- | --- | --- | --- | --- | --- |",
+    ...top.map((f) => `| ${f.input.replace(/^.*rect-grid\./, "")} | ${f.pair} | ${f.heapBefore} | ${f.heapLive ?? ""} | ${f.rss} | ${f.ms} |`),
+  ];
+  writeFileSync(join(out, "probe.md"), md.join("\n") + "\n");
 } else if (command === "analyze") {
   const dir = args.records ?? "bench-out";
   const out = args.out ?? dir;
