@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.2.21
+
+- PATCH: a fix of the speed of `/text`, with no change of the API. In 0.2.20, each call of `layoutText` made a new `Intl.Segmenter`. A consumer port saw its first load take 2 to 3 times longer.
+- The module makes only one `Intl.Segmenter` for each granularity.
+- A bounded memo keeps the words of the last 4096 texts. A page often asks for the same labels many times.
+- A test counts the segmenters of 500 layouts. The count is 2 or fewer.
+
 ## 0.2.20
 
 - PATCH: a new subpath export, with no break. In a consumer profile, the text measures and the line breaks take approximately 3.1 s of a first load. Thus text layout is a layout step of the contract.

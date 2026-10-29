@@ -103,16 +103,45 @@ interface Word {
 
 const SPACE = /^\s+$/u;
 
+/** The segmenters of the module. A new `Intl.Segmenter` loads the data of the locale, so the module makes each granularity only once. */
+const segmenters = new Map<"word" | "grapheme", Intl.Segmenter | null>();
+
+/** This function gives the segmenter of a granularity, or `null` without `Intl.Segmenter`. */
+function segmenterOf(granularity: "word" | "grapheme"): Intl.Segmenter | null {
+  let s = segmenters.get(granularity);
+  if (s === undefined) {
+    s = typeof Intl !== "undefined" && typeof Intl.Segmenter === "function" ? new Intl.Segmenter(undefined, { granularity }) : null;
+    segmenters.set(granularity, s);
+  }
+  return s;
+}
+
+/** The largest count of texts in the memo of `wordsOf`. A page often asks for the same labels many times. */
+const WORDS_MEMO = 4096;
+const wordsMemo = new Map<string, readonly Word[]>();
+
 /** This function splits the text into words at white space. Each word holds its word segments (`Intl.Segmenter`), so words that share segments share the cache. */
-function wordsOf(text: string): Word[] {
+function wordsOf(text: string): readonly Word[] {
+  const known = wordsMemo.get(text);
+  if (known !== undefined) return known;
+  const words = splitWords(text);
+  // The memo forgets its oldest text when it is full.
+  if (wordsMemo.size >= WORDS_MEMO) wordsMemo.delete(wordsMemo.keys().next().value!);
+  wordsMemo.set(text, words);
+  return words;
+}
+
+/** This function gives the words of `wordsOf` with no memo. */
+function splitWords(text: string): Word[] {
   const words: Word[] = [];
   let parts: string[] = [];
   const flush = (): void => {
     if (parts.length > 0) words.push({ text: parts.join(""), parts });
     parts = [];
   };
-  if (typeof Intl !== "undefined" && typeof Intl.Segmenter === "function") {
-    for (const s of new Intl.Segmenter(undefined, { granularity: "word" }).segment(text)) {
+  const segmenter = segmenterOf("word");
+  if (segmenter !== null) {
+    for (const s of segmenter.segment(text)) {
       if (SPACE.test(s.segment)) flush();
       else parts.push(s.segment);
     }
@@ -128,7 +157,8 @@ function wordsOf(text: string): Word[] {
 
 /** This function gives the grapheme clusters of a text. Without `Intl.Segmenter`, it gives the code points. */
 export function graphemesOf(text: string): string[] {
-  if (typeof Intl !== "undefined" && typeof Intl.Segmenter === "function") return Array.from(new Intl.Segmenter(undefined, { granularity: "grapheme" }).segment(text), (s) => s.segment);
+  const segmenter = segmenterOf("grapheme");
+  if (segmenter !== null) return Array.from(segmenter.segment(text), (s) => s.segment);
   return Array.from(text);
 }
 
