@@ -226,6 +226,7 @@ The first-order table cannot show the share of an interaction. A design night gi
 - `totalOrder` gives the first index of Saltelli (2010) and the total index of Jansen (1999) for each stage. A bootstrap over the rows gives the intervals.
 - A total index above the first index shows an interaction of that stage. Night 1 showed such an interaction of the lanes with the router.
 - The state keeps each design in `designs`. The race keeps the values of the configs of a design, so the rows stay full.
+- `node scripts/sensitivity.mjs --state <state.json> --total [<date>]` gives the table of the design of that date, or of the last design.
 
 ## The cost model
 
