@@ -23,8 +23,11 @@ import {
   getStrategy,
   highwayRouterStrategy,
   inputGraph,
+  listStrategies,
   measureName,
+  MEMBER_FORMS,
   mixedSegments,
+  portfolioMember,
   portfolioRouter,
   routeMeasures,
   routerStrategies,
@@ -114,6 +117,31 @@ export function highwayRouterOf(name: string): Strategy<"router", object> {
  * Version `bench-3` of the space adds `HIGHWAY_ROUTERS`.
  */
 export const ROUTERS: readonly string[] = Object.freeze([...Object.keys(routerStrategies), ...HIGHWAY_ROUTERS, PORTFOLIO_ROUTER]);
+
+/**
+ * The open routers of the playground: each highway strategy of `highways` that `ROUTERS` does not hold, then each form of `MEMBER_FORMS`.
+ * The benchmark and the sweep do not race them. A router entry can name each of them.
+ */
+export const OPEN_ROUTERS: readonly string[] = Object.freeze(openRouterNames());
+
+/** This function gives the names of `OPEN_ROUTERS`, each only once, in the order of the registry. */
+function openRouterNames(): string[] {
+  const names = new Set<string>();
+  for (const s of listStrategies(STRATEGIES, "highway")) if (!ROUTERS.includes(s.name)) names.add(s.name);
+  for (const name of Object.keys(MEMBER_FORMS)) if (!ROUTERS.includes(name)) names.add(name);
+  return [...names];
+}
+
+/**
+ * This function gives the router strategy of a name of `OPEN_ROUTERS`.
+ * A highway strategy gets `follow` (`highwayRouterStrategy`). A member form is the member of the portfolio.
+ */
+export function openRouterOf(name: string): Strategy<"router", object> {
+  if (!OPEN_ROUTERS.includes(name)) throw new RangeError(`There is no open router "${name}".`);
+  const highway = listStrategies(STRATEGIES, "highway").find((s) => s.name === name);
+  if (highway !== undefined) return highwayRouterStrategy(highway as Strategy<"highway", object>);
+  return portfolioMember(name)!;
+}
 
 /**
  * One router entry: a router strategy of `highways`, or `portfolio`, with options over its defaults. The id names the entry in the pair ids.
@@ -302,8 +330,12 @@ function finite(values: Readonly<Record<string, number>>): Record<string, number
 function routerOf(entry: RouterEntry): Router {
   const custom = Object.keys(entry.options).length > 0;
   if (entry.router === PORTFOLIO_ROUTER) return custom ? portfolioRouter(entry.options) : portfolioRouter();
-  const s = HIGHWAY_ROUTERS.includes(entry.router) ? highwayRouterOf(entry.router) : (routerStrategies as unknown as Readonly<Record<string, Strategy<"router", object>>>)[entry.router];
-  if (s === undefined) throw new RangeError(`There is no router "${entry.router}". The routers are ${ROUTERS.join(", ")}.`);
+  const s = HIGHWAY_ROUTERS.includes(entry.router)
+    ? highwayRouterOf(entry.router)
+    : OPEN_ROUTERS.includes(entry.router)
+      ? openRouterOf(entry.router)
+      : (routerStrategies as unknown as Readonly<Record<string, Strategy<"router", object>>>)[entry.router];
+  if (s === undefined) throw new RangeError(`There is no router "${entry.router}". The routers are ${ROUTERS.join(", ")}, and the names of OPEN_ROUTERS.`);
   return custom ? asRouter(s, entry.options) : asRouter(s);
 }
 
