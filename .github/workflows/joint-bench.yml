@@ -144,6 +144,8 @@ jobs:
           CORPUS: ${{ needs.plan.outputs.corpus }}
           LANES: ${{ inputs.lanes && 'on' || '' }}
           ITERATE: ${{ inputs.iterate && 'on' || '' }}
+          # 7 inputs of 1000 boxes went above the default heap of approximately 4 GB with 195 pairs in run 40815928586. The runner has 16 GB.
+          NODE_OPTIONS: --max-old-space-size=6144
         run: node scripts/bench.mjs run --corpus "$CORPUS" --shards "$COUNT" --shard "$SHARD" --out records ${SLICE:+--slice "$SLICE"} ${LANES:+--lanes on} ${ITERATE:+--iterate on}
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         if: ${{ !cancelled() }}
