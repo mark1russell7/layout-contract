@@ -13,6 +13,7 @@
   "scripts": {
     "corpus": "node scripts/write-corpus.mjs",
     "bench": "node scripts/bench.mjs",
+    "sensitivity": "node scripts/sensitivity.mjs",
     "test": "vitest run",
     "test:watch": "vitest",
     "typecheck": "tsc -p tsconfig.json && tsc -p tsconfig.test.json"
