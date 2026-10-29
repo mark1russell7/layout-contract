@@ -25,6 +25,7 @@ This file lists the items of the roadmap of this repository. The status page of 
 | L62 | next | P1 | Node layout by physics as a joint step |
 | L65 | next | P1 | One measure registry in layout-contract |
 | L66 | next | P1 | An objective spec with one evaluator |
+| L70 | next | P2 | A layout cache per text and options in /text |
 
 ## Later
 
