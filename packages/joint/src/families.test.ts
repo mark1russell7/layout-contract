@@ -77,7 +77,9 @@ describe("the joint families on the shared registry", () => {
       const registry = jointRegistry(set);
       for (const f of HIGHWAYS_FAMILIES) {
         const dims = Object.fromEntries(f.dimensions.map((d) => [d.name, d.default]));
-        const input = registry.generate(f.name, 1, set === "joint-v2" ? { ...dims, spacing: "both" } : dims, { set });
+        // A family with its own dimension `spacing` (sparse-long) does not get the step `spacing`.
+        const step = set === "joint-v2" && !f.dimensions.some((d) => d.name === "spacing");
+        const input = registry.generate(f.name, 1, step ? { ...dims, spacing: "both" } : dims, { set });
         const board = f.generate(1, dims, { rng: registry.rngOf(f.name), random: registry.rngOf(f.name)(1), set });
         expect(input.id.startsWith(`${set}/${f.name}`), input.id).toBe(true);
         expect(input.boxes).toHaveLength(board.graph.nodes.length);
@@ -85,6 +87,17 @@ describe("the joint families on the shared registry", () => {
         expect(checkInput(input), input.id).toEqual([]);
         expect(input.hash).toBe(hashOf(input));
       }
+    }
+  });
+
+  it("drop the step spacing for a highways family with its own dimension spacing", () => {
+    const own = HIGHWAYS_FAMILIES.filter((f) => f.dimensions.some((d) => d.name === "spacing"));
+    expect(own.map((f) => f.name)).toContain("sparse-long");
+    const registry = jointRegistry("joint-v2");
+    for (const f of own) {
+      const names = registry.family(f.name).dimensions.map((d) => d.name);
+      expect(names.filter((n) => n === "spacing"), f.name).toHaveLength(1);
+      expect(names, f.name).toEqual(f.dimensions.map((d) => d.name));
     }
   });
 

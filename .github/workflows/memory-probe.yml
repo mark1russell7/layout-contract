@@ -78,7 +78,10 @@ jobs:
           node $flags scripts/bench.mjs probe --inputs "$INPUT" --out probe || status=$?
           echo "The probe ended with the status $status." | tee -a "$GITHUB_STEP_SUMMARY"
           if [ -f probe/probe.md ]; then cat probe/probe.md >> "$GITHUB_STEP_SUMMARY"; fi
+          mkdir -p probe
           echo "$status" > probe/status.txt
+          # 134 is an abort of V8 (an OOM): the artifact records it, and the job passes. Each other status is an error of the probe.
+          if [ "$status" != 0 ] && [ "$status" != 134 ]; then echo "::error::The probe stopped with the status $status, not with an OOM."; exit 1; fi
       - id: name
         env:
           INPUT: ${{ matrix.input }}
