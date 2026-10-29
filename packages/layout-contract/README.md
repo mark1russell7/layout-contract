@@ -58,7 +58,7 @@ The package has no runtime dependencies.
   - `ShapeSupport.safe` lists the kinds with a safe count: an upper bound that does not miss a break. `ruleLevel(rule, kind)` gives `exact`, `safe` or `none`.
   - `no-overlap` and `in-container` are safe on `polygon`, `circle` and `free`. `checkShapes` accepts a safe kind only with `{ level: "safe" }`.
   - `MeasureSpec.bound` lists the kinds where the value of a measure is a bound of the true value, with its side `upper` or `lower`.
-  - `shapeLevel(use, kind)` gives `exact`, `safe`, `bound` or `none`. `checkShapes` accepts a bound kind only with `{ level: "safe" }`.
+  - `shapeLevel(use, kind)` gives `exact`, `safe`, `bound` or `none`. `checkShapes` accepts a bound kind only with `{ level: "bound" }`. The level `safe` refuses it.
   - A bound value proves only one side of a compare. `docs/SHAPES.md` tells what it proves for each `direction`.
   - `shapeSupportProblems(uses)` refuses a kind in two of the lists `shapes`, `safe` and `bound.shapes`.
   - `MemberRule.view: "bounds"` gives the members of a meta option the bounding box of each item. A shape filter then checks the members with `rect`.

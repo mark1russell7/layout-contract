@@ -188,16 +188,22 @@ describe("the bound of a measure (0.2.17)", () => {
     }
   });
 
-  it("refuses a bound kind by default with the side in the break, and accepts it with the level safe", () => {
+  it("refuses a bound kind by default and with the level safe, and accepts it only with the level bound", () => {
     expect(checkShapes(input([rect, tri, circle]), [shapeFill])).toEqual([]);
     expect(checkShapes(input([rect, ellipse]), [shapeFill]).map((b) => b.detail)).toEqual([
       "pack.shapeFill supports only the shape kinds rect, polygon, circle, but the input t has free boxes: e. The value of pack.shapeFill is only an upper bound for free",
     ]);
     const lower = { ...shapeFill, id: "pack.low", bound: { shapes: ["free"], side: "lower" } } as const;
     expect(checkShapes(input([ellipse]), [lower])[0]!.detail).toMatch(/The value of pack.low is only a lower bound for free$/);
-    expect(checkShapes(input([rect, ellipse]), [shapeFill, ...PACK_HARD_RULES], { level: "safe" })).toEqual([]);
-    const both = checkShapes(input([ellipse]), [shapeFill, ...PACK_HARD_RULES]);
-    expect(both.map((b) => b.detail.split(" ")[0])).toEqual(["pack.shapeFill", "no-overlap", "in-container"]);
+    const ids = (level?: "exact" | "safe" | "bound"): string[] =>
+      checkShapes(input([rect, ellipse]), [shapeFill, ...PACK_HARD_RULES], level === undefined ? {} : { level }).map((b) => b.detail.split(" ")[0]!);
+    expect(ids()).toEqual(["pack.shapeFill", "no-overlap", "in-container"]);
+    expect(ids("exact")).toEqual(["pack.shapeFill", "no-overlap", "in-container"]);
+    // The level safe keeps its meaning of 0.2.16: a pass is a proof. Thus it accepts the safe rule counts, but not the bound value.
+    expect(ids("safe")).toEqual(["pack.shapeFill"]);
+    expect(checkShapes(input([ellipse]), [shapeFill], { level: "safe" })[0]!.detail).toMatch(/only an upper bound for free$/);
+    expect(ids("bound")).toEqual([]);
+    expect(checkShapes(input([tri]), [...JOINT_MEASURES, ...PACK_HARD_RULES], { level: "bound" }).map((b) => b.detail.split(" ")[0])).toEqual(["joint.fill", "joint.straight.length"]);
   });
 
   it("refuses a kind in two lists, an unknown kind, a repeated kind and a bad side", () => {

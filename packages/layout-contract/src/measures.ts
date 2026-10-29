@@ -34,7 +34,7 @@ export interface MeasureSpec<Id extends string = string> {
   readonly shapes?: readonly ShapeKind[];
   /**
    * The kinds where the value is a bound of the true value, and its side. A kind is in `shapes` or in `bound.shapes`, not in the two lists.
-   * By default, `checkShapes` refuses a bound kind. With `{ level: "safe" }`, it accepts it. `docs/SHAPES.md` tells what a bound value proves for each `direction`.
+   * `checkShapes` refuses a bound kind by default and with `{ level: "safe" }`. With `{ level: "bound" }`, it accepts it. `docs/SHAPES.md` tells what a bound value proves for each `direction`.
    */
   readonly bound?: ShapeBound;
 }

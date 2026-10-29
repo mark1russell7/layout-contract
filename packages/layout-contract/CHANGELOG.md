@@ -6,7 +6,8 @@
 - The new exports are `shapeLevel`, `ShapeLevel` and `ShapeBound`. `MeasureSpec` and `ShapeSupport` have the new optional field `bound`.
 - `bound` lists the kinds where the value of a measure is a bound of the true value, and its side `upper` or `lower`. An example is a fill that reads `w * h` of a `free` box.
 - `shapeLevel(use, kind)` gives `exact`, `safe`, `bound` or `none`. `ruleLevel` does not read `bound`, and its result stays the same.
-- By default, `checkShapes` refuses a bound kind. Its break tells the side, for example "The value of pack.shapeFill is only an upper bound for free". With `{ level: "safe" }`, it accepts the kind.
+- By default, `checkShapes` refuses a bound kind. Its break tells the side, for example "The value of pack.shapeFill is only an upper bound for free".
+- `ShapeCheck.level` has the new value `bound`. It accepts the exact, safe and bound kinds. The level `safe` accepts the exact and safe kinds only, as in 0.2.16.
 - `shapeSupportProblems` refuses a kind in two of the lists `shapes`, `safe` and `bound.shapes`. It also refuses an unknown kind, a repeated kind and a bad `side`.
 - `docs/SHAPES.md` tells what a bound value proves for each `direction` of a measure, and why the level is `bound` and not `safe`.
 - Fix: with `meta: "sample"` and `shapes`, a sample does not throw for a meta option without a member list. It draws again, as `spaceSize` gives that option 0.

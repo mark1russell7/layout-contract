@@ -99,7 +99,7 @@ Thus each input, record and hash of 0.2.12 stays the same.
 - A kind is in one list only: `shapes`, `safe` or `bound.shapes`. `shapeSupportProblems` refuses a kind in two lists, an unknown kind, a repeated kind and a bad `side`.
 - `shapeLevel(use, kind)` gives `exact`, `safe`, `bound` or `none`. `ruleLevel` does not read `bound`.
 - By default, `checkShapes` refuses a bound kind. The break tells the side, for example "The value of pack.shapeFill is only an upper bound for free".
-- With `{ level: "safe" }`, `checkShapes` accepts a bound kind, as it accepts a safe kind of a rule.
+- With `{ level: "safe" }`, `checkShapes` refuses a bound kind, as in 0.2.16. Only `{ level: "bound" }` accepts it.
 - `JOINT_MEASURES` has no `bound`. Each joint measure keeps its kinds.
 
 An example is the measure `pack.shapeFill` of the packing engine. It reads `w * h` as the area of a `free` box, because `boxArea` gives no area for that kind. The bounding box holds the shape, so the fill is too high on `free`. The spec is:
@@ -132,9 +132,16 @@ In this contract, `safe` tells that a pass is a proof. A safe count of 0 proves 
 
 A bound of a measure can be optimistic. `pack.shapeFill` is an upper bound with the direction `higher`, so a pass of its floor is not a proof. Thus `safe` is not true for each bound, and the level of a measure on such a kind is `bound`.
 
-- `ShapeCheck.level` keeps its two values. The value `safe` accepts each result on one known side of the true result: a safe count and a bound value.
-- The gate does not add a value `bound`. A run that asks for `{ level: "safe" }` in 0.2.16 also gets the bound kinds of a measure, with no new option.
-- After the gate, the caller reads `bound.side` and `direction` of each bound kind. It uses only the proofs of the table.
+The same reason applies to the gate `ShapeCheck.level`. It has 3 values:
+
+| `level` | It accepts | Use it when |
+|---|---|---|
+| `exact` (the default) | the exact kinds | The run uses each value and each count as exact. |
+| `safe` | the exact kinds and the safe kinds of a rule | The run claims only that a rule has no break. This is the level of 0.2.16. |
+| `bound` | the exact kinds, the safe kinds and the bound kinds of a measure | The run reads each bound value only for the proofs of the table. |
+
+- `safe` does not accept a bound kind. A run that asks for `{ level: "safe" }` for its rule counts does not start to accept a bound value when a measure declares `bound`.
+- A run asks for `{ level: "bound" }` on purpose. Then it reads `bound.side` and `direction` of each bound kind, and uses only the proofs of the table.
 
 ### The area (L57)
 

@@ -195,16 +195,17 @@ export function shapesOf(use: Pick<ShapeSupport, "shapes">): readonly ShapeKind[
 export interface ShapeCheck {
   /**
    * The lowest level that `checkShapes` accepts. The default `exact` refuses a kind with only a safe count or a bound value.
-   * The value `safe` also accepts a kind of `safe` and a kind of `bound.shapes`. Each of them gives a result on one known side of the true result.
-   * Use it only when the run reads each such result for the conclusions that its side proves (`docs/SHAPES.md`).
+   * The value `safe` also accepts a kind of `safe`, as in 0.2.16. Use it only when the run claims that a rule has no break.
+   * The value `bound` also accepts a kind of `safe` and a kind of `bound.shapes`. Use it only when the run reads each bound value for the proofs of its side (`docs/SHAPES.md`).
    */
-  readonly level?: "exact" | "safe";
+  readonly level?: "exact" | "safe" | "bound";
 }
 
 /**
  * This function checks that each measure and each rule of a run supports each shape kind of the input. An empty list tells that the run is good.
  * Each break has the claim `shape`, the id of the input, and the first 5 ids of the boxes of the kind.
- * By default, a kind of `safe` or of `bound.shapes` is a break, because the result is not exact. With the level `safe`, it is not a break.
+ * By default, a kind of `safe` or of `bound.shapes` is a break, because the result is not exact.
+ * With the level `safe`, a kind of `safe` is not a break. With the level `bound`, a kind of `safe` and a kind of `bound.shapes` are not a break.
  */
 export function checkShapes(input: Pick<LayoutInput, "id" | "boxes">, uses: readonly ShapeSupport[], options: ShapeCheck = {}): ClaimBreak[] {
   const kinds = shapeKindsOf(input);
@@ -213,7 +214,8 @@ export function checkShapes(input: Pick<LayoutInput, "id" | "boxes">, uses: read
     const shapes = shapesOf(use);
     for (const kind of kinds) {
       const level = shapeLevel(use, kind);
-      if (level === "exact" || (level !== "none" && options.level === "safe")) continue;
+      const accepts = level === "exact" || (level === "safe" && (options.level === "safe" || options.level === "bound")) || (level === "bound" && options.level === "bound");
+      if (accepts) continue;
       const ids = input.boxes.filter((b) => shapeKindOf(b) === kind).map((b) => b.id);
       const shown = ids.slice(0, 5).join(", ") + (ids.length > 5 ? `, and ${ids.length - 5} more` : "");
       const safe =

@@ -900,7 +900,7 @@ export interface ShapeBound {
 
 ### build/index.d.ts#ShapeCheck
 export interface ShapeCheck {
-  readonly level?: "exact" | "safe";
+  readonly level?: "exact" | "safe" | "bound";
 }
 
 ### build/index.d.ts#ShapeFilter
