@@ -12,23 +12,23 @@ Balance: build/index.d.ts#Balance
 BalanceMeasureSuffix: build/index.d.ts#BalanceMeasureSuffix
 CORPUS_DIMENSIONS: build/index.d.ts#CORPUS_DIMENSIONS
 CellsOptions: build/index.d.ts#CellsOptions
-ClaimBreak: build/index.d.ts#ClaimBreak
+ClaimBreak: build/measures-CQAuu3T5.d.ts#ClaimBreak
 ComposeOptions: build/index.d.ts#ComposeOptions
 ContainerTest: build/index.d.ts#ContainerTest
 CorpusDimension: build/index.d.ts#CorpusDimension
-CorpusEntry: build/index.d.ts#CorpusEntry
+CorpusEntry: build/measures-CQAuu3T5.d.ts#CorpusEntry
 CorpusFamily: build/index.d.ts#CorpusFamily
-CorpusSplit: build/index.d.ts#CorpusSplit
+CorpusSplit: build/measures-CQAuu3T5.d.ts#CorpusSplit
 CorpusStep: build/index.d.ts#CorpusStep
 CrossEngine: build/index.d.ts#CrossEngine
 DEFAULT_FAMILY_BY: build/index.d.ts#DEFAULT_FAMILY_BY
 DEFAULT_RNG: build/index.d.ts#DEFAULT_RNG
-DEFAULT_SHAPES: build/index.d.ts#DEFAULT_SHAPES
+DEFAULT_SHAPES: build/measures-CQAuu3T5.d.ts#DEFAULT_SHAPES
 DEFAULT_TOLERANCE: build/index.d.ts#DEFAULT_TOLERANCE
-DeclaredClaim: build/index.d.ts#DeclaredClaim
-Declares: build/index.d.ts#Declares
+DeclaredClaim: build/measures-CQAuu3T5.d.ts#DeclaredClaim
+Declares: build/measures-CQAuu3T5.d.ts#Declares
 DimensionValues: build/index.d.ts#DimensionValues
-Direction: build/index.d.ts#Direction
+Direction: build/measures-CQAuu3T5.d.ts#Direction
 EDGES_STEP: build/index.d.ts#EDGES_STEP
 EDGE_DENSITY: build/index.d.ts#EDGE_DENSITY
 EDGE_STEP_VERSION: build/index.d.ts#EDGE_STEP_VERSION
@@ -37,9 +37,9 @@ EdgeShape: build/index.d.ts#EdgeShape
 EdgeStepParams: build/index.d.ts#EdgeStepParams
 EnumerateOptions: build/index.d.ts#EnumerateOptions
 ExerciseEvidence: build/index.d.ts#ExerciseEvidence
-FAMILY_ANY_KIND: build/index.d.ts#FAMILY_ANY_KIND
-FamilyBy: build/index.d.ts#FamilyBy
-FamilyCell: build/index.d.ts#FamilyCell
+FAMILY_ANY_KIND: build/measures-CQAuu3T5.d.ts#FAMILY_ANY_KIND
+FamilyBy: build/measures-CQAuu3T5.d.ts#FamilyBy
+FamilyCell: build/measures-CQAuu3T5.d.ts#FamilyCell
 FamilyRegistry: build/index.d.ts#FamilyRegistry
 FamilyVerdict: build/index.d.ts#FamilyVerdict
 GenerateContext: build/index.d.ts#GenerateContext
@@ -47,41 +47,41 @@ GenerateOptions: build/index.d.ts#GenerateOptions
 GridOptions: build/index.d.ts#GridOptions
 HashOptions: build/index.d.ts#HashOptions
 INVALIDATED_FIELD: build/index.d.ts#INVALIDATED_FIELD
-Item: build/index.d.ts#Item
-JOINT_MEASURES: build/index.d.ts#JOINT_MEASURES
-JOINT_MOVED_MIN: build/index.d.ts#JOINT_MOVED_MIN
-JointMeasureId: build/index.d.ts#JointMeasureId
-LayoutBox: build/index.d.ts#LayoutBox
-LayoutCell: build/index.d.ts#LayoutCell
-LayoutContainer: build/index.d.ts#LayoutContainer
-LayoutEdge: build/index.d.ts#LayoutEdge
-LayoutGenerator: build/index.d.ts#LayoutGenerator
-LayoutInput: build/index.d.ts#LayoutInput
+Item: build/measures-CQAuu3T5.d.ts#Item
+JOINT_MEASURES: build/measures-CQAuu3T5.d.ts#JOINT_MEASURES
+JOINT_MOVED_MIN: build/measures-CQAuu3T5.d.ts#JOINT_MOVED_MIN
+JointMeasureId: build/measures-CQAuu3T5.d.ts#JointMeasureId
+LayoutBox: build/measures-CQAuu3T5.d.ts#LayoutBox
+LayoutCell: build/measures-CQAuu3T5.d.ts#LayoutCell
+LayoutContainer: build/measures-CQAuu3T5.d.ts#LayoutContainer
+LayoutEdge: build/measures-CQAuu3T5.d.ts#LayoutEdge
+LayoutGenerator: build/measures-CQAuu3T5.d.ts#LayoutGenerator
+LayoutInput: build/measures-CQAuu3T5.d.ts#LayoutInput
 LayoutRecord: build/index.d.ts#LayoutRecord
-Margin: build/index.d.ts#Margin
-MeasureSpec: build/index.d.ts#MeasureSpec
+Margin: build/measures-CQAuu3T5.d.ts#Margin
+MeasureSpec: build/measures-CQAuu3T5.d.ts#MeasureSpec
 Member: build/index.d.ts#Member
 MemberRule: build/index.d.ts#MemberRule
 MemberStatus: build/index.d.ts#MemberStatus
 MemberTrace: build/index.d.ts#MemberTrace
-Obstacle: build/index.d.ts#Obstacle
+Obstacle: build/measures-CQAuu3T5.d.ts#Obstacle
 OptionRef: build/index.d.ts#OptionRef
 OptionSupports: build/index.d.ts#OptionSupports
 OutputGroup: build/index.d.ts#OutputGroup
 OwnerDimensionSpec: build/index.d.ts#OwnerDimensionSpec
 PACK_HARD_RULES: build/index.d.ts#PACK_HARD_RULES
 PackHard: build/index.d.ts#PackHard
-PackInput: build/index.d.ts#PackInput
+PackInput: build/measures-CQAuu3T5.d.ts#PackInput
 PackOutput: build/index.d.ts#PackOutput
-PairGap: build/index.d.ts#PairGap
+PairGap: build/measures-CQAuu3T5.d.ts#PairGap
 ParamKind: build/index.d.ts#ParamKind
 ParamValue: build/index.d.ts#ParamValue
 ParamWhen: build/index.d.ts#ParamWhen
 PickSpec: build/index.d.ts#PickSpec
 PlacedBox: build/index.d.ts#PlacedBox
 Placement: build/index.d.ts#Placement
-Point: build/index.d.ts#Point
-Port: build/index.d.ts#Port
+Point: build/measures-CQAuu3T5.d.ts#Point
+Port: build/measures-CQAuu3T5.d.ts#Port
 Portfolio: build/index.d.ts#Portfolio
 PortfolioKey: build/index.d.ts#PortfolioKey
 PortfolioLevel: build/index.d.ts#PortfolioLevel
@@ -92,39 +92,39 @@ ProcrustesOptions: build/index.d.ts#ProcrustesOptions
 RECORD_EPS: build/index.d.ts#RECORD_EPS
 RECORD_SCALE: build/index.d.ts#RECORD_SCALE
 RECT_SCATTERED: build/index.d.ts#RECT_SCATTERED
-Rect: build/index.d.ts#Rect
-Region: build/index.d.ts#Region
+Rect: build/measures-CQAuu3T5.d.ts#Rect
+Region: build/measures-CQAuu3T5.d.ts#Region
 RegistryCell: build/index.d.ts#RegistryCell
 RngFactory: build/index.d.ts#RngFactory
-RuleLevel: build/index.d.ts#RuleLevel
+RuleLevel: build/measures-CQAuu3T5.d.ts#RuleLevel
 RunEnv: build/index.d.ts#RunEnv
 RunFacts: build/index.d.ts#RunFacts
-SHAPE_KINDS: build/index.d.ts#SHAPE_KINDS
-SHAPE_KIND_IDS: build/index.d.ts#SHAPE_KIND_IDS
-SIDES: build/index.d.ts#SIDES
-SPLIT_SCHEMA: build/index.d.ts#SPLIT_SCHEMA
+SHAPE_KINDS: build/measures-CQAuu3T5.d.ts#SHAPE_KINDS
+SHAPE_KIND_IDS: build/measures-CQAuu3T5.d.ts#SHAPE_KIND_IDS
+SIDES: build/measures-CQAuu3T5.d.ts#SIDES
+SPLIT_SCHEMA: build/measures-CQAuu3T5.d.ts#SPLIT_SCHEMA
 STRATEGY_SPACE_SCHEMA: build/index.d.ts#STRATEGY_SPACE_SCHEMA
 SampleOptions: build/index.d.ts#SampleOptions
 SelectCandidate: build/index.d.ts#SelectCandidate
 SelectLevel: build/index.d.ts#SelectLevel
 Selection: build/index.d.ts#Selection
-ShapeBound: build/index.d.ts#ShapeBound
-ShapeCheck: build/index.d.ts#ShapeCheck
+ShapeBound: build/measures-CQAuu3T5.d.ts#ShapeBound
+ShapeCheck: build/measures-CQAuu3T5.d.ts#ShapeCheck
 ShapeFilter: build/index.d.ts#ShapeFilter
-ShapeGeometry: build/index.d.ts#ShapeGeometry
-ShapeKind: build/index.d.ts#ShapeKind
-ShapeKindSpec: build/index.d.ts#ShapeKindSpec
-ShapeLevel: build/index.d.ts#ShapeLevel
-ShapeSupport: build/index.d.ts#ShapeSupport
-Side: build/index.d.ts#Side
-Sides: build/index.d.ts#Sides
+ShapeGeometry: build/measures-CQAuu3T5.d.ts#ShapeGeometry
+ShapeKind: build/measures-CQAuu3T5.d.ts#ShapeKind
+ShapeKindSpec: build/measures-CQAuu3T5.d.ts#ShapeKindSpec
+ShapeLevel: build/measures-CQAuu3T5.d.ts#ShapeLevel
+ShapeSupport: build/measures-CQAuu3T5.d.ts#ShapeSupport
+Side: build/measures-CQAuu3T5.d.ts#Side
+Sides: build/measures-CQAuu3T5.d.ts#Sides
 SpaceConstraint: build/index.d.ts#SpaceConstraint
 SpaceParam: build/index.d.ts#SpaceParam
 SpaceSize: build/index.d.ts#SpaceSize
 SpaceSizeOptions: build/index.d.ts#SpaceSizeOptions
 SpaceStage: build/index.d.ts#SpaceStage
-SplitCorpus: build/index.d.ts#SplitCorpus
-SplitFold: build/index.d.ts#SplitFold
+SplitCorpus: build/measures-CQAuu3T5.d.ts#SplitCorpus
+SplitFold: build/measures-CQAuu3T5.d.ts#SplitFold
 Stage: build/index.d.ts#Stage
 StageChoice: build/index.d.ts#StageChoice
 StageOption: build/index.d.ts#StageOption
@@ -141,7 +141,7 @@ VERDICT_EXACT_CAP: build/index.d.ts#VERDICT_EXACT_CAP
 VERDICT_EXACT_MAX: build/index.d.ts#VERDICT_EXACT_MAX
 VERDICT_RUNS: build/index.d.ts#VERDICT_RUNS
 VERDICT_SEED: build/index.d.ts#VERDICT_SEED
-Verdict: build/index.d.ts#Verdict
+Verdict: build/measures-CQAuu3T5.d.ts#Verdict
 VerdictBreadth: build/index.d.ts#VerdictBreadth
 VerdictInterval: build/index.d.ts#VerdictInterval
 VerdictLabel: build/index.d.ts#VerdictLabel
@@ -156,28 +156,28 @@ applyPack: build/index.d.ts#applyPack
 balanceMeasureSpecs: build/index.d.ts#balanceMeasureSpecs
 balanceMeasures: build/index.d.ts#balanceMeasures
 balanceOf: build/index.d.ts#balanceOf
-boundsOf: build/index.d.ts#boundsOf
-boxArea: build/index.d.ts#boxArea
+boundsOf: build/measures-CQAuu3T5.d.ts#boundsOf
+boxArea: build/measures-CQAuu3T5.d.ts#boxArea
 canonicalConfig: build/index.d.ts#canonicalConfig
-canonicalInput: build/index.d.ts#canonicalInput
+canonicalInput: build/measures-CQAuu3T5.d.ts#canonicalInput
 canonicalJson: build/index.d.ts#canonicalJson
 checkConfig: build/index.d.ts#checkConfig
-checkDeclared: build/index.d.ts#checkDeclared
+checkDeclared: build/measures-CQAuu3T5.d.ts#checkDeclared
 checkInput: build/index.d.ts#checkInput
-checkShapes: build/index.d.ts#checkShapes
+checkShapes: build/measures-CQAuu3T5.d.ts#checkShapes
 checkSpace: build/index.d.ts#checkSpace
-checkSplit: build/index.d.ts#checkSplit
-compareMeasure: build/index.d.ts#compareMeasure
+checkSplit: build/measures-CQAuu3T5.d.ts#checkSplit
+compareMeasure: build/measures-CQAuu3T5.d.ts#compareMeasure
 composeFamily: build/index.d.ts#composeFamily
 configId: build/index.d.ts#configId
-corpusHashOf: build/index.d.ts#corpusHashOf
+corpusHashOf: build/measures-CQAuu3T5.d.ts#corpusHashOf
 countObstacleHits: build/index.d.ts#countObstacleHits
 countOutside: build/index.d.ts#countOutside
 countOverlaps: build/index.d.ts#countOverlaps
 countPortsOffBorder: build/index.d.ts#countPortsOffBorder
 createFamilyRegistry: build/index.d.ts#createFamilyRegistry
-declaredClaimOf: build/index.d.ts#declaredClaimOf
-declaredCounts: build/index.d.ts#declaredCounts
+declaredClaimOf: build/measures-CQAuu3T5.d.ts#declaredClaimOf
+declaredCounts: build/measures-CQAuu3T5.d.ts#declaredCounts
 dimensionAt: build/index.d.ts#dimensionAt
 dimensionSupports: build/index.d.ts#dimensionSupports
 dimensionUnit: build/index.d.ts#dimensionUnit
@@ -186,21 +186,21 @@ edgeStep: build/index.d.ts#edgeStep
 enumerateSpace: build/index.d.ts#enumerateSpace
 exercised: build/index.d.ts#exercised
 familyKind: build/index.d.ts#familyKind
-familyOf: build/index.d.ts#familyOf
+familyOf: build/measures-CQAuu3T5.d.ts#familyOf
 fnv1a32: build/index.d.ts#fnv1a32
-grow: build/index.d.ts#grow
-isShapeKind: build/index.d.ts#isShapeKind
-itemShapeOf: build/index.d.ts#itemShapeOf
+grow: build/measures-CQAuu3T5.d.ts#grow
+isShapeKind: build/measures-CQAuu3T5.d.ts#isShapeKind
+itemShapeOf: build/measures-CQAuu3T5.d.ts#itemShapeOf
 joinConfigs: build/index.d.ts#joinConfigs
-leaveOneSeedOut: build/index.d.ts#leaveOneSeedOut
+leaveOneSeedOut: build/measures-CQAuu3T5.d.ts#leaveOneSeedOut
 levelsOf: build/index.d.ts#levelsOf
-marginSides: build/index.d.ts#marginSides
-minEffectOf: build/index.d.ts#minEffectOf
+marginSides: build/measures-CQAuu3T5.d.ts#marginSides
+minEffectOf: build/measures-CQAuu3T5.d.ts#minEffectOf
 mulberry32: build/index.d.ts#mulberry32
 nearestGaps: build/index.d.ts#nearestGaps
 outputGroups: build/index.d.ts#outputGroups
 outputHash: build/index.d.ts#outputHash
-overlapOf: build/index.d.ts#overlapOf
+overlapOf: build/measures-CQAuu3T5.d.ts#overlapOf
 ownerDimension: build/index.d.ts#ownerDimension
 packHard: build/index.d.ts#packHard
 paramActive: build/index.d.ts#paramActive
@@ -210,34 +210,34 @@ paramValue: build/index.d.ts#paramValue
 perChange: build/index.d.ts#perChange
 pickMoves: build/index.d.ts#pickMoves
 placedRect: build/index.d.ts#placedRect
-portPoint: build/index.d.ts#portPoint
+portPoint: build/measures-CQAuu3T5.d.ts#portPoint
 portfolio: build/index.d.ts#portfolio
 procrustesOf: build/index.d.ts#procrustesOf
 productSpace: build/index.d.ts#productSpace
 randomInt: build/index.d.ts#randomInt
 rectInRegion: build/index.d.ts#rectInRegion
-regionArea: build/index.d.ts#regionArea
+regionArea: build/measures-CQAuu3T5.d.ts#regionArea
 regionHitsRect: build/index.d.ts#regionHitsRect
 resolveDimensions: build/index.d.ts#resolveDimensions
-ruleLevel: build/index.d.ts#ruleLevel
+ruleLevel: build/measures-CQAuu3T5.d.ts#ruleLevel
 selectBest: build/index.d.ts#selectBest
 sha256Hex: build/index.d.ts#sha256Hex
-shapeKindOf: build/index.d.ts#shapeKindOf
-shapeKindProblem: build/index.d.ts#shapeKindProblem
-shapeKindsOf: build/index.d.ts#shapeKindsOf
-shapeLevel: build/index.d.ts#shapeLevel
-shapeSupportProblems: build/index.d.ts#shapeSupportProblems
-shapesOf: build/index.d.ts#shapesOf
+shapeKindOf: build/measures-CQAuu3T5.d.ts#shapeKindOf
+shapeKindProblem: build/measures-CQAuu3T5.d.ts#shapeKindProblem
+shapeKindsOf: build/measures-CQAuu3T5.d.ts#shapeKindsOf
+shapeLevel: build/measures-CQAuu3T5.d.ts#shapeLevel
+shapeSupportProblems: build/measures-CQAuu3T5.d.ts#shapeSupportProblems
+shapesOf: build/measures-CQAuu3T5.d.ts#shapesOf
 sharedDimension: build/index.d.ts#sharedDimension
 spaceShapeKinds: build/index.d.ts#spaceShapeKinds
 spaceSize: build/index.d.ts#spaceSize
 splitConfig: build/index.d.ts#splitConfig
-splitFileName: build/index.d.ts#splitFileName
-splitFolds: build/index.d.ts#splitFolds
+splitFileName: build/measures-CQAuu3T5.d.ts#splitFileName
+splitFolds: build/measures-CQAuu3T5.d.ts#splitFolds
 stepRandom: build/index.d.ts#stepRandom
 toLayoutRecord: build/index.d.ts#toLayoutRecord
-toPackInput: build/index.d.ts#toPackInput
-translate: build/index.d.ts#translate
+toPackInput: build/measures-CQAuu3T5.d.ts#toPackInput
+translate: build/measures-CQAuu3T5.d.ts#translate
 turnBox: build/index.d.ts#turnBox
 turnMargin: build/index.d.ts#turnMargin
 turnPoint: build/index.d.ts#turnPoint
@@ -245,6 +245,25 @@ turnPort: build/index.d.ts#turnPort
 turnRegion: build/index.d.ts#turnRegion
 turnSide: build/index.d.ts#turnSide
 verdict: build/index.d.ts#verdict
+
+## ./text (build/text.d.ts): 16 names
+
+AdvanceFn: build/text.d.ts#AdvanceFn
+CanvasTextContext: build/text.d.ts#CanvasTextContext
+MeasurerOptions: build/text.d.ts#MeasurerOptions
+MeasurerStats: build/text.d.ts#MeasurerStats
+TEXT_MEASURES: build/text.d.ts#TEXT_MEASURES
+TEXT_UNITS: build/text.d.ts#TEXT_UNITS
+TextLayout: build/text.d.ts#TextLayout
+TextLayoutOptions: build/text.d.ts#TextLayoutOptions
+TextMeasureId: build/text.d.ts#TextMeasureId
+TextMeasurer: build/text.d.ts#TextMeasurer
+canvasAdvance: build/text.d.ts#canvasAdvance
+createMeasurer: build/text.d.ts#createMeasurer
+fontKey: build/text.d.ts#fontKey
+graphemesOf: build/text.d.ts#graphemesOf
+layoutText: build/text.d.ts#layoutText
+textMeasures: build/text.d.ts#textMeasures
 
 ## Declarations
 
@@ -275,13 +294,6 @@ export interface CellsOptions {
   readonly levels?: Readonly<Record<string, readonly ParamValue[]>>;
 }
 
-### build/index.d.ts#ClaimBreak
-export interface ClaimBreak {
-  readonly claim: string;
-  readonly detail: string;
-  readonly inputs: readonly string[];
-}
-
 ### build/index.d.ts#ComposeOptions
 export interface ComposeOptions {
   readonly name?: string;
@@ -305,12 +317,6 @@ export interface CorpusDimension extends SpaceParam {
   readonly precision?: number;
 }
 
-### build/index.d.ts#CorpusEntry
-export interface CorpusEntry {
-  readonly id: string;
-  readonly hash: string;
-}
-
 ### build/index.d.ts#CorpusFamily
 export interface CorpusFamily<O = LayoutInput> {
   readonly name: string;
@@ -325,16 +331,6 @@ export interface CorpusFamily<O = LayoutInput> {
   readonly familyBy?: readonly string[];
   readonly hash?: (output: never) => string;
   generate(seed: number, dims: DimensionValues, context: GenerateContext): O;
-}
-
-### build/index.d.ts#CorpusSplit
-export interface CorpusSplit {
-  readonly schema: typeof SPLIT_SCHEMA;
-  readonly corpus: string;
-  readonly corpusHash: string;
-  readonly splits: Readonly<Record<string, {
-    readonly folds: readonly SplitFold[];
-  }>>;
 }
 
 ### build/index.d.ts#CorpusStep
@@ -359,29 +355,11 @@ export declare const DEFAULT_FAMILY_BY: FamilyBy;
 ### build/index.d.ts#DEFAULT_RNG
 export declare const DEFAULT_RNG: RngFactory;
 
-### build/index.d.ts#DEFAULT_SHAPES
-export declare const DEFAULT_SHAPES: readonly ShapeKind[];
-
 ### build/index.d.ts#DEFAULT_TOLERANCE
 export declare const DEFAULT_TOLERANCE: Tolerance;
 
-### build/index.d.ts#DeclaredClaim
-export interface DeclaredClaim {
-  readonly minCount: number;
-  readonly thin: readonly string[];
-  readonly counts: Readonly<Record<string, number>>;
-  readonly familyBy?: FamilyBy;
-  readonly familyMin?: number;
-}
-
-### build/index.d.ts#Declares
-export type Declares<I> = (input: I) => readonly string[];
-
 ### build/index.d.ts#DimensionValues
 export type DimensionValues = Readonly<Record<string, ParamValue>>;
-
-### build/index.d.ts#Direction
-export type Direction = "lower" | "higher";
 
 ### build/index.d.ts#EDGES_STEP
 export declare const EDGES_STEP: CorpusStep;
@@ -416,17 +394,6 @@ export interface ExerciseEvidence {
   readonly hashes?: readonly string[];
   readonly baseHashes?: readonly string[];
 }
-
-### build/index.d.ts#FAMILY_ANY_KIND
-export declare const FAMILY_ANY_KIND = "*";
-
-### build/index.d.ts#FamilyBy
-export type FamilyBy = readonly string[] | {
-  readonly [kind: string]: readonly string[];
-};
-
-### build/index.d.ts#FamilyCell
-export type FamilyCell = Readonly<Record<string, unknown>>;
 
 ### build/index.d.ts#FamilyRegistry
 export interface FamilyRegistry<O = LayoutInput> {
@@ -479,105 +446,6 @@ export interface HashOptions {
 ### build/index.d.ts#INVALIDATED_FIELD
 export declare const INVALIDATED_FIELD = "invalidated";
 
-### build/index.d.ts#Item
-export type Item = LayoutBox;
-
-### build/index.d.ts#JOINT_MEASURES
-export declare const JOINT_MEASURES: readonly MeasureSpec<JointMeasureId>[];
-
-### build/index.d.ts#JOINT_MOVED_MIN
-export declare const JOINT_MOVED_MIN = .01;
-
-### build/index.d.ts#JointMeasureId
-export type JointMeasureId = "joint.fill" | "joint.aspectError" | "joint.spill" | "joint.straight.crossings" | "joint.straight.length" | "joint.stability.mean" | "joint.stability.moved" | "joint.proxy.rank" | "joint.ms";
-
-### build/index.d.ts#LayoutBox
-export interface LayoutBox {
-  readonly id: string;
-  readonly w: number;
-  readonly h: number;
-  readonly x?: number;
-  readonly y?: number;
-  readonly locked?: boolean;
-  readonly rank?: number;
-  readonly parent?: string;
-  readonly group?: string;
-  readonly shape?: Region;
-  readonly shapeKind?: ShapeKind;
-  readonly ports?: readonly Port[];
-  readonly margin?: Margin;
-  readonly turnable?: boolean;
-  readonly data?: Readonly<Record<string, unknown>>;
-}
-
-### build/index.d.ts#LayoutCell
-export interface LayoutCell {
-  readonly containerSize?: "fixed" | "freeHeight" | "freeWidth" | "freeAspect" | "freeArea";
-  readonly containerShape?: "rect" | "convex" | "polygon" | "circle" | "ellipse" | "holes";
-  readonly obstacles?: "none" | "center" | "scattered" | "wall" | "corridors" | "touching" | "edge";
-  readonly sizes?: "identical" | "uniform" | "heavyTail" | "bimodal" | "extremeAspect" | "nearIdentical";
-  readonly count?: "1" | "10" | "100" | "1k" | "10k";
-  readonly mode?: "offline" | "online" | "incremental";
-  readonly edgeDensity?: "sparse" | "medium" | "dense";
-  readonly edgeShape?: "random" | "clustered" | "hubChain" | "longRange" | "tree" | "bundled";
-  readonly groups?: "none" | "flat" | "nested";
-  readonly ports?: "free" | "sides" | "fixed";
-  readonly itemShape?: ShapeKind | "mixed";
-}
-
-### build/index.d.ts#LayoutContainer
-export interface LayoutContainer {
-  readonly w?: number;
-  readonly h?: number;
-  readonly fixed: "size" | "width" | "height" | "none";
-  readonly aspect?: number;
-  readonly aspectWeight?: number;
-  readonly shape?: Region;
-  readonly inset?: number;
-}
-
-### build/index.d.ts#LayoutEdge
-export interface LayoutEdge {
-  readonly id: string;
-  readonly source: string;
-  readonly target: string;
-  readonly sourcePort?: string;
-  readonly targetPort?: string;
-  readonly data?: Readonly<Record<string, unknown>>;
-}
-
-### build/index.d.ts#LayoutGenerator
-export interface LayoutGenerator {
-  readonly name: string;
-  readonly version: number;
-  readonly params: Readonly<Record<string, unknown>>;
-  readonly seed: number;
-}
-
-### build/index.d.ts#LayoutInput
-export interface LayoutInput {
-  readonly schema: "layout-input/1";
-  readonly id: string;
-  readonly set?: string;
-  readonly family?: string;
-  readonly seed?: number;
-  readonly source?: string;
-  readonly hash?: string;
-  readonly generator?: LayoutGenerator | null;
-  readonly steps?: readonly LayoutGenerator[];
-  readonly cell?: LayoutCell;
-  readonly step?: number;
-  readonly container?: LayoutContainer;
-  readonly gap?: number;
-  readonly pairGaps?: readonly PairGap[];
-  readonly boxes: readonly LayoutBox[];
-  readonly edges?: readonly LayoutEdge[];
-  readonly obstacles?: readonly Obstacle[];
-  readonly base?: string;
-  readonly change?: "add" | "remove" | "resize" | "reorder" | "packed";
-  readonly invalidated?: readonly string[];
-}
-
 ### build/index.d.ts#LayoutRecord
 export interface LayoutRecord {
   readonly schema: "layout-record/1";
@@ -606,27 +474,6 @@ export interface LayoutRecord {
   readonly commit?: string;
 }
 
-### build/index.d.ts#Margin
-export type Margin = number | Sides;
-
-### build/index.d.ts#MeasureSpec
-export interface MeasureSpec<Id extends string = string> {
-  readonly id: Id;
-  readonly unit: string;
-  readonly direction: Direction;
-  readonly min: number;
-  readonly max: number;
-  readonly family?: string;
-  readonly floor?: number;
-  readonly tol?: number;
-  readonly minEffect?: number | {
-    readonly rel: number;
-  };
-  readonly role?: "guard" | "change-guard" | "diagnostic" | "time";
-  readonly shapes?: readonly ShapeKind[];
-  readonly bound?: ShapeBound;
-}
-
 ### build/index.d.ts#Member
 export interface Member<I, O> {
   readonly id: string;
@@ -653,15 +500,6 @@ export interface MemberTrace {
   readonly ms?: number;
   readonly outputHash?: string;
   readonly error?: string;
-}
-
-### build/index.d.ts#Obstacle
-export interface Obstacle {
-  readonly id: string;
-  readonly region: Region;
-  readonly move?: {
-    readonly cost: number;
-  };
 }
 
 ### build/index.d.ts#OptionRef
@@ -695,15 +533,6 @@ export interface PackHard {
   readonly complete: number;
 }
 
-### build/index.d.ts#PackInput
-export interface PackInput {
-  readonly container: LayoutContainer;
-  readonly items: readonly Item[];
-  readonly obstacles?: readonly Obstacle[];
-  readonly gap?: number;
-  readonly pairGaps?: readonly PairGap[];
-}
-
 ### build/index.d.ts#PackOutput
 export interface PackOutput {
   readonly placements: readonly Placement[];
@@ -718,14 +547,6 @@ export interface PackOutput {
     readonly y: number;
   }[];
   readonly trace?: readonly StageTrace[];
-}
-
-### build/index.d.ts#PairGap
-export interface PairGap {
-  readonly a: string;
-  readonly b: string;
-  readonly gap: number;
-  readonly lanes?: number;
 }
 
 ### build/index.d.ts#ParamKind
@@ -754,21 +575,6 @@ export interface Placement {
   readonly x: number;
   readonly y: number;
   readonly turn?: 0 | 90;
-}
-
-### build/index.d.ts#Point
-export interface Point {
-  readonly x: number;
-  readonly y: number;
-}
-
-### build/index.d.ts#Port
-export interface Port {
-  readonly id: string;
-  readonly side?: Side;
-  readonly x?: number;
-  readonly y?: number;
-  readonly along?: number;
 }
 
 ### build/index.d.ts#Portfolio
@@ -834,38 +640,6 @@ export declare const RECORD_SCALE = 1e3;
 ### build/index.d.ts#RECT_SCATTERED
 export declare const RECT_SCATTERED: CorpusFamily<LayoutInput>;
 
-### build/index.d.ts#Rect
-export interface Rect {
-  readonly x: number;
-  readonly y: number;
-  readonly w: number;
-  readonly h: number;
-}
-
-### build/index.d.ts#Region
-export type Region = {
-  readonly kind: "rect";
-  readonly x: number;
-  readonly y: number;
-  readonly w: number;
-  readonly h: number;
-} | {
-  readonly kind: "polygon";
-  readonly points: readonly (readonly [number, number])[];
-  readonly holes?: readonly (readonly (readonly [number, number])[])[];
-} | {
-  readonly kind: "circle";
-  readonly cx: number;
-  readonly cy: number;
-  readonly r: number;
-} | {
-  readonly kind: "ellipse";
-  readonly cx: number;
-  readonly cy: number;
-  readonly rx: number;
-  readonly ry: number;
-};
-
 ### build/index.d.ts#RegistryCell
 export type RegistryCell = Readonly<Record<string, ParamValue>> & {
   readonly kind: string;
@@ -873,9 +647,6 @@ export type RegistryCell = Readonly<Record<string, ParamValue>> & {
 
 ### build/index.d.ts#RngFactory
 export type RngFactory = (seed: number) => () => number;
-
-### build/index.d.ts#RuleLevel
-export type RuleLevel = "exact" | "safe" | "none";
 
 ### build/index.d.ts#RunEnv
 export interface RunEnv {
@@ -889,18 +660,6 @@ export interface RunEnv {
 
 ### build/index.d.ts#RunFacts
 export type RunFacts = Omit<LayoutRecord, "schema" | "input" | "inputHash" | "set" | "nodes" | "edges" | "shapes">;
-
-### build/index.d.ts#SHAPE_KINDS
-export declare const SHAPE_KINDS: readonly ShapeKindSpec[];
-
-### build/index.d.ts#SHAPE_KIND_IDS
-export declare const SHAPE_KIND_IDS: readonly ShapeKind[];
-
-### build/index.d.ts#SIDES
-export declare const SIDES: readonly Side[];
-
-### build/index.d.ts#SPLIT_SCHEMA
-export declare const SPLIT_SCHEMA = "corpus-split/1";
 
 ### build/index.d.ts#STRATEGY_SPACE_SCHEMA
 export declare const STRATEGY_SPACE_SCHEMA = "strategy-space/1";
@@ -932,61 +691,9 @@ export interface Selection {
   readonly kept: readonly (readonly string[])[];
 }
 
-### build/index.d.ts#ShapeBound
-export interface ShapeBound {
-  readonly shapes: readonly ShapeKind[];
-  readonly side: "upper" | "lower";
-}
-
-### build/index.d.ts#ShapeCheck
-export interface ShapeCheck {
-  readonly level?: "exact" | "safe" | "bound";
-}
-
 ### build/index.d.ts#ShapeFilter
 export interface ShapeFilter {
   readonly shapes?: readonly ShapeKind[];
-}
-
-### build/index.d.ts#ShapeGeometry
-export interface ShapeGeometry {
-  readonly bounds: boolean;
-  readonly area: boolean;
-  readonly contains: boolean;
-  readonly overlap: boolean;
-}
-
-### build/index.d.ts#ShapeKind
-export type ShapeKind = "rect" | "polygon" | "circle" | "free";
-
-### build/index.d.ts#ShapeKindSpec
-export interface ShapeKindSpec {
-  readonly id: ShapeKind;
-  readonly fields: readonly string[];
-  readonly regions: readonly Region["kind"][];
-  readonly geometry: ShapeGeometry;
-}
-
-### build/index.d.ts#ShapeLevel
-export type ShapeLevel = RuleLevel | "bound";
-
-### build/index.d.ts#ShapeSupport
-export interface ShapeSupport<Id extends string = string> {
-  readonly id: Id;
-  readonly shapes?: readonly ShapeKind[];
-  readonly safe?: readonly ShapeKind[];
-  readonly bound?: ShapeBound;
-}
-
-### build/index.d.ts#Side
-export type Side = "top" | "right" | "bottom" | "left";
-
-### build/index.d.ts#Sides
-export interface Sides {
-  readonly top: number;
-  readonly right: number;
-  readonly bottom: number;
-  readonly left: number;
 }
 
 ### build/index.d.ts#SpaceConstraint
@@ -1027,21 +734,6 @@ export interface SpaceStage {
   readonly name: string;
   readonly options: readonly StageOption[];
   readonly optional?: boolean;
-}
-
-### build/index.d.ts#SplitCorpus
-export interface SplitCorpus {
-  readonly corpus: string;
-  readonly specs: readonly {
-    readonly seeds: readonly number[];
-  }[];
-  readonly inputs: readonly CorpusEntry[];
-}
-
-### build/index.d.ts#SplitFold
-export interface SplitFold {
-  readonly train: readonly number[];
-  readonly heldOut: readonly number[];
 }
 
 ### build/index.d.ts#Stage
@@ -1128,9 +820,6 @@ export declare const VERDICT_RUNS = 1e4;
 
 ### build/index.d.ts#VERDICT_SEED
 export declare const VERDICT_SEED = 1;
-
-### build/index.d.ts#Verdict
-export type Verdict = "better" | "worse" | "tie";
 
 ### build/index.d.ts#VerdictBreadth
 export interface VerdictBreadth {
@@ -1222,17 +911,8 @@ export declare function balanceMeasures<S extends string>(stage: S, balance: Bal
 ### build/index.d.ts#balanceOf
 export declare function balanceOf(boxes: readonly Rect[], container: Rect): Balance;
 
-### build/index.d.ts#boundsOf
-export declare function boundsOf(region: Region): Rect;
-
-### build/index.d.ts#boxArea
-export declare function boxArea(box: LayoutBox): number | undefined;
-
 ### build/index.d.ts#canonicalConfig
 export declare function canonicalConfig(space: StrategySpace, config: StrategyConfig): StrategyConfig;
-
-### build/index.d.ts#canonicalInput
-export declare function canonicalInput<T extends LayoutInput>(input: T): T;
 
 ### build/index.d.ts#canonicalJson
 export declare function canonicalJson(value: unknown): string;
@@ -1240,32 +920,17 @@ export declare function canonicalJson(value: unknown): string;
 ### build/index.d.ts#checkConfig
 export declare function checkConfig(space: StrategySpace, config: StrategyConfig, options?: ShapeFilter): ClaimBreak[];
 
-### build/index.d.ts#checkDeclared
-export declare function checkDeclared<I>(inputs: Iterable<I>, declares: Declares<I>, claim: DeclaredClaim, ids?: readonly string[], cellOf?: (input: I) => FamilyCell | undefined): ClaimBreak[];
-
 ### build/index.d.ts#checkInput
 export declare function checkInput(input: LayoutInput): readonly string[];
 
-### build/index.d.ts#checkShapes
-export declare function checkShapes(input: Pick<LayoutInput, "id" | "boxes">, uses: readonly ShapeSupport[], options?: ShapeCheck): ClaimBreak[];
-
 ### build/index.d.ts#checkSpace
 export declare function checkSpace(space: StrategySpace): ClaimBreak[];
-
-### build/index.d.ts#checkSplit
-export declare function checkSplit(split: unknown, corpus: SplitCorpus, name?: string): ClaimBreak[];
-
-### build/index.d.ts#compareMeasure
-export declare function compareMeasure(candidate: number, baseline: number, spec: Pick<MeasureSpec, "direction" | "minEffect">): Verdict;
 
 ### build/index.d.ts#composeFamily
 export declare function composeFamily(base: CorpusFamily<LayoutInput>, steps: readonly CorpusStep[], options?: ComposeOptions): CorpusFamily<LayoutInput>;
 
 ### build/index.d.ts#configId
 export declare function configId(space: StrategySpace, config: StrategyConfig): string;
-
-### build/index.d.ts#corpusHashOf
-export declare function corpusHashOf(corpus: string, inputs: readonly CorpusEntry[]): string;
 
 ### build/index.d.ts#countObstacleHits
 export declare function countObstacleHits(boxes: readonly LayoutBox[], obstacles: readonly Obstacle[] | undefined, tolerance?: number): number;
@@ -1281,12 +946,6 @@ export declare function countPortsOffBorder(boxes: readonly LayoutBox[], eps?: n
 
 ### build/index.d.ts#createFamilyRegistry
 export declare function createFamilyRegistry<O = LayoutInput>(families?: Iterable<CorpusFamily<O>>): FamilyRegistry<O>;
-
-### build/index.d.ts#declaredClaimOf
-export declare function declaredClaimOf(manifest: object): DeclaredClaim | undefined;
-
-### build/index.d.ts#declaredCounts
-export declare function declaredCounts<I>(inputs: Iterable<I>, declares: Declares<I>, ids?: readonly string[]): Record<string, number>;
 
 ### build/index.d.ts#dimensionAt
 export declare function dimensionAt(dim: SpaceParam, t: number): number;
@@ -1312,35 +971,14 @@ export declare function exercised(evidence: ExerciseEvidence): boolean;
 ### build/index.d.ts#familyKind
 export declare function familyKind(name: string, version: number): string;
 
-### build/index.d.ts#familyOf
-export declare function familyOf(cell: FamilyCell, familyBy: FamilyBy): string;
-
 ### build/index.d.ts#fnv1a32
 export declare function fnv1a32(text: string): number;
-
-### build/index.d.ts#grow
-export declare function grow(rect: Rect, margin: Margin | undefined): Rect;
-
-### build/index.d.ts#isShapeKind
-export declare function isShapeKind(value: unknown): value is ShapeKind;
-
-### build/index.d.ts#itemShapeOf
-export declare function itemShapeOf(input: Pick<LayoutInput, "boxes">): ShapeKind | "mixed";
 
 ### build/index.d.ts#joinConfigs
 export declare function joinConfigs(space: string, parts: readonly StrategyConfig[]): StrategyConfig;
 
-### build/index.d.ts#leaveOneSeedOut
-export declare function leaveOneSeedOut(seeds: readonly number[]): SplitFold[];
-
 ### build/index.d.ts#levelsOf
 export declare function levelsOf(dim: CorpusDimension, steps?: number): ParamValue[];
-
-### build/index.d.ts#marginSides
-export declare function marginSides(margin: Margin | undefined): Sides;
-
-### build/index.d.ts#minEffectOf
-export declare function minEffectOf(spec: Pick<MeasureSpec, "minEffect">, a?: number, b?: number): number;
 
 ### build/index.d.ts#mulberry32
 export declare function mulberry32(seed: number): () => number;
@@ -1353,12 +991,6 @@ export declare function outputGroups(hashes: Readonly<Record<string, readonly st
 
 ### build/index.d.ts#outputHash
 export declare function outputHash(value: unknown, options?: HashOptions): string;
-
-### build/index.d.ts#overlapOf
-export declare function overlapOf(a: Rect, b: Rect): {
-  readonly x: number;
-  readonly y: number;
-};
 
 ### build/index.d.ts#ownerDimension
 export declare function ownerDimension(name: string, spec: OwnerDimensionSpec): CorpusDimension;
@@ -1389,9 +1021,6 @@ export declare function pickMoves(trace: Pick<PortfolioTrace, "picked">): {
 ### build/index.d.ts#placedRect
 export declare function placedRect(box: LayoutBox): Rect | undefined;
 
-### build/index.d.ts#portPoint
-export declare function portPoint(box: Pick<LayoutBox, "w" | "h">, port: Port): Point | undefined;
-
 ### build/index.d.ts#portfolio
 export declare function portfolio<I, O>(id: string, members: readonly Member<I, O>[] | ((input: I) => readonly Member<I, O>[]), key: PortfolioKey<I, O>, options?: PortfolioOptions): Portfolio<I, O>;
 
@@ -1407,41 +1036,17 @@ export declare function randomInt(r: () => number, lo: number, hi: number): numb
 ### build/index.d.ts#rectInRegion
 export declare function rectInRegion(region: Region, rect: Rect): boolean;
 
-### build/index.d.ts#regionArea
-export declare function regionArea(region: Region): number;
-
 ### build/index.d.ts#regionHitsRect
 export declare function regionHitsRect(region: Region, rect: Rect): boolean;
 
 ### build/index.d.ts#resolveDimensions
 export declare function resolveDimensions(dimensions: readonly CorpusDimension[], dims?: Readonly<Record<string, ParamValue>>, where?: string, by?: string): DimensionValues;
 
-### build/index.d.ts#ruleLevel
-export declare function ruleLevel(rule: Pick<ShapeSupport, "shapes" | "safe">, kind: ShapeKind): RuleLevel;
-
 ### build/index.d.ts#selectBest
 export declare function selectBest(candidates: readonly SelectCandidate[], levels: readonly SelectLevel[]): Selection;
 
 ### build/index.d.ts#sha256Hex
 export declare function sha256Hex(text: string): string;
-
-### build/index.d.ts#shapeKindOf
-export declare function shapeKindOf(box: LayoutBox): ShapeKind;
-
-### build/index.d.ts#shapeKindProblem
-export declare function shapeKindProblem(box: LayoutBox): string | undefined;
-
-### build/index.d.ts#shapeKindsOf
-export declare function shapeKindsOf(input: Pick<LayoutInput, "boxes">): ShapeKind[];
-
-### build/index.d.ts#shapeLevel
-export declare function shapeLevel(use: Pick<ShapeSupport, "shapes" | "safe" | "bound">, kind: ShapeKind): ShapeLevel;
-
-### build/index.d.ts#shapeSupportProblems
-export declare function shapeSupportProblems(uses: readonly ShapeSupport[]): string[];
-
-### build/index.d.ts#shapesOf
-export declare function shapesOf(use: Pick<ShapeSupport, "shapes">): readonly ShapeKind[];
 
 ### build/index.d.ts#sharedDimension
 export declare function sharedDimension(name: string, patch?: Partial<CorpusDimension>): CorpusDimension;
@@ -1455,23 +1060,11 @@ export declare function spaceSize(space: StrategySpace, options: SpaceSizeOption
 ### build/index.d.ts#splitConfig
 export declare function splitConfig(config: StrategyConfig, engine: string): StrategyConfig;
 
-### build/index.d.ts#splitFileName
-export declare function splitFileName(corpus: string, hash: string): string;
-
-### build/index.d.ts#splitFolds
-export declare function splitFolds(split: unknown, corpus: SplitCorpus, name: string, where?: string): SplitFold[];
-
 ### build/index.d.ts#stepRandom
 export declare function stepRandom(seed: number, step: string): () => number;
 
 ### build/index.d.ts#toLayoutRecord
 export declare function toLayoutRecord(input: LayoutInput, run: RunFacts): LayoutRecord;
-
-### build/index.d.ts#toPackInput
-export declare function toPackInput(input: LayoutInput): PackInput;
-
-### build/index.d.ts#translate
-export declare function translate(region: Region, dx: number, dy: number): Region;
 
 ### build/index.d.ts#turnBox
 export declare function turnBox(box: LayoutBox): LayoutBox;
@@ -1493,3 +1086,512 @@ export declare function turnSide(side: Side): Side;
 
 ### build/index.d.ts#verdict
 export declare function verdict<R extends VerdictRecord>(records: Iterable<R>, options: VerdictOptions<R>): VerdictResult;
+
+### build/measures-CQAuu3T5.d.ts#ClaimBreak
+interface ClaimBreak {
+  readonly claim: string;
+  readonly detail: string;
+  readonly inputs: readonly string[];
+}
+
+### build/measures-CQAuu3T5.d.ts#CorpusEntry
+interface CorpusEntry {
+  readonly id: string;
+  readonly hash: string;
+}
+
+### build/measures-CQAuu3T5.d.ts#CorpusSplit
+interface CorpusSplit {
+  readonly schema: typeof SPLIT_SCHEMA;
+  readonly corpus: string;
+  readonly corpusHash: string;
+  readonly splits: Readonly<Record<string, {
+    readonly folds: readonly SplitFold[];
+  }>>;
+}
+
+### build/measures-CQAuu3T5.d.ts#DEFAULT_SHAPES
+declare const DEFAULT_SHAPES: readonly ShapeKind[];
+
+### build/measures-CQAuu3T5.d.ts#DeclaredClaim
+interface DeclaredClaim {
+  readonly minCount: number;
+  readonly thin: readonly string[];
+  readonly counts: Readonly<Record<string, number>>;
+  readonly familyBy?: FamilyBy;
+  readonly familyMin?: number;
+}
+
+### build/measures-CQAuu3T5.d.ts#Declares
+type Declares<I> = (input: I) => readonly string[];
+
+### build/measures-CQAuu3T5.d.ts#Direction
+type Direction = "lower" | "higher";
+
+### build/measures-CQAuu3T5.d.ts#FAMILY_ANY_KIND
+declare const FAMILY_ANY_KIND = "*";
+
+### build/measures-CQAuu3T5.d.ts#FamilyBy
+type FamilyBy = readonly string[] | {
+  readonly [kind: string]: readonly string[];
+};
+
+### build/measures-CQAuu3T5.d.ts#FamilyCell
+type FamilyCell = Readonly<Record<string, unknown>>;
+
+### build/measures-CQAuu3T5.d.ts#Item
+type Item = LayoutBox;
+
+### build/measures-CQAuu3T5.d.ts#JOINT_MEASURES
+declare const JOINT_MEASURES: readonly MeasureSpec<JointMeasureId>[];
+
+### build/measures-CQAuu3T5.d.ts#JOINT_MOVED_MIN
+declare const JOINT_MOVED_MIN = .01;
+
+### build/measures-CQAuu3T5.d.ts#JointMeasureId
+type JointMeasureId = "joint.fill" | "joint.aspectError" | "joint.spill" | "joint.straight.crossings" | "joint.straight.length" | "joint.stability.mean" | "joint.stability.moved" | "joint.proxy.rank" | "joint.ms";
+
+### build/measures-CQAuu3T5.d.ts#LayoutBox
+interface LayoutBox {
+  readonly id: string;
+  readonly w: number;
+  readonly h: number;
+  readonly x?: number;
+  readonly y?: number;
+  readonly locked?: boolean;
+  readonly rank?: number;
+  readonly parent?: string;
+  readonly group?: string;
+  readonly shape?: Region;
+  readonly shapeKind?: ShapeKind;
+  readonly ports?: readonly Port[];
+  readonly margin?: Margin;
+  readonly turnable?: boolean;
+  readonly data?: Readonly<Record<string, unknown>>;
+}
+
+### build/measures-CQAuu3T5.d.ts#LayoutCell
+interface LayoutCell {
+  readonly containerSize?: "fixed" | "freeHeight" | "freeWidth" | "freeAspect" | "freeArea";
+  readonly containerShape?: "rect" | "convex" | "polygon" | "circle" | "ellipse" | "holes";
+  readonly obstacles?: "none" | "center" | "scattered" | "wall" | "corridors" | "touching" | "edge";
+  readonly sizes?: "identical" | "uniform" | "heavyTail" | "bimodal" | "extremeAspect" | "nearIdentical";
+  readonly count?: "1" | "10" | "100" | "1k" | "10k";
+  readonly mode?: "offline" | "online" | "incremental";
+  readonly edgeDensity?: "sparse" | "medium" | "dense";
+  readonly edgeShape?: "random" | "clustered" | "hubChain" | "longRange" | "tree" | "bundled";
+  readonly groups?: "none" | "flat" | "nested";
+  readonly ports?: "free" | "sides" | "fixed";
+  readonly itemShape?: ShapeKind | "mixed";
+}
+
+### build/measures-CQAuu3T5.d.ts#LayoutContainer
+interface LayoutContainer {
+  readonly w?: number;
+  readonly h?: number;
+  readonly fixed: "size" | "width" | "height" | "none";
+  readonly aspect?: number;
+  readonly aspectWeight?: number;
+  readonly shape?: Region;
+  readonly inset?: number;
+}
+
+### build/measures-CQAuu3T5.d.ts#LayoutEdge
+interface LayoutEdge {
+  readonly id: string;
+  readonly source: string;
+  readonly target: string;
+  readonly sourcePort?: string;
+  readonly targetPort?: string;
+  readonly data?: Readonly<Record<string, unknown>>;
+}
+
+### build/measures-CQAuu3T5.d.ts#LayoutGenerator
+interface LayoutGenerator {
+  readonly name: string;
+  readonly version: number;
+  readonly params: Readonly<Record<string, unknown>>;
+  readonly seed: number;
+}
+
+### build/measures-CQAuu3T5.d.ts#LayoutInput
+interface LayoutInput {
+  readonly schema: "layout-input/1";
+  readonly id: string;
+  readonly set?: string;
+  readonly family?: string;
+  readonly seed?: number;
+  readonly source?: string;
+  readonly hash?: string;
+  readonly generator?: LayoutGenerator | null;
+  readonly steps?: readonly LayoutGenerator[];
+  readonly cell?: LayoutCell;
+  readonly step?: number;
+  readonly container?: LayoutContainer;
+  readonly gap?: number;
+  readonly pairGaps?: readonly PairGap[];
+  readonly boxes: readonly LayoutBox[];
+  readonly edges?: readonly LayoutEdge[];
+  readonly obstacles?: readonly Obstacle[];
+  readonly base?: string;
+  readonly change?: "add" | "remove" | "resize" | "reorder" | "packed";
+  readonly invalidated?: readonly string[];
+}
+
+### build/measures-CQAuu3T5.d.ts#Margin
+type Margin = number | Sides;
+
+### build/measures-CQAuu3T5.d.ts#MeasureSpec
+interface MeasureSpec<Id extends string = string> {
+  readonly id: Id;
+  readonly unit: string;
+  readonly direction: Direction;
+  readonly min: number;
+  readonly max: number;
+  readonly family?: string;
+  readonly floor?: number;
+  readonly tol?: number;
+  readonly minEffect?: number | {
+    readonly rel: number;
+  };
+  readonly role?: "guard" | "change-guard" | "diagnostic" | "time";
+  readonly shapes?: readonly ShapeKind[];
+  readonly bound?: ShapeBound;
+}
+
+### build/measures-CQAuu3T5.d.ts#Obstacle
+interface Obstacle {
+  readonly id: string;
+  readonly region: Region;
+  readonly move?: {
+    readonly cost: number;
+  };
+}
+
+### build/measures-CQAuu3T5.d.ts#PackInput
+interface PackInput {
+  readonly container: LayoutContainer;
+  readonly items: readonly Item[];
+  readonly obstacles?: readonly Obstacle[];
+  readonly gap?: number;
+  readonly pairGaps?: readonly PairGap[];
+}
+
+### build/measures-CQAuu3T5.d.ts#PairGap
+interface PairGap {
+  readonly a: string;
+  readonly b: string;
+  readonly gap: number;
+  readonly lanes?: number;
+}
+
+### build/measures-CQAuu3T5.d.ts#Point
+interface Point {
+  readonly x: number;
+  readonly y: number;
+}
+
+### build/measures-CQAuu3T5.d.ts#Port
+interface Port {
+  readonly id: string;
+  readonly side?: Side;
+  readonly x?: number;
+  readonly y?: number;
+  readonly along?: number;
+}
+
+### build/measures-CQAuu3T5.d.ts#Rect
+interface Rect {
+  readonly x: number;
+  readonly y: number;
+  readonly w: number;
+  readonly h: number;
+}
+
+### build/measures-CQAuu3T5.d.ts#Region
+type Region = {
+  readonly kind: "rect";
+  readonly x: number;
+  readonly y: number;
+  readonly w: number;
+  readonly h: number;
+} | {
+  readonly kind: "polygon";
+  readonly points: readonly (readonly [number, number])[];
+  readonly holes?: readonly (readonly (readonly [number, number])[])[];
+} | {
+  readonly kind: "circle";
+  readonly cx: number;
+  readonly cy: number;
+  readonly r: number;
+} | {
+  readonly kind: "ellipse";
+  readonly cx: number;
+  readonly cy: number;
+  readonly rx: number;
+  readonly ry: number;
+};
+
+### build/measures-CQAuu3T5.d.ts#RuleLevel
+type RuleLevel = "exact" | "safe" | "none";
+
+### build/measures-CQAuu3T5.d.ts#SHAPE_KINDS
+declare const SHAPE_KINDS: readonly ShapeKindSpec[];
+
+### build/measures-CQAuu3T5.d.ts#SHAPE_KIND_IDS
+declare const SHAPE_KIND_IDS: readonly ShapeKind[];
+
+### build/measures-CQAuu3T5.d.ts#SIDES
+declare const SIDES: readonly Side[];
+
+### build/measures-CQAuu3T5.d.ts#SPLIT_SCHEMA
+declare const SPLIT_SCHEMA = "corpus-split/1";
+
+### build/measures-CQAuu3T5.d.ts#ShapeBound
+interface ShapeBound {
+  readonly shapes: readonly ShapeKind[];
+  readonly side: "upper" | "lower";
+}
+
+### build/measures-CQAuu3T5.d.ts#ShapeCheck
+interface ShapeCheck {
+  readonly level?: "exact" | "safe" | "bound";
+}
+
+### build/measures-CQAuu3T5.d.ts#ShapeGeometry
+interface ShapeGeometry {
+  readonly bounds: boolean;
+  readonly area: boolean;
+  readonly contains: boolean;
+  readonly overlap: boolean;
+}
+
+### build/measures-CQAuu3T5.d.ts#ShapeKind
+type ShapeKind = "rect" | "polygon" | "circle" | "free";
+
+### build/measures-CQAuu3T5.d.ts#ShapeKindSpec
+interface ShapeKindSpec {
+  readonly id: ShapeKind;
+  readonly fields: readonly string[];
+  readonly regions: readonly Region["kind"][];
+  readonly geometry: ShapeGeometry;
+}
+
+### build/measures-CQAuu3T5.d.ts#ShapeLevel
+type ShapeLevel = RuleLevel | "bound";
+
+### build/measures-CQAuu3T5.d.ts#ShapeSupport
+interface ShapeSupport<Id extends string = string> {
+  readonly id: Id;
+  readonly shapes?: readonly ShapeKind[];
+  readonly safe?: readonly ShapeKind[];
+  readonly bound?: ShapeBound;
+}
+
+### build/measures-CQAuu3T5.d.ts#Side
+type Side = "top" | "right" | "bottom" | "left";
+
+### build/measures-CQAuu3T5.d.ts#Sides
+interface Sides {
+  readonly top: number;
+  readonly right: number;
+  readonly bottom: number;
+  readonly left: number;
+}
+
+### build/measures-CQAuu3T5.d.ts#SplitCorpus
+interface SplitCorpus {
+  readonly corpus: string;
+  readonly specs: readonly {
+    readonly seeds: readonly number[];
+  }[];
+  readonly inputs: readonly CorpusEntry[];
+}
+
+### build/measures-CQAuu3T5.d.ts#SplitFold
+interface SplitFold {
+  readonly train: readonly number[];
+  readonly heldOut: readonly number[];
+}
+
+### build/measures-CQAuu3T5.d.ts#Verdict
+type Verdict = "better" | "worse" | "tie";
+
+### build/measures-CQAuu3T5.d.ts#boundsOf
+declare function boundsOf(region: Region): Rect;
+
+### build/measures-CQAuu3T5.d.ts#boxArea
+declare function boxArea(box: LayoutBox): number | undefined;
+
+### build/measures-CQAuu3T5.d.ts#canonicalInput
+declare function canonicalInput<T extends LayoutInput>(input: T): T;
+
+### build/measures-CQAuu3T5.d.ts#checkDeclared
+declare function checkDeclared<I>(inputs: Iterable<I>, declares: Declares<I>, claim: DeclaredClaim, ids?: readonly string[], cellOf?: (input: I) => FamilyCell | undefined): ClaimBreak[];
+
+### build/measures-CQAuu3T5.d.ts#checkShapes
+declare function checkShapes(input: Pick<LayoutInput, "id" | "boxes">, uses: readonly ShapeSupport[], options?: ShapeCheck): ClaimBreak[];
+
+### build/measures-CQAuu3T5.d.ts#checkSplit
+declare function checkSplit(split: unknown, corpus: SplitCorpus, name?: string): ClaimBreak[];
+
+### build/measures-CQAuu3T5.d.ts#compareMeasure
+declare function compareMeasure(candidate: number, baseline: number, spec: Pick<MeasureSpec, "direction" | "minEffect">): Verdict;
+
+### build/measures-CQAuu3T5.d.ts#corpusHashOf
+declare function corpusHashOf(corpus: string, inputs: readonly CorpusEntry[]): string;
+
+### build/measures-CQAuu3T5.d.ts#declaredClaimOf
+declare function declaredClaimOf(manifest: object): DeclaredClaim | undefined;
+
+### build/measures-CQAuu3T5.d.ts#declaredCounts
+declare function declaredCounts<I>(inputs: Iterable<I>, declares: Declares<I>, ids?: readonly string[]): Record<string, number>;
+
+### build/measures-CQAuu3T5.d.ts#familyOf
+declare function familyOf(cell: FamilyCell, familyBy: FamilyBy): string;
+
+### build/measures-CQAuu3T5.d.ts#grow
+declare function grow(rect: Rect, margin: Margin | undefined): Rect;
+
+### build/measures-CQAuu3T5.d.ts#isShapeKind
+declare function isShapeKind(value: unknown): value is ShapeKind;
+
+### build/measures-CQAuu3T5.d.ts#itemShapeOf
+declare function itemShapeOf(input: Pick<LayoutInput, "boxes">): ShapeKind | "mixed";
+
+### build/measures-CQAuu3T5.d.ts#leaveOneSeedOut
+declare function leaveOneSeedOut(seeds: readonly number[]): SplitFold[];
+
+### build/measures-CQAuu3T5.d.ts#marginSides
+declare function marginSides(margin: Margin | undefined): Sides;
+
+### build/measures-CQAuu3T5.d.ts#minEffectOf
+declare function minEffectOf(spec: Pick<MeasureSpec, "minEffect">, a?: number, b?: number): number;
+
+### build/measures-CQAuu3T5.d.ts#overlapOf
+declare function overlapOf(a: Rect, b: Rect): {
+  readonly x: number;
+  readonly y: number;
+};
+
+### build/measures-CQAuu3T5.d.ts#portPoint
+declare function portPoint(box: Pick<LayoutBox, "w" | "h">, port: Port): Point | undefined;
+
+### build/measures-CQAuu3T5.d.ts#regionArea
+declare function regionArea(region: Region): number;
+
+### build/measures-CQAuu3T5.d.ts#ruleLevel
+declare function ruleLevel(rule: Pick<ShapeSupport, "shapes" | "safe">, kind: ShapeKind): RuleLevel;
+
+### build/measures-CQAuu3T5.d.ts#shapeKindOf
+declare function shapeKindOf(box: LayoutBox): ShapeKind;
+
+### build/measures-CQAuu3T5.d.ts#shapeKindProblem
+declare function shapeKindProblem(box: LayoutBox): string | undefined;
+
+### build/measures-CQAuu3T5.d.ts#shapeKindsOf
+declare function shapeKindsOf(input: Pick<LayoutInput, "boxes">): ShapeKind[];
+
+### build/measures-CQAuu3T5.d.ts#shapeLevel
+declare function shapeLevel(use: Pick<ShapeSupport, "shapes" | "safe" | "bound">, kind: ShapeKind): ShapeLevel;
+
+### build/measures-CQAuu3T5.d.ts#shapeSupportProblems
+declare function shapeSupportProblems(uses: readonly ShapeSupport[]): string[];
+
+### build/measures-CQAuu3T5.d.ts#shapesOf
+declare function shapesOf(use: Pick<ShapeSupport, "shapes">): readonly ShapeKind[];
+
+### build/measures-CQAuu3T5.d.ts#splitFileName
+declare function splitFileName(corpus: string, hash: string): string;
+
+### build/measures-CQAuu3T5.d.ts#splitFolds
+declare function splitFolds(split: unknown, corpus: SplitCorpus, name: string, where?: string): SplitFold[];
+
+### build/measures-CQAuu3T5.d.ts#toPackInput
+declare function toPackInput(input: LayoutInput): PackInput;
+
+### build/measures-CQAuu3T5.d.ts#translate
+declare function translate(region: Region, dx: number, dy: number): Region;
+
+### build/text.d.ts#AdvanceFn
+export type AdvanceFn = (text: string, font: string) => number;
+
+### build/text.d.ts#CanvasTextContext
+export interface CanvasTextContext {
+  font: string;
+  measureText(text: string): {
+    readonly width: number;
+  };
+}
+
+### build/text.d.ts#MeasurerOptions
+export interface MeasurerOptions {
+  readonly maxEntries?: number;
+}
+
+### build/text.d.ts#MeasurerStats
+export interface MeasurerStats {
+  readonly requests: number;
+  readonly hits: number;
+  readonly calls: number;
+}
+
+### build/text.d.ts#TEXT_MEASURES
+export declare const TEXT_MEASURES: readonly MeasureSpec<TextMeasureId>[];
+
+### build/text.d.ts#TEXT_UNITS
+export declare const TEXT_UNITS = 64;
+
+### build/text.d.ts#TextLayout
+export interface TextLayout {
+  readonly lines: readonly string[];
+  readonly widths: readonly number[];
+  readonly lineCount: number;
+  readonly width: number;
+  readonly height: number;
+  readonly wrapWidth?: number;
+  readonly truncated: boolean;
+}
+
+### build/text.d.ts#TextLayoutOptions
+export interface TextLayoutOptions {
+  readonly font: string;
+  readonly measurer: TextMeasurer;
+  readonly lineHeight: number;
+  readonly wrapWidth?: number;
+  readonly maxLines?: number;
+  readonly maxChars?: number;
+  readonly ellipsis?: string;
+  readonly padding?: number;
+  readonly minWidth?: number;
+  readonly maxWidth?: number;
+  readonly wordBreak?: "keep" | "anywhere";
+}
+
+### build/text.d.ts#TextMeasureId
+export type TextMeasureId = "text.lines" | "text.raggedness" | "text.overflow" | "text.cacheHit" | "text.ms";
+
+### build/text.d.ts#TextMeasurer
+export interface TextMeasurer {
+  advance(segment: string, font: string): number;
+  stats(): MeasurerStats;
+  reset(): void;
+}
+
+### build/text.d.ts#canvasAdvance
+export declare function canvasAdvance(context: CanvasTextContext): AdvanceFn;
+
+### build/text.d.ts#createMeasurer
+export declare function createMeasurer(measure: AdvanceFn, options?: MeasurerOptions): TextMeasurer;
+
+### build/text.d.ts#fontKey
+export declare function fontKey(font: string): string;
+
+### build/text.d.ts#graphemesOf
+export declare function graphemesOf(text: string): string[];
+
+### build/text.d.ts#layoutText
+export declare function layoutText(text: string, options: TextLayoutOptions): TextLayout;
+
+### build/text.d.ts#textMeasures
+export declare function textMeasures(layout: TextLayout, stats?: MeasurerStats): Partial<Record<TextMeasureId, number>>;
