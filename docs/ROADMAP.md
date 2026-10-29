@@ -26,6 +26,7 @@ This file lists the items of the roadmap of this repository. The status page of 
 | L65 | next | P1 | One measure registry in layout-contract |
 | L66 | next | P1 | An objective spec with one evaluator |
 | L70 | next | P2 | A layout cache per text and options in /text |
+| L71 | next | P2 | A bound-first fast path for labels from a declared character set |
 
 ## Later
 
