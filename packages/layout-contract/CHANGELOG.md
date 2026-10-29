@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.2.20
+
+- PATCH: a new subpath export, with no break. In a consumer profile, the text measures and the line breaks take approximately 3.1 s of a first load. Thus text layout is a layout step of the contract.
+- The subpath `@mark1russell7/layout-contract/text` has `createMeasurer`, `canvasAdvance`, `fontKey`, `graphemesOf`, `layoutText`, `textMeasures` and `TEXT_MEASURES`.
+- The measurer caches the advance of each font and word segment, in whole units of 1/64 pixel. Thus each port gets the same lines.
+- `layoutText` has a character clamp, a padding, a min and max width of one line and a wrap width. It also has a max line count with an ellipsis, a line height and a word break option.
+- `docs/TEXT.md` gives the rules, the units, the error and the measures.
+
 ## 0.2.19
 
 - PATCH: new exports, with no break. The packing engine and the joint bench use the same balance and stability measures, so the contract computes them.
