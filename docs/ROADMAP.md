@@ -30,6 +30,12 @@ This file lists the items of the roadmap of this repository. The status page of 
 | L73 | next | P1 | Clarity of structure: macro and micro measures |
 | L77 | next | P1 | Find and bound what fills 6 GB on the 1000-box inputs |
 
+## Blocked
+
+| ID | Status | Priority | Title |
+| --- | --- | --- | --- |
+| L79 | blocked | P2 | bench-4: the next version of the joint space |
+
 ## Later
 
 | ID | Status | Priority | Title |
