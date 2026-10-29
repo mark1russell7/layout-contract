@@ -177,7 +177,8 @@ if (command === "plan") {
     const iterate = runs.filter((r) => r.run.iter !== undefined).map((r) => r.run.iter);
     const byPair = new Map(runs.map((r) => [r.run.pair, r.id]));
     const t0 = performance.now();
-    const records = runInput(input, entry.cell, { env, corpus: plan.corpus, pairs, lanes, iterate, ...(commit === undefined ? {} : { commit }) })
+    // With freeRoutes, the runner frees each route after its record (L63). The records do not change.
+    const records = runInput(input, entry.cell, { env, corpus: plan.corpus, pairs, lanes, iterate, freeRoutes: true, ...(commit === undefined ? {} : { commit }) })
       .filter((r) => byPair.has(r.strategy))
       .map((r) => ({ ...r, strategy: byPair.get(r.strategy), options: { ...r.options, pair: r.strategy } }));
     appendFileSync(file, records.map((r) => JSON.stringify(r) + "\n").join(""));
