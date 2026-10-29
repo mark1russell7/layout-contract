@@ -1,11 +1,12 @@
 // The families of the joint corpus on the shared registry of `@mark1russell7/layout-contract` (L45, `docs/CORPUS.md`).
-// The base families are the generators of `packing`. The steps are `EDGES_STEP` of the contract and `SPACING_STEP` of this package.
+// The base families are the generators of `packing` and the families of `highways` (L54). The steps are `EDGES_STEP` of the contract and `SPACING_STEP` of this package.
 // This file uses no API of Node, so a site can import it and generate a joint input in a browser.
 import {
   composeFamily,
   CORPUS_DIMENSIONS,
   createFamilyRegistry,
   EDGES_STEP,
+  familyKind,
   sharedDimension,
   type CorpusDimension,
   type CorpusFamily,
@@ -13,8 +14,10 @@ import {
   type CrossEngine,
   type DimensionValues,
   type FamilyRegistry,
+  type GenerateContext,
   type LayoutInput,
 } from "@mark1russell7/layout-contract";
+import { graphInput, HIGHWAYS_FAMILIES, type HighwaysFamily } from "@mark1russell7/highways";
 import { generator, type CorpusGenerator } from "@mark1russell7/packing";
 import { spacingStep, SPACING_STEP_VERSION, type Spacing } from "./spacing.ts";
 
@@ -81,10 +84,57 @@ export const SPACING_STEP: CorpusStep = Object.freeze({
 export const JOINT_STEPS: Readonly<Record<"joint-v1" | "joint-v2", readonly CorpusStep[]>> = Object.freeze({ "joint-v1": [EDGES_STEP], "joint-v2": [EDGES_STEP, SPACING_STEP] });
 
 /**
+ * This function gives a family of the registry for a family of `highways` (CORPUS-GEN). The output is the input file of `graphInput` of the board.
+ * The boxes have the positions of the board, and the edges are the edges of the board. Thus a highways family needs no step `edges`.
+ */
+export function highwaysFamily(family: HighwaysFamily): CorpusFamily<LayoutInput> {
+  return Object.freeze({
+    name: family.name,
+    version: family.version,
+    owner: family.owner,
+    meaning: family.meaning,
+    dimensions: family.dimensions,
+    seeding: family.seeding,
+    crossEngine: family.crossEngine,
+    ...(family.rng === undefined ? {} : { rng: family.rng }),
+    ...(family.rngSeed === undefined ? {} : { rngSeed: family.rngSeed }),
+    ...(family.familyBy === undefined ? {} : { familyBy: family.familyBy }),
+    generate(seed: number, dims: DimensionValues, context: GenerateContext): LayoutInput {
+      const board = family.generate(seed, dims, context);
+      const set = context.set ?? "";
+      const id = `${set === "" ? "" : `${set}/`}${family.name}/s${seed}`;
+      return graphInput(board.graph, { id, set, family: family.name, seed, generator: board.generator });
+    },
+  });
+}
+
+/** The steps of a highways family in each joint corpus: the steps of `JOINT_STEPS` without `EDGES_STEP`, because the board has its edges. */
+function highwaysSteps(set: "joint-v1" | "joint-v2"): readonly CorpusStep[] {
+  return JOINT_STEPS[set].filter((s) => s !== EDGES_STEP);
+}
+
+/**
+ * The families of `highways` that a joint registry holds after the families of `JOINT_BASES` (L54): each family of `HIGHWAYS_FAMILIES`.
+ * The `joint-v1` and `joint-v2` specs use only `JOINT_BASES`, so these families change no committed input. A new corpus can use them.
+ */
+export const JOINT_HIGHWAYS_FAMILIES: readonly string[] = Object.freeze(HIGHWAYS_FAMILIES.map((f) => f.name));
+
+/**
  * This function gives the registry of a joint corpus. It has one family for each name of `JOINT_BASES`: the generator of `packing`, then the steps of the corpus.
- * The name of each family is the name of its generator.
+ * Then it has one family for each family of `HIGHWAYS_FAMILIES`: the board of `highways`, then the steps of the corpus without `EDGES_STEP`.
+ * The name of each family is the name of its generator. A highways family with the kind of a family before it throws a `RangeError`.
  */
 export function jointRegistry(set: "joint-v1" | "joint-v2"): FamilyRegistry<LayoutInput> {
   const steps = JOINT_STEPS[set];
-  return createFamilyRegistry(JOINT_BASES.map((name) => composeFamily(packingFamily(generator(name)), steps, { name, owner: "joint" })));
+  const registry = createFamilyRegistry(JOINT_BASES.map((name) => composeFamily(packingFamily(generator(name)), steps, { name, owner: "joint" })));
+  const kinds = new Set(registry.families().map((f) => familyKind(f.name, f.version)));
+  const names = new Set(registry.families().map((f) => f.name));
+  for (const f of HIGHWAYS_FAMILIES) {
+    const kind = familyKind(f.name, f.version);
+    if (kinds.has(kind) || names.has(f.name)) throw new RangeError(`The highways family "${kind}" has the name of a joint family. The registry does not hold both.`);
+    const own = highwaysSteps(set);
+    const meaning = own.length === 0 ? f.meaning : `${f.meaning} Then the steps ${own.map((s) => s.name).join(", ")}.`;
+    registry.register(composeFamily(highwaysFamily(f), own, { name: f.name, owner: "highways", meaning }));
+  }
+  return registry;
 }

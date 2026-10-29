@@ -20,12 +20,15 @@ import {
   benchRun,
   checkProperties,
   exactStretches,
+  getStrategy,
+  highwayRouterStrategy,
   inputGraph,
   measureName,
   mixedSegments,
   portfolioRouter,
   routeMeasures,
   routerStrategies,
+  STRATEGIES,
   type Graph,
   type PortfolioFacts,
   type Result,
@@ -94,8 +97,23 @@ export function selectMemberOf(input: LayoutInput): string {
 /** The name of the portfolio router of `highways` 0.6.0 in the pair ids. The runner uses `portfolioRouter()` with its defaults. */
 export const PORTFOLIO_ROUTER = "portfolio";
 
-/** The routers of the joint runner: the 9 router strategies of `highways` 0.6.0, in the order of its benchmark, and the portfolio router. */
-export const ROUTERS: readonly string[] = Object.freeze([...Object.keys(routerStrategies), PORTFOLIO_ROUTER]);
+/**
+ * The highway strategies of `highways` 0.9.1 that the joint runner races as routers: the 5 strategies of wave 3.
+ * Each strategy makes a plan of highways, and `follow` routes the plan (`highwayRouterStrategy`).
+ */
+export const HIGHWAY_ROUTERS: readonly string[] = Object.freeze(["steiner", "gaps", "streets", "search", "interchanges"]);
+
+/** This function gives the router strategy of a name of `HIGHWAY_ROUTERS`: the highway strategy of the registry, then `follow`. */
+export function highwayRouterOf(name: string): Strategy<"router", object> {
+  if (!HIGHWAY_ROUTERS.includes(name)) throw new RangeError(`The joint runner races no highway strategy "${name}". The highway routers are ${HIGHWAY_ROUTERS.join(", ")}.`);
+  return highwayRouterStrategy(getStrategy(STRATEGIES, "highway", name) as Strategy<"highway", object>);
+}
+
+/**
+ * The routers of the joint runner: the 9 router strategies of `highways`, in the order of its benchmark, then `HIGHWAY_ROUTERS`, then the portfolio router.
+ * Version `bench-3` of the space adds `HIGHWAY_ROUTERS`.
+ */
+export const ROUTERS: readonly string[] = Object.freeze([...Object.keys(routerStrategies), ...HIGHWAY_ROUTERS, PORTFOLIO_ROUTER]);
 
 /**
  * One router entry: a router strategy of `highways`, or `portfolio`, with options over its defaults. The id names the entry in the pair ids.
@@ -266,7 +284,7 @@ function finite(values: Readonly<Record<string, number>>): Record<string, number
 function routerOf(entry: RouterEntry): Router {
   const custom = Object.keys(entry.options).length > 0;
   if (entry.router === PORTFOLIO_ROUTER) return custom ? portfolioRouter(entry.options) : portfolioRouter();
-  const s = (routerStrategies as unknown as Readonly<Record<string, Strategy<"router", object>>>)[entry.router];
+  const s = HIGHWAY_ROUTERS.includes(entry.router) ? highwayRouterOf(entry.router) : (routerStrategies as unknown as Readonly<Record<string, Strategy<"router", object>>>)[entry.router];
   if (s === undefined) throw new RangeError(`There is no router "${entry.router}". The routers are ${ROUTERS.join(", ")}.`);
   return custom ? asRouter(s, entry.options) : asRouter(s);
 }

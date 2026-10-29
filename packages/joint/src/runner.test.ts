@@ -1,8 +1,9 @@
 import type { LayoutInput } from "@mark1russell7/layout-contract";
 import { describe, expect, it } from "vitest";
+import { jointCorpus } from "./corpus.ts";
 import { ITER_VARIANTS, iterEntries } from "./lanes.ts";
 import { insideLength, jointMeasures, placementFacts, segmentsCross, spearman } from "./joint-measures.ts";
-import { factMeasures, jointHash, packedInput, packInputOf, PACK_ENTRIES, pairId, PORTFOLIO_ROUTER, ROUTERS, runInput, shardOf } from "./runner.ts";
+import { factMeasures, HIGHWAY_ROUTERS, jointHash, packedInput, packInputOf, PACK_ENTRIES, pairId, PORTFOLIO_ROUTER, ROUTERS, runInput, shardOf } from "./runner.ts";
 
 const fixed = (w: number, h: number) => ({ fixed: "size" as const, w, h });
 
@@ -64,6 +65,24 @@ describe("runInput", () => {
       expect(r.hard["pack.no-overlap"]).toBe(0);
     }
     expect(records.find((r) => r.strategy === "rows+corners")!.measures["route.cap.1.1"]).toBe(0);
+  });
+
+  it("routes with each highway router of wave 3: the plan of highways, then follow", () => {
+    const rows = PACK_ENTRIES.filter((p) => p.id === "rows");
+    const records = runInput(three, undefined, { packs: rows, routers: HIGHWAY_ROUTERS });
+    expect(records.map((r) => r.strategy)).toEqual(HIGHWAY_ROUTERS.map((name) => `rows+${name}`));
+    for (const r of records) {
+      expect(r.skipped, r.strategy).toBeUndefined();
+      expect(r.outputHash).toMatch(/^[0-9a-f]{16}$/);
+      expect(r.measures["joint.routes"], r.strategy).toBe(2);
+      expect(r.hard["route.violations"], r.strategy).toBe(0);
+    }
+    expect(() => runInput(three, undefined, { packs: rows, routers: ["follow"] })).toThrow(/no router "follow"/);
+    const v2 = jointCorpus("joint-v2").inputs.find((i) => i.boxes.length === 10 && (i.edges?.length ?? 0) > 5)!;
+    for (const r of runInput(v2, undefined, { packs: rows, routers: HIGHWAY_ROUTERS })) {
+      expect(r.skipped, r.strategy).toBeUndefined();
+      expect(r.hard["route.violations"], r.strategy).toBe(0);
+    }
   });
 
   it("runs only the pairs of the list, and the lane entries with their own options", () => {
@@ -137,10 +156,11 @@ describe("runInput", () => {
 });
 
 describe("the parts of the runner", () => {
-  it("lists 13 pack entries and the 10 routers", () => {
+  it("lists 13 pack entries and the 15 routers, with the highway routers before portfolio", () => {
     expect(PACK_ENTRIES).toHaveLength(13);
     expect(PACK_ENTRIES.at(-1)).toEqual({ id: "select", strategy: "select", options: {} });
-    expect(ROUTERS).toHaveLength(10);
+    expect(ROUTERS).toHaveLength(15);
+    expect(ROUTERS.slice(9, 14)).toEqual([...HIGHWAY_ROUTERS]);
     expect(ROUTERS).toContain("corners");
     expect(ROUTERS.at(-1)).toBe(PORTFOLIO_ROUTER);
     expect(pairId("rows", "corners")).toBe("rows+corners");

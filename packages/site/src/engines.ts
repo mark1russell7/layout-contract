@@ -1,6 +1,6 @@
 // This file makes the catalog of the joint pages from the registries of the two engines. The build imports it, so the pages get the catalog as data.
 // When an engine exports a strategy space (`packSpace` of `packing`, `routeSpace` of `highways`), the catalog uses it. Else it derives a space from the registry.
-import { iterEntries, jointSpace, laneEntries, laneSpace, PACK_ENTRIES, pairId, PORTFOLIO_ROUTER, ROUTERS } from "@layout-contract/joint/browser";
+import { HIGHWAY_ROUTERS, highwayRouterOf, iterEntries, jointSpace, laneEntries, laneSpace, PACK_ENTRIES, pairId, PORTFOLIO_ROUTER, ROUTERS } from "@layout-contract/joint/browser";
 import {
   checkSpace,
   STRATEGY_SPACE_SCHEMA,
@@ -122,36 +122,36 @@ interface RouterStrategy {
   readonly schema?: Readonly<Record<string, Readonly<Record<string, unknown>>>>;
 }
 
-/** The options of the portfolio router of `highways`. Its strategy declares no schema, so the site makes one from the exported lists. */
-function portfolioOptions(): OptionSpec[] {
-  const d = highways.portfolioStrategy.defaults as Readonly<Record<string, unknown>>;
-  return [
-    { key: "rule", schema: { type: "enum", values: [...highways.PORTFOLIO_RULES], default: d["rule"], describe: "The rule of the guard: the routes of one collection, or all routes." }, value: d["rule"], derived: false },
-    { key: "cap", schema: { type: "enum", values: [...highways.PORTFOLIO_CAPS], default: d["cap"], describe: "The stretch cap of the guard." }, value: d["cap"], derived: false },
-    { key: "k", schema: { type: "enum", values: [OMIT, ...highways.PORTFOLIO_KS_API], default: OMIT, describe: "The count of the members. The default is the fit of the size band." }, value: undefined, derived: false },
-    { key: "hashes", schema: { type: "enum", values: [...highways.PORTFOLIO_HASHES], default: "pick", describe: "With pick, the result has the hash of the pick only." }, value: "pick", derived: false },
-    { key: "budgetMs", schema: { type: "number", min: 1, max: 5000, scale: "log", default: 100, describe: "The time limit in milliseconds. Without it, each member runs." }, value: undefined, derived: true },
-    { key: "maxMembers", schema: { type: "integer", min: 1, max: 16, step: 1, default: 3, describe: "The largest count of the members that run." }, value: undefined, derived: true },
-    { key: "now", schema: { type: "function", describe: "The clock of the time limit." }, value: undefined, derived: false },
-  ];
+/**
+ * This function gives the router strategies of the joint benchmark in the order of `ROUTERS`. Each strategy gives its own `schema`.
+ * The list has the router strategies of `highways`, the highway strategies of `HIGHWAY_ROUTERS` as routers, and `portfolioStrategy`.
+ */
+function jointRouterStrategies(): RouterStrategy[] {
+  const list = highways.listStrategies(highways.STRATEGIES, "router") as unknown as readonly RouterStrategy[];
+  const wave = HIGHWAY_ROUTERS.map((name) => highwayRouterOf(name) as unknown as RouterStrategy);
+  return [...list, ...wave, { ...(highways.portfolioStrategy as unknown as RouterStrategy), name: PORTFOLIO_ROUTER }];
 }
 
-/** This function gives the facts of each router of the joint benchmark: the router strategies of `highways`, then `portfolio`. */
+/** This function gives the keys of the options of a router strategy: the keys of `schema`, then the keys of `defaults` without a declaration. */
+function routerKeys(s: RouterStrategy): string[] {
+  return [...new Set([...Object.keys(s.schema ?? {}), ...Object.keys(s.defaults ?? {})])];
+}
+
+/**
+ * This function gives the facts of each router of the joint benchmark, from the declarations of `highways` (SCHEMA-GAPS).
+ * The site makes a schema only for an option without a declaration. The portfolio router declares each option except the clock `now`.
+ */
 function routeFacts(): StrategyFacts[] {
-  const list = highways.listStrategies(highways.STRATEGIES, "router") as unknown as readonly RouterStrategy[];
-  const out: StrategyFacts[] = list.map((s) => {
+  return jointRouterStrategies().map((s) => {
     const defaults = highways.optionDefaults(s as never) as Readonly<Record<string, unknown>>;
     const schema = s.schema ?? {};
-    const keys = [...new Set([...Object.keys(schema), ...Object.keys(s.defaults ?? {})])];
-    const options = keys.map((key): OptionSpec => {
+    const options = routerKeys(s).map((key): OptionSpec => {
       const given = schema[key];
       const value = Object.hasOwn(defaults, key) ? defaults[key] : given?.["default"];
       return given === undefined ? { key, schema: schemaOfDefault(value, []), value, derived: true } : { key, schema: given, value, derived: false };
     });
     return { id: s.name, about: s.describe ?? "", options };
   });
-  out.push({ id: PORTFOLIO_ROUTER, about: String(highways.portfolioStrategy.describe ?? ""), options: portfolioOptions() });
-  return out;
 }
 
 /** This function gives the step of a number on the grid of a schema: the value of `step`, or none. */
@@ -167,6 +167,13 @@ function paramsOf(o: OptionSpec): { readonly params: SpaceParam[]; readonly kind
     const values = (s["values"] as (string | number)[]).map((v) => v);
     const value = o.value ?? s["default"];
     return { params: [{ name: o.key, kind: "enum", values, default: (values.includes(value as string) ? value : values[0]) as string }], kind: "param" };
+  }
+  // A number with `values` takes only those values, so its control is a list. Without a default, the list also has `OMIT`.
+  if (Array.isArray(s["values"])) {
+    const value = o.value ?? s["default"];
+    const listed = (s["values"] as number[]).filter((v) => typeof v === "number");
+    const values: (string | number)[] = value === undefined ? [OMIT, ...listed] : listed;
+    return { params: [{ name: o.key, kind: "enum", values, default: (values.includes(value as number) ? value : values[0]) as string }], kind: "param" };
   }
   const min = Number(s["min"]);
   const max = Number(s["max"]);
@@ -274,20 +281,25 @@ export function packExtraKeys(): Record<string, string[]> {
   return Object.fromEntries(Object.entries(PACK_EXTRAS).map(([id, list]) => [id, list.map((o) => o.key)]));
 }
 
+/**
+ * This function gives the strategies of the registry of `highways` that the joint benchmark races.
+ * The list has each router strategy, the highway strategies of `HIGHWAY_ROUTERS`, and `portfolioStrategy` with the name `portfolio`.
+ */
+function registryRouters(): RouterStrategy[] {
+  const routers = highways.listStrategies(highways.STRATEGIES, "router") as unknown as readonly RouterStrategy[];
+  const plans = highways.listStrategies(highways.STRATEGIES, "highway") as unknown as readonly RouterStrategy[];
+  return [...routers, ...plans.filter((s) => HIGHWAY_ROUTERS.includes(s.name)), { ...(highways.portfolioStrategy as unknown as RouterStrategy), name: PORTFOLIO_ROUTER }];
+}
+
 /** The ids of the strategies in the registries of the two engines. The completeness test compares the catalog with them. */
 export function registryIds(): { readonly packing: string[]; readonly highways: string[] } {
-  const routers = highways.listStrategies(highways.STRATEGIES, "router") as unknown as readonly RouterStrategy[];
-  return { packing: [...packing.strategies, ...packing.composites].map((s) => s.id), highways: [...routers.map((s) => s.name), PORTFOLIO_ROUTER] };
+  return { packing: [...packing.strategies, ...packing.composites].map((s) => s.id), highways: registryRouters().map((s) => s.name) };
 }
 
 /** The declared options of each strategy in the registries: the keys of `defaults`, and for `highways` the keys of `schema`. */
 export function declaredOptions(): { readonly packing: Record<string, string[]>; readonly highways: Record<string, string[]> } {
-  const routers = highways.listStrategies(highways.STRATEGIES, "router") as unknown as readonly RouterStrategy[];
   return {
     packing: Object.fromEntries([...packing.strategies, ...packing.composites].map((s) => [s.id, Object.keys(s.defaults ?? {})])),
-    highways: {
-      ...Object.fromEntries(routers.map((s) => [s.name, [...new Set([...Object.keys(s.schema ?? {}), ...Object.keys(s.defaults ?? {})])]])),
-      [PORTFOLIO_ROUTER]: Object.keys(highways.portfolioStrategy.defaults ?? {}),
-    },
+    highways: Object.fromEntries(registryRouters().map((s) => [s.name, routerKeys(s)])),
   };
 }

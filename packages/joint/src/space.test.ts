@@ -16,19 +16,21 @@ describe("the joint space of the sweep", () => {
   it("has a named config for each pair of the bench, each lane pair of L13 and each iteration pair of L11", () => {
     const named = Object.keys(JOINT_SPACE.named ?? {});
     expect(named).toHaveLength(PACK_ENTRIES.length * ROUTERS.length + laneEntries().length + iterEntries().length);
-    expect(named).toHaveLength(166);
+    expect(named).toHaveLength(231);
+    expect(named).toContain("rows+steiner");
+    expect(named).toContain("select+interchanges");
     expect(named).toContain("lanes-iter2.rows.corners+corners");
     expect(named).toContain("rows+portfolio");
     expect(named).toContain("lanes-sides.maxrects-cp.corners+corners");
     expect(named).toContain("lanes-sides2.select.portfolio+portfolio");
   });
 
-  it("gives the size of the grid: 130 pairs times (1 + 2 lane options with 4 params + the option iter with 1 param)", () => {
+  it("gives the size of the grid: 195 pairs times (1 + 2 lane options with 4 params + the option iter with 1 param)", () => {
     const pairs = BigInt(PACK_ENTRIES.length * ROUTERS.length);
     expect(spaceSize(JOINT_SPACE, { levels: 1 })).toEqual({ base: pairs * 4n, meta: 0n });
     expect(spaceSize(JOINT_SPACE, { levels: 2 }).base).toBe(pairs * (1n + 2n * 16n + 2n));
     expect(spaceSize(JOINT_SPACE, { levels: 3 }).base).toBe(pairs * (1n + 2n * 81n + 3n));
-    expect(spaceSize(JOINT_SPACE, { levels: 3 }).base).toBe(21580n);
+    expect(spaceSize(JOINT_SPACE, { levels: 3 }).base).toBe(32370n);
   });
 
   it("runs a named config as the pair of the bench, with the same pair id", () => {

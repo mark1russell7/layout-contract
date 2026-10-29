@@ -50,8 +50,11 @@ export const LANE_ENGINE = "lanes";
 /** The stage of the lane option in the joint space. The stage is optional, and the value `null` is no lane pass. */
 export const LANE_STAGE: string = `${LANE_ENGINE}.mode`;
 
-/** The version of the stage `lanes` and of the bench parts. A change of their options or ranges gets a new version. Version `bench-2` adds the option `iter` of L11. */
-export const BENCH_SPACE_VERSION = "bench-2";
+/**
+ * The version of the stage `lanes` and of the bench parts. A change of their options or ranges gets a new version.
+ * Version `bench-2` adds the option `iter` of L11. Version `bench-3` adds the 5 routers of `HIGHWAY_ROUTERS` of `highways` 0.9.1.
+ */
+export const BENCH_SPACE_VERSION = "bench-3";
 
 /** The option of the stage `lanes.mode` for the iteration pairs of L11. */
 export const ITER_OPTION = "iter";
@@ -67,7 +70,7 @@ export function benchPackSpace(): StrategySpace {
   };
 }
 
-/** This function gives the route part of the bench space: the stage `router` with the 10 routers, and a named config for each router. */
+/** This function gives the route part of the bench space: the stage `router` with the routers of `ROUTERS`, and a named config for each. */
 export function benchRouteSpace(): StrategySpace {
   return {
     schema: "strategy-space/1",

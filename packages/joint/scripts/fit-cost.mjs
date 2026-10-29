@@ -11,7 +11,7 @@
 // The script adds the times, the pairs and the passes of the units of one input.
 // The script counts the pairs and the lane passes of each input of the run:
 // - A line with the counts gives them.
-// - A line of the bench has PACK_ENTRIES times ROUTERS pairs (130 since L32), and the lane pairs of `laneEntries` after them (18 pairs, 24 passes).
+// - A line of the bench has PACK_ENTRIES times ROUTERS pairs (130 since L32, 195 since the space `bench-3`), and the lane pairs of `laneEntries` after them (18 pairs, 24 passes).
 // The old fit of the R² lines is the model of the file <out> before the script writes it.
 //
 // The model: the time of an input is `pairs * pair(boxes, edges) + passes * lane(boxes, edges)` milliseconds.
