@@ -10,11 +10,14 @@ import {
   joinConfigs,
   paramLevels,
   productSpace,
+  SHAPE_KIND_IDS,
   spaceShapeKinds,
   spaceSize,
   splitConfig,
   STRATEGY_SPACE_SCHEMA,
   type OptionSupports,
+  type SampleOptions,
+  type ShapeKind,
   type StageOption,
   type StrategyConfig,
   type StrategySpace,
@@ -610,5 +613,121 @@ describe("the member view bounds (L57)", () => {
   it("refuses an unknown view", () => {
     const bad = withMembers(pack, (o) => ({ ...o, members: { ...o.members!, view: "hull" as never } }));
     expect(checkSpace(bad).map((b) => [b.claim, b.detail])).toEqual([["view", 'the option combine.portfolio has the member view "hull", not "bounds"']]);
+  });
+});
+
+describe("a sample with a shape filter (0.2.17)", () => {
+  const onPlacement = (from: StrategySpace, shape: (id: string) => readonly ShapeKind[]): StrategySpace => ({
+    ...from,
+    stages: from.stages.map((s) => ({ ...s, options: s.options.map((o) => (s.name === "placement" ? { ...o, supports: { shape: shape(o.id) } } : o)) })),
+  });
+  const withCombine = (from: StrategySpace, options: (list: readonly StageOption[]) => StageOption[]): StrategySpace => ({
+    ...from,
+    stages: from.stages.map((s) => (s.name === "combine" ? { ...s, options: options(s.options) } : s)),
+  });
+  const shaped = onPlacement(pack, (id) => (id === "maxrects" ? ["rect"] : ["rect", "circle"]));
+  const rectOnly = onPlacement(pack, () => ["rect"]);
+  const bounds = withCombine(rectOnly, (list) => list.map((o) => ({ ...o, members: { ...o.members!, view: "bounds" as const } })));
+  // The gap of 0.2.16: a meta option without view next to a meta option with the view bounds. For circle, no member of cell supports the kind.
+  const cell: StageOption = { id: "cell", params: [], members: { min: 2, max: 2, ordered: false } };
+  const twoMeta = withCombine(bounds, (list) => [...list, cell]);
+  const base = enumerateSpace(pack, { mode: "grid", levels: 1 });
+  const pooled = withCombine(shaped, (list) => [...list, { id: "fixed", params: [], members: { min: 2, max: 2, ordered: false, pool: [base.slice(0, 2), base.slice(30, 32)] } }]);
+  const spaces: Readonly<Record<string, StrategySpace>> = { pack, route, joint: productSpace(pack, route, "joint"), shaped, rectOnly, bounds, twoMeta, pooled };
+  const filters: readonly (readonly ShapeKind[] | undefined)[] = [undefined, ...SHAPE_KIND_IDS.map((k) => [k]), ["rect", "circle"]];
+
+  interface Run {
+    readonly key: string;
+    readonly group: string;
+    readonly options: SampleOptions;
+  }
+  const runs: Run[] = [];
+  for (const shapes of filters)
+    for (const meta of ["skip", "sample"] as const)
+      for (const seed of [1, 2])
+        for (const n of [1, 3, 17]) {
+          const group = `${shapes?.join("+") ?? "-"}/${meta}`;
+          runs.push({ key: `${group}/${seed}/${n}`, group, options: { mode: "sample", n, seed, meta, ...(shapes === undefined ? {} : { shapes }) } });
+        }
+  /** This function gives the short form of the keys of the runs that threw: `<group>/*` when each run of the group threw. */
+  const short = (keys: readonly string[]): string[] => {
+    const groups = [...new Set(runs.map((r) => r.group))];
+    return groups.flatMap((g) => {
+      const own = runs.filter((r) => r.group === g).map((r) => r.key);
+      const threw = own.filter((k) => keys.includes(k));
+      return threw.length === own.length ? [`${g}/*`] : threw;
+    });
+  };
+  const threwIn = (list: readonly string[], run: Run): boolean => list.includes(run.key) || list.includes(`${run.group}/*`);
+
+  it("gives the samples of 0.2.16 byte for byte for each run that 0.2.16 completed", () => {
+    // The code of 0.2.16 gave these pins: the count of the completed runs, the SHA-256 of their samples, and the runs that threw.
+    // A run with n = 1 and the option skip draws the first option of each stage in each round, so a constraint on that option throws for shaped and pooled.
+    const PINS_0_2_16: Readonly<Record<string, { readonly done: string; readonly threw: readonly string[] }>> = {
+      pack: { done: "72:964f5a1e6a059d72", threw: [] },
+      route: { done: "72:798cff91671ff7b8", threw: [] },
+      joint: { done: "72:63c9b13de727abc3", threw: [] },
+      shaped: {
+        done: "44:9097d25dab8f14de",
+        threw: ["polygon/skip/*", "polygon/sample/*", "circle/skip/1/1", "circle/skip/2/1", "free/skip/*", "free/sample/*", "rect+circle/skip/1/1", "rect+circle/skip/2/1"],
+      },
+      rectOnly: {
+        done: "24:628909e64f6ed175",
+        threw: ["polygon/skip/*", "polygon/sample/*", "circle/skip/*", "circle/sample/*", "free/skip/*", "free/sample/*", "rect+circle/skip/*", "rect+circle/sample/*"],
+      },
+      bounds: { done: "48:943e118883d2a2e5", threw: ["polygon/skip/*", "circle/skip/*", "free/skip/*", "rect+circle/skip/*"] },
+      twoMeta: {
+        done: "32:afdf82edad9da223",
+        threw: [
+          "polygon/skip/*",
+          "polygon/sample/1/3",
+          "polygon/sample/1/17",
+          "polygon/sample/2/3",
+          "polygon/sample/2/17",
+          "circle/skip/*",
+          "circle/sample/1/3",
+          "circle/sample/1/17",
+          "circle/sample/2/3",
+          "circle/sample/2/17",
+          "free/skip/*",
+          "free/sample/1/3",
+          "free/sample/1/17",
+          "free/sample/2/3",
+          "free/sample/2/17",
+          "rect+circle/skip/*",
+          "rect+circle/sample/1/3",
+          "rect+circle/sample/1/17",
+          "rect+circle/sample/2/3",
+          "rect+circle/sample/2/17",
+        ],
+      },
+      pooled: {
+        done: "44:182754e9cb2e9ccc",
+        threw: ["polygon/skip/*", "polygon/sample/*", "circle/skip/1/1", "circle/skip/2/1", "free/skip/*", "free/sample/*", "rect+circle/skip/1/1", "rect+circle/skip/2/1"],
+      },
+    };
+    const got: Record<string, { done: string; threw: string[] }> = {};
+    for (const [name, space] of Object.entries(spaces)) {
+      const skip = PINS_0_2_16[name]?.threw ?? [];
+      const hash = createHash("sha256");
+      let done = 0;
+      const threw: string[] = [];
+      for (const run of runs) {
+        if (threwIn(skip, run)) continue;
+        let sample: StrategyConfig[];
+        try {
+          sample = enumerateSpace(space, run.options);
+        } catch {
+          threw.push(run.key);
+          continue;
+        }
+        done++;
+        hash.update(`${run.key}\n${canonicalJson(sample)}\n`);
+      }
+      got[name] = { done: `${done}:${hash.digest("hex").slice(0, 16)}`, threw: short(threw) };
+    }
+    // Each run that 0.2.16 completed gives the same samples, and none of them throws.
+    const want = Object.fromEntries(Object.entries(PINS_0_2_16).map(([k, p]) => [k, { done: p.done, threw: [] }]));
+    expect(got).toEqual(want);
   });
 });
