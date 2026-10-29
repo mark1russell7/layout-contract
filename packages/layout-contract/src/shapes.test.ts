@@ -13,10 +13,12 @@ import {
   SHAPE_KINDS,
   shapeKindOf,
   shapeKindsOf,
+  shapeLevel,
   shapeSupportProblems,
   toLayoutRecord,
   type LayoutBox,
   type LayoutInput,
+  type MeasureSpec,
   type RunFacts,
 } from "./index.ts";
 
@@ -159,5 +161,62 @@ describe("the safe level of a rule (L57)", () => {
     const other: LayoutBox = { id: "q", w: 10, h: 10, shape: { kind: "polygon", points: [[10, 0], [10, 10], [0, 10]] } };
     expect(countOverlaps([{ ...tri, x: 0, y: 0 }, { ...other, x: 0, y: 0 }])).toBe(1);
     expect(countOverlaps([{ ...tri, x: 0, y: 0 }, { ...other, x: 10, y: 0 }])).toBe(0);
+  });
+});
+
+describe("the bound of a measure (0.2.17)", () => {
+  // A model of pack.shapeFill of packing: w by h is the area of a free box, so the fill is an upper bound of the true fill there.
+  const shapeFill: MeasureSpec = {
+    id: "pack.shapeFill",
+    unit: "0 to 1",
+    direction: "higher",
+    min: 0,
+    max: 1,
+    shapes: ["rect", "polygon", "circle"],
+    bound: { shapes: ["free"], side: "upper" },
+  };
+
+  it("gives the level bound for a bound kind, and keeps ruleLevel and the joint measures", () => {
+    expect(SHAPE_KIND_IDS.map((k) => shapeLevel(shapeFill, k))).toEqual(["exact", "exact", "exact", "bound"]);
+    expect(SHAPE_KIND_IDS.map((k) => ruleLevel(shapeFill, k))).toEqual(["exact", "exact", "exact", "none"]);
+    const noOverlap = PACK_HARD_RULES.find((r) => r.id === "no-overlap")!;
+    expect(SHAPE_KIND_IDS.map((k) => shapeLevel(noOverlap, k))).toEqual(SHAPE_KIND_IDS.map((k) => ruleLevel(noOverlap, k)));
+    expect(SHAPE_KIND_IDS.map((k) => shapeLevel({ bound: { shapes: ["circle"], side: "lower" } }, k))).toEqual(["exact", "none", "bound", "none"]);
+    for (const m of JOINT_MEASURES) {
+      expect(m.bound).toBeUndefined();
+      expect(SHAPE_KIND_IDS.map((k) => shapeLevel(m, k))).toEqual(SHAPE_KIND_IDS.map((k) => ruleLevel(m, k)));
+    }
+  });
+
+  it("refuses a bound kind by default and with the level safe, and accepts it only with the level bound", () => {
+    expect(checkShapes(input([rect, tri, circle]), [shapeFill])).toEqual([]);
+    expect(checkShapes(input([rect, ellipse]), [shapeFill]).map((b) => b.detail)).toEqual([
+      "pack.shapeFill supports only the shape kinds rect, polygon, circle, but the input t has free boxes: e. The value of pack.shapeFill is only an upper bound for free",
+    ]);
+    const lower = { ...shapeFill, id: "pack.low", bound: { shapes: ["free"], side: "lower" } } as const;
+    expect(checkShapes(input([ellipse]), [lower])[0]!.detail).toMatch(/The value of pack.low is only a lower bound for free$/);
+    const ids = (level?: "exact" | "safe" | "bound"): string[] =>
+      checkShapes(input([rect, ellipse]), [shapeFill, ...PACK_HARD_RULES], level === undefined ? {} : { level }).map((b) => b.detail.split(" ")[0]!);
+    expect(ids()).toEqual(["pack.shapeFill", "no-overlap", "in-container"]);
+    expect(ids("exact")).toEqual(["pack.shapeFill", "no-overlap", "in-container"]);
+    // The level safe keeps its meaning of 0.2.16: a pass is a proof. Thus it accepts the safe rule counts, but not the bound value.
+    expect(ids("safe")).toEqual(["pack.shapeFill"]);
+    expect(checkShapes(input([ellipse]), [shapeFill], { level: "safe" })[0]!.detail).toMatch(/only an upper bound for free$/);
+    expect(ids("bound")).toEqual([]);
+    expect(checkShapes(input([tri]), [...JOINT_MEASURES, ...PACK_HARD_RULES], { level: "bound" }).map((b) => b.detail.split(" ")[0])).toEqual(["joint.fill", "joint.straight.length"]);
+  });
+
+  it("refuses a kind in two lists, an unknown kind, a repeated kind and a bad side", () => {
+    expect(shapeSupportProblems([shapeFill, ...JOINT_MEASURES, ...PACK_HARD_RULES])).toEqual([]);
+    expect(shapeSupportProblems([{ id: "a", shapes: ["rect", "free"], bound: { shapes: ["free"], side: "upper" } }])).toEqual(["a: the kind free is in shapes and in bound"]);
+    expect(shapeSupportProblems([{ id: "b", bound: { shapes: ["rect"], side: "lower" } }])).toEqual(["b: the kind rect is in shapes and in bound"]);
+    expect(shapeSupportProblems([{ id: "c", safe: ["circle"], bound: { shapes: ["circle"], side: "upper" } }])).toEqual(["c: the kind circle is in safe and in bound"]);
+    expect(shapeSupportProblems([{ id: "d", bound: { shapes: ["hexagon" as never, "free", "free"], side: "upper" } }])).toEqual([
+      "d: the bound kind hexagon is not a declared kind",
+      "d: the bound list has the kind free two times",
+    ]);
+    expect(shapeSupportProblems([{ id: "e", bound: { shapes: ["free"], side: "middle" as never } }])).toEqual(["e: the bound side middle is not upper or lower"]);
+    expect(shapeSupportProblems([{ id: "f", bound: { side: "upper" } as never }])).toEqual(["f: the bound shapes value is not a list of shape kinds"]);
+    expect(shapeSupportProblems([{ id: "g", bound: "free" as never }])).toEqual(["g: the bound value is not an object with shapes and a side"]);
   });
 });

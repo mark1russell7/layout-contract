@@ -4,7 +4,7 @@
 # and private members. The command `api-report check` compares this file with the built .d.ts files.
 # To accept a change of the API, start the build, then `api-report update`, and review the diff.
 
-## . (build/index.d.ts): 224 names
+## . (build/index.d.ts): 227 names
 
 CORPUS_DIMENSIONS: build/index.d.ts#CORPUS_DIMENSIONS
 CellsOptions: build/index.d.ts#CellsOptions
@@ -102,11 +102,13 @@ SampleOptions: build/index.d.ts#SampleOptions
 SelectCandidate: build/index.d.ts#SelectCandidate
 SelectLevel: build/index.d.ts#SelectLevel
 Selection: build/index.d.ts#Selection
+ShapeBound: build/index.d.ts#ShapeBound
 ShapeCheck: build/index.d.ts#ShapeCheck
 ShapeFilter: build/index.d.ts#ShapeFilter
 ShapeGeometry: build/index.d.ts#ShapeGeometry
 ShapeKind: build/index.d.ts#ShapeKind
 ShapeKindSpec: build/index.d.ts#ShapeKindSpec
+ShapeLevel: build/index.d.ts#ShapeLevel
 ShapeSupport: build/index.d.ts#ShapeSupport
 Side: build/index.d.ts#Side
 Sides: build/index.d.ts#Sides
@@ -211,6 +213,7 @@ sha256Hex: build/index.d.ts#sha256Hex
 shapeKindOf: build/index.d.ts#shapeKindOf
 shapeKindProblem: build/index.d.ts#shapeKindProblem
 shapeKindsOf: build/index.d.ts#shapeKindsOf
+shapeLevel: build/index.d.ts#shapeLevel
 shapeSupportProblems: build/index.d.ts#shapeSupportProblems
 shapesOf: build/index.d.ts#shapesOf
 sharedDimension: build/index.d.ts#sharedDimension
@@ -592,6 +595,7 @@ export interface MeasureSpec<Id extends string = string> {
   };
   readonly role?: "guard" | "change-guard" | "diagnostic" | "time";
   readonly shapes?: readonly ShapeKind[];
+  readonly bound?: ShapeBound;
 }
 
 ### build/index.d.ts#Member
@@ -888,9 +892,15 @@ export interface Selection {
   readonly kept: readonly (readonly string[])[];
 }
 
+### build/index.d.ts#ShapeBound
+export interface ShapeBound {
+  readonly shapes: readonly ShapeKind[];
+  readonly side: "upper" | "lower";
+}
+
 ### build/index.d.ts#ShapeCheck
 export interface ShapeCheck {
-  readonly level?: "exact" | "safe";
+  readonly level?: "exact" | "safe" | "bound";
 }
 
 ### build/index.d.ts#ShapeFilter
@@ -917,11 +927,15 @@ export interface ShapeKindSpec {
   readonly geometry: ShapeGeometry;
 }
 
+### build/index.d.ts#ShapeLevel
+export type ShapeLevel = RuleLevel | "bound";
+
 ### build/index.d.ts#ShapeSupport
 export interface ShapeSupport<Id extends string = string> {
   readonly id: Id;
   readonly shapes?: readonly ShapeKind[];
   readonly safe?: readonly ShapeKind[];
+  readonly bound?: ShapeBound;
 }
 
 ### build/index.d.ts#Side
@@ -1361,6 +1375,9 @@ export declare function shapeKindProblem(box: LayoutBox): string | undefined;
 
 ### build/index.d.ts#shapeKindsOf
 export declare function shapeKindsOf(input: Pick<LayoutInput, "boxes">): ShapeKind[];
+
+### build/index.d.ts#shapeLevel
+export declare function shapeLevel(use: Pick<ShapeSupport, "shapes" | "safe" | "bound">, kind: ShapeKind): ShapeLevel;
 
 ### build/index.d.ts#shapeSupportProblems
 export declare function shapeSupportProblems(uses: readonly ShapeSupport[]): string[];
