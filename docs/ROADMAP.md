@@ -8,10 +8,9 @@ This file lists the items of the roadmap of this repository. The status page of 
 | --- | --- | --- | --- |
 | L5 | in progress | P1 | highways reads the contract |
 | L34 | in progress | P1 | The strategy space as data |
-| L35 | in progress | P1 | A nightly sweep over the strategy space in CI |
-| L43 | in progress | P1 | Joint compare page and playground with every strategy |
-| L51 | in progress | P2 | Close the 3 corpus API gaps that packing found in k73 |
-| L56 | in progress | P2 | A port position relative to its side (Port.along) |
+| L52 | in progress | P1 | Measure joint space coverage, with a weekly trend that rises |
+| L60 | in progress | P1 | Text measuring and line breaking as a layout step |
+| L63 | in progress | P1 | Bound the memory of the joint runner before bench-4 |
 
 ## Next
 
@@ -22,7 +21,10 @@ This file lists the items of the roadmap of this repository. The status page of 
 | L41 | next | P2 | A pack() default entry in the joint bench |
 | L44 | next | P1 | The atlas of the joint space |
 | L47 | next | P1 | Graph-aware item order |
-| L52 | next | P1 | Measure joint space coverage, with a weekly trend that rises |
+| L61 | next | P2 | Promotion test of the 9 night-1 configs against the default lanes-sides |
+| L62 | next | P1 | Node layout by physics as a joint step |
+| L65 | next | P1 | One measure registry in layout-contract |
+| L66 | next | P1 | An objective spec with one evaluator |
 
 ## Later
 
@@ -38,8 +40,10 @@ This file lists the items of the roadmap of this repository. The status page of 
 | L48 | later | P1 | Route-first skeleton |
 | L50 | later | P1 | Force-directed refinement after pack |
 | L53 | later | P1 | Mark solved regions in the atlas |
-| L54 | later | P1 | Grow the joint input families every week |
 | L55 | later | P2 | Survey joint place-and-route methods as data |
+| L67 | later | P2 | Any objective, answered post hoc by the atlas |
+| L68 | later | P2 | One optimizer with pluggable energy terms |
+| L69 | later | P3 | Learned preferences from pairwise choices |
 
 ## Done
 
@@ -71,8 +75,16 @@ This file lists the items of the roadmap of this repository. The status page of 
 | L31 | done | P2 | Move the joint bench to highways 0.8.0 |
 | L32 | done | P2 | Add the select packer and measure the new default pair |
 | L33 | done | P2 | Move the joint bench to highways 0.8.1 (ROUTE-SCALE) |
+| L35 | done | P1 | A nightly sweep over the strategy space in CI |
 | L39 | done | P1 | A pool of fixed member sets in strategy-space |
 | L42 | done | P1 | The layout-contract site on GitHub Pages |
+| L43 | done | P1 | Joint compare page and playground with every strategy |
 | L45 | done | P1 | One shared corpus generator in layout-contract |
 | L46 | done | P1 | Shape kind as a contract dimension |
 | L49 | done | P1 | Spacing per channel |
+| L51 | done | P2 | Close the 3 corpus API gaps that packing found in k73 |
+| L54 | done | P1 | Grow the joint input families every week |
+| L56 | done | P2 | A port position relative to its side (Port.along) |
+| L57 | done | P2 | Close the 3 shape gaps that packing found in k91 |
+| L59 | done | P1 | Measure the 5 wave-3 highway routers in the joint bench |
+| L64 | done | P1 | Balance and stability measures in the contract (0.2.19) |
