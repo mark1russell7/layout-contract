@@ -1,0 +1,19 @@
+{
+ "schema": "sweep-index/1",
+ "epochs": {
+  "joint-v2_packing-0.2.17_highways-0.9.3_space-bench-2": {
+   "corpus": "joint-v2",
+   "nights": 1,
+   "last": "2026-10-29",
+   "configs": 250,
+   "counts": {
+    "baseline": 3,
+    "screened": 103,
+    "alive": 18,
+    "dropped": 91,
+    "halved": 35
+   }
+  }
+ },
+ "latest": "joint-v2_packing-0.2.17_highways-0.9.3_space-bench-2"
+}
