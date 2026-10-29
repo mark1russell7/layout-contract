@@ -25,3 +25,20 @@ jobs:
       contents: read
       security-events: write
       actions: read
+
+  # The check that the ruleset of main names for the scans (template #81). It fails when the scans failed or were cancelled.
+  # The scans stay in this file: release.yml calls ci.yml with contents: read, and a scan needs security-events: write.
+  security-ok:
+    name: Security OK
+    if: always()
+    needs: [security]
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    permissions: {}
+    steps:
+      - name: Each scan passed
+        env:
+          RESULTS: ${{ join(needs.*.result, ' ') }}
+        run: |
+          echo "results: $RESULTS"
+          case " $RESULTS " in *" failure "*|*" cancelled "*) exit 1 ;; esac
