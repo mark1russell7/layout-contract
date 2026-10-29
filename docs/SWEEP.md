@@ -194,6 +194,29 @@ The epoch is `<corpus>_packing-<version>_highways-<version>_space-<version>`, fo
 
 `summaryRows` reads the table, and `summaryTable` writes it. The dropped configs keep their rows, so the atlas sees each config of each night.
 
+## The sensitivity
+
+`firstOrder(state, groups)` gives the first-order index of each group of the space on the sweep score. `pnpm --filter @layout-contract/joint sensitivity --state <state.json>` writes the table.
+
+- The groups of `JOINT_GROUPS` are the router, the lane mode (`none` without lanes) and the pack entry.
+- The response of a config is its mean score over the inputs where each config has a value. The race drops a config before it has each input, so only the shared inputs count. Thus the race gives no bias.
+- The index is the bias-corrected correlation ratio (`eps2`). A group with many levels gets a part of the noise in `eta2`, and `eps2` removes that part.
+- A bootstrap over the shared inputs gives the intervals, and the interval of the difference of each pair of groups.
+- The configs are a sample of the space, not a full design. A group that the sample confounds with another group shares its index. The total indices need the design of Saltelli.
+
+The first night (L52) gives these values. The sample has 124 configs on 101 shared inputs, with 2000 draws.
+
+| Group | Levels | `eps2` | 95% interval |
+|---|---|---|---|
+| router | 10 | 0.865 | 0.769 to 0.908 |
+| lane mode | 4 | 0.020 | -0.007 to 0.068 |
+| pack entry | 13 | -0.013 | -0.039 to 0.028 |
+
+- The router sets most of the variance of the score.
+- The intervals of the lane mode and of the pack entry overlap, so the first order does not tell which matters more. Claim V1 failed.
+- In the configs of one router, the lane mode matters. With `portfolio` (14 configs), its `eps2` is 0.649 (0.279 to 0.819). With `corners` (22 configs), it is 0.203.
+- Thus the effect of the lanes comes from the router and the lanes together. The next step is a Saltelli design, which gives the total indices.
+
 ## The cost model
 
 The plan uses the model of `packages/joint/data/cost-margins.json`. `docs/JOINT-BENCH.md` tells the model and its fit.
