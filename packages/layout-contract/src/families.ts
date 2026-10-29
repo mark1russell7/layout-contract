@@ -30,6 +30,12 @@ export interface CorpusDimension extends SpaceParam {
    * Then `generate` of a registry removes these fields from the output, and lists them in `invalidated`.
    */
   readonly invalidates?: readonly string[];
+  /**
+   * The count of decimal places that the family uses for a value of a numeric dimension: a whole number of 0 or more.
+   * Only the `invalidates` compare reads it. The registry rounds the value and the default to it before the compare.
+   * The cells, the cell keys, `rngOf` and the value that `generate` gets do not change.
+   */
+  readonly precision?: number;
 }
 
 /**
@@ -226,13 +232,14 @@ export const CORPUS_DIMENSIONS: Readonly<Record<string, CorpusDimension>> = Obje
 
 /**
  * This function gives a dimension of `CORPUS_DIMENSIONS`, with the fields of `patch` over it. It throws a `RangeError` for an unknown name.
- * With `supported` or `invalidates` in the patch, it also throws a `RangeError` for a bad dimension, as `ownerDimension` does.
+ * With `supported`, `invalidates` or `precision` in the patch, it also throws a `RangeError` for a bad dimension, as `ownerDimension` does.
  */
 export function sharedDimension(name: string, patch: Partial<CorpusDimension> = {}): CorpusDimension {
   const base = Object.hasOwn(CORPUS_DIMENSIONS, name) ? CORPUS_DIMENSIONS[name] : undefined;
   if (base === undefined) throw new RangeError(`The shared dimension table has no dimension "${name}".`);
   const dim: CorpusDimension = Object.freeze({ ...base, ...patch, name });
-  if (patch.supported !== undefined || patch.invalidates !== undefined) throwProblems(`sharedDimension: the dimension "${name}"`, ownProblems(dim));
+  if (patch.supported !== undefined || patch.invalidates !== undefined || patch.precision !== undefined)
+    throwProblems(`sharedDimension: the dimension "${name}"`, ownProblems(dim));
   return dim;
 }
 
@@ -241,7 +248,7 @@ export type OwnerDimensionSpec = Omit<CorpusDimension, "name">;
 
 /**
  * This function gives a dimension that only its owner declares, for example `cut` of a family of `packing`.
- * It throws a `RangeError` for a name of `CORPUS_DIMENSIONS`, the reserved name `kind`, or a bad default, level, `supported` or `invalidates`.
+ * It throws a `RangeError` for a name of `CORPUS_DIMENSIONS`, the reserved name `kind`, or a bad default, level, `supported`, `invalidates` or `precision`.
  * The registry examines the `when` of the dimension, because it needs the earlier dimensions.
  */
 export function ownerDimension(name: string, spec: OwnerDimensionSpec): CorpusDimension {
@@ -288,7 +295,7 @@ function supportedText(dim: CorpusDimension): string {
   return `the values from ${s.min ?? dim.min} to ${s.max ?? dim.max}`;
 }
 
-/** This function gives the problems of one dimension that need no other dimension: the default, the levels, `supported` and `invalidates`. */
+/** This function gives the problems of one dimension that need no other dimension: the default, the levels, `supported`, `invalidates` and `precision`. */
 function ownProblems(d: CorpusDimension): string[] {
   const out: string[] = [];
   const bad = paramProblem(d, d.default);
@@ -299,6 +306,7 @@ function ownProblems(d: CorpusDimension): string[] {
   }
   out.push(...supportProblems(d, bad === undefined));
   out.push(...invalidatesProblems(d));
+  out.push(...precisionProblems(d));
   return out;
 }
 
@@ -341,6 +349,25 @@ function invalidatesProblems(d: CorpusDimension): string[] {
   if (new Set(list).size !== list.length) out.push(`the invalidates of "${d.name}" has a field two times`);
   for (const f of ["hash", INVALIDATED_FIELD]) if (list.includes(f)) out.push(`the invalidates of "${d.name}" has the field "${f}", which the registry writes`);
   return out;
+}
+
+/** This function gives the problems of the `precision` of a dimension. A bad value and a dimension that is not numeric are problems. */
+function precisionProblems(d: CorpusDimension): string[] {
+  const p: unknown = d.precision;
+  if (p === undefined) return [];
+  if (typeof p !== "number" || !Number.isInteger(p) || p < 0) return [`the precision of "${d.name}" is ${JSON.stringify(p)}, not a whole number of 0 or more`];
+  if (d.kind !== "int" && d.kind !== "real") return [`the precision of "${d.name}" is for a numeric dimension, but the dimension is a ${d.kind}`];
+  return [];
+}
+
+/** This function rounds a number to `places` decimal places: `Math.round(v * 10 ** places) / 10 ** places`. */
+const roundTo = (v: number, places: number): number => Math.round(v * 10 ** places) / 10 ** places;
+
+/** This function tells if a value is the default of a dimension. With `precision`, it compares the two numbers after it rounds them. */
+function isDefault(d: CorpusDimension, value: ParamValue | undefined): boolean {
+  const def = paramValue(d, d.default);
+  if (d.precision === undefined || typeof value !== "number" || typeof def !== "number") return value === def;
+  return roundTo(value, d.precision) === roundTo(def, d.precision);
 }
 
 /** This function tells if a log scale of a range starts at 0. Then the scale is the log of `1 + x - min`. */
@@ -501,12 +528,15 @@ function sweepLevels(dimensions: readonly CorpusDimension[], options: CellsOptio
   });
 }
 
-/** This function gives the output fields that the values make wrong: the `invalidates` of each dimension with a value other than its default, sorted. */
+/**
+ * This function gives the output fields that the values make wrong: the `invalidates` of each dimension with a value other than its default, sorted.
+ * A dimension with `precision` compares the rounded value with the rounded default.
+ */
 function invalidFields(dimensions: readonly CorpusDimension[], full: DimensionValues): string[] {
   const out = new Set<string>();
   for (const d of dimensions) {
     if (d.invalidates === undefined || d.invalidates.length === 0) continue;
-    if (full[d.name] !== paramValue(d, d.default)) for (const f of d.invalidates) out.add(f);
+    if (!isDefault(d, full[d.name])) for (const f of d.invalidates) out.add(f);
   }
   return [...out].sort(byCode);
 }

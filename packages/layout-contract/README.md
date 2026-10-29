@@ -8,8 +8,8 @@ The package has no runtime dependencies.
 
 | Part | Exports |
 |---|---|
-| Geometry | `Point`, `Rect`, `Region`, `Side`, `Sides`, `Margin`, `marginSides`, `grow`, `boundsOf`, `translate`, `overlapOf` |
-| The shape kinds | `ShapeKind`, `SHAPE_KINDS`, `SHAPE_KIND_IDS`, `ShapeKindSpec`, `ShapeGeometry`, `DEFAULT_SHAPES`, `ShapeSupport`, `isShapeKind`, `shapeKindOf`, `shapeKindsOf`, `itemShapeOf`, `shapeKindProblem`, `shapesOf`, `checkShapes` |
+| Geometry | `Point`, `Rect`, `Region`, `Side`, `Sides`, `Margin`, `marginSides`, `grow`, `boundsOf`, `regionArea`, `translate`, `overlapOf` |
+| The shape kinds | `ShapeKind`, `SHAPE_KINDS`, `SHAPE_KIND_IDS`, `ShapeKindSpec`, `ShapeGeometry`, `DEFAULT_SHAPES`, `ShapeSupport`, `ShapeBound`, `RuleLevel`, `ShapeLevel`, `ShapeCheck`, `isShapeKind`, `shapeKindOf`, `shapeKindsOf`, `itemShapeOf`, `shapeKindProblem`, `shapesOf`, `ruleLevel`, `shapeLevel`, `shapeSupportProblems`, `boxArea`, `checkShapes` |
 | The input `layout-input/1` | `LayoutInput`, `LayoutBox` (`Item` for the packer), `Port`, `portPoint`, `LayoutEdge`, `LayoutContainer`, `Obstacle`, `LayoutCell`, `LayoutGenerator`, `PairGap`, `canonicalInput` |
 | The packer | `PackInput`, `toPackInput`, `Placement`, `PackOutput`, `StageTrace`, `applyPack` |
 | The record `layout-record/1` | `LayoutRecord`, `Stage`, `Supports`, `RunFacts`, `RunEnv`, `toLayoutRecord` |
@@ -54,6 +54,16 @@ The package has no runtime dependencies.
 - **The container rule.** `in-container` counts each box that goes out of the container made smaller by `inset`. The box counts with its margin. By default, a shaped container counts as its bounding box.
 - **The exact container.** Give `{ exactContainer: true }` to `packHard` or `countOutside`. Then a box of a shaped container with the size `fixed` must stay inside the shape. A cut corner, a notch and a hole count. A container with a free side keeps the bounding test. The default changes to the exact test at the next breaking version.
 - **The shape kinds.** An item is a `rect`, a `polygon`, a `circle` or a `free` shape. Each measure and rule declares its kinds. `checkShapes` refuses the other kinds. `docs/SHAPES.md` tells the rules.
+  - `regionArea(region)` gives the exact area of a region. `boxArea(box)` gives the exact area of a box, or `undefined` for a `free` box. A box with an ellipse shape is `free`.
+  - `ShapeSupport.safe` lists the kinds with a safe count: an upper bound that does not miss a break. `ruleLevel(rule, kind)` gives `exact`, `safe` or `none`.
+  - `no-overlap` and `in-container` are safe on `polygon`, `circle` and `free`. `checkShapes` accepts a safe kind only with `{ level: "safe" }`.
+  - `MeasureSpec.bound` lists the kinds where the value of a measure is a bound of the true value, with its side `upper` or `lower`.
+  - `shapeLevel(use, kind)` gives `exact`, `safe`, `bound` or `none`. `checkShapes` accepts a bound kind only with `{ level: "bound" }`. The level `safe` refuses it.
+  - A bound value proves only one side of a compare. `docs/SHAPES.md` tells what it proves for each `direction`.
+  - `shapeSupportProblems(uses)` refuses a kind in two of the lists `shapes`, `safe` and `bound.shapes`.
+  - `MemberRule.view: "bounds"` gives the members of a meta option the bounding box of each item. A shape filter then checks the members with `rect`.
+  - A sample with a shape filter skips a meta option without a member list. It throws a `RangeError` only when the space has no config for the kinds.
+- **The corpus dimensions.** `CorpusDimension.precision` is the count of decimal places of a numeric value of a family. The registry rounds the value and the default to it before the `invalidates` compare. `docs/CORPUS.md` tells the rules.
 - **The output hash.** `outputHash` gives the first 16 hex characters of the SHA-256 of the canonical JSON of an output. Each number goes to the grid of `RECORD_EPS` first.
 - **The corpus checks.** `checkDeclared` and `checkSplit` give a list of `ClaimBreak`. An empty list tells that each claim is true. `corpusHashOf` gives the corpus hash of `packing`.
 - **The verdict.** `verdict` compares two strategies on one measure, with the family as the unit. A verdict counts only when it holds for the mean of the family means and for the mean of the inputs.
@@ -76,6 +86,20 @@ const placed = applyPack(input, output);
 const hard = packHard(input, output);
 ```
 
-The formats are in `docs/FORMAT.md` of `packing` and `docs/LAYOUT-RECORDS.md` of `highways`. The joint measures are in `docs/JOINT-MEASURES.md` of this repository, and the joint corpus is in `docs/JOINT-CORPUS.md`. The promotion guards are in `docs/PROMOTION.md`. The portfolio and its pick rule are in `docs/PORTFOLIO.md`. The corpus checks and the split files are in `docs/CORPUS-CHECKS.md`. The strategy space is in [`docs/STRATEGY-SPACE.md`](https://github.com/mark1russell7/layout-contract/blob/main/docs/STRATEGY-SPACE.md).
+## The docs
 
-The verdict over families is in [`docs/VERDICT.md`](https://github.com/mark1russell7/layout-contract/blob/main/docs/VERDICT.md).
+The comments of the source name each doc as `docs/<NAME>.md`. The docs are in the repository, not in the npm package:
+
+| Doc | The subject |
+|---|---|
+| [`docs/CORPUS.md`](https://github.com/mark1russell7/layout-contract/blob/main/docs/CORPUS.md) | The shared corpus registry, its dimensions and families |
+| [`docs/CORPUS-CHECKS.md`](https://github.com/mark1russell7/layout-contract/blob/main/docs/CORPUS-CHECKS.md) | The corpus checks and the split files |
+| [`docs/JOINT-CORPUS.md`](https://github.com/mark1russell7/layout-contract/blob/main/docs/JOINT-CORPUS.md) | The joint corpus |
+| [`docs/JOINT-MEASURES.md`](https://github.com/mark1russell7/layout-contract/blob/main/docs/JOINT-MEASURES.md) | The joint measures |
+| [`docs/PORTFOLIO.md`](https://github.com/mark1russell7/layout-contract/blob/main/docs/PORTFOLIO.md) | The portfolio and its pick rule |
+| [`docs/PROMOTION.md`](https://github.com/mark1russell7/layout-contract/blob/main/docs/PROMOTION.md) | The promotion guards |
+| [`docs/SHAPES.md`](https://github.com/mark1russell7/layout-contract/blob/main/docs/SHAPES.md) | The shape kinds, the levels of a rule and what a bound value proves |
+| [`docs/STRATEGY-SPACE.md`](https://github.com/mark1russell7/layout-contract/blob/main/docs/STRATEGY-SPACE.md) | The strategy space |
+| [`docs/VERDICT.md`](https://github.com/mark1russell7/layout-contract/blob/main/docs/VERDICT.md) | The verdict over families |
+
+The formats are in `docs/FORMAT.md` of `packing` and `docs/LAYOUT-RECORDS.md` of `highways`. The TSDoc of `ShapeBound` also has the table of what a bound value proves.

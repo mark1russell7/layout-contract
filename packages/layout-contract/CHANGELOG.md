@@ -1,5 +1,42 @@
 # Changelog
 
+## 0.2.18
+
+- PATCH: docs only, with no change to the API. The packing engine found that the npm package has no `docs/` folder, but the comments name its files.
+- The TSDoc of `ShapeBound` has the table of what a bound value proves, so a consumer reads it in the package.
+- The package README has a table of each doc that the comments name, with its link in the repository.
+
+## 0.2.17
+
+- PATCH: a new optional field, new exports and a fix, with no break. The packing engine found the 2 gaps when it moved to 0.2.16.
+- The new exports are `shapeLevel`, `ShapeLevel` and `ShapeBound`. `MeasureSpec` and `ShapeSupport` have the new optional field `bound`.
+- `bound` lists the kinds where the value of a measure is a bound of the true value, and its side `upper` or `lower`. An example is a fill that reads `w * h` of a `free` box.
+- `shapeLevel(use, kind)` gives `exact`, `safe`, `bound` or `none`. `ruleLevel` does not read `bound`, and its result stays the same.
+- By default, `checkShapes` refuses a bound kind. Its break tells the side, for example "The value of pack.shapeFill is only an upper bound for free".
+- `ShapeCheck.level` has the new value `bound`. It accepts the exact, safe and bound kinds. The level `safe` accepts the exact and safe kinds only, as in 0.2.16.
+- `shapeSupportProblems` refuses a kind in two of the lists `shapes`, `safe` and `bound.shapes`. It also refuses an unknown kind, a repeated kind and a bad `side`.
+- `docs/SHAPES.md` tells what a bound value proves for each `direction` of a measure, and why the level is `bound` and not `safe`.
+- Fix: with `meta: "sample"` and `shapes`, a sample does not throw for a meta option without a member list. It draws again, as `spaceSize` gives that option 0.
+- A sample throws a `RangeError` only when the space has no config for the kinds. The error names the kinds, the stages without an option and the meta options without members. For such a meta option, it tells to set `members.view` to `"bounds"`.
+- Each sample that 0.2.16 gave stays the same, byte for byte. A test pins the samples of 0.2.16 for 8 spaces.
+- Each input, manifest, record, hash and `configId` of 0.2.16 stays the same. `JOINT_MEASURES` has no `bound`.
+
+## 0.2.16
+
+- PATCH: new optional exports and fields, with no break (L57). The packing engine found the 3 shape gaps when it packed shapes by their bounding boxes.
+- The new exports are `regionArea`, `boxArea`, `ruleLevel`, `RuleLevel`, `shapeSupportProblems` and `ShapeCheck`.
+- The new optional fields are `ShapeSupport.safe`, `MemberRule.view` and `CorpusDimension.precision`. `checkShapes` has a new optional third parameter `options`.
+- `regionArea` gives the exact area of a region. A polygon uses the shoelace formula, less its holes. `SHAPE_KINDS` gives `geometry.area` to `polygon` and `circle`.
+- `boxArea` gives the area of a box, or `undefined` for a `free` box. A box with an ellipse shape is `free`, so it gives `undefined`.
+- `safe` lists the kinds with a safe count. `no-overlap` and `in-container` of `PACK_HARD_RULES` are safe on `polygon`, `circle` and `free`.
+- `checkShapes` refuses a safe kind by default, as before. Its break also tells that the count is only safe. With `{ level: "safe" }`, it accepts the kind.
+- `shapeSupportProblems` refuses a kind in `shapes` and in `safe`, an unknown kind and a repeated kind.
+- With `view: "bounds"`, a meta option gives its members the bounding box of each item. A shape filter then checks the members with `rect`.
+- With `view: "bounds"`, `checkConfig`, `spaceSize`, `enumerateSpace` and the pool entries use `rect` for the members. `checkSpace` refuses another `view`.
+- `precision` rounds a numeric value and its default before the `invalidates` compare. A margin of 0.0004 with `precision: 3` keeps `known`.
+- `precision` changes only that compare. The registry, `sharedDimension` and `ownerDimension` refuse a bad `precision`, and `precision` on a dimension that is not numeric.
+- Each input, manifest, record, hash and `configId` of 0.2.15 stays the same.
+
 ## 0.2.15
 
 - PATCH: new optional exports and fields, with no break. A family, a dimension or an input without them does not change.
