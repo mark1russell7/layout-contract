@@ -94,5 +94,6 @@ describe("the pack entries and the spacing", () => {
     expect(bad).toEqual([]);
     // `packing` 0.2.6 had a fault: `skyline` put each box at one place in a free circle with identical boxes. Version 0.2.10 corrects it.
     expect(overlaps).toEqual([]);
-  });
+    // The 4 k16 searches of bench-4 pack each sample 16 times or more. Thus the test takes more than the default 5 s.
+  }, 60_000);
 });
