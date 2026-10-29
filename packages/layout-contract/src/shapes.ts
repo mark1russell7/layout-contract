@@ -68,6 +68,21 @@ export interface ShapeSupport<Id extends string = string> {
 /**
  * The kinds where a measure gives a bound of the true value, and the side of the bound.
  * With `upper`, the value is the true value or more. With `lower`, the value is the true value or less.
+ *
+ * @remarks
+ * The side and the `direction` of the measure tell what a bound value `v` proves about a threshold `t`.
+ * A bound is optimistic on the better side of the true value, and pessimistic on the worse side.
+ *
+ * | `direction` | `side` | The bound | The proof | No proof |
+ * |---|---|---|---|---|
+ * | `higher` | `upper` | optimistic | `v < t`: the true value is less than `t`. | `v >= t` |
+ * | `higher` | `lower` | pessimistic | `v >= t`: the true value is `t` or more. | `v < t` |
+ * | `lower` | `upper` | pessimistic | `v <= t`: the true value is `t` or less. | `v > t` |
+ * | `lower` | `lower` | optimistic | `v > t`: the true value is more than `t`. | `v <= t` |
+ *
+ * For a floor or a guard, a pessimistic bound proves a pass, and an optimistic bound proves a fail.
+ * `compareMeasure` on two bound values proves nothing. A tie with a bound value proves nothing.
+ * Against an exact baseline, an optimistic candidate proves only `worse`, and a pessimistic candidate proves only `better`.
  */
 export interface ShapeBound {
   readonly shapes: readonly ShapeKind[];
