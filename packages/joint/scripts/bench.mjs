@@ -48,6 +48,7 @@ import {
   PACK_ENTRIES,
   packOf,
   pairId,
+  pairRuns,
   PORTFOLIO_ROUTER,
   RANK_TOP,
   plannedCost,
@@ -180,10 +181,22 @@ if (command === "check") {
   const byId = new Map(all.map((row) => [row.entry.id, row]));
   const rows = plan.shards[shard].map((id) => byId.get(id));
   console.log(`${set} shard ${shard} of ${shards}: ${rows.length} inputs, ${(plan.loads[shard] / 60000).toFixed(1)} predicted minutes`);
+  // A pair that runs for more than SLOW_PAIR_MS prints one line with its time and the heap, so a log shows the pair of a heap failure.
+  // The lines have no "records", so fit-cost.mjs does not read them.
+  const SLOW_PAIR_MS = 5000;
+  const mb = (bytes) => Math.round(bytes / 2 ** 20);
   for (const { input, entry } of rows) {
     const t0 = performance.now();
-    const records = runInput(input, entry.cell, { env, corpus: set, lanes, iterate,...(commit === undefined ? {} : { commit }) });
+    const records = [];
+    let last = t0;
+    for (const run of pairRuns(input, entry.cell, { env, corpus: set, lanes, iterate, ...(commit === undefined ? {} : { commit }) })) {
+      records.push(run.record);
+      const now = performance.now();
+      if (now - last > SLOW_PAIR_MS) console.log(`  pair ${run.record.strategy}: ${Math.round(now - last)} ms, heap ${mb(process.memoryUsage().heapUsed)} MB`);
+      last = now;
+    }
     appendFileSync(file, records.map((r) => JSON.stringify(r) + "\n").join(""));
+    console.log(`  peak rss ${mb(process.resourceUsage().maxRSS * 1024)} MB after ${input.id}`);
     const skipped = records.filter((r) => r.skipped !== undefined).length;
     console.log(`${input.id}: ${records.length} records, ${skipped} skipped, ${Math.round(performance.now() - t0)} ms`);
   }
