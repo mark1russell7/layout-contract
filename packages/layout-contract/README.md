@@ -9,7 +9,7 @@ The package has no runtime dependencies.
 | Part | Exports |
 |---|---|
 | Geometry | `Point`, `Rect`, `Region`, `Side`, `Sides`, `Margin`, `marginSides`, `grow`, `boundsOf`, `regionArea`, `translate`, `overlapOf` |
-| The shape kinds | `ShapeKind`, `SHAPE_KINDS`, `SHAPE_KIND_IDS`, `ShapeKindSpec`, `ShapeGeometry`, `DEFAULT_SHAPES`, `ShapeSupport`, `RuleLevel`, `ShapeCheck`, `isShapeKind`, `shapeKindOf`, `shapeKindsOf`, `itemShapeOf`, `shapeKindProblem`, `shapesOf`, `ruleLevel`, `shapeSupportProblems`, `boxArea`, `checkShapes` |
+| The shape kinds | `ShapeKind`, `SHAPE_KINDS`, `SHAPE_KIND_IDS`, `ShapeKindSpec`, `ShapeGeometry`, `DEFAULT_SHAPES`, `ShapeSupport`, `ShapeBound`, `RuleLevel`, `ShapeLevel`, `ShapeCheck`, `isShapeKind`, `shapeKindOf`, `shapeKindsOf`, `itemShapeOf`, `shapeKindProblem`, `shapesOf`, `ruleLevel`, `shapeLevel`, `shapeSupportProblems`, `boxArea`, `checkShapes` |
 | The input `layout-input/1` | `LayoutInput`, `LayoutBox` (`Item` for the packer), `Port`, `portPoint`, `LayoutEdge`, `LayoutContainer`, `Obstacle`, `LayoutCell`, `LayoutGenerator`, `PairGap`, `canonicalInput` |
 | The packer | `PackInput`, `toPackInput`, `Placement`, `PackOutput`, `StageTrace`, `applyPack` |
 | The record `layout-record/1` | `LayoutRecord`, `Stage`, `Supports`, `RunFacts`, `RunEnv`, `toLayoutRecord` |
@@ -57,8 +57,12 @@ The package has no runtime dependencies.
   - `regionArea(region)` gives the exact area of a region. `boxArea(box)` gives the exact area of a box, or `undefined` for a `free` box. A box with an ellipse shape is `free`.
   - `ShapeSupport.safe` lists the kinds with a safe count: an upper bound that does not miss a break. `ruleLevel(rule, kind)` gives `exact`, `safe` or `none`.
   - `no-overlap` and `in-container` are safe on `polygon`, `circle` and `free`. `checkShapes` accepts a safe kind only with `{ level: "safe" }`.
-  - `shapeSupportProblems(uses)` refuses a kind in `shapes` and in `safe`.
+  - `MeasureSpec.bound` lists the kinds where the value of a measure is a bound of the true value, with its side `upper` or `lower`.
+  - `shapeLevel(use, kind)` gives `exact`, `safe`, `bound` or `none`. `checkShapes` accepts a bound kind only with `{ level: "safe" }`.
+  - A bound value proves only one side of a compare. `docs/SHAPES.md` tells what it proves for each `direction`.
+  - `shapeSupportProblems(uses)` refuses a kind in two of the lists `shapes`, `safe` and `bound.shapes`.
   - `MemberRule.view: "bounds"` gives the members of a meta option the bounding box of each item. A shape filter then checks the members with `rect`.
+  - A sample with a shape filter skips a meta option without a member list. It throws a `RangeError` only when the space has no config for the kinds.
 - **The corpus dimensions.** `CorpusDimension.precision` is the count of decimal places of a numeric value of a family. The registry rounds the value and the default to it before the `invalidates` compare. `docs/CORPUS.md` tells the rules.
 - **The output hash.** `outputHash` gives the first 16 hex characters of the SHA-256 of the canonical JSON of an output. Each number goes to the grid of `RECORD_EPS` first.
 - **The corpus checks.** `checkDeclared` and `checkSplit` give a list of `ClaimBreak`. An empty list tells that each claim is true. `corpusHashOf` gives the corpus hash of `packing`.

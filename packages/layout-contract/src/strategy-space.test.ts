@@ -730,4 +730,67 @@ describe("a sample with a shape filter (0.2.17)", () => {
     const want = Object.fromEntries(Object.entries(PINS_0_2_16).map(([k, p]) => [k, { done: p.done, threw: [] }]));
     expect(got).toEqual(want);
   });
+
+  it("skips a meta option without a member list, as spaceSize gives it 0", () => {
+    // For circle, portfolio has rect members through its view, and cell has no member config.
+    expect(spaceSize(twoMeta, { levels: 3, shapes: ["circle"] })).toEqual(spaceSize(bounds, { levels: 3, shapes: ["circle"] }));
+    for (const seed of [1, 2, 3]) {
+      const sample = enumerateSpace(twoMeta, { mode: "sample", n: 17, seed, meta: "sample", shapes: ["circle"] });
+      expect(sample).toHaveLength(17);
+      for (const c of sample) {
+        expect(c.stages["combine"]?.option).toBe("portfolio");
+        expect(checkConfig(twoMeta, c, { shapes: ["circle"] })).toEqual([]);
+      }
+    }
+    // For rect, cell has members, so the sample can choose it.
+    const rect = enumerateSpace(twoMeta, { mode: "sample", n: 40, seed: 1, meta: "sample", shapes: ["rect"] });
+    expect(rect.some((c) => c.stages["combine"]?.option === "cell")).toBe(true);
+  });
+
+  it("throws a RangeError that names the shapes, the stages and the meta options only for a space without a config", () => {
+    const error = (space: StrategySpace, options: Omit<SampleOptions, "mode" | "n" | "seed">): string => {
+      try {
+        enumerateSpace(space, { mode: "sample", n: 5, seed: 1, ...options });
+      } catch (e) {
+        expect(e).toBeInstanceOf(RangeError);
+        return (e as Error).message;
+      }
+      return "no error";
+    };
+    expect(error(rectOnly, { meta: "sample", shapes: ["circle"] })).toBe(
+      'The space pack has no config for a sample with the shape kinds circle. The stage placement has no option for these kinds. The meta option combine.portfolio has no member config for these kinds. Set members.view to "bounds" when the members see only the bounding boxes.',
+    );
+    expect(error(twoMeta, { shapes: ["circle"] })).toBe("The space pack has no config for a sample with the shape kinds circle. The stage placement has no option for these kinds.");
+    expect(error(spaces["joint"]!, { meta: "sample", shapes: ["polygon"] })).toBe("no error");
+    const closed = onPlacement(twoMeta, () => ["rect"]);
+    const both = withCombine(closed, (list) => list.map((o) => ({ ...o, supports: { shape: ["rect"] } })));
+    expect(error(both, { meta: "sample", shapes: ["free"] })).toBe("The space pack has no config for a sample with the shape kinds free. The stage placement has no option for these kinds.");
+  });
+
+  it("gives only configs that checkConfig accepts for the same shapes, and throws the RangeError exactly when the space has no config", () => {
+    let completed = 0;
+    for (const [name, space] of Object.entries(spaces))
+      for (const shapes of filters)
+        for (const meta of ["skip", "sample"] as const) {
+          const size = spaceSize(space, { levels: 3, maxMeta: 10n ** 30n, ...(shapes === undefined ? {} : { shapes }) });
+          const none = size.base + (meta === "sample" ? size.meta! : 0n) === 0n;
+          for (let seed = 1; seed <= 4; seed++)
+            for (const n of [1, 3, 17]) {
+              const at = `${name}/${shapes?.join("+") ?? "-"}/${meta}/${seed}/${n}`;
+              let sample: StrategyConfig[] = [];
+              let message = "";
+              try {
+                sample = enumerateSpace(space, { mode: "sample", n, seed, meta, ...(shapes === undefined ? {} : { shapes }) });
+              } catch (e) {
+                message = e instanceof RangeError ? `RangeError ${(e as Error).message}` : (e as Error).message;
+              }
+              expect(message.startsWith("RangeError The space"), at).toBe(none);
+              if (message !== "") continue;
+              completed++;
+              expect(sample, at).toHaveLength(n);
+              for (const c of sample) expect(checkConfig(space, c, shapes === undefined ? {} : { shapes }), at).toEqual([]);
+            }
+        }
+    expect(completed).toBeGreaterThan(700);
+  });
 });

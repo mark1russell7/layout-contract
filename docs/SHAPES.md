@@ -82,13 +82,59 @@ Thus each input, record and hash of 0.2.12 stays the same.
 - By default, `checkShapes` refuses a safe kind, as before. With `{ level: "safe" }`, it accepts a safe kind. Use it only when the run claims that a rule has no break.
 - A break of a safe kind tells that the count is only safe.
 
-| Reader of `shapes` | Does it read `safe`? |
-|---|---|
-| `shapesOf` | No. It gives the exact kinds. |
-| `ruleLevel` | Yes. It is the one function that joins the two lists. |
-| `checkShapes` | Yes, through `ruleLevel`. The default level `exact` keeps each refusal of 0.2.15. |
-| `shapeSupportProblems` | Yes. It refuses an overlap of the two lists. |
-| `packages/joint`, `packages/site` | No file reads `ShapeSupport.shapes`, so they do not change. |
+| Reader of `shapes` | Does it read `safe`? | Does it read `bound` (0.2.17)? |
+|---|---|---|
+| `shapesOf` | No. It gives the exact kinds. | No. |
+| `ruleLevel` | Yes. It joins `shapes` and `safe`. | No. Its result stays the same as in 0.2.16. |
+| `shapeLevel` | Yes. | Yes. It is the one function that joins the three lists. |
+| `checkShapes` | Yes, through `shapeLevel`. The default level `exact` keeps each refusal of 0.2.15. | Yes, through `shapeLevel`. |
+| `shapeSupportProblems` | Yes. It refuses an overlap of the two lists. | Yes. It refuses an overlap of each two lists. |
+| `packages/joint`, `packages/site` | No file reads `ShapeSupport.shapes`, so they do not change. | No. |
+
+### The bound of a measure (0.2.17)
+
+`MeasureSpec.bound` lists the kinds where the value of a measure is a bound of the true value. Its `side` tells which bound it is.
+
+- With `side: "upper"`, the value is the true value or more. With `side: "lower"`, the value is the true value or less.
+- A kind is in one list only: `shapes`, `safe` or `bound.shapes`. `shapeSupportProblems` refuses a kind in two lists, an unknown kind, a repeated kind and a bad `side`.
+- `shapeLevel(use, kind)` gives `exact`, `safe`, `bound` or `none`. `ruleLevel` does not read `bound`.
+- By default, `checkShapes` refuses a bound kind. The break tells the side, for example "The value of pack.shapeFill is only an upper bound for free".
+- With `{ level: "safe" }`, `checkShapes` accepts a bound kind, as it accepts a safe kind of a rule.
+- `JOINT_MEASURES` has no `bound`. Each joint measure keeps its kinds.
+
+An example is the measure `pack.shapeFill` of the packing engine. It reads `w * h` as the area of a `free` box, because `boxArea` gives no area for that kind. The bounding box holds the shape, so the fill is too high on `free`. The spec is:
+
+```ts
+{ id: "pack.shapeFill", direction: "higher", shapes: ["rect", "polygon", "circle"], bound: { shapes: ["free"], side: "upper" } }
+```
+
+#### What a bound value proves
+
+The side and the `direction` of the measure tell what a bound value proves. A bound is optimistic when it is on the better side of the true value. It is pessimistic when it is on the worse side.
+
+| `direction` | `side` | The bound | A value `v` and a threshold `t`: the proof | No proof |
+|---|---|---|---|---|
+| `higher` | `upper` | optimistic | `v < t` proves that the true value is less than `t`. | `v >= t` proves nothing. The true value can be less than `t`. |
+| `higher` | `lower` | pessimistic | `v >= t` proves that the true value is `t` or more. | `v < t` proves nothing. |
+| `lower` | `upper` | pessimistic | `v <= t` proves that the true value is `t` or less. | `v > t` proves nothing. |
+| `lower` | `lower` | optimistic | `v > t` proves that the true value is more than `t`. | `v <= t` proves nothing. |
+
+- For a floor or a guard, a pessimistic bound proves a pass, but its fail can be false. An optimistic bound proves a fail, but its pass can be false.
+- Thus a `pack.shapeFill` value under a threshold proves that the true fill is under it. A value over the threshold proves nothing.
+- `compareMeasure` on two bound values proves nothing about the true order, because each value has a different error.
+- A bound candidate against an exact baseline: with an optimistic bound, only `worse` is a proof. With a pessimistic bound, only `better` is a proof.
+- An exact candidate against a bound baseline: with an optimistic baseline, only `better` is a proof. With a pessimistic baseline, only `worse` is a proof.
+- A tie with a bound value proves nothing.
+
+#### The word `bound`, not `safe`
+
+In this contract, `safe` tells that a pass is a proof. A safe count of 0 proves that a rule has no break. A safe count is an upper bound of a count with the direction `lower`, so it is pessimistic.
+
+A bound of a measure can be optimistic. `pack.shapeFill` is an upper bound with the direction `higher`, so a pass of its floor is not a proof. Thus `safe` is not true for each bound, and the level of a measure on such a kind is `bound`.
+
+- `ShapeCheck.level` keeps its two values. The value `safe` accepts each result on one known side of the true result: a safe count and a bound value.
+- The gate does not add a value `bound`. A run that asks for `{ level: "safe" }` in 0.2.16 also gets the bound kinds of a measure, with no new option.
+- After the gate, the caller reads `bound.side` and `direction` of each bound kind. It uses only the proofs of the table.
 
 ### The area (L57)
 
@@ -118,12 +164,22 @@ A packer can pack each shape by its bounding box with a meta option. Then its me
 - `spaceShapeKinds` does not change, because it counts only the configs without a meta option.
 - `checkSpace` refuses another value of `view` with the claim `view`. Without `view`, nothing changes.
 
+### A sample with a shape filter (0.2.17)
+
+A meta option without `view` takes its members from the space with the kinds of the input. When no member supports a kind, the option has no member list. `spaceSize`, `enumerateSpace` with `grid` and the cells give it 0.
+
+- A sample with `meta: "sample"` keeps such an option in the list of its stage. A point that chooses it draws again, as a point that breaks a constraint does.
+- Thus the strata do not change, and each sample of 0.2.16 stays the same, byte for byte. In 0.2.16, a sample that chose such an option threw an `Error`.
+- A sample throws a `RangeError` only when the space has no config for the kinds. The error names the kinds and each stage without an option.
+- The error also names each meta option without `view` that has no member list. For such an option, it tells to set `members.view` to `"bounds"`.
+- Each sampled config passes `checkConfig` with the same `shapes`. A seeded test examines each kind of `SHAPE_KIND_IDS` on 8 spaces.
+
 ## The request to a packer
 
 A packer that places an item that is not a `rect` does these steps:
 
 1. It declares `supports.shape` on each option of its strategy space.
-2. It declares `shapes` on each of its `pack.*` measure specs. A spec without `shapes` stays on `rect`.
+2. It declares `shapes` on each of its `pack.*` measure specs. A spec without `shapes` stays on `rect`. A kind with only a bound value goes in `bound`.
 3. Before a run, it starts `checkShapes` with its measures and `PACK_HARD_RULES`, and `checkConfig` with `shapes`. It refuses a run on a break.
 4. It writes the box with its `shape`, and keeps `w` and `h` as the bounding size of the shape.
 5. It asks the contract for the exact overlap and containment tests of a kind before it claims `no-overlap` or `in-container` on that kind.

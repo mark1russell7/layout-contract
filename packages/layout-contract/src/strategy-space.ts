@@ -813,6 +813,40 @@ function restrict(space: StrategySpace, shapes: readonly ShapeKind[] | undefined
 /** The space of the members of a meta option of a restricted space, when it is not the part of the option. Only `view: "bounds"` makes such a space. */
 const memberSpaces = new WeakMap<StageOption, StrategySpace>();
 
+/**
+ * This function tells if an option of a restricted space has a member list. A base option and a meta option with a `pool` have one.
+ * A different meta option has one when its members have a base config. `restrict` keeps only the pool entries that fit.
+ */
+const hasMembers = (space: StrategySpace, stage: string, o: StageOption): boolean =>
+  o.members === undefined || o.members.pool !== undefined || combos(memberSpaces.get(o) ?? partOf(space, stage).space, 1, false, 0n).length > 0;
+
+/** This function tells if a restricted space has a config. A base config counts. With `meta`, a meta config counts when each of its meta options has a member list. */
+const hasConfig = (space: StrategySpace, meta: boolean): boolean =>
+  combos(space, 1, meta, 0n).some((c) => c.base || [...c.choices].every(([stage, o]) => o === null || hasMembers(space, stage, o)));
+
+/** This function gives the error of a sample of a space that has no config for the shape kinds `shapes`. `kept` is the restricted space. */
+function noSample(space: StrategySpace, kept: StrategySpace, shapes: readonly ShapeKind[], meta: boolean): RangeError {
+  const list = (names: readonly string[], one: string, more: string): string => (names.length === 1 ? `${one} ${names[0]}` : `${more} ${names.join(", ")}`);
+  const empty = kept.stages.filter((s) => !s.optional && !s.options.some((o) => meta || o.members === undefined)).map((s) => s.name);
+  const removed = !meta
+    ? []
+    : space.stages.flatMap((s) =>
+        s.options
+          .filter((o) => o.members !== undefined && o.members.view !== "bounds" && supportsShapes(o, shapes))
+          .filter((o) => {
+            const own = kept.stages.find((x) => x.name === s.name)?.options.find((x) => x.id === o.id);
+            return own === undefined || !hasMembers(kept, s.name, own);
+          })
+          .map((o) => `${s.name}.${o.id}`),
+      );
+  let text = `The space ${space.engine} has no config for a sample with the shape kinds ${shapes.join(", ")}.`;
+  if (empty.length > 0) text += ` ${list(empty, "The stage", "The stages")} ${empty.length === 1 ? "has" : "have"} no option for these kinds.`;
+  if (removed.length > 0)
+    text += ` ${list(removed, "The meta option", "The meta options")} ${removed.length === 1 ? "has" : "have"} no member config for these kinds. Set members.view to "bounds" when the members see only the bounding boxes.`;
+  if (empty.length === 0 && removed.length === 0) text += " The constraints remove each config.";
+  return new RangeError(text);
+}
+
 /** This function gives the count of the base configs of a space that is known to be good. */
 const baseCount = (space: StrategySpace, levels: number, limit: bigint): bigint => combos(space, levels, false, limit).reduce((sum, c) => sum + c.weight!, 0n);
 
@@ -908,6 +942,13 @@ function sampleConfigs(space: StrategySpace, n: number, seed: number, meta: bool
     if (list.length === 0) throw new Error(`The stage ${s.name} of the space ${space.engine} has no option for a sample. A shape filter can remove all of its options.`);
     return list;
   });
+  // A meta option without a member list stays in its list, so the strata of 0.2.16 do not change. A point that chooses it draws again.
+  const usable = new Map<StageOption, boolean>();
+  const withMembers = (s: SpaceStage, o: StageOption | null | undefined): boolean => {
+    if (o === null || o === undefined || o.members === undefined) return true;
+    if (!usable.has(o)) usable.set(o, hasMembers(space, s.name, o));
+    return usable.get(o)!;
+  };
   const points: Map<string, StageOption | null>[] = [];
   let tries = 0;
   for (let round = 0; points.length < n; round++) {
@@ -927,7 +968,7 @@ function sampleConfigs(space: StrategySpace, n: number, seed: number, meta: bool
         if (m !== undefined && m !== s.name) choices.set(s.name, null);
       }
       const filled = stages.every((s) => s.optional === true || choices.get(s.name) !== null || metaPart.has(prefix.get(s.name)!));
-      if (filled && keeps(space, choices)) points.push(choices);
+      if (filled && keeps(space, choices) && stages.every((s) => withMembers(s, choices.get(s.name)))) points.push(choices);
     }
   }
   const values: Values[][] = points.map(() => stages.map(() => ({})));
@@ -987,6 +1028,8 @@ function sampleConfigs(space: StrategySpace, n: number, seed: number, meta: bool
  * - A sample draws again when a point breaks a constraint. After `maxTries` draws, it throws an `Error`. Two sampled configs can be equal.
  * - With `shapes`, only the options that support each kind of the list count. Without `shapes`, the result does not change.
  * - A meta option with a `pool` gives only the entries of its pool. With `shapes`, only the entries whose members support each kind count.
+ * - A sample draws again when a point chooses a meta option without a member list. `spaceSize` gives such an option 0.
+ * - With `shapes`, a sample throws a `RangeError` when the space has no config for the kinds. The error names the stages without an option and the meta options without members.
  */
 export function enumerateSpace(space: StrategySpace, options: EnumerateOptions): StrategyConfig[] {
   assertSpace(space);
@@ -1001,7 +1044,14 @@ export function enumerateSpace(space: StrategySpace, options: EnumerateOptions):
   const meta = options.meta ?? "skip";
   if (meta !== "skip" && meta !== "sample") throw new RangeError(`The option meta is ${String(meta)}, not skip or sample.`);
   if (options.n === 0) return [];
-  return sampleConfigs(restrict(space, options.shapes), options.n, options.seed, meta === "sample", options.maxTries ?? Math.max(1000, 100 * options.n), space);
+  const kept = restrict(space, options.shapes);
+  try {
+    return sampleConfigs(kept, options.n, options.seed, meta === "sample", options.maxTries ?? Math.max(1000, 100 * options.n), space);
+  } catch (error) {
+    // Only a space without a config for the shape kinds gives the RangeError. A different failure keeps its own error.
+    if (options.shapes !== undefined && !hasConfig(kept, meta === "sample")) throw noSample(space, kept, options.shapes, meta === "sample");
+    throw error;
+  }
 }
 
 /**

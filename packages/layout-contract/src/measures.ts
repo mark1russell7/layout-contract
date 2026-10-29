@@ -1,4 +1,4 @@
-import { SHAPE_KIND_IDS, type ShapeKind } from "./shapes.ts";
+import { SHAPE_KIND_IDS, type ShapeBound, type ShapeKind } from "./shapes.ts";
 import { RECORD_EPS, RECORD_SCALE } from "./tolerance.ts";
 
 /** The direction of a measure: the side of the better values. */
@@ -32,6 +32,11 @@ export interface MeasureSpec<Id extends string = string> {
   readonly role?: "guard" | "change-guard" | "diagnostic" | "time";
   /** The shape kinds of the boxes that the measure supports. Without it, the measure supports only `rect`. `checkShapes` refuses the other kinds. */
   readonly shapes?: readonly ShapeKind[];
+  /**
+   * The kinds where the value is a bound of the true value, and its side. A kind is in `shapes` or in `bound.shapes`, not in the two lists.
+   * By default, `checkShapes` refuses a bound kind. With `{ level: "safe" }`, it accepts it. `docs/SHAPES.md` tells what a bound value proves for each `direction`.
+   */
+  readonly bound?: ShapeBound;
 }
 
 /** The id of a joint measure. `docs/JOINT-MEASURES.md` gives the definitions. */

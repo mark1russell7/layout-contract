@@ -58,28 +58,60 @@ export interface ShapeSupport<Id extends string = string> {
    * Thus a safe count of 0 tells that the rule has no break. A kind is in `shapes` or in `safe`, not in the two lists.
    */
   readonly safe?: readonly ShapeKind[];
+  /**
+   * The kinds where the value of a measure is a bound of the true value, not the exact value. `ShapeBound` tells the side.
+   * A kind is in one list only: `shapes`, `safe` or `bound.shapes`. `docs/SHAPES.md` tells what a bound value proves.
+   */
+  readonly bound?: ShapeBound;
+}
+
+/**
+ * The kinds where a measure gives a bound of the true value, and the side of the bound.
+ * With `upper`, the value is the true value or more. With `lower`, the value is the true value or less.
+ */
+export interface ShapeBound {
+  readonly shapes: readonly ShapeKind[];
+  readonly side: "upper" | "lower";
 }
 
 /** The level of a rule on a shape kind: an exact count, a safe count (an upper bound), or no support. */
 export type RuleLevel = "exact" | "safe" | "none";
 
-/** This function gives the level of a rule on a shape kind. A kind of `shapesOf` is `exact`, a kind of `safe` is `safe`, and another kind is `none`. */
+/** This function gives the level of a rule on a shape kind. A kind of `shapesOf` is `exact`, a kind of `safe` is `safe`, and another kind is `none`. It does not read `bound`. */
 export function ruleLevel(rule: Pick<ShapeSupport, "shapes" | "safe">, kind: ShapeKind): RuleLevel {
   if (shapesOf(rule).includes(kind)) return "exact";
   return rule.safe?.includes(kind) === true ? "safe" : "none";
 }
 
+/** The level of a measure or a rule on a shape kind. The level `bound` is a value on one side of the true value (`ShapeBound`). */
+export type ShapeLevel = RuleLevel | "bound";
+
+/**
+ * This function gives the level of a measure or a rule on a shape kind. It joins the lists `shapes`, `safe` and `bound.shapes`.
+ * A kind of `shapesOf` is `exact`, a kind of `safe` is `safe`, a kind of `bound.shapes` is `bound`, and another kind is `none`.
+ */
+export function shapeLevel(use: Pick<ShapeSupport, "shapes" | "safe" | "bound">, kind: ShapeKind): ShapeLevel {
+  const level = ruleLevel(use, kind);
+  if (level !== "none") return level;
+  return use.bound?.shapes.includes(kind) === true ? "bound" : "none";
+}
+
 /**
  * This function gives the problems of a list of measures and rules. An empty list tells that the list is good.
- * It refuses an unknown kind, a kind two times in one list, and a kind in `safe` that is also in `shapesOf`.
+ * It refuses an unknown kind, a kind two times in one list, and a kind in more than one of `shapesOf`, `safe` and `bound.shapes`.
+ * It also refuses a `bound` without a list of kinds, and a `side` that is not `upper` or `lower`.
  */
 export function shapeSupportProblems(uses: readonly ShapeSupport[]): string[] {
   const out: string[] = [];
   for (const use of uses) {
-    for (const [name, list] of [["shapes", use.shapes], ["safe", use.safe]] as const) {
-      if (list === undefined) continue;
+    const bound: unknown = use.bound;
+    const isBound = typeof bound === "object" && bound !== null && !Array.isArray(bound);
+    if (bound !== undefined && !isBound) out.push(`${use.id}: the bound value is not an object with shapes and a side`);
+    const boundShapes = isBound ? (bound as { readonly shapes?: unknown }).shapes : undefined;
+    for (const [name, list] of [["shapes", use.shapes], ["safe", use.safe], ["bound", boundShapes]] as const) {
+      if (list === undefined && (name !== "bound" || !isBound)) continue;
       if (!Array.isArray(list)) {
-        out.push(`${use.id}: the ${name} value is not a list of shape kinds`);
+        out.push(`${use.id}: the ${name === "bound" ? "bound shapes" : name} value is not a list of shape kinds`);
         continue;
       }
       list.forEach((k: unknown, i) => {
@@ -87,9 +119,17 @@ export function shapeSupportProblems(uses: readonly ShapeSupport[]): string[] {
         else if (list.indexOf(k) !== i) out.push(`${use.id}: the ${name} list has the kind ${k} two times`);
       });
     }
-    if (!Array.isArray(use.safe)) continue;
     const exact: readonly unknown[] = use.shapes === undefined ? DEFAULT_SHAPES : Array.isArray(use.shapes) ? use.shapes : [];
-    for (const k of new Set<unknown>(use.safe)) if (exact.includes(k)) out.push(`${use.id}: the kind ${String(k)} is in shapes and in safe`);
+    if (Array.isArray(use.safe)) for (const k of new Set<unknown>(use.safe)) if (exact.includes(k)) out.push(`${use.id}: the kind ${String(k)} is in shapes and in safe`);
+    if (!isBound) continue;
+    const side: unknown = (bound as { readonly side?: unknown }).side;
+    if (side !== "upper" && side !== "lower") out.push(`${use.id}: the bound side ${String(side)} is not upper or lower`);
+    if (!Array.isArray(boundShapes)) continue;
+    const safe: readonly unknown[] = Array.isArray(use.safe) ? use.safe : [];
+    for (const k of new Set<unknown>(boundShapes)) {
+      if (exact.includes(k)) out.push(`${use.id}: the kind ${String(k)} is in shapes and in bound`);
+      if (safe.includes(k)) out.push(`${use.id}: the kind ${String(k)} is in safe and in bound`);
+    }
   }
   return out;
 }
@@ -154,8 +194,9 @@ export function shapesOf(use: Pick<ShapeSupport, "shapes">): readonly ShapeKind[
 /** The options of `checkShapes`. */
 export interface ShapeCheck {
   /**
-   * The lowest level of a rule that `checkShapes` accepts. The default `exact` refuses a kind with only a safe count.
-   * The value `safe` also accepts a kind of `safe`. Use it only when the run claims that a rule has no break.
+   * The lowest level that `checkShapes` accepts. The default `exact` refuses a kind with only a safe count or a bound value.
+   * The value `safe` also accepts a kind of `safe` and a kind of `bound.shapes`. Each of them gives a result on one known side of the true result.
+   * Use it only when the run reads each such result for the conclusions that its side proves (`docs/SHAPES.md`).
    */
   readonly level?: "exact" | "safe";
 }
@@ -163,7 +204,7 @@ export interface ShapeCheck {
 /**
  * This function checks that each measure and each rule of a run supports each shape kind of the input. An empty list tells that the run is good.
  * Each break has the claim `shape`, the id of the input, and the first 5 ids of the boxes of the kind.
- * By default, a kind of `safe` is a break, because the count of the rule is not exact. With the level `safe`, it is not a break.
+ * By default, a kind of `safe` or of `bound.shapes` is a break, because the result is not exact. With the level `safe`, it is not a break.
  */
 export function checkShapes(input: Pick<LayoutInput, "id" | "boxes">, uses: readonly ShapeSupport[], options: ShapeCheck = {}): ClaimBreak[] {
   const kinds = shapeKindsOf(input);
@@ -171,11 +212,12 @@ export function checkShapes(input: Pick<LayoutInput, "id" | "boxes">, uses: read
   for (const use of uses) {
     const shapes = shapesOf(use);
     for (const kind of kinds) {
-      const level = ruleLevel(use, kind);
-      if (level === "exact" || (level === "safe" && options.level === "safe")) continue;
+      const level = shapeLevel(use, kind);
+      if (level === "exact" || (level !== "none" && options.level === "safe")) continue;
       const ids = input.boxes.filter((b) => shapeKindOf(b) === kind).map((b) => b.id);
       const shown = ids.slice(0, 5).join(", ") + (ids.length > 5 ? `, and ${ids.length - 5} more` : "");
-      const safe = level === "safe" ? `. The count of ${use.id} on ${kind} is only safe` : "";
+      const safe =
+        level === "safe" ? `. The count of ${use.id} on ${kind} is only safe` : level === "bound" ? `. The value of ${use.id} is only ${use.bound!.side === "upper" ? "an upper" : "a lower"} bound for ${kind}` : "";
       out.push({
         claim: "shape",
         detail: `${use.id} supports only the shape kinds ${shapes.join(", ") || "(none)"}, but the input ${input.id} has ${kind} boxes: ${shown}${safe}`,
