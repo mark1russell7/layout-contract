@@ -1,7 +1,7 @@
 # The joint benchmark of packages/joint (docs/JOINT-BENCH.md): each pair of a pack entry and a router on a joint corpus.
 # The input corpus selects the corpus. The default is joint-v2. A pull request runs the corpus joint-v2.
 # The job check examines the claims of the corpus first. The job smoke routes 1 input of each value of spacing. A break stops the run.
-# A pull request runs the small slice pr. A manual run, or a pull request with the label bench:full, runs the full corpus.
+# A pull request runs the small slice pr, in the job joint-bench of ci.yml. A manual run, or a pull request with the label bench:full, runs the full corpus.
 # The full run gives the inputs to the shards of a matrix by their predicted cost (planShards). Each shard keeps its raw records as the artifact joint-records-<shard>.
 # The job analyze joins the records and keeps the report as the artifact joint-report, in JSON and in Markdown.
 # The job analyze fails when an input of the manifest has no records. The report lists the missing inputs.
@@ -38,19 +38,23 @@ on:
         description: "Add the iteration pairs of L11 (place, route, place again) to the run."
         type: boolean
         default: false
+  # The job joint-bench of ci.yml calls this workflow on each pull request, so the check "CI OK" needs it.
+  # The label bench:full starts a full run here. Another label starts nothing.
   pull_request:
-    types: [opened, synchronize, reopened, labeled]
+    types: [labeled]
+  workflow_call:
 
 permissions:
   contents: read
 
+# In a call from ci.yml, github.workflow is "CI". Thus a run from the label does not cancel the run of CI.
 concurrency:
-  group: joint-bench-${{ github.ref }}-${{ (github.event_name == 'workflow_dispatch' || contains(github.event.pull_request.labels.*.name, 'bench:full')) && 'full' || 'slice' }}
+  group: joint-bench-${{ github.workflow }}-${{ github.ref }}-${{ (github.event_name == 'workflow_dispatch' || contains(github.event.pull_request.labels.*.name, 'bench:full')) && 'full' || 'slice' }}
   cancel-in-progress: ${{ !(github.event_name == 'workflow_dispatch' || contains(github.event.pull_request.labels.*.name, 'bench:full')) }}
 
 jobs:
   check:
-    if: ${{ !inputs.records-run }}
+    if: ${{ !inputs.records-run && (github.event.action != 'labeled' || github.event.label.name == 'bench:full') }}
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:

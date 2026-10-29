@@ -249,6 +249,10 @@ describe("the route times and the shard times", () => {
     expect(t).toMatchObject({ limit: 60, max: 61, over: 1, held: false });
     expect(shardTimes(jobs.slice(0, 1)).held).toBe(true);
     expect(shardTimes([{ ...jobs[0]!, conclusion: "cancelled" }]).held).toBe(false);
+    // In a call from ci.yml, the names of the shard jobs have the prefix of the calling job. Another prefix does not count.
+    const called = jobs.map((j) => ({ ...j, name: `joint-bench / ${j.name}` }));
+    expect(shardTimes(called).shards.map((s) => s.shard)).toEqual([1, 0]);
+    expect(shardTimes(jobs.map((j) => ({ ...j, name: `other / ${j.name}` }))).shards).toEqual([]);
     const md = reportMarkdown(analyze(records(), inputs, { resamples: 50, jobs }));
     expect(md).toContain("### The shard times");
     expect(md).toContain("The longest step `Run one shard` took 61.0 minutes. Shards at 60 minutes or more, or without a step time: 1. Held: no.");

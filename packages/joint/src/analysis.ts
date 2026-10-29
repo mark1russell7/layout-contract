@@ -1158,11 +1158,14 @@ function minutesOf(start: string | undefined, end: string | undefined): number |
   return Number.isFinite(ms) ? ms / 60000 : undefined;
 }
 
-/** This function gives the times of the shard jobs `run (<i>)` of a run, and the verdict of the limit. A job with another name does not count. */
+/**
+ * This function gives the times of the shard jobs `run (<i>)` of a run, and the verdict of the limit. A job with another name does not count.
+ * In a call from `ci.yml`, the name of a shard job is `joint-bench / run (<i>)`.
+ */
 export function shardTimes(jobs: readonly JobFacts[], limit: number = SHARD_LIMIT_MINUTES): ShardTimes {
   const shards: ShardTime[] = [];
   for (const job of jobs) {
-    const m = /^run \((\d+)\)$/.exec(job.name);
+    const m = /^(?:joint-bench \/ )?run \((\d+)\)$/.exec(job.name);
     if (m === null) continue;
     const step = job.steps?.find((s) => s.name === SHARD_STEP);
     const jobMinutes = minutesOf(job.startedAt, job.completedAt);
