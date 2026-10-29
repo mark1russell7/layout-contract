@@ -10,7 +10,6 @@ This file lists the items of the roadmap of this repository. The status page of 
 | L34 | in progress | P1 | The strategy space as data |
 | L52 | in progress | P1 | Measure joint space coverage, with a weekly trend that rises |
 | L60 | in progress | P1 | Text measuring and line breaking as a layout step |
-| L63 | in progress | P1 | Bound the memory of the joint runner before bench-4 |
 
 ## Next
 
@@ -27,6 +26,15 @@ This file lists the items of the roadmap of this repository. The status page of 
 | L66 | next | P1 | An objective spec with one evaluator |
 | L70 | next | P2 | A layout cache per text and options in /text |
 | L71 | next | P2 | A bound-first fast path for labels from a declared character set |
+| L72 | next | P1 | Neat is a family of objectives, not one |
+| L73 | next | P1 | Clarity of structure: macro and micro measures |
+| L77 | next | P1 | Find and bound what fills 6 GB on the 1000-box inputs |
+
+## Blocked
+
+| ID | Status | Priority | Title |
+| --- | --- | --- | --- |
+| L79 | blocked | P2 | bench-4: the next version of the joint space |
 
 ## Later
 
@@ -46,6 +54,9 @@ This file lists the items of the roadmap of this repository. The status page of 
 | L67 | later | P2 | Any objective, answered post hoc by the atlas |
 | L68 | later | P2 | One optimizer with pluggable energy terms |
 | L69 | later | P3 | Learned preferences from pairwise choices |
+| L74 | later | P2 | Forces you compose from queries (ghost edges) |
+| L75 | later | P2 | Objectives under an interaction |
+| L76 | later | P2 | The orbit of a node: a soft keep-out margin |
 
 ## Done
 
@@ -89,4 +100,6 @@ This file lists the items of the roadmap of this repository. The status page of 
 | L56 | done | P2 | A port position relative to its side (Port.along) |
 | L57 | done | P2 | Close the 3 shape gaps that packing found in k91 |
 | L59 | done | P1 | Measure the 5 wave-3 highway routers in the joint bench |
+| L63 | done | P1 | Bound the memory of the joint runner before bench-4 |
 | L64 | done | P1 | Balance and stability measures in the contract (0.2.19) |
+| L78 | done | P2 | An open playground |
