@@ -23,7 +23,7 @@
   },
   "dependencies": {
     "@layout-contract/joint": "workspace:*",
-    "@mark1russell7/highways": "^0.9.1",
+    "@mark1russell7/highways": "^0.9.10",
     "@mark1russell7/layout-contract": "workspace:*",
     "@mark1russell7/packing": "^0.2.14",
     "marked": "^18.1.2"
