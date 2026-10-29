@@ -10,7 +10,6 @@ This file lists the items of the roadmap of this repository. The status page of 
 | L34 | in progress | P1 | The strategy space as data |
 | L52 | in progress | P1 | Measure joint space coverage, with a weekly trend that rises |
 | L60 | in progress | P1 | Text measuring and line breaking as a layout step |
-| L77 | in progress | P1 | Find and bound what fills 6 GB on the 1000-box inputs |
 
 ## Next
 
@@ -29,12 +28,7 @@ This file lists the items of the roadmap of this repository. The status page of 
 | L71 | next | P2 | A bound-first fast path for labels from a declared character set |
 | L72 | next | P1 | Neat is a family of objectives, not one |
 | L73 | next | P1 | Clarity of structure: macro and micro measures |
-
-## Blocked
-
-| ID | Status | Priority | Title |
-| --- | --- | --- | --- |
-| L79 | blocked | P2 | bench-4: the next version of the joint space |
+| L79 | next | P2 | bench-4: the next version of the joint space |
 
 ## Later
 
@@ -102,4 +96,5 @@ This file lists the items of the roadmap of this repository. The status page of 
 | L59 | done | P1 | Measure the 5 wave-3 highway routers in the joint bench |
 | L63 | done | P1 | Bound the memory of the joint runner before bench-4 |
 | L64 | done | P1 | Balance and stability measures in the contract (0.2.19) |
+| L77 | done | P1 | Find and bound what fills 6 GB on the 1000-box inputs |
 | L78 | done | P2 | An open playground |
