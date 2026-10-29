@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.2.18
+
+- PATCH: docs only, with no change to the API. The packing engine found that the npm package has no `docs/` folder, but the comments name its files.
+- The TSDoc of `ShapeBound` has the table of what a bound value proves, so a consumer reads it in the package.
+- The package README has a table of each doc that the comments name, with its link in the repository.
+
 ## 0.2.17
 
 - PATCH: a new optional field, new exports and a fix, with no break. The packing engine found the 2 gaps when it moved to 0.2.16.

@@ -86,6 +86,20 @@ const placed = applyPack(input, output);
 const hard = packHard(input, output);
 ```
 
-The formats are in `docs/FORMAT.md` of `packing` and `docs/LAYOUT-RECORDS.md` of `highways`. The joint measures are in `docs/JOINT-MEASURES.md` of this repository, and the joint corpus is in `docs/JOINT-CORPUS.md`. The promotion guards are in `docs/PROMOTION.md`. The portfolio and its pick rule are in `docs/PORTFOLIO.md`. The corpus checks and the split files are in `docs/CORPUS-CHECKS.md`. The strategy space is in [`docs/STRATEGY-SPACE.md`](https://github.com/mark1russell7/layout-contract/blob/main/docs/STRATEGY-SPACE.md).
+## The docs
 
-The verdict over families is in [`docs/VERDICT.md`](https://github.com/mark1russell7/layout-contract/blob/main/docs/VERDICT.md).
+The comments of the source name each doc as `docs/<NAME>.md`. The docs are in the repository, not in the npm package:
+
+| Doc | The subject |
+|---|---|
+| [`docs/CORPUS.md`](https://github.com/mark1russell7/layout-contract/blob/main/docs/CORPUS.md) | The shared corpus registry, its dimensions and families |
+| [`docs/CORPUS-CHECKS.md`](https://github.com/mark1russell7/layout-contract/blob/main/docs/CORPUS-CHECKS.md) | The corpus checks and the split files |
+| [`docs/JOINT-CORPUS.md`](https://github.com/mark1russell7/layout-contract/blob/main/docs/JOINT-CORPUS.md) | The joint corpus |
+| [`docs/JOINT-MEASURES.md`](https://github.com/mark1russell7/layout-contract/blob/main/docs/JOINT-MEASURES.md) | The joint measures |
+| [`docs/PORTFOLIO.md`](https://github.com/mark1russell7/layout-contract/blob/main/docs/PORTFOLIO.md) | The portfolio and its pick rule |
+| [`docs/PROMOTION.md`](https://github.com/mark1russell7/layout-contract/blob/main/docs/PROMOTION.md) | The promotion guards |
+| [`docs/SHAPES.md`](https://github.com/mark1russell7/layout-contract/blob/main/docs/SHAPES.md) | The shape kinds, the levels of a rule and what a bound value proves |
+| [`docs/STRATEGY-SPACE.md`](https://github.com/mark1russell7/layout-contract/blob/main/docs/STRATEGY-SPACE.md) | The strategy space |
+| [`docs/VERDICT.md`](https://github.com/mark1russell7/layout-contract/blob/main/docs/VERDICT.md) | The verdict over families |
+
+The formats are in `docs/FORMAT.md` of `packing` and `docs/LAYOUT-RECORDS.md` of `highways`. The TSDoc of `ShapeBound` also has the table of what a bound value proves.
