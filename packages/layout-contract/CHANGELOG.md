@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.2.19
+
+- PATCH: new exports, with no break. The packing engine and the joint bench use the same balance and stability measures, so the contract computes them.
+- `balanceOf(boxes, container)` gives the balance of a layout: `gapCv`, `centroidOffset`, the empty share of each side and `sideRange`.
+- `procrustesOf(base, next, { unit, rotate })` gives the move of the box centers after the best move and rotation, in units of `W`. `perChange` divides it by the change share.
+- `balanceMeasureSpecs(stage)` gives the specs of the 9 measures with the prefix of a stage, for example `pack.balance.sideRange`. `balanceMeasures` gives the values with the same ids.
+- `docs/BALANCE.md` gives the definitions and the reasons.
+
 ## 0.2.18
 
 - PATCH: docs only, with no change to the API. The packing engine found that the npm package has no `docs/` folder, but the comments name its files.

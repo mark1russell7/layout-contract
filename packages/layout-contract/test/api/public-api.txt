@@ -4,8 +4,12 @@
 # and private members. The command `api-report check` compares this file with the built .d.ts files.
 # To accept a change of the API, start the build, then `api-report update`, and review the diff.
 
-## . (build/index.d.ts): 227 names
+## . (build/index.d.ts): 239 names
 
+BALANCE_MEASURE_SUFFIXES: build/index.d.ts#BALANCE_MEASURE_SUFFIXES
+BALANCE_SIDE_DEPTH: build/index.d.ts#BALANCE_SIDE_DEPTH
+Balance: build/index.d.ts#Balance
+BalanceMeasureSuffix: build/index.d.ts#BalanceMeasureSuffix
 CORPUS_DIMENSIONS: build/index.d.ts#CORPUS_DIMENSIONS
 CellsOptions: build/index.d.ts#CellsOptions
 ClaimBreak: build/index.d.ts#ClaimBreak
@@ -74,6 +78,7 @@ ParamKind: build/index.d.ts#ParamKind
 ParamValue: build/index.d.ts#ParamValue
 ParamWhen: build/index.d.ts#ParamWhen
 PickSpec: build/index.d.ts#PickSpec
+PlacedBox: build/index.d.ts#PlacedBox
 Placement: build/index.d.ts#Placement
 Point: build/index.d.ts#Point
 Port: build/index.d.ts#Port
@@ -83,6 +88,7 @@ PortfolioLevel: build/index.d.ts#PortfolioLevel
 PortfolioOptions: build/index.d.ts#PortfolioOptions
 PortfolioPick: build/index.d.ts#PortfolioPick
 PortfolioTrace: build/index.d.ts#PortfolioTrace
+ProcrustesOptions: build/index.d.ts#ProcrustesOptions
 RECORD_EPS: build/index.d.ts#RECORD_EPS
 RECORD_SCALE: build/index.d.ts#RECORD_SCALE
 RECT_SCATTERED: build/index.d.ts#RECT_SCATTERED
@@ -147,6 +153,9 @@ VerdictScope: build/index.d.ts#VerdictScope
 VerdictSide: build/index.d.ts#VerdictSide
 VerdictSignTest: build/index.d.ts#VerdictSignTest
 applyPack: build/index.d.ts#applyPack
+balanceMeasureSpecs: build/index.d.ts#balanceMeasureSpecs
+balanceMeasures: build/index.d.ts#balanceMeasures
+balanceOf: build/index.d.ts#balanceOf
 boundsOf: build/index.d.ts#boundsOf
 boxArea: build/index.d.ts#boxArea
 canonicalConfig: build/index.d.ts#canonicalConfig
@@ -188,6 +197,7 @@ levelsOf: build/index.d.ts#levelsOf
 marginSides: build/index.d.ts#marginSides
 minEffectOf: build/index.d.ts#minEffectOf
 mulberry32: build/index.d.ts#mulberry32
+nearestGaps: build/index.d.ts#nearestGaps
 outputGroups: build/index.d.ts#outputGroups
 outputHash: build/index.d.ts#outputHash
 overlapOf: build/index.d.ts#overlapOf
@@ -197,10 +207,12 @@ paramActive: build/index.d.ts#paramActive
 paramLevels: build/index.d.ts#paramLevels
 paramProblem: build/index.d.ts#paramProblem
 paramValue: build/index.d.ts#paramValue
+perChange: build/index.d.ts#perChange
 pickMoves: build/index.d.ts#pickMoves
 placedRect: build/index.d.ts#placedRect
 portPoint: build/index.d.ts#portPoint
 portfolio: build/index.d.ts#portfolio
+procrustesOf: build/index.d.ts#procrustesOf
 productSpace: build/index.d.ts#productSpace
 randomInt: build/index.d.ts#randomInt
 rectInRegion: build/index.d.ts#rectInRegion
@@ -235,6 +247,23 @@ turnSide: build/index.d.ts#turnSide
 verdict: build/index.d.ts#verdict
 
 ## Declarations
+
+### build/index.d.ts#BALANCE_MEASURE_SUFFIXES
+export declare const BALANCE_MEASURE_SUFFIXES: readonly BalanceMeasureSuffix[];
+
+### build/index.d.ts#BALANCE_SIDE_DEPTH
+export declare const BALANCE_SIDE_DEPTH = .25;
+
+### build/index.d.ts#Balance
+export interface Balance {
+  readonly gapCv: number;
+  readonly centroidOffset: number;
+  readonly side: Readonly<Record<Side, number>>;
+  readonly sideRange: number;
+}
+
+### build/index.d.ts#BalanceMeasureSuffix
+export type BalanceMeasureSuffix = "balance.gapCv" | "balance.centroidOffset" | "balance.side.top" | "balance.side.right" | "balance.side.bottom" | "balance.side.left" | "balance.sideRange" | "stability.procrustes" | "stability.seed";
 
 ### build/index.d.ts#CORPUS_DIMENSIONS
 export declare const CORPUS_DIMENSIONS: Readonly<Record<string, CorpusDimension>>;
@@ -714,6 +743,11 @@ export interface ParamWhen {
 ### build/index.d.ts#PickSpec
 export type PickSpec = Pick<MeasureSpec, "direction" | "minEffect">;
 
+### build/index.d.ts#PlacedBox
+export interface PlacedBox extends Rect {
+  readonly id: string;
+}
+
 ### build/index.d.ts#Placement
 export interface Placement {
   readonly id: string;
@@ -783,6 +817,12 @@ export interface PortfolioTrace {
   readonly cut: number;
   readonly deterministic: boolean;
   readonly kept: readonly (readonly string[])[];
+}
+
+### build/index.d.ts#ProcrustesOptions
+export interface ProcrustesOptions {
+  readonly unit: number;
+  readonly rotate?: boolean;
 }
 
 ### build/index.d.ts#RECORD_EPS
@@ -1173,6 +1213,15 @@ export interface VerdictSignTest {
 ### build/index.d.ts#applyPack
 export declare function applyPack(input: LayoutInput, output: PackOutput): LayoutInput;
 
+### build/index.d.ts#balanceMeasureSpecs
+export declare function balanceMeasureSpecs<S extends string>(stage: S): readonly MeasureSpec<`${S}.${BalanceMeasureSuffix}`>[];
+
+### build/index.d.ts#balanceMeasures
+export declare function balanceMeasures<S extends string>(stage: S, balance: Balance): Record<`${S}.${BalanceMeasureSuffix}`, number>;
+
+### build/index.d.ts#balanceOf
+export declare function balanceOf(boxes: readonly Rect[], container: Rect): Balance;
+
 ### build/index.d.ts#boundsOf
 export declare function boundsOf(region: Region): Rect;
 
@@ -1296,6 +1345,9 @@ export declare function minEffectOf(spec: Pick<MeasureSpec, "minEffect">, a?: nu
 ### build/index.d.ts#mulberry32
 export declare function mulberry32(seed: number): () => number;
 
+### build/index.d.ts#nearestGaps
+export declare function nearestGaps(boxes: readonly Rect[]): number[];
+
 ### build/index.d.ts#outputGroups
 export declare function outputGroups(hashes: Readonly<Record<string, readonly string[]>>): OutputGroup[];
 
@@ -1326,6 +1378,9 @@ export declare function paramProblem(param: SpaceParam, value: unknown): string 
 ### build/index.d.ts#paramValue
 export declare function paramValue(param: SpaceParam, value: ParamValue): ParamValue;
 
+### build/index.d.ts#perChange
+export declare function perChange(move: number, changed: number, count: number): number;
+
 ### build/index.d.ts#pickMoves
 export declare function pickMoves(trace: Pick<PortfolioTrace, "picked">): {
   pick: number;
@@ -1339,6 +1394,9 @@ export declare function portPoint(box: Pick<LayoutBox, "w" | "h">, port: Port): 
 
 ### build/index.d.ts#portfolio
 export declare function portfolio<I, O>(id: string, members: readonly Member<I, O>[] | ((input: I) => readonly Member<I, O>[]), key: PortfolioKey<I, O>, options?: PortfolioOptions): Portfolio<I, O>;
+
+### build/index.d.ts#procrustesOf
+export declare function procrustesOf(base: readonly PlacedBox[], next: readonly PlacedBox[], options: ProcrustesOptions): number;
 
 ### build/index.d.ts#productSpace
 export declare function productSpace(a: StrategySpace, b: StrategySpace, name: string): StrategySpace;
