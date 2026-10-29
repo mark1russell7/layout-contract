@@ -169,9 +169,11 @@ describe("runInput", () => {
 });
 
 describe("the parts of the runner", () => {
-  it("lists 13 pack entries and the 15 routers, with the highway routers before portfolio", () => {
-    expect(PACK_ENTRIES).toHaveLength(13);
-    expect(PACK_ENTRIES.at(-1)).toEqual({ id: "select", strategy: "select", options: {} });
+  it("lists 18 pack entries and the 15 routers, with the highway routers before portfolio", () => {
+    expect(PACK_ENTRIES).toHaveLength(18);
+    // The entries of bench-4 come after select, so the pairs of bench-3 keep their order
+    expect(PACK_ENTRIES[12]).toEqual({ id: "select", strategy: "select", options: {} });
+    expect(PACK_ENTRIES.slice(13).map((p) => p.id)).toEqual(["anneal-maxrects-bl-k16", "anneal-skyline-k16", "genetic-maxrects-bl-k16", "tabu-maxrects-bl-k16", "pack"]);
     expect(ROUTERS).toHaveLength(15);
     expect(ROUTERS.slice(9, 14)).toEqual([...HIGHWAY_ROUTERS]);
     expect(ROUTERS).toContain("corners");

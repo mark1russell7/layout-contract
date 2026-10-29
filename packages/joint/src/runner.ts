@@ -14,7 +14,7 @@ import {
   type PackOutput,
   type RunEnv,
 } from "@mark1russell7/layout-contract";
-import { checkHard, measure, outputHash as packHash, packWith, SELECT_MEMBERS, selectFeatures, selectLeaf, strategy as packStrategy, unsupportedOf } from "@mark1russell7/packing";
+import { checkHard, measure, outputHash as packHash, packWith, SELECT_MEMBERS, SELECT_TABLE, selectFeatures, selectLeaf, strategy as packStrategy, unsupportedOf, type SelectNode } from "@mark1russell7/packing";
 import {
   asRouter,
   benchRun,
@@ -66,9 +66,26 @@ export interface PackEntry {
 }
 
 /**
- * The pack entries of the joint runner: the entries of the benchmark of `packing` 0.2.10 (`bench/entries.ts`) without `push`, and `select`.
- * The strategy `push` supports only the mode `incremental`, and each input of the joint corpora has the mode `offline`.
- * The composite strategy `select` of `packing` 0.2.15 (roadmap item L32) packs each input with `rows` or `maxrects-bl`. Its output is the output of that member.
+ * The decision table of the pack entry `pack`: the choice of `pack()` of `packing` 0.3.0 without a strategy (`defaultLayoutOf`).
+ * A container of fixed size gets the branch of `SELECT_TABLE` for a fixed size. Each other container gets `rows`.
+ * The registry of `packing` has no strategy for this choice. The strategy `select` with this table makes it.
+ */
+export const PACK_DEFAULT_TABLE: SelectNode = Object.freeze({
+  feature: "fixed",
+  yes: (SELECT_TABLE as { readonly yes: SelectNode }).yes,
+  no: { leaf: 7, pick: 0 },
+} satisfies SelectNode) as SelectNode;
+
+/** The member of the entry `maxrects-bl`, for the order searches of `packing` 0.3.0 (roadmap item k26 of `packing`). */
+const MAXRECTS_BL = { id: "maxrects-bl", strategy: "maxrects", options: { rule: "bl" } };
+
+/**
+ * The pack entries of the joint runner. These are the entries of bench-3, the 4 order searches of bench-4, and `pack`.
+ * - The entries of the benchmark of `packing` 0.2.10 (`bench/entries.ts`) without `push`. The strategy `push` supports only the mode `incremental`, and each input of the joint corpora has the mode `offline`.
+ * - The composite strategy `select` of `packing` 0.2.15 (roadmap item L32) packs each input with `rows` or `maxrects-bl`. Its output is the output of that member.
+ * - The entries of roadmap item k26 of `packing` 0.3.0 (`bench/entries.ts`): `anneal`, `genetic` and `tabu` search over the orders, with 16 packs of their member.
+ * - The entry `pack` gives the choice of `pack()` without a strategy (`PACK_DEFAULT_TABLE`). The prediction `packing-k58-step-a` scores it.
+ * The entries of bench-4 come after `select`. Thus the pairs of bench-3 keep their order.
  */
 export const PACK_ENTRIES: readonly PackEntry[] = Object.freeze([
   { id: "rows", strategy: "rows", options: {} },
@@ -84,6 +101,11 @@ export const PACK_ENTRIES: readonly PackEntry[] = Object.freeze([
   { id: "maxrects-bl", strategy: "maxrects", options: { rule: "bl" } },
   { id: "maxrects-cp", strategy: "maxrects", options: { rule: "cp" } },
   { id: "select", strategy: "select", options: {} },
+  { id: "anneal-maxrects-bl-k16", strategy: "anneal", options: { member: MAXRECTS_BL, iterations: 16 } },
+  { id: "anneal-skyline-k16", strategy: "anneal", options: { member: "skyline", iterations: 16 } },
+  { id: "genetic-maxrects-bl-k16", strategy: "genetic", options: { member: MAXRECTS_BL, iterations: 16, population: 4 } },
+  { id: "tabu-maxrects-bl-k16", strategy: "tabu", options: { member: MAXRECTS_BL, iterations: 16, neighbors: 4 } },
+  { id: "pack", strategy: "select", options: { table: PACK_DEFAULT_TABLE } },
 ]);
 
 /** The id of the composite pack entry `select` in the pair ids. */

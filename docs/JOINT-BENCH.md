@@ -1254,3 +1254,31 @@ The records of each router stay the same: all 585 records of `gc-6144` equal run
 No router stands out after the fix. The largest heap comes from `search`, `shared-all`, `sections`, `gaps` or `portfolio`. A peak RSS of less than 3 GB is the target of L77, so L77 is done. bench-4 (L79) no longer waits.
 
 The CI of `highways` also has a heap gate since highways #193. It routes the dense board of ROUTE-SCALE with each of the 15 routers, each with a cap from its measured peak.
+
+## The prediction for bench-4 (L79)
+
+bench-4 uses `packing` `^0.4.0`. The outputs of an explicit strategy are byte-equal to 0.3.0. It has 18 pack entries and 270 pairs:
+
+- the 13 entries of bench-3, in the same order.
+- the 4 order searches of `packing` 0.3.0 (k26 of `packing`): `anneal-maxrects-bl-k16`, `anneal-skyline-k16`, `genetic-maxrects-bl-k16` and `tabu-maxrects-bl-k16`, each with 16 packs of its member.
+- `pack`: the choice of `pack()` without a strategy (`PACK_DEFAULT_TABLE`).
+
+The registry of `packing` has no strategy for the choice of `pack()`. The entry `pack` is `select` with a different table. A container of fixed size gets the branch of `SELECT_TABLE` for a fixed size. Each other container gets `rows`. The test `pack-default.test.ts` compares the entry with `defaultLayoutOf` on inputs of each container kind.
+
+The claims 9 and 10 of the prediction `packing-k58-step-a` of `packing` name `pack()`. They are A9 and A10. The entry `select` is the default of the registry (`DEFAULT_STRATEGY`). It also picks `maxrects-bl` on some inputs of free size. B9 and B10 apply the two claims to `select`, as more data.
+
+The run is one full run of `joint-v2`, compared with run `40884908305`. The claims were written before the run.
+
+| Claim | p | Claim |
+|---|---|---|
+| B1 | 0.8 | The checks of the pull request pass, with the slice `pr` of the 270 pairs. |
+| B2 | 0.85 | The output hash of each pair of the 13 entries of bench-3 equals run `40884908305`. |
+| B3 | 0.75 | Each shard ends with no error of memory, and the peak RSS of each input is less than 3 GB. |
+| B4 | 0.5 | The longest shard is at most 1.4 times the longest shard of run `40884908305`. |
+| B5 | 0.85 | Each order search has no hard breaks on an input where its member has none. |
+| A9 | 0.97 | `pack` gives the hash of `rows` on each input of `joint-v2` that is not of fixed size. |
+| A10 | 0.8 | The stress misses of `pack` with `portfolio` are at most the stress misses of `rows` with `portfolio`. |
+| B9 | 0.15 | `select` gives the hash of `rows` on each input of `joint-v2` that is not of fixed size. |
+| B10 | 0.25 | The stress misses of `select` with `portfolio` are at most the stress misses of `rows` with `portfolio`. |
+
+A9 is true by its construction, if the table copies `defaultLayoutOf`. On a fixed size, `maxrects-bl` packs closer than `rows`, and that can add stress misses. The largest peak of L77 was 1893 MB with the cap of 2 GB, so B3 is not sure.

@@ -102,9 +102,9 @@ describe("the cost model", () => {
     expect(COST_MODEL.corpus).toBe(SET_V2);
     expect(COST_MODEL.pairRun).toBe(40884908305);
     expect(COST_MODEL.run).toBe(40884908305);
-    // The run of L63 had the 195 pairs of bench-3 and no lane pairs. The lane term stays the fit of run 40757153151 (L13), with 24 passes.
+    // The run of L63 had the 195 pairs of bench-3 and no lane pairs. bench-4 has 270 pairs: the fit stays a cost for each pair. The lane term stays the fit of run 40757153151 (L13), with 24 passes.
     expect(COST_MODEL.pairs).toBe(195);
-    expect(PAIRS).toBe(195);
+    expect(PAIRS).toBe(270);
     expect(COST_MODEL.lanePasses).toBe(0);
     expect(PASSES).toBe(24);
     expect(COST_MODEL.quantile).toBe(0.9);
