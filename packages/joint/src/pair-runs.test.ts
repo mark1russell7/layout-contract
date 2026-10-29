@@ -5,6 +5,7 @@ import type { LayoutInput, LayoutRecord } from "@mark1russell7/layout-contract";
 import { describe, expect, it } from "vitest";
 import { rankPairs } from "./analysis.ts";
 import { jointCorpus, jointInput, jointSpecs, SET_V2 } from "./corpus.ts";
+import { ITER_VARIANTS, iterEntries, LANE_VARIANTS, laneEntries } from "./lanes.ts";
 import { PACK_ENTRIES, pairRuns, runInput } from "./runner.ts";
 
 const three: LayoutInput = {
@@ -41,6 +42,19 @@ describe("pairRuns", () => {
       expect(run.result?.routes).toHaveLength(2);
       expect(run.pack?.placements).toHaveLength(3);
     }
+  });
+
+  it("gives the same records with freeRoutes, with lane pairs, iteration pairs and shared pack outputs (L63)", () => {
+    const lanes = laneEntries(LANE_VARIANTS.filter((v) => v.name === "lanes-sides"), ["rows"], ["corners"]);
+    const iterate = iterEntries(ITER_VARIANTS.slice(0, 1), ["rows"], ["corners"]);
+    const options = { ...small, lanes, iterate };
+    const kept = [...pairRuns(three, undefined, options)];
+    const freed = [...pairRuns(three, undefined, { ...options, freeRoutes: true })];
+    expect(freed.map((r) => stable(r.record))).toEqual(kept.map((r) => stable(r.record)));
+    // select gives the output of a member, so its pairs share a group. The freed router has no result there, and corners keeps it for the lane pairs.
+    const select = freed.filter((r) => r.record.strategy.startsWith("select+"));
+    expect(select.find((r) => r.record.strategy === "select+straight")?.result).toBeUndefined();
+    expect(select.find((r) => r.record.strategy === "select+corners")?.result?.routes).toHaveLength(2);
   });
 
   it("routes with the options of a router entry, and writes them in the record", () => {

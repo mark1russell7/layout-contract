@@ -189,7 +189,8 @@ if (command === "check") {
     const t0 = performance.now();
     const records = [];
     let last = t0;
-    for (const run of pairRuns(input, entry.cell, { env, corpus: set, lanes, iterate, ...(commit === undefined ? {} : { commit }) })) {
+    // freeRoutes frees the routes that no lane pair and no iteration pair reads, so a large input fits in the heap (L63).
+    for (const run of pairRuns(input, entry.cell, { env, corpus: set, lanes, iterate, freeRoutes: true, ...(commit === undefined ? {} : { commit }) })) {
       records.push(run.record);
       const now = performance.now();
       if (now - last > SLOW_PAIR_MS) console.log(`  pair ${run.record.strategy}: ${Math.round(now - last)} ms, heap ${mb(process.memoryUsage().heapUsed)} MB`);

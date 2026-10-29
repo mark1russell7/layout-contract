@@ -175,6 +175,12 @@ export interface RunOptions {
   readonly iterate?: readonly IterEntry[];
   /** The least space between two facing sides of an iteration pair. The default is `ITER_FLOOR_SPACE`. */
   readonly iterFloor?: number;
+  /**
+   * With `true`, the runner frees the routes of each router that no lane pair and no iteration pair reads. It frees them after the first pair that yields them.
+   * The runner keeps their measures and joint values, so the records do not change. A later pair with the same pack output then has no `result`.
+   * The default is `false`. The bench sets it, because the routes of all routers of a large input do not fit in the heap (L63).
+   */
+  readonly freeRoutes?: boolean;
 }
 
 /** This function gives the input of the packer: the boxes without `group` and `parent`. No strategy of `packing` 0.2.10 supports groups. */
@@ -262,6 +268,18 @@ interface RouteRun {
   readonly hard: Record<string, number>;
   /** The time of each step of the route, in milliseconds, by the name of its measure. */
   readonly times: Record<string, number>;
+}
+
+/** The joint values of a route, and the time to compute them. */
+interface JointValues {
+  readonly values: ReturnType<typeof jointMeasures>;
+  readonly ms: number;
+}
+
+/** A route that the runner freed (`freeRoutes`): the facts of `RouteRun` without the result, with the count of the routes and the joint values. */
+interface FreedRoute extends Omit<RouteRun, "result"> {
+  readonly count: number;
+  readonly joint: JointValues;
 }
 
 /** A router that did not run on an input, with the reason. */
@@ -367,7 +385,7 @@ export interface PairRun {
   readonly packed?: PackedInput;
   /** The output of the pack. A pair with a skipped pack has none. */
   readonly pack?: PackOutput;
-  /** The output of the router. A skipped pair has none. */
+  /** The output of the router. A skipped pair has none. With `freeRoutes`, a later pair with the same pack output and router has none. */
   readonly result?: Result;
 }
 
@@ -391,7 +409,10 @@ export function* pairRuns(input: LayoutInput, cell: Readonly<Record<string, unkn
   const shared = new Map<string, PackGroup>();
   const packRuns = new Map<string, PackRun>();
   const iterating = (options.iterate?.length ?? 0) > 0;
-  const jointOf = new WeakMap<RouteRun, { readonly values: ReturnType<typeof jointMeasures>; readonly ms: number }>();
+  const free = options.freeRoutes ?? false;
+  // The lane pairs and the iteration pairs read the routes of their routers, so the runner keeps them.
+  const keep = new Set([...(options.lanes ?? []).map((l) => l.router), ...(options.iterate ?? []).map((i) => i.router)]);
+  const jointOf = new WeakMap<RouteRun, JointValues>();
 
   const factsOf = (entry: PackEntry, router: string, id: string = entry.id, extra: Readonly<Record<string, unknown>> = {}) => ({
     stage: "joint" as const,
@@ -417,7 +438,7 @@ export function* pairRuns(input: LayoutInput, cell: Readonly<Record<string, unkn
       const edges: readonly LayoutEdge[] = packed.input.edges ?? [];
       const graph = inputGraph(packed.input as unknown as Parameters<typeof inputGraph>[0]);
       const facts = placementFacts(boxes, edges);
-      group = { packed, facts, graph, check: routeFacts(graph), routes: new Map(), plain: new Map(), placementMs: now() - t0 };
+      group = { packed, facts, graph, check: routeFacts(graph), routes: new Map(), plain: new Map(), freed: new Map(), placementMs: now() - t0 };
       shared.set(key, group);
     }
     return group;
@@ -441,12 +462,27 @@ export function* pairRuns(input: LayoutInput, cell: Readonly<Record<string, unkn
     }
     return r;
   };
+  /**
+   * This function gives the joint values of a route. The joint measures depend only on the group and its routes.
+   * With iteration pairs or with `freeRoutes`, the runner keeps them, so a round and its record, or two pack entries with one output, share them. A run without the two options does not change.
+   */
+  const jointFor = (g: PackGroup, route: RouteRun): JointValues => {
+    const caching = iterating || free;
+    let cached = caching ? jointOf.get(route) : undefined;
+    if (cached === undefined) {
+      const t0 = now();
+      const values = jointMeasures(g.facts, route.result.routes, edgeCount - g.packed.dropped, target);
+      cached = { values, ms: now() - t0 };
+      if (caching) jointOf.set(route, cached);
+    }
+    return cached;
+  };
   const recordOf = (
     entry: PackEntry,
     router: string,
     run: Extract<PackRun, { ok: true }>,
     g: PackGroup,
-    route: RouteRun,
+    route: RouteRun | FreedRoute,
     packMs: number,
     totalMs: number,
     deterministic: boolean,
@@ -454,23 +490,14 @@ export function* pairRuns(input: LayoutInput, cell: Readonly<Record<string, unkn
     extra?: Readonly<Record<string, unknown>>,
     more: Readonly<Record<string, number>> = {},
   ): LayoutRecord => {
-    // The joint measures depend only on the group and its routes. With iteration pairs, a round and its record share them. A run without them does not change.
-    let cached = iterating ? jointOf.get(route) : undefined;
-    if (cached === undefined) {
-      const t0 = now();
-      const values = jointMeasures(g.facts, route.result.routes, edgeCount - g.packed.dropped, target);
-      cached = { values, ms: now() - t0 };
-      if (iterating) jointOf.set(route, cached);
-    }
-    const joint = cached.values;
-    const jointMs = cached.ms;
+    const { values: joint, ms: jointMs } = "joint" in route ? route.joint : jointFor(g, route);
     const measures = finite({
       ...run.measures,
       "pack.ms": packMs,
       ...route.measures,
       ...joint,
       "joint.overflow.edges": g.packed.dropped,
-      "joint.routes": route.result.routes.length,
+      "joint.routes": "count" in route ? route.count : route.result.routes.length,
       "joint.ms": totalMs,
       ...route.times,
       "time.placement.ms": g.placementMs,
@@ -498,12 +525,22 @@ export function* pairRuns(input: LayoutInput, cell: Readonly<Record<string, unkn
     }
     const g = groupOf(run, entry.id);
     for (const router of mine) {
+      const freed = g.freed.get(router);
+      if (freed !== undefined) {
+        yield { record: recordOf(entry, router, run, g, freed, run.ms, run.ms + freed.ms, run.deterministic && freed.deterministic), packed: g.packed, pack: run.output };
+        continue;
+      }
       const route = routeOf(g, router);
       if (!route.ok) {
         yield { record: skippedRecord(entry, router, route.reason), packed: g.packed, pack: run.output };
         continue;
       }
       yield { record: recordOf(entry, router, run, g, route, run.ms, run.ms + route.ms, run.deterministic && route.deterministic), packed: g.packed, pack: run.output, result: route.result };
+      if (free && !keep.has(router)) {
+        const { result, ...facts } = route;
+        g.freed.set(router, { ...facts, count: result.routes.length, joint: jointFor(g, route) });
+        g.routes.delete(router);
+      }
     }
   }
 
@@ -791,6 +828,8 @@ interface PackGroup {
   readonly routes: Map<string, RouteRun | RouteMiss>;
   /** The plain routes of the passes of a lane pair before its last pass, by router. */
   readonly plain: Map<string, PlainRoute | RouteMiss>;
+  /** The routes that the runner freed (`freeRoutes`), by router. */
+  readonly freed: Map<string, FreedRoute>;
   readonly placementMs: number;
 }
 
