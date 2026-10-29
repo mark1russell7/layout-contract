@@ -1,7 +1,8 @@
 import type { StrategyConfig } from "@mark1russell7/layout-contract";
 import { describe, expect, it } from "vitest";
 import type { SweepState } from "./night.ts";
-import { correlationRatio, firstOrder, firstOrderMarkdown, JOINT_GROUPS } from "./sensitivity.ts";
+import { correlationRatio, firstOrder, firstOrderMarkdown, JOINT_GROUPS, saltelliDesign, totalOrder, totalOrderMarkdown } from "./sensitivity.ts";
+import { JOINT_SPACE } from "./space.ts";
 
 const config = (router: string, pack: string, lanes?: string): StrategyConfig => ({
   space: "joint",
@@ -59,5 +60,64 @@ describe("firstOrder", () => {
     expect(r.groups[0]!.eta2).toBe(0);
     expect(firstOrderMarkdown(r)).toContain("the configs with router = b");
     expect(() => firstOrder(state(), JOINT_GROUPS, { within: { group: "nope", level: "x" } })).toThrow(RangeError);
+  });
+});
+
+describe("saltelliDesign and totalOrder", () => {
+  const routerOf = (c: StrategyConfig): string => c.stages["highways.router"]?.option ?? "none";
+  const lanesOf = (c: StrategyConfig): string => c.stages["lanes.mode"]?.option ?? "none";
+
+  it("changes one stage from A to AB_i, with the choice of B", () => {
+    const { design, configs } = saltelliDesign(JOINT_SPACE, 16, 3, "2026-10-29");
+    expect(design.rows).toHaveLength(16);
+    expect(design.stages).toEqual(JOINT_SPACE.stages.map((s) => s.name));
+    expect(Object.keys(configs).length).toBeLessThanOrEqual(16 * (design.stages.length + 2));
+    for (const r of design.rows) {
+      for (const stage of design.stages) {
+        const ab = configs[r.ab[stage]!]!;
+        for (const other of design.stages) {
+          const from = other === stage ? configs[r.b]! : configs[r.a]!;
+          expect(JSON.stringify(ab.stages[other] ?? null)).toBe(JSON.stringify(from.stages[other] ?? null));
+        }
+      }
+    }
+    expect(() => saltelliDesign(JOINT_SPACE, 1, 3, "d")).toThrow(RangeError);
+  });
+
+  /** This function gives a state with the values of `f` for each config of a design, on 3 inputs. */
+  function designState(f: (c: StrategyConfig) => number): { s: SweepState; design: ReturnType<typeof saltelliDesign>["design"] } {
+    const { design, configs } = saltelliDesign(JOINT_SPACE, 200, 7, "2026-10-29");
+    const inputs = ["i0", "i1", "i2"];
+    const s: SweepState = { schema: "sweep-state/1", epoch: "e", corpus: "joint-v2", inputs, configs: {}, values: {}, reference: inputs.map(() => null), summary: [], nights: [] } as unknown as SweepState;
+    for (const [id, c] of Object.entries(configs)) {
+      s.configs[id] = { config: c, status: "design", first: "2026-10-29" };
+      s.values[id] = inputs.map(() => f(c));
+    }
+    return { s, design };
+  }
+
+  it("gives a total of 0 to a stage that the score does not read, and equal indices with no interaction", () => {
+    const routers = new Map(JOINT_SPACE.stages.find((st) => st.name === "highways.router")!.options.map((o, i) => [o.id, i]));
+    const { s, design } = designState((c) => routers.get(routerOf(c))!);
+    const result = totalOrder(s, design, { draws: 200 });
+    const router = result.stages.find((x) => x.stage === "highways.router")!;
+    expect(router.total).toBeGreaterThan(0.8);
+    expect(router.first).toBeGreaterThan(0.8);
+    for (const x of result.stages.filter((y) => y.stage !== "highways.router")) {
+      expect(x.total).toBe(0);
+      expect(x.first).toBe(0);
+    }
+    expect(result.rows).toBe(200);
+    expect(totalOrderMarkdown(result)).toContain("| highways.router |");
+  });
+
+  it("shows an interaction as a total above the first index", () => {
+    // The score is 1 only when the router is "straight" and the lanes are off, so neither stage acts alone.
+    const { s, design } = designState((c) => (routerOf(c) === "straight" && lanesOf(c) === "none" ? 1 : 0));
+    const result = totalOrder(s, design, { draws: 200 });
+    const lanes = result.stages.find((x) => x.stage === "lanes.mode")!;
+    expect(lanes.total).toBeGreaterThan(lanes.first + 0.1);
+    const pack = result.stages.find((x) => x.stage === "packing.entry")!;
+    expect(pack.total).toBe(0);
   });
 });

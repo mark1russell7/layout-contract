@@ -406,7 +406,7 @@ export function summaryRows(table: SummaryTable): SummaryRow[] {
 }
 
 /** The status of a config in the state. */
-export type ConfigStatus = "baseline" | "screened" | "alive" | "dropped" | "halved";
+export type ConfigStatus = "baseline" | "screened" | "alive" | "dropped" | "halved" | "design";
 
 /** The outcome of the race for one config. */
 export interface RaceOutcome {

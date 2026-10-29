@@ -1,6 +1,7 @@
 // The state of the sweep and the steps of one night (`docs/SWEEP.md`): plan round 1, apply the records, race, plan round 2.
 // The state is one JSON object. The workflow keeps it on the data branch `sweep-data`, and the script `scripts/sweep.mjs` reads and writes it.
 import { configId, type LayoutRecord, type StrategyConfig, type StrategySpace } from "@mark1russell7/layout-contract";
+import { saltelliDesign, type SaltelliDesign } from "./sensitivity.ts";
 import { configRun, JOINT_SPACE, type ConfigRun } from "./space.ts";
 import {
   addToSummary,
@@ -99,6 +100,8 @@ export interface SweepState {
   readonly reference: (Reference | null)[];
   readonly summary: SummaryRow[];
   readonly nights: NightEntry[];
+  /** The Saltelli designs of the design nights (`planDesign`). The race keeps the values of their configs. */
+  designs?: SaltelliDesign[];
 }
 
 /** This function gives a new state with the configs of the baseline arm. */
@@ -236,6 +239,37 @@ export function planRound1(state: SweepState, inputs: readonly SweepInput[], opt
 }
 
 /**
+ * This function plans round 1 of a design night. The baseline arm runs on each input. The configs of a Saltelli design of `n` rows run on the screen.
+ * A new config of the design gets the status `design`, and so does a config that the race dropped or halved.
+ * A config of the state with values keeps its status. It runs only on the inputs of the screen with no value. The race keeps the values of each config of a design.
+ * The race and round 2 of the night do not change.
+ */
+export function planDesign(state: SweepState, inputs: readonly SweepInput[], options: PlanOptions & { readonly n: number }): NightPlan {
+  const space = options.space ?? JOINT_SPACE;
+  const at = indexOf(state);
+  const screen = screenInputs(inputs);
+  const { design, configs } = saltelliDesign(space, options.n, nightSeed(options.date), options.date);
+  const jobs: SweepJob[] = [];
+  for (const id of baselineIds(space)) for (const i of inputs) jobs.push({ config: id, input: i.id });
+  const baseline = new Set(baselineIds(space));
+  for (const [id, config] of Object.entries(configs)) {
+    // The baseline arm has its jobs on each input already.
+    if (baseline.has(id)) continue;
+    const known = state.configs[id];
+    if (known === undefined || known.status === "dropped" || known.status === "halved") {
+      state.configs[id] = { ...(known ?? {}), config, status: "design", first: known?.first ?? options.date };
+      state.values[id] = state.inputs.map(() => null);
+    }
+    for (const i of missingOf(state, id, screen, at)) jobs.push({ config: id, input: i.id });
+  }
+  nightOf(state, options.date);
+  const plan = finish(state, 1, jobs, [], inputs, options);
+  nightOf(state, options.date).round1 = plan.facts;
+  (state.designs ??= []).push(design);
+  return plan;
+}
+
+/**
  * This function adds the records of a round to the state, and gives the count of the new values.
  * - The records of the baseline arm on an input give the reference of the input. Without them, the stored reference stays.
  * - A config gets a value on an input only once. A later record of the same input checks the drift of the baseline arm.
@@ -343,13 +377,15 @@ export function raceNight(state: SweepState, inputs: readonly SweepInput[], opti
     .map(([id]) => id);
   const first = race(values, screened, { ...common, ...(options.eta === undefined ? {} : { eta: options.eta }) });
   const second = race(values, full, { ...common, eta: Infinity });
+  // The race keeps the values of a config of a design, so the design rows stay full.
+  const designed = new Set((state.designs ?? []).flatMap((d) => d.rows.flatMap((r) => [r.a, r.b, ...Object.values(r.ab)])));
   for (const o of [...first, ...second]) {
     const c = state.configs[o.config]!;
     c.status = o.status;
     c.decided = options.date;
     c.label = o.label;
     c.mean = Number(o.mean.toFixed(6));
-    if (o.status !== "alive") delete state.values[o.config];
+    if (o.status !== "alive" && !designed.has(o.config)) delete state.values[o.config];
   }
   nightOf(state, options.date).race = {
     raced: first.length,
@@ -396,7 +432,7 @@ export function planRound2(state: SweepState, inputs: readonly SweepInput[], opt
 
 /** This function gives the count of the configs of each status. */
 export function statusCounts(state: SweepState): Record<ConfigStatus, number> {
-  const out: Record<ConfigStatus, number> = { baseline: 0, screened: 0, alive: 0, dropped: 0, halved: 0 };
+  const out: Record<ConfigStatus, number> = { baseline: 0, screened: 0, alive: 0, dropped: 0, halved: 0, design: 0 };
   for (const c of Object.values(state.configs)) out[c.status]++;
   return out;
 }
