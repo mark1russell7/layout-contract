@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { canvasAdvance, createMeasurer, fontKey, graphemesOf, layoutText, TEXT_MEASURES, TEXT_UNITS, textMeasures, type AdvanceFn } from "./text.ts";
 
 /** A fake font: each character has a width of 7.3 px, a space 3.1 px, and "W" 11.9 px. The widths are not whole units, so the tests see the rounding. */
@@ -145,5 +145,29 @@ describe("textMeasures", () => {
 
   it("has a spec for each measure", () => {
     expect(TEXT_MEASURES.map((s) => s.id)).toEqual(["text.lines", "text.raggedness", "text.overflow", "text.cacheHit", "text.ms"]);
+  });
+});
+
+describe("the segmenters", () => {
+  it("makes each Intl.Segmenter only once, for many layouts", async () => {
+    const Original = Intl.Segmenter;
+    let made = 0;
+    class Counting extends Original {
+      constructor(...args: ConstructorParameters<typeof Original>) {
+        super(...args);
+        made++;
+      }
+    }
+    (Intl as { Segmenter: unknown }).Segmenter = Counting;
+    try {
+      vi.resetModules();
+      const fresh = await import("./text.ts");
+      const measurer = fresh.createMeasurer(fake);
+      const r = rng(9);
+      for (let t = 0; t < 500; t++) fresh.layoutText(sentence(r), { font: FONT, measurer, lineHeight: 16, wrapWidth: 60, maxLines: 2, wordBreak: "anywhere" });
+      expect(made).toBeLessThanOrEqual(2);
+    } finally {
+      (Intl as { Segmenter: unknown }).Segmenter = Original;
+    }
   });
 });
