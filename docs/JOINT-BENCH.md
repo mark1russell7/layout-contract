@@ -1173,3 +1173,27 @@ The candidate for the first joint default changes. It was `lanes-sides.maxrects-
 - The cap is 3 rounds. In the stress cell, 33 to 44 of 81 records end at the cap. A higher cap is not measured.
 - The margins change for each side (`iterMargins`). A gap for each pair of facing boxes needs `packing` (k77).
 - Do not refit the cost model from this run. The fit divides by 130 pairs, and this run has 148. `fit-cost.mjs` does not count the rounds yet.
+
+## The prediction for the memory of the large inputs (L77)
+
+L63 frees the routes that no later pair reads. But the peak RSS of the inputs with 1000 boxes fell only 3%, from 6375 MB to 6184 MB. L77 finds the cause before bench-4 adds pairs.
+
+The candidates of the cause:
+
+- The heap cap of 6 GB lets V8 grow the heap lazily. Then the RSS follows the cap, and not the live data.
+- The buffers of one input: the frames and the records of all its pairs.
+- The state of one router on a large input, for example the portfolio and its members.
+
+The target: the peak RSS of each input of `joint-v2` with 1000 boxes stays under 3 GB. The records stay equal to the records of run `40884908305` without the times, and the most costly shard is at most 10% slower.
+
+| Claim | p | Claim text |
+|---|---|---|
+| N1 | 0.55 | Risky: with the heap cap at 3 GB, the 3 inputs with the largest peak finish with no error of memory, and their records do not change. |
+| N2 | 0.6 | The live heap after a forced full GC, at the point of the peak, is under 2 GB on the input with the largest peak. |
+| N3 | 0.3 | Risky: one router holds more than half of the peak live heap on that input. |
+| N4 | 0.8 | The records of a run with a lower cap equal the records of run `40884908305` without the times. |
+
+The workflow `memory-probe.yml` measures the claims. Each job runs one input with one heap mode, and the command `probe` of `scripts/bench.mjs` writes the facts of each pair:
+
+- The mode `gc-6144` forces a full GC after each pair. Thus it gives the live heap that each pair keeps.
+- The modes `cap-3072` and `cap-2048` lower the heap cap without forced GC. Thus they give the peak RSS and the records under the cap.
