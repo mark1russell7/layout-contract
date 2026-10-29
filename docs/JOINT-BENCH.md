@@ -1197,3 +1197,33 @@ The workflow `memory-probe.yml` measures the claims. Each job runs one input wit
 
 - The mode `gc-6144` forces a full GC after each pair. Thus it gives the live heap that each pair keeps.
 - The modes `cap-3072` and `cap-2048` lower the heap cap without forced GC. Thus they give the peak RSS and the records under the cap.
+
+## The result of the memory probe (L77)
+
+Run `40924152142` ran the 3 inputs with the largest peak in 3 heap modes, with 9 jobs in all. Each job of `cap-3072` and `cap-2048` stopped with the error "Ineffective mark-compacts near heap limit". Each job of `gc-6144` finished.
+
+| Input | Peak RSS (MB) | Largest live heap after a pair (MB) | Largest heap after a `streets` pair (MB) | Largest heap after a pair of a different router (MB) |
+|---|---|---|---|---|
+| `freeWidth.convex.edge.extremeAspect.n1000` | 6078 | 221 | 5743 | 958 (`search`) |
+| `freeWidth.holes.scattered.uniform.n1000` | 5319 | 229 | 3962 | 1093 (`interchanges`) |
+| `freeAspect.polygon.none.extremeAspect.n1000` | 4938 | 222 | 4447 | 761 (`search`) |
+
+The column "heap after a pair" is the heap before the forced GC. Thus it includes the garbage of the pair.
+
+The capped jobs stopped in a pair of `streets`:
+
+- 5 jobs stopped in pair 12, `rows+streets`. That is the first pair of `streets`.
+- At 3 GB, the job of `freeAspect.polygon` finished `rows+streets`. It stopped in pair 117, `maxrects-bssf+streets`.
+
+| Claim | p | Result |
+|---|---|---|
+| N1 | 0.55 | Miss. With the heap cap at 3 GB, each of the 3 inputs stopped with an error of memory, in a pair of `streets`. |
+| N2 | 0.6 | Hit. The live heap after a forced full GC is at most 229 MB. This measure is between the pairs. The capped jobs show that the live heap in a pair of `streets` is more than 2 GB. |
+| N3 | 0.3 | Hit (risky). The router `streets` causes the peak on each input. Its largest heap is 3.6 to 5.8 times the largest heap of each different router. |
+| N4 | 0.8 | Not measured as written, because no capped job finished. The records of the 3 modes equal the records of run `40884908305` without the times: 585 records of `gc-6144`, 138 of `cap-3072` and 33 of `cap-2048`. |
+
+The runner keeps almost nothing between the pairs. The live heap grows from approximately 70 MB to approximately 210 MB over the 195 pairs of one input.
+
+The cause is the plan of `streets` in `highways` (`streetPlan`). It keeps one object for each pair of a free line and an edge that the line covers. Each step of the greedy cover then makes new arrays for each line. A fix in `highways` that keeps the covers in typed arrays is the next step of L77. The records do not change, because the cover gives the same streets.
+
+The probe measured only the 3 largest peaks of run `40884908305`. The peaks of the other inputs with 1000 boxes are not measured. bench-4 waits for the fix.
