@@ -456,6 +456,17 @@ The fit of the run `40685494092` (L29) gave `4.37 + 0.595 * boxes * boxes / 1000
 - The 3 largest margins are 3.72, 3.72 and 3.65. These specs have 100 boxes and medium edges with hubs.
 - The L32 plan gave 301.6 minutes to all shards, and the run took 257.2 minutes on the inputs. The L29 plan gave 776.7 minutes for 130 pairs.
 
+The pair term and the margins come again from the run `40884908305` of L63 since 2026-10-29. That run has the 195 pairs of `bench-3`, and its records equal the records of run `40832034625`.
+
+| Fit | R² of the times | R² of the logs of the times |
+|---|---|---|
+| The fit before L63 | 0.296 | 0.735 |
+| The fit of L63 | 0.511 | 0.775 |
+
+- The new pair term is `3.98 + 1.03 * boxes * boxes / 1000 + 1.61 * boxes * edges / 1000`. The default margin is 3.19.
+- The most costly shard has 1 input: a seed of the dense spec with hubs and 1000 boxes. The plan gives 78.9 minutes to each of its 3 seeds. Their shards took 74.5, 49.5 and 80.7 minutes.
+- More shards do not make this shard shorter. Only a faster runner on this input does.
+
 The margins of L13 are larger than the margins of L32. Thus the plan of a default run is 383.0 minutes since L35, with 26.0 minutes for the most costly shard.
 
 The limit of a shard job is 360 minutes, the limit of GitHub. At 64 shards, the most costly shard has 1 seed of the dense spec with hubs. Before the fit of L32, the plan gave it 99.2 minutes.
