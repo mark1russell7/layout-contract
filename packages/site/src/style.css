@@ -289,3 +289,13 @@ button { cursor: pointer; }
   .nav .wrap { flex-wrap: wrap; overflow-x: visible; gap: 0 2px; }
   .nav a { padding: 8px 8px; }
 }
+
+/* The starting points of the playground. */
+.recipes { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 210px), 1fr)); gap: 8px; margin: 8px 0 12px; }
+.recipe { display: flex; flex-direction: column; gap: 4px; text-align: left; font: inherit; color: var(--ink); background: var(--surface-2); border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; min-height: 44px; cursor: pointer; }
+.recipe:hover { border-color: var(--accent); }
+.recipe:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.recipe.on { border-color: var(--accent); background: var(--accent-soft); }
+.recipe-title { font-weight: 600; }
+.recipe.on .recipe-title { color: var(--accent-ink); }
+.recipe-about { font-size: 0.85rem; color: var(--ink-2); line-height: 1.35; }

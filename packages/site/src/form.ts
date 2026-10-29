@@ -121,7 +121,7 @@ export function formHtml(space: StrategySpace, stage: string, state: FormState, 
   }
   for (const c of controls.filter((x) => x.kind === "fixed"))
     rows.push(`<div class="field fixed"><span class="field-name"><code>${esc(c.key)}</code></span><span class="fixed-value">the engine default (a ${esc(c.type ?? "value")})</span><span class="field-help">${esc(c.describe)}</span></div>`);
-  const head = `${pick}<div class="fields" data-form="${esc(prefix)}">${rows.join("") || `<p class="hint">This strategy has no options.</p>`}</div>`;
+  const head = `${pick}<div class="fields" data-form="${esc(prefix)}" data-of="${esc(option.id)}">${rows.join("") || `<p class="hint">This strategy has no options.</p>`}</div>`;
   if (option.members === undefined) return head;
   const inner = state.member ?? { option: options.find((o) => o.members === undefined)!.id, params: {} };
   const why = controls.filter((c) => c.kind === "member").map((c) => `<code>${esc(c.key)}</code>`).join(" and ");
