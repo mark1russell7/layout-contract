@@ -15,6 +15,7 @@ The package has no runtime dependencies.
 | The record `layout-record/1` | `LayoutRecord`, `Stage`, `Supports`, `RunFacts`, `RunEnv`, `toLayoutRecord` |
 | The strategies | `StrategyInfo` |
 | The measures | `MeasureSpec`, `Direction`, `JointMeasureId`, `JOINT_MEASURES`, `JOINT_MOVED_MIN`, `Verdict`, `compareMeasure`, `minEffectOf` |
+| The balance and stability measures | `balanceOf`, `Balance`, `nearestGaps`, `procrustesOf`, `ProcrustesOptions`, `perChange`, `balanceMeasures`, `balanceMeasureSpecs`, `BALANCE_MEASURE_SUFFIXES`, `BalanceMeasureSuffix`, `BALANCE_SIDE_DEPTH`, `PlacedBox` |
 | The edges step | `edgeStep`, `EdgeShape`, `EdgeStepParams`, `EDGE_DENSITY`, `EDGE_STEP_VERSION` |
 | The random numbers | `mulberry32`, `fnv1a32`, `stepRandom`, `randomInt` |
 | The hashes | `sha256Hex`, `canonicalJson`, `documentHash`, `outputHash`, `HashOptions` |
@@ -92,6 +93,7 @@ The comments of the source name each doc as `docs/<NAME>.md`. The docs are in th
 
 | Doc | The subject |
 |---|---|
+| [`docs/BALANCE.md`](https://github.com/mark1russell7/layout-contract/blob/main/docs/BALANCE.md) | The balance and stability measures of a pack and of a joint layout |
 | [`docs/CORPUS.md`](https://github.com/mark1russell7/layout-contract/blob/main/docs/CORPUS.md) | The shared corpus registry, its dimensions and families |
 | [`docs/CORPUS-CHECKS.md`](https://github.com/mark1russell7/layout-contract/blob/main/docs/CORPUS-CHECKS.md) | The corpus checks and the split files |
 | [`docs/JOINT-CORPUS.md`](https://github.com/mark1russell7/layout-contract/blob/main/docs/JOINT-CORPUS.md) | The joint corpus |

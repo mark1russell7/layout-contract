@@ -7,6 +7,7 @@ export * from "./record.ts";
 export * from "./rules.ts";
 export * from "./turn.ts";
 export * from "./measures.ts";
+export * from "./balance.ts";
 export * from "./strategy.ts";
 export * from "./random.ts";
 export * from "./edges.ts";
