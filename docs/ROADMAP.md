@@ -28,6 +28,7 @@ This file lists the items of the roadmap of this repository. The status page of 
 | L71 | next | P2 | A bound-first fast path for labels from a declared character set |
 | L72 | next | P1 | Neat is a family of objectives, not one |
 | L73 | next | P1 | Clarity of structure: macro and micro measures |
+| L77 | next | P1 | Find and bound what fills 6 GB on the 1000-box inputs |
 
 ## Later
 
@@ -50,7 +51,6 @@ This file lists the items of the roadmap of this repository. The status page of 
 | L74 | later | P2 | Forces you compose from queries (ghost edges) |
 | L75 | later | P2 | Objectives under an interaction |
 | L76 | later | P2 | The orbit of a node: a soft keep-out margin |
-| L77 | later | P2 | Find what fills 6 GB on the 1000-box inputs |
 
 ## Done
 
