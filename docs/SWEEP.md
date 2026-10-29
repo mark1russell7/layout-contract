@@ -217,6 +217,16 @@ The first night (L52) gives these values. The sample has 124 configs on 101 shar
 - In the configs of one router, the lane mode matters. With `portfolio` (14 configs), its `eps2` is 0.649 (0.279 to 0.819). With `corners` (22 configs), it is 0.203.
 - Thus the effect of the lanes comes from the router and the lanes together. The next step is a Saltelli design, which gives the total indices.
 
+### The total indices
+
+The first-order table cannot show the share of an interaction. A design night gives the total indices.
+
+- Start the workflow with the input `design` set to a count of rows `n`. Round 1 then runs a Saltelli design (`planDesign`) instead of a new sample.
+- `saltelliDesign` takes `2n` configs of the space. The matrix `A` is the first half, and `B` is the second half. `AB_i` is the row of `A` with the choice of stage `i` from `B`.
+- `totalOrder` gives the first index of Saltelli (2010) and the total index of Jansen (1999) for each stage. A bootstrap over the rows gives the intervals.
+- A total index above the first index shows an interaction of that stage. Night 1 showed such an interaction of the lanes with the router.
+- The state keeps each design in `designs`. The race keeps the values of the configs of a design, so the rows stay full.
+
 ## The cost model
 
 The plan uses the model of `packages/joint/data/cost-margins.json`. `docs/JOINT-BENCH.md` tells the model and its fit.

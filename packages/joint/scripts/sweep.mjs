@@ -1,7 +1,8 @@
 // The nightly sweep over the joint space (`docs/SWEEP.md`, roadmap item L35). The workflow `sweep.yml` starts each command. Do not start the runs on a local computer.
 //
-//   plan --data <dir> --out <dir> [--date YYYY-MM-DD] [--target-minutes 30] [--max-shards 20] [--max-configs 400] [--corpus <set>]
+//   plan --data <dir> --out <dir> [--date YYYY-MM-DD] [--target-minutes 30] [--max-shards 20] [--max-configs 400] [--corpus <set>] [--design <rows>]
 //        reads the state of the epoch from the data branch in <dir>, plans round 1, and writes <out>/state.json, <out>/plan.json and <out>/matrix.json
+//        with --design, round 1 runs a Saltelli design of <rows> rows (`planDesign`, L52) instead of a new sample
 //   run --plan <dir> --shard <i> --out <dir>
 //        runs the units of shard <i> of <dir>/plan.json, and writes <out>/records-<round>-<i>.jsonl and <out>/shard-<round>-<i>.json
 //   race --night <dir> --records <dir> --out <dir> [--target-minutes 30] [--max-shards 20] [--max-configs 400]
@@ -24,6 +25,7 @@ import {
   INCUMBENT,
   iterPlanPairs,
   jointCorpus,
+  planDesign,
   planRound1,
   planRound2,
   raceNight,
@@ -148,7 +150,8 @@ if (command === "plan") {
     mkdirSync(out, { recursive: true });
     writeFileSync(join(out, "skip.txt"), `${date}\n`);
     writeJson(join(out, "matrix.json"), []);
-  } else writePlan(out, state, planRound1(state, sweep, planOptions(date)));
+  } else if (args.design !== undefined) writePlan(out, state, planDesign(state, sweep, { ...planOptions(date), n: numberArg("design", 0) }));
+  else writePlan(out, state, planRound1(state, sweep, planOptions(date)));
 } else if (command === "run") {
   const dir = args.plan ?? "night";
   const plan = readJson(join(dir, "plan.json"));
