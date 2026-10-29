@@ -10,6 +10,7 @@ This file lists the items of the roadmap of this repository. The status page of 
 | L34 | in progress | P1 | The strategy space as data |
 | L52 | in progress | P1 | Measure joint space coverage, with a weekly trend that rises |
 | L60 | in progress | P1 | Text measuring and line breaking as a layout step |
+| L77 | in progress | P1 | Find and bound what fills 6 GB on the 1000-box inputs |
 
 ## Next
 
@@ -28,7 +29,6 @@ This file lists the items of the roadmap of this repository. The status page of 
 | L71 | next | P2 | A bound-first fast path for labels from a declared character set |
 | L72 | next | P1 | Neat is a family of objectives, not one |
 | L73 | next | P1 | Clarity of structure: macro and micro measures |
-| L77 | next | P1 | Find and bound what fills 6 GB on the 1000-box inputs |
 
 ## Blocked
 
