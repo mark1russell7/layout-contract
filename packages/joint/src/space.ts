@@ -59,7 +59,7 @@ export const BENCH_SPACE_VERSION = "bench-3";
 /** The option of the stage `lanes.mode` for the iteration pairs of L11. */
 export const ITER_OPTION = "iter";
 
-/** This function gives the pack part of the bench space: the stage `entry` with each pack entry of `PACK_ENTRIES`, and a named config for each entry. */
+/** This function gives the pack part of the bench space. It has the stage `entry` with each entry of `PACK_ENTRIES`, and a named config for each entry. */
 export function benchPackSpace(): StrategySpace {
   return {
     schema: "strategy-space/1",
