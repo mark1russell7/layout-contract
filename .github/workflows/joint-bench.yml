@@ -1,7 +1,7 @@
 # The joint benchmark of packages/joint (docs/JOINT-BENCH.md): each pair of a pack entry and a router on a joint corpus.
 # The input corpus selects the corpus. The default is joint-v2. A pull request runs the corpus joint-v2.
 # The job check examines the claims of the corpus first. The job smoke routes 1 input of each value of spacing. A break stops the run.
-# A pull request runs the small slice pr. A manual run, or a pull request with the label bench:full, runs the full corpus.
+# A pull request and a push to main run the small slice pr. A manual run, or a pull request with the label bench:full, runs the full corpus.
 # The full run gives the inputs to the shards of a matrix by their predicted cost (planShards). Each shard keeps its raw records as the artifact joint-records-<shard>.
 # The job analyze joins the records and keeps the report as the artifact joint-report, in JSON and in Markdown.
 # The job analyze fails when an input of the manifest has no records. The report lists the missing inputs.
@@ -40,6 +40,9 @@ on:
         default: false
   pull_request:
     types: [opened, synchronize, reopened, labeled]
+  # A push to main runs the slice pr too. Thus "Joint bench OK" passes on a commit of main, and the ruleset script finds it.
+  push:
+    branches: [main]
 
 permissions:
   contents: read
