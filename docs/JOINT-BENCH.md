@@ -1227,3 +1227,30 @@ The runner keeps almost nothing between the pairs. The live heap grows from appr
 The cause is the plan of `streets` in `highways` (`streetPlan`). It keeps one object for each pair of a free line and an edge that the line covers. Each step of the greedy cover then makes new arrays for each line. A fix in `highways` that keeps the covers in typed arrays is the next step of L77. The records do not change, because the cover gives the same streets.
 
 The probe measured only the 3 largest peaks of run `40884908305`. The peaks of the other inputs with 1000 boxes are not measured. bench-4 waits for the fix.
+
+## The result after the fix of `streets` (L77)
+
+`highways` 0.9.10 (highways #193) keeps the covers of `streets` in typed arrays. The cover gives the same streets. Pull request #92 moved the joint bench to `^0.9.10`.
+
+The probe ran again on the same 3 inputs and the same 3 heap modes (run `40947309465`). Each of the 9 jobs finished. Before the run, the tracker item L77 got 4 claims, R1 to R4.
+
+| Input | Largest heap after a pair, before (MB) | Largest heap after a pair, after (MB) | Peak RSS before (MB) | Peak RSS after (MB) |
+|---|---|---|---|---|
+| `freeWidth.convex.edge.extremeAspect.n1000` | 5743 (`streets`) | 724 (`shared-all`) | 6078 | 1342 |
+| `freeWidth.holes.scattered.uniform.n1000` | 3962 (`streets`) | 955 (`search`) | 5319 | 1560 |
+| `freeAspect.polygon.none.extremeAspect.n1000` | 4447 (`streets`) | 792 (`search`) | 4938 | 1217 |
+
+The columns "after" come from `gc-6144`. In each mode, the largest peak RSS was 1893 MB, on `freeWidth.holes` with the cap of 2 GB. That is 8% less than the cap.
+
+| Claim | p | Result |
+|---|---|---|
+| R1 | 0.7 | Hit (risky). Each job of `cap-3072` finished. Its largest peak RSS was 1696 MB. |
+| R2 | 0.8 | Hit. The largest heap after a pair is 724 to 955 MB on each input, less than 2 GB. |
+| R3 | 0.45 | Hit (risky). Each job of `cap-2048` also finished. |
+| R4 | 0.6 | Hit. The records of `streets` equal the records of run `40884908305` without the times. |
+
+The records of each router stay the same: all 585 records of `gc-6144` equal run `40884908305`, 39 for each of the 15 routers. The 3 modes of each input give equal records.
+
+No router stands out after the fix. The largest heap comes from `search`, `shared-all`, `sections`, `gaps` or `portfolio`. A peak RSS of less than 3 GB is the target of L77, so L77 is done. bench-4 (L79) no longer waits.
+
+The CI of `highways` also has a heap gate since highways #193. It routes the dense board of ROUTE-SCALE with each of the 15 routers, each with a cap from its measured peak.
