@@ -5,7 +5,7 @@ import { describe, expect, it } from "vitest";
 import manifestText from "../../joint/corpus/joint-v2/corpus.json?raw";
 import { buildCatalog } from "./build-catalog.ts";
 import { LANE_STAGE, laneFormSpace, LANE_TEXT, PACK_STAGE, ROUTE_STAGE, VARIANT_TEXT } from "./catalog.ts";
-import { declaredOptions, packExtraKeys, registryIds } from "./engines.ts";
+import { declaredOptions, inForms, packExtraKeys, registryIds } from "./engines.ts";
 import { formHtml } from "./form.ts";
 import { PRESETS } from "./inputs.ts";
 
@@ -19,8 +19,9 @@ const spaceOf = (engine: string) => (engine === "packing" ? catalog.pack : catal
 describe("the lists of the joint pages", () => {
   it("has each strategy of the registry of packing, and marks the entries of the benchmark", () => {
     expect([...new Set(packs.map((p) => p.strategy))].sort()).toEqual([...ids.packing].sort());
-    expect(catalog.benchPacks.map((p) => p.id)).toEqual(PACK_ENTRIES.map((e) => e.id));
-    for (const p of catalog.extraPacks) expect(PACK_ENTRIES.some((e) => e.strategy === p.strategy)).toBe(false);
+    const shown = PACK_ENTRIES.filter(inForms);
+    expect(catalog.benchPacks.map((p) => p.id)).toEqual(shown.map((e) => e.id));
+    for (const p of catalog.extraPacks) expect(shown.some((e) => e.strategy === p.strategy)).toBe(false);
   });
 
   it("has each router of the registry of highways, as a router of the benchmark or an open router", () => {
@@ -79,9 +80,13 @@ describe("the controls of the playground", () => {
     expect(missing).toEqual([]);
   });
 
+  it("leaves out only the benchmark entries with a member or a table, until roadmap item L80", () => {
+    expect(PACK_ENTRIES.filter((e) => !inForms(e)).map((e) => e.id)).toEqual(["anneal-maxrects-bl-k16", "anneal-skyline-k16", "genetic-maxrects-bl-k16", "tabu-maxrects-bl-k16", "pack"]);
+  });
+
   it("gives each option of the benchmark entries a param or a fixed control", () => {
     const missing: string[] = [];
-    for (const e of PACK_ENTRIES)
+    for (const e of PACK_ENTRIES.filter(inForms))
       for (const key of Object.keys(e.options)) if (!catalog.controls.some((c) => c.engine === "packing" && c.option === e.strategy && c.key === key)) missing.push(`${e.id}.${key}`);
     expect(missing).toEqual([]);
   });
