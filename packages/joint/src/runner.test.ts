@@ -3,7 +3,7 @@ import { describe, expect, it } from "vitest";
 import { jointCorpus } from "./corpus.ts";
 import { ITER_VARIANTS, iterEntries } from "./lanes.ts";
 import { insideLength, jointMeasures, placementFacts, segmentsCross, spearman } from "./joint-measures.ts";
-import { factMeasures, HIGHWAY_ROUTERS, jointHash, packedInput, packInputOf, PACK_ENTRIES, pairId, PORTFOLIO_ROUTER, ROUTERS, runInput, shardOf } from "./runner.ts";
+import { factMeasures, HIGHWAY_ROUTERS, jointHash, OPEN_ROUTERS, packedInput, packInputOf, PACK_ENTRIES, pairId, PORTFOLIO_ROUTER, ROUTERS, runInput, shardOf } from "./runner.ts";
 
 const fixed = (w: number, h: number) => ({ fixed: "size" as const, w, h });
 
@@ -82,6 +82,19 @@ describe("runInput", () => {
     for (const r of runInput(v2, undefined, { packs: rows, routers: HIGHWAY_ROUTERS })) {
       expect(r.skipped, r.strategy).toBeUndefined();
       expect(r.hard["route.violations"], r.strategy).toBe(0);
+    }
+  });
+
+  it("routes with the open routers of the playground, and keeps them out of ROUTERS", () => {
+    for (const name of OPEN_ROUTERS) expect(ROUTERS).not.toContain(name);
+    expect(OPEN_ROUTERS).toEqual(expect.arrayContaining(["fdeb", "mlseb", "growth", "zipper", "w3b:growth-s0.3", "w2b:zipper-a1", "corridors+breakeven"]));
+    const rows = PACK_ENTRIES.filter((p) => p.id === "rows");
+    const routers = ["fdeb", "mlseb", "w3b:growth-s0.3", "w2b:zipper-a1", "corridors+breakeven"];
+    const records = runInput(three, undefined, { packs: rows, routers });
+    expect(records.map((r) => r.strategy)).toEqual(routers.map((name) => `rows+${name}`));
+    for (const r of records) {
+      expect(r.skipped, r.strategy).toBeUndefined();
+      expect(r.measures["joint.routes"], r.strategy).toBe(2);
     }
   });
 

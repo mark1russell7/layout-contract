@@ -1,6 +1,6 @@
 // This file makes the catalog of the joint pages from the registries of the two engines. The build imports it, so the pages get the catalog as data.
 // When an engine exports a strategy space (`packSpace` of `packing`, `routeSpace` of `highways`), the catalog uses it. Else it derives a space from the registry.
-import { HIGHWAY_ROUTERS, highwayRouterOf, iterEntries, jointSpace, laneEntries, laneSpace, PACK_ENTRIES, pairId, PORTFOLIO_ROUTER, ROUTERS } from "@layout-contract/joint/browser";
+import { HIGHWAY_ROUTERS, highwayRouterOf, iterEntries, jointSpace, laneEntries, laneSpace, OPEN_ROUTERS, openRouterOf, PACK_ENTRIES, pairId, PORTFOLIO_ROUTER, ROUTERS } from "@layout-contract/joint/browser";
 import {
   checkSpace,
   STRATEGY_SPACE_SCHEMA,
@@ -125,11 +125,13 @@ interface RouterStrategy {
 /**
  * This function gives the router strategies of the joint benchmark in the order of `ROUTERS`. Each strategy gives its own `schema`.
  * The list has the router strategies of `highways`, the highway strategies of `HIGHWAY_ROUTERS` as routers, and `portfolioStrategy`.
+ * Then the list has the open routers of `OPEN_ROUTERS`. Only the playground uses them.
  */
 function jointRouterStrategies(): RouterStrategy[] {
   const list = highways.listStrategies(highways.STRATEGIES, "router") as unknown as readonly RouterStrategy[];
   const wave = HIGHWAY_ROUTERS.map((name) => highwayRouterOf(name) as unknown as RouterStrategy);
-  return [...list, ...wave, { ...(highways.portfolioStrategy as unknown as RouterStrategy), name: PORTFOLIO_ROUTER }];
+  const open = OPEN_ROUTERS.map((name) => ({ ...(openRouterOf(name) as unknown as RouterStrategy), name }));
+  return [...list, ...wave, { ...(highways.portfolioStrategy as unknown as RouterStrategy), name: PORTFOLIO_ROUTER }, ...open];
 }
 
 /** This function gives the keys of the options of a router strategy: the keys of `schema`, then the keys of `defaults` without a declaration. */
@@ -177,9 +179,12 @@ function paramsOf(o: OptionSpec): { readonly params: SpaceParam[]; readonly kind
   }
   const min = Number(s["min"]);
   const max = Number(s["max"]);
-  const step = stepOf(s);
-  const special = ((s["special"] as unknown[] | undefined) ?? []).filter((v): v is number => typeof v === "number" && !Number.isFinite(v));
   const value = o.value ?? s["default"];
+  // A default that is not on the grid of the step (`scale-space` has the default √2 and the step 0.1) removes the step. Thus the control keeps the default.
+  const grid = stepOf(s);
+  const offGrid = grid !== undefined && typeof value === "number" && Number.isFinite(value) && Math.abs((value - min) / grid - Math.round((value - min) / grid)) > 1e-9;
+  const step = offGrid ? undefined : grid;
+  const special = ((s["special"] as unknown[] | undefined) ?? []).filter((v): v is number => typeof v === "number" && !Number.isFinite(v));
   const fallback = typeof s["default"] === "number" && Number.isFinite(s["default"]) ? s["default"] : Math.min(max, Math.max(min, step === undefined ? min : min + step * Math.round((max - min) / 2 / step)));
   const number: SpaceParam = {
     name: o.key,
@@ -273,6 +278,7 @@ export function engineCatalog(versions: Readonly<Record<string, string>>): Engin
     benchPacks,
     extraPacks,
     routers: [...ROUTERS],
+    openRouters: [...OPEN_ROUTERS],
   };
 }
 
@@ -283,12 +289,15 @@ export function packExtraKeys(): Record<string, string[]> {
 
 /**
  * This function gives the strategies of the registry of `highways` that the joint benchmark races.
- * The list has each router strategy, the highway strategies of `HIGHWAY_ROUTERS`, and `portfolioStrategy` with the name `portfolio`.
+ * The list has each router strategy, each highway strategy, `portfolioStrategy` with the name `portfolio`, and each member form of the portfolio.
  */
 function registryRouters(): RouterStrategy[] {
   const routers = highways.listStrategies(highways.STRATEGIES, "router") as unknown as readonly RouterStrategy[];
   const plans = highways.listStrategies(highways.STRATEGIES, "highway") as unknown as readonly RouterStrategy[];
-  return [...routers, ...plans.filter((s) => HIGHWAY_ROUTERS.includes(s.name)), { ...(highways.portfolioStrategy as unknown as RouterStrategy), name: PORTFOLIO_ROUTER }];
+  const named = new Set([...routers, ...plans].map((s) => s.name));
+  const members = Object.keys(highways.MEMBER_FORMS).filter((name) => !named.has(name) && name !== PORTFOLIO_ROUTER);
+  const forms = members.map((name) => ({ ...(highways.portfolioMember(name) as unknown as RouterStrategy), name }));
+  return [...routers, ...plans, { ...(highways.portfolioStrategy as unknown as RouterStrategy), name: PORTFOLIO_ROUTER }, ...forms];
 }
 
 /** The ids of the strategies in the registries of the two engines. The completeness test compares the catalog with them. */

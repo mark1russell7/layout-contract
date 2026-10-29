@@ -81,6 +81,7 @@ byId("playground").innerHTML = `
     <h2 class="panel-title">2. Start from a pair of the benchmark</h2>
     <label class="field wide"><span class="field-name">Pair</span><select id="pg-named">${named.map((n) => `<option value="${esc(n)}">${esc(n)}</option>`).join("")}</select></label>
     <p class="hint">The ${named.length} pairs: ${catalog.benchPacks.length + catalog.extraPacks.length} pack entries × ${catalog.routers.length} routers, and ${catalog.jointPairs.length} joint pairs with lanes. Then change any option below.</p>
+    <p class="hint">The router list also has ${catalog.openRouters.length} open routers: each other highway strategy, and each member form of the portfolio. The benchmark does not race them.</p>
   </div>
   <div class="two">
     <div class="panel"><h2 class="panel-title">3. The packer <span class="count-note">packing ${esc(catalog.versions["packing"] ?? "")}</span></h2><div id="pg-pack" class="stage-form"></div></div>

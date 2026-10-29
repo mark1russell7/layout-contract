@@ -125,6 +125,8 @@ export interface JointCatalog {
   readonly extraPacks: readonly PackChoice[];
   /** The routers of the joint benchmark (`ROUTERS`). */
   readonly routers: readonly string[];
+  /** The open routers of the playground (`OPEN_ROUTERS`): the other highway strategies and the member forms of the portfolio. */
+  readonly openRouters: readonly string[];
   readonly inputs: readonly InputRow[];
   /** The dimensions of the array `grid` of `joint-v2` without `count`. The page builds an input from one value of each. */
   readonly grid: Readonly<Record<string, readonly string[]>>;

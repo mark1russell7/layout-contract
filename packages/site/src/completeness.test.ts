@@ -1,5 +1,5 @@
 // The completeness test of the joint pages: each strategy and each option of the engines has a place on the compare page and in the playground.
-import { iterEntries, JOINT_SPACE, laneEntries, laneSpace, PACK_ENTRIES, pairId, ROUTERS } from "@layout-contract/joint/browser";
+import { iterEntries, JOINT_SPACE, laneEntries, laneSpace, OPEN_ROUTERS, PACK_ENTRIES, pairId, ROUTERS } from "@layout-contract/joint/browser";
 import { checkSpace } from "@mark1russell7/layout-contract";
 import { describe, expect, it } from "vitest";
 import manifestText from "../../joint/corpus/joint-v2/corpus.json?raw";
@@ -23,9 +23,11 @@ describe("the lists of the joint pages", () => {
     for (const p of catalog.extraPacks) expect(PACK_ENTRIES.some((e) => e.strategy === p.strategy)).toBe(false);
   });
 
-  it("has each router of the registry of highways, and they are the routers of the benchmark", () => {
-    expect([...catalog.routers].sort()).toEqual([...ids.highways].sort());
+  it("has each router of the registry of highways, as a router of the benchmark or an open router", () => {
+    expect([...catalog.routers, ...catalog.openRouters].sort()).toEqual([...ids.highways].sort());
     expect(catalog.routers).toEqual([...ROUTERS]);
+    expect(catalog.openRouters).toEqual([...OPEN_ROUTERS]);
+    for (const r of catalog.openRouters) expect(ROUTERS).not.toContain(r);
   });
 
   it("has an option of the space for each strategy and each router", () => {
