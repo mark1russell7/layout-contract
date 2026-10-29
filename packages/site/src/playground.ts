@@ -9,6 +9,7 @@ import { configOfState, formHtml, parseValue, stateOfConfig, type FormState } fr
 import { boxesOf, parsePicked, pickedText, pickerHtml, PRESETS, readPicker, refOf, shortId, type Picked } from "./inputs.ts";
 import { catalog } from "./joint-catalog.ts";
 import type { PairView, RunJob, WorkerMessage } from "./protocol.ts";
+import { RECIPES, type Recipe } from "./recipes.ts";
 import "./style.css";
 import { byId, esc, f3 } from "./ui.ts";
 
@@ -27,6 +28,25 @@ const routeFacts = { controls: catalog.controls.filter((c) => c.engine === "high
 const named = Object.keys(catalog.joint.named ?? {});
 const namedById = new Map(named.map((n) => [configId(catalog.joint, catalog.joint.named![n]!), n]));
 const DEFAULT_PAIR = named.includes("select+portfolio") ? "select+portfolio" : named[0]!;
+let recipe: string | undefined = RECIPES[0]!.id;
+
+/** This function gives the HTML of a line with code spans: each text in backticks becomes `<code>`. */
+const codeLine = (text: string): string => esc(text).replace(/`([^`]+)`/g, "<code>$1</code>");
+
+/** This function sets the three forms from a recipe. A recipe with a pair uses the named pair, with its joint option. */
+function fromRecipe(r: Recipe): void {
+  if (r.pair !== undefined) return fromNamed(r.pair);
+  packState = r.pack!;
+  routeState = r.route!;
+  laneState = { option: LANE_NONE, params: {} };
+}
+
+/** This function draws the buttons of the recipes, and marks the recipe of the forms. */
+function renderRecipes(): void {
+  byId("pg-recipes").innerHTML = RECIPES.map(
+    (r) => `<button type="button" class="recipe${r.id === recipe ? " on" : ""}" data-recipe="${esc(r.id)}" aria-pressed="${r.id === recipe}"><span class="recipe-title">${esc(r.title)}</span><span class="recipe-about">${codeLine(r.about)}</span></button>`,
+  ).join("");
+}
 
 let picked: Picked = { kind: "preset", id: PRESETS[0]!.id };
 let mode: Picked["kind"] = "preset";
@@ -58,8 +78,16 @@ function readHash(): void {
   }
   const pair = h.get("pair");
   const config = h.get("config");
-  fromNamed(pair !== null && named.includes(pair) ? pair : DEFAULT_PAIR);
+  const first = RECIPES.find((r) => r.pair === undefined || named.includes(r.pair));
+  if (pair !== null && named.includes(pair)) {
+    fromNamed(pair);
+    recipe = undefined;
+  } else if (first !== undefined) {
+    fromRecipe(first);
+    recipe = first.id;
+  } else fromNamed(DEFAULT_PAIR);
   if (config === null) return;
+  recipe = undefined;
   try {
     const joint = JSON.parse(config) as StrategyConfig;
     if (checkConfig(catalog.joint, joint).length > 0) return;
@@ -78,10 +106,13 @@ byId("playground").innerHTML = `
     <p class="hint" id="pg-size"></p>
   </div>
   <div class="panel">
-    <h2 class="panel-title">2. Start from a pair of the benchmark</h2>
+    <h2 class="panel-title">2. A starting point <span class="count-note">optional</span></h2>
+    <p class="hint">Each button sets steps 3, 4 and 5. Then change any option. You can also set each step yourself and skip this step.</p>
+    <div id="pg-recipes" class="recipes"></div>
+    <details class="more"><summary>Or start from a pair of the benchmark</summary>
     <label class="field wide"><span class="field-name">Pair</span><select id="pg-named">${named.map((n) => `<option value="${esc(n)}">${esc(n)}</option>`).join("")}</select></label>
-    <p class="hint">The ${named.length} pairs: ${catalog.benchPacks.length + catalog.extraPacks.length} pack entries × ${catalog.routers.length} routers, and ${catalog.jointPairs.length} joint pairs with lanes. Then change any option below.</p>
-    <p class="hint">The router list also has ${catalog.openRouters.length} open routers: each other highway strategy, and each member form of the portfolio. The benchmark does not race them.</p>
+    <p class="hint">The ${named.length} pairs: ${catalog.benchPacks.length + catalog.extraPacks.length} pack entries × ${catalog.routers.length} routers, and ${catalog.jointPairs.length} joint pairs with lanes. The router list of step 4 also has ${catalog.openRouters.length} open routers that the benchmark does not race.</p>
+    </details>
   </div>
   <div class="two">
     <div class="panel"><h2 class="panel-title">3. The packer <span class="count-note">packing ${esc(catalog.versions["packing"] ?? "")}</span></h2><div id="pg-pack" class="stage-form"></div></div>
@@ -127,7 +158,9 @@ function readForm(root: HTMLElement, prefix: string): FormState | undefined {
   if (select === undefined) return undefined;
   const fields = [...root.querySelectorAll<HTMLElement>("[data-form]")].find((f) => f.dataset["form"] === prefix);
   const params: Record<string, string | number | boolean> = {};
-  for (const el of fields?.querySelectorAll<HTMLInputElement>("[data-p]") ?? []) params[el.dataset["p"]!] = parseValue(el.dataset["kind"] ?? "", el.value, el.checked);
+  // The fields belong to the option of the last draw. After a change of the option, the new option starts from its defaults.
+  const same = fields?.dataset["of"] === select.value;
+  for (const el of same ? (fields?.querySelectorAll<HTMLInputElement>("[data-p]") ?? []) : []) params[el.dataset["p"]!] = parseValue(el.dataset["kind"] ?? "", el.value, el.checked);
   const member = readForm(root, `${prefix}m.`);
   return { option: select.value, params, ...(member === undefined ? {} : { member }) };
 }
@@ -295,6 +328,8 @@ page.addEventListener("change", (e) => {
   const t = e.target as HTMLElement;
   if (t.id === "pg-named") {
     fromNamed((t as HTMLSelectElement).value);
+    recipe = undefined;
+    renderRecipes();
     renderForms();
     renderIds();
     return;
@@ -305,7 +340,13 @@ page.addEventListener("change", (e) => {
     renderIds();
     return;
   }
-  if (t.closest(".stage-form") !== null) update(t.tagName === "SELECT" || (t as HTMLInputElement).type === "checkbox");
+  if (t.closest(".stage-form") !== null) {
+    if (recipe !== undefined) {
+      recipe = undefined;
+      renderRecipes();
+    }
+    update(t.tagName === "SELECT" || (t as HTMLInputElement).type === "checkbox");
+  }
 });
 
 page.addEventListener("click", (e) => {
@@ -313,6 +354,16 @@ page.addEventListener("click", (e) => {
   if (t === null) return;
   const d = t.dataset;
   if (t.id === "pg-start") return start();
+  if (d["recipe"] !== undefined) {
+    const r = RECIPES.find((x) => x.id === d["recipe"]);
+    if (r === undefined) return;
+    fromRecipe(r);
+    recipe = r.id;
+    renderRecipes();
+    renderForms();
+    renderIds();
+    return;
+  }
   if (t.id === "pg-stop") return stop();
   if (t.id === "pg-copy") {
     const c = current();
@@ -335,6 +386,7 @@ page.addEventListener("click", (e) => {
 });
 
 renderInput();
+renderRecipes();
 renderForms();
 renderIds();
 start();
