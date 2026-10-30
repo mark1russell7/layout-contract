@@ -20,6 +20,7 @@ export interface RecordCount {
  * This function counts the inputs from the input ids of the records, not from the manifest.
  * The check fails when an input of the manifest has no record and `allow` does not hold it.
  * The check also fails when a record has an input outside the manifest.
+ * The check also fails when no input has records: an empty manifest, or a list of permitted missing inputs that holds each input. Such a run examined nothing.
  */
 export function recordCount(manifest: readonly string[], recordInputs: Iterable<string>, allow: readonly string[] = []): RecordCount {
   const expected = new Set(manifest);
@@ -28,7 +29,8 @@ export function recordCount(manifest: readonly string[], recordInputs: Iterable<
   const missing = manifest.filter((id) => !seen.has(id));
   const allowed = missing.filter((id) => allowSet.has(id));
   const unknown = [...seen].filter((id) => !expected.has(id)).sort();
-  return { manifest: expected.size, recorded: expected.size - missing.length, missing, allowed, unknown, ok: allowed.length === missing.length && unknown.length === 0 };
+  const recorded = expected.size - missing.length;
+  return { manifest: expected.size, recorded, missing, allowed, unknown, ok: recorded > 0 && allowed.length === missing.length && unknown.length === 0 };
 }
 
 /** This function reads a list of input ids: one id on each line. It ignores the empty lines and the lines that start with `#`. */

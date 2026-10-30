@@ -122,6 +122,9 @@ function readRecords(dir) {
 /** This function adds the records and the shard times of a round to the state, and counts the jobs of the plan without a record. */
 function applyRound(state, inputs, dir, plan) {
   const { records, shards } = readRecords(dir);
+  // A round with jobs and no records examined nothing: the download failed, or each shard stopped. The sweep stops, and the state does not change.
+  if (plan.units.length > 0 && records.length === 0)
+    throw new Error(`Round ${plan.round} has ${plan.units.length} units, but the folder ${dir} has no records (*.jsonl). The sweep expected the records of each shard of the round.`);
   applyRecords(state, records, inputs, plan.date);
   const night = state.nights.find((n) => n.date === plan.date);
   for (const s of shards) night.shards.push({ round: s.round, shard: s.shard, planned: s.planned, real: s.real });

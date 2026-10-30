@@ -280,6 +280,7 @@ if (command === "check") {
   const dir = args.probes ?? "probes";
   // The file of --expected is the JSON list of `families`: one string with commas for each family.
   const expected = JSON.parse(readFileSync(args.expected, "utf8")).flatMap((group) => group.split(",")).filter((id) => id !== "");
+  if (expected.length === 0) throw new RangeError(`The gate needs the expected inputs, and ${args.expected} has none.`);
   const modes = (args.modes ?? "").split(",").filter((m) => m !== "");
   if (modes.length === 0) throw new RangeError("The gate needs --modes <m[,m]>.");
   const text = (sub, name) => readFileSync(join(dir, sub, name), "utf8").trim();

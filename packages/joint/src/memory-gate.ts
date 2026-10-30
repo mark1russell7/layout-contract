@@ -62,6 +62,8 @@ export interface GateResult {
  * - The status is not 0. The status 134 is an OOM of V8.
  * - The probe has no peak, or the peak is the limit or more.
  *
+ * The gate also fails when it has no rows: no expected input or no mode.
+ *
  * The rows with the largest peaks come first, and the rows without a peak come before them.
  */
 export function memoryGate(expected: readonly string[], modes: readonly string[], results: readonly ProbeResult[], limitMb: number = MEMORY_GATE_MB): GateResult {
@@ -75,7 +77,8 @@ export function memoryGate(expected: readonly string[], modes: readonly string[]
       rows.push({ family: familyOf(input), input, mode, status: r?.status, peakRssMb: r?.peakRssMb, reason });
     }
   rows.sort((a, b) => (b.peakRssMb ?? Infinity) - (a.peakRssMb ?? Infinity));
-  return { pass: rows.every((r) => r.reason === ""), limitMb, rows };
+  // A gate with no rows examined nothing, so it fails.
+  return { pass: rows.length > 0 && rows.every((r) => r.reason === ""), limitMb, rows };
 }
 
 /** This function gives the gate as Markdown: the result, the count of the failed rows, and a table of all rows. */
