@@ -1,55 +1,111 @@
-# The memory probe of L77 (`docs/JOINT-BENCH.md`). It runs the joint bench on single inputs under a stated heap mode.
+# The memory probe of L77 and the memory gate of L81 (`docs/JOINT-BENCH.md`). It runs the joint bench on single inputs under a stated heap mode.
 # Each job runs one input with one mode, and writes the memory facts of each pair and the records.
+# The input `families` (the default) gives the largest input of each family of the corpus: `bench.mjs families`. Thus the gate cannot leave out a family.
+# The seeds of a family often have the same planned cost. Then the job of the family probes each of these seeds, one after the other, each in its own process.
+# The gate examines each seed. A gate on seed 1 alone is a gate on a chosen input: the seeds of the dense input with hubs peaked from 3438 MB to 4287 MB.
+# The mode `bench-6144` uses the heap cap of the joint bench without forced GC. It gives the peak RSS of the input alone.
 # The mode `gc-6144` forces a full GC after each pair, so the probe gives the live heap that each pair keeps.
 # The modes `cap-3072` and `cap-2048` lower the heap cap without forced GC, so the probe gives the peak RSS and the records under the cap.
+# The job gate examines each probe. It fails when an input has no probe, an OOM or another error, or a peak RSS of the limit or more.
 name: Memory probe
 
 on:
   workflow_dispatch:
     inputs:
       inputs:
-        description: "The input ids of joint-v2, with commas between them. Each input gets its own job for each mode."
+        description: "families, or the input ids of joint-v2 with commas between them. Each input gets its own job for each mode. In families, each family gets one job for each mode."
         type: string
-        default: "joint-v2/rect-grid.freeWidth.convex.edge.extremeAspect.n1000.e-medium.bundled.nested.fixed.sp-margin/s1,joint-v2/rect-grid.freeAspect.polygon.none.extremeAspect.n1000.e-medium.random.flat.free.sp-margin/s1,joint-v2/rect-grid.freeWidth.holes.scattered.uniform.n1000.e-medium.clustered.flat.free.sp-margin/s1"
+        default: "families"
       modes:
-        description: "The heap modes, with commas between them: gc-6144, cap-3072, cap-2048."
+        description: "The heap modes, with commas between them: bench-6144, gc-6144, cap-3072, cap-2048."
         type: string
-        default: "gc-6144,cap-3072,cap-2048"
+        default: "bench-6144"
+      limit-mb:
+        description: "The limit of the gate: the peak RSS in MB that each probe stays under."
+        type: string
+        default: "3072"
+  # The nightly gate on main finds a change that brings a peak back within a day. It uses the defaults of the inputs.
+  schedule:
+    - cron: "17 5 * * *"
 
 permissions:
   contents: read
 
+# A scheduled run has no inputs, so each input has its default here too.
+env:
+  INPUTS: ${{ inputs.inputs || 'families' }}
+  MODES: ${{ inputs.modes || 'bench-6144' }}
+  LIMIT: ${{ inputs.limit-mb || '3072' }}
+
 jobs:
   plan:
     runs-on: ubuntu-latest
-    timeout-minutes: 5
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      actions: read
     outputs:
+      skip: ${{ steps.changed.outputs.skip }}
       inputs: ${{ steps.plan.outputs.inputs }}
       modes: ${{ steps.plan.outputs.modes }}
     steps:
-      - id: plan
+      # A nightly run stops here when the last nightly run that finished (pass or fail) examined the same commit of main. It has no new data.
+      - id: changed
         env:
-          INPUTS: ${{ inputs.inputs }}
-          MODES: ${{ inputs.modes }}
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          EVENT: ${{ github.event_name }}
+          SHA: ${{ github.sha }}
         run: |
+          skip=false
+          if [ "$EVENT" = schedule ]; then
+            last="$(gh run list -R "$REPO" --workflow memory-probe.yml --branch main --event schedule --limit 20 --json headSha,status,conclusion --jq '[.[] | select(.status == "completed" and (.conclusion == "success" or .conclusion == "failure"))][0].headSha // ""')"
+            if [ "$last" = "$SHA" ]; then skip=true; echo "The last nightly run examined $SHA. This run stops." | tee -a "$GITHUB_STEP_SUMMARY"; fi
+          fi
+          echo "skip=$skip" >> "$GITHUB_OUTPUT"
+      - if: steps.changed.outputs.skip != 'true'
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - if: steps.changed.outputs.skip != 'true'
+        uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
+      - if: steps.changed.outputs.skip != 'true'
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 26
+          cache: pnpm
+      - if: steps.changed.outputs.skip != 'true'
+        run: pnpm install --frozen-lockfile
+      - id: plan
+        if: steps.changed.outputs.skip != 'true'
+        working-directory: packages/joint
+        run: |
+          case "$LIMIT" in ''|*[!0-9]*) echo "The limit is a count of MB, not $LIMIT."; exit 1;; esac
           for m in ${MODES//,/ }; do
-            case "$m" in gc-6144|cap-3072|cap-2048) ;; *) echo "The mode is gc-6144, cap-3072 or cap-2048, not $m."; exit 1;; esac
+            case "$m" in bench-6144|gc-6144|cap-3072|cap-2048) ;; *) echo "The mode is bench-6144, gc-6144, cap-3072 or cap-2048, not $m."; exit 1;; esac
           done
-          for i in ${INPUTS//,/ }; do
-            case "$i" in joint-v2/*) ;; *) echo "An input id starts with joint-v2/, not $i."; exit 1;; esac
-            case "$i" in *[!A-Za-z0-9./_-]*) echo "The input id $i has a character that is not allowed."; exit 1;; esac
-          done
-          echo "inputs=$(printf '%s' "$INPUTS" | jq -Rc 'split(",") | map(select(. != ""))')" >> "$GITHUB_OUTPUT"
+          if [ "$INPUTS" = families ]; then
+            list="$(node scripts/bench.mjs families)"
+          else
+            for i in ${INPUTS//,/ }; do
+              case "$i" in joint-v2/*) ;; *) echo "An input id starts with joint-v2/, not $i."; exit 1;; esac
+              case "$i" in *[!A-Za-z0-9./_-]*) echo "The input id $i has a character that is not allowed."; exit 1;; esac
+            done
+            list="$(printf '%s' "$INPUTS" | jq -Rc 'split(",") | map(select(. != ""))')"
+          fi
+          echo "The plan has $(printf '%s' "$list" | jq length) jobs and $(printf '%s' "$list" | jq '[.[] | split(",") | length] | add') inputs for each mode." | tee -a "$GITHUB_STEP_SUMMARY"
+          echo "inputs=$list" >> "$GITHUB_OUTPUT"
           echo "modes=$(printf '%s' "$MODES" | jq -Rc 'split(",") | map(select(. != ""))')" >> "$GITHUB_OUTPUT"
 
   probe:
     needs: plan
+    if: needs.plan.outputs.skip != 'true'
     runs-on: ubuntu-latest
-    # The most costly input of joint-v2 took 81 minutes in run 40884908305. A forced GC after each pair adds time.
-    timeout-minutes: 180
+    # The longest shard of the full bench run 40971129437 took 67 minutes. A job of a family runs up to 3 seeds, one after the other, and a forced GC after each pair adds time.
+    timeout-minutes: 340
     strategy:
       fail-fast: false
-      max-parallel: 6
+      max-parallel: 20
       matrix:
         input: ${{ fromJSON(needs.plan.outputs.inputs) }}
         mode: ${{ fromJSON(needs.plan.outputs.modes) }}
@@ -63,25 +119,37 @@ jobs:
           node-version: 26
           cache: pnpm
       - run: pnpm install --frozen-lockfile
-      - name: Probe one input
+      - name: Probe each input of the group
         working-directory: packages/joint
         env:
           INPUT: ${{ matrix.input }}
           MODE: ${{ matrix.mode }}
         run: |
           case "$MODE" in
+            bench-6144) flags="--max-old-space-size=6144" ;;
             gc-6144) flags="--expose-gc --max-old-space-size=6144" ;;
             cap-3072) flags="--max-old-space-size=3072" ;;
             cap-2048) flags="--max-old-space-size=2048" ;;
           esac
-          status=0
-          node $flags scripts/bench.mjs probe --inputs "$INPUT" --out probe || status=$?
-          echo "The probe ended with the status $status." | tee -a "$GITHUB_STEP_SUMMARY"
-          if [ -f probe/probe.md ]; then cat probe/probe.md >> "$GITHUB_STEP_SUMMARY"; fi
-          mkdir -p probe
-          echo "$status" > probe/status.txt
-          # 134 is an abort of V8 (an OOM): the artifact records it, and the job passes. Each other status is an error of the probe.
-          if [ "$status" != 0 ] && [ "$status" != 134 ]; then echo "::error::The probe stopped with the status $status, not with an OOM."; exit 1; fi
+          # Each input of the group gets its own process and its own folder, so the peak RSS of one seed does not include another seed.
+          errors=0
+          k=0
+          for one in ${INPUT//,/ }; do
+            k=$((k + 1))
+            out="probe/$k"
+            status=0
+            node $flags scripts/bench.mjs probe --inputs "$one" --out "$out" || status=$?
+            echo "The probe of $one ended with the status $status." | tee -a "$GITHUB_STEP_SUMMARY"
+            if [ -f "$out/probe.md" ]; then cat "$out/probe.md" >> "$GITHUB_STEP_SUMMARY"; fi
+            mkdir -p "$out"
+            echo "$status" > "$out/status.txt"
+            printf '%s\n' "$one" > "$out/input.txt"
+            printf '%s\n' "$MODE" > "$out/mode.txt"
+            if [ ! -f "$out/probe.jsonl" ]; then : > "$out/probe.jsonl"; fi
+            # 134 is an abort of V8 (an OOM): the artifact records it, and the job passes. The gate fails on it. Each other status is an error of the probe.
+            if [ "$status" != 0 ] && [ "$status" != 134 ]; then echo "::error::The probe of $one stopped with the status $status, not with an OOM."; errors=$((errors + 1)); fi
+          done
+          if [ "$errors" != 0 ]; then exit 1; fi
       - id: name
         env:
           INPUT: ${{ matrix.input }}
@@ -92,4 +160,41 @@ jobs:
         with:
           name: ${{ steps.name.outputs.name }}
           path: packages/joint/probe/
+          if-no-files-found: error
+
+  gate:
+    needs: [plan, probe]
+    if: ${{ !cancelled() && needs.plan.result == 'success' && needs.plan.outputs.skip != 'true' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 26
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          pattern: probe-*
+          path: packages/joint/probes
+      - name: Examine the probes
+        working-directory: packages/joint
+        env:
+          EXPECTED: ${{ needs.plan.outputs.inputs }}
+        run: |
+          mkdir -p probes
+          printf '%s' "$EXPECTED" > expected.json
+          status=0
+          node scripts/bench.mjs gate --probes probes --expected expected.json --modes "$MODES" --limit-mb "$LIMIT" || status=$?
+          cat probes/gate.md >> "$GITHUB_STEP_SUMMARY"
+          exit "$status"
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        if: ${{ !cancelled() }}
+        with:
+          name: memory-gate
+          path: packages/joint/probes/gate.md
           if-no-files-found: error

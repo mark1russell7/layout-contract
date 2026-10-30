@@ -8,6 +8,8 @@
 //           [--compare <a:b[,a:b]>] [--exclude-pack <id[,id]>] [--oracle-without <id[,id]>] [--times <spec[,spec]>] [--jobs <file>] [--rank-top <n>]
 //                                                                            writes <dir>/report.json and <dir>/report.md
 //   probe --inputs <id[,id]> --out <dir> [--corpus <set>]                  writes <dir>/records-probe.jsonl and <dir>/probe.jsonl (L77)
+//   families [--corpus <set>]                                               prints the JSON list of the probe groups: the tied largest inputs of each family (L81)
+//   gate --probes <dir> --expected <file> --modes <m[,m]> [--limit-mb <n>]  examines the probes and writes <dir>/gate.md (L81)
 //                                                                            with lane pairs, also <dir>/report-without-lanes.json and .md
 //
 // The corpus is `joint-v2` by default. The slice `pr` is the small slice of the pull request: seed 1 of the specs with count 10 and of the fixed cases.
@@ -35,6 +37,8 @@ import {
   BASELINE,
   DENSE_HUBS,
   checkCorpus,
+  familyProbeGroups,
+  gateMarkdown,
   idList,
   isLanePack,
   ITER_VARIANTS,
@@ -46,6 +50,8 @@ import {
   laneParts,
   lanePasses,
   loadSplit,
+  MEMORY_GATE_MB,
+  memoryGate,
   manifestJson,
   PACK_ENTRIES,
   packOf,
@@ -94,11 +100,16 @@ function shardPlan() {
   // The lane passes use the lane term of the cost model. The rounds of the iteration pairs have no fit yet, so they cost `LANE_PASS_COST` pairs.
   const pairs = PACK_ENTRIES.length * ROUTERS.length + iterPlanPairs(iterate);
   const passes = lanePasses(lanes);
-  const items = rows.map(({ input, entry }) => {
+  const items = costedRows(rows, pairs, passes);
+  return { rows, shards, plan: planShards(items, shards) };
+}
+
+/** This function gives the id, the spec and the planned cost of each row. */
+function costedRows(rows, pairs, passes) {
+  return rows.map(({ input, entry }) => {
     const spec = entry.id.replace(/\/s\d+$/, "");
     return { id: entry.id, spec, cost: plannedCost(spec, input.boxes.length, input.edges?.length ?? 0, pairs, passes) };
   });
-  return { rows, shards, plan: planShards(items, shards) };
 }
 
 /** This function reads a file of input ids. An id outside the corpus is an error. */
@@ -261,6 +272,27 @@ if (command === "check") {
     ...top.map((f) => `| ${f.input.replace(/^.*rect-grid\./, "")} | ${f.pair} | ${f.heapBefore} | ${f.heapLive ?? ""} | ${f.rss} | ${f.ms} |`),
   ];
   writeFileSync(join(out, "probe.md"), md.join("\n") + "\n");
+} else if (command === "families") {
+  // The groups of the memory gate: the inputs with the largest planned cost of each family, with the pairs of the default bench. Each group is one string with commas.
+  console.log(JSON.stringify(familyProbeGroups(costedRows(corpusSlice(), PACK_ENTRIES.length * ROUTERS.length, 0)).map((group) => group.join(","))));
+} else if (command === "gate") {
+  // Each folder under --probes with an input.txt is the probe of one input: input.txt, mode.txt, status.txt and probe.jsonl. A job of one family has a folder for each seed.
+  const dir = args.probes ?? "probes";
+  // The file of --expected is the JSON list of `families`: one string with commas for each family.
+  const expected = JSON.parse(readFileSync(args.expected, "utf8")).flatMap((group) => group.split(",")).filter((id) => id !== "");
+  const modes = (args.modes ?? "").split(",").filter((m) => m !== "");
+  if (modes.length === 0) throw new RangeError("The gate needs --modes <m[,m]>.");
+  const text = (sub, name) => readFileSync(join(dir, sub, name), "utf8").trim();
+  const subs = readdirSync(dir, { recursive: true }).map(String).filter((n) => n.split(/[\\/]/).at(-1) === "input.txt").map((n) => dirname(n));
+  const results = subs.map((sub) => {
+    // The probe writes an empty probe.jsonl at its start, and the facts of an input at its end. Thus an OOM gives no facts for the input.
+    const facts = readFileSync(join(dir, sub, "probe.jsonl"), "utf8").split("\n").filter((l) => l !== "").map((l) => JSON.parse(l));
+    return { input: text(sub, "input.txt"), mode: text(sub, "mode.txt"), status: Number(text(sub, "status.txt")), peakRssMb: facts.length === 0 ? undefined : Math.max(...facts.map((f) => f.maxRss)) };
+  });
+  const gate = memoryGate(expected, modes, results, Number(args["limit-mb"] ?? MEMORY_GATE_MB));
+  writeFileSync(join(dir, "gate.md"), gateMarkdown(gate));
+  console.log(`gate: ${gate.pass ? "pass" : "fail"}, ${gate.rows.filter((r) => r.reason !== "").length} of ${gate.rows.length} probes failed.`);
+  if (!gate.pass) process.exitCode = 1;
 } else if (command === "analyze") {
   const dir = args.records ?? "bench-out";
   const out = args.out ?? dir;

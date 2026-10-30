@@ -10,6 +10,7 @@ This file lists the items of the roadmap of this repository. The status page of 
 | L34 | in progress | P1 | The strategy space as data |
 | L52 | in progress | P1 | Measure joint space coverage, with a weekly trend that rises |
 | L60 | in progress | P1 | Text measuring and line breaking as a layout step |
+| L81 | in progress | P1 | Memory gate over each family of the bench, then the dense-hubs peak (3.4-4.3 GB) |
 
 ## Next
 
@@ -51,7 +52,6 @@ This file lists the items of the roadmap of this repository. The status page of 
 | L75 | later | P2 | Objectives under an interaction |
 | L76 | later | P2 | The orbit of a node: a soft keep-out margin |
 | L80 | later | P3 | Site forms for packSpace of packing, then drop PACK_EXTRAS |
-| L81 | later | P2 | Peak memory of the dense input with hubs (3.4-4.3 GB) |
 
 ## Done
 
