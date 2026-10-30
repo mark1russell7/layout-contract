@@ -13,7 +13,8 @@ name: Sweep
 
 on:
   schedule:
-    - cron: "17 3 * * *"
+    # Each scheduled heavy run of the fleet has its own minute (the rule of 2026-10-30).
+    - cron: "37 3 * * *"
   workflow_dispatch:
     inputs:
       date:
@@ -45,7 +46,7 @@ permissions:
   contents: read
 
 concurrency:
-  group: sweep
+  group: sweep-${{ github.ref }}
   cancel-in-progress: false
 
 env:
@@ -104,8 +105,8 @@ jobs:
     timeout-minutes: 120
     strategy:
       fail-fast: false
-      # GitHub Free runs at most 20 jobs at once for the account. 6 shards at once leave runners for checks and deploys.
-      max-parallel: 6
+      # The account runs at most 20 jobs at once, for all repos together. The fleet rule of 2026-10-30 (STRATEGY.md) gives a heavy workflow 3 jobs at once, so gates and releases get runners.
+      max-parallel: 3
       matrix:
         shard: ${{ fromJSON(needs.plan.outputs.shards) }}
     steps:
@@ -180,8 +181,8 @@ jobs:
     timeout-minutes: 120
     strategy:
       fail-fast: false
-      # GitHub Free runs at most 20 jobs at once for the account. 6 shards at once leave runners for checks and deploys.
-      max-parallel: 6
+      # The account runs at most 20 jobs at once, for all repos together. The fleet rule of 2026-10-30 (STRATEGY.md) gives a heavy workflow 3 jobs at once, so gates and releases get runners.
+      max-parallel: 3
       matrix:
         shard: ${{ fromJSON(needs.race.outputs.shards) }}
     steps:

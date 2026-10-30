@@ -26,7 +26,13 @@ on:
         default: "3072"
   # The nightly gate on main finds a change that brings a peak back within a day. It uses the defaults of the inputs.
   schedule:
-    - cron: "17 5 * * *"
+    # Each scheduled heavy run of the fleet has its own minute (the rule of 2026-10-30).
+    - cron: "53 5 * * *"
+
+# A new run on the same ref waits for the run before it. A gate record that runs halfway has no value when it stops.
+concurrency:
+  group: memory-probe-${{ github.ref }}
+  cancel-in-progress: false
 
 permissions:
   contents: read
@@ -105,7 +111,8 @@ jobs:
     timeout-minutes: 340
     strategy:
       fail-fast: false
-      max-parallel: 20
+      # The account runs at most 20 jobs at once, for all repos together. The fleet rule of 2026-10-30 (STRATEGY.md) gives a heavy workflow 3 jobs at once, so gates and releases get runners.
+      max-parallel: 3
       matrix:
         input: ${{ fromJSON(needs.plan.outputs.inputs) }}
         mode: ${{ fromJSON(needs.plan.outputs.modes) }}

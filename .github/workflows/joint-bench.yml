@@ -121,8 +121,8 @@ jobs:
     timeout-minutes: 360
     strategy:
       fail-fast: false
-      # GitHub Free runs at most 20 jobs at once for the account. 6 shards at once leave runners for checks and deploys.
-      max-parallel: 6
+      # The account runs at most 20 jobs at once, for all repos together. The fleet rule of 2026-10-30 (STRATEGY.md) gives a heavy workflow 3 jobs at once, so gates and releases get runners.
+      max-parallel: 3
       matrix:
         shard: ${{ fromJSON(needs.plan.outputs.shards) }}
     steps:
