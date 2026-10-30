@@ -24,33 +24,61 @@ on:
         description: "The limit of the gate: the peak RSS in MB that each probe stays under."
         type: string
         default: "3072"
+  # The nightly gate on main finds a change that brings a peak back within a day. It uses the defaults of the inputs.
+  schedule:
+    - cron: "17 5 * * *"
 
 permissions:
   contents: read
+
+# A scheduled run has no inputs, so each input has its default here too.
+env:
+  INPUTS: ${{ inputs.inputs || 'families' }}
+  MODES: ${{ inputs.modes || 'bench-6144' }}
+  LIMIT: ${{ inputs.limit-mb || '3072' }}
 
 jobs:
   plan:
     runs-on: ubuntu-latest
     timeout-minutes: 10
+    permissions:
+      contents: read
+      actions: read
     outputs:
+      skip: ${{ steps.changed.outputs.skip }}
       inputs: ${{ steps.plan.outputs.inputs }}
       modes: ${{ steps.plan.outputs.modes }}
     steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      # A nightly run stops here when the last nightly run that finished (pass or fail) examined the same commit of main. It has no new data.
+      - id: changed
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          EVENT: ${{ github.event_name }}
+          SHA: ${{ github.sha }}
+        run: |
+          skip=false
+          if [ "$EVENT" = schedule ]; then
+            last="$(gh run list -R "$REPO" --workflow memory-probe.yml --branch main --event schedule --limit 20 --json headSha,status,conclusion --jq '[.[] | select(.status == "completed" and (.conclusion == "success" or .conclusion == "failure"))][0].headSha // ""')"
+            if [ "$last" = "$SHA" ]; then skip=true; echo "The last nightly run examined $SHA. This run stops." | tee -a "$GITHUB_STEP_SUMMARY"; fi
+          fi
+          echo "skip=$skip" >> "$GITHUB_OUTPUT"
+      - if: steps.changed.outputs.skip != 'true'
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-      - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
-      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+      - if: steps.changed.outputs.skip != 'true'
+        uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
+      - if: steps.changed.outputs.skip != 'true'
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: 26
           cache: pnpm
-      - run: pnpm install --frozen-lockfile
+      - if: steps.changed.outputs.skip != 'true'
+        run: pnpm install --frozen-lockfile
       - id: plan
+        if: steps.changed.outputs.skip != 'true'
         working-directory: packages/joint
-        env:
-          INPUTS: ${{ inputs.inputs }}
-          MODES: ${{ inputs.modes }}
-          LIMIT: ${{ inputs.limit-mb }}
         run: |
           case "$LIMIT" in ''|*[!0-9]*) echo "The limit is a count of MB, not $LIMIT."; exit 1;; esac
           for m in ${MODES//,/ }; do
@@ -71,6 +99,7 @@ jobs:
 
   probe:
     needs: plan
+    if: needs.plan.outputs.skip != 'true'
     runs-on: ubuntu-latest
     # The longest shard of the full bench run 40971129437 took 67 minutes. A job of a family runs up to 3 seeds, one after the other, and a forced GC after each pair adds time.
     timeout-minutes: 340
@@ -135,7 +164,7 @@ jobs:
 
   gate:
     needs: [plan, probe]
-    if: ${{ !cancelled() && needs.plan.result == 'success' }}
+    if: ${{ !cancelled() && needs.plan.result == 'success' && needs.plan.outputs.skip != 'true' }}
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
@@ -155,12 +184,10 @@ jobs:
       - name: Examine the probes
         working-directory: packages/joint
         env:
-          INPUTS: ${{ needs.plan.outputs.inputs }}
-          MODES: ${{ inputs.modes }}
-          LIMIT: ${{ inputs.limit-mb }}
+          EXPECTED: ${{ needs.plan.outputs.inputs }}
         run: |
           mkdir -p probes
-          printf '%s' "$INPUTS" > expected.json
+          printf '%s' "$EXPECTED" > expected.json
           status=0
           node scripts/bench.mjs gate --probes probes --expected expected.json --modes "$MODES" --limit-mb "$LIMIT" || status=$?
           cat probes/gate.md >> "$GITHUB_STEP_SUMMARY"
