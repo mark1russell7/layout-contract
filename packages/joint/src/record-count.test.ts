@@ -22,6 +22,11 @@ describe("recordCount", () => {
     expect(recordCount(manifest, [])).toMatchObject({ recorded: 0, missing: manifest, ok: false });
   });
 
+  it("fails when no input has records, also when the allow list holds each input or the manifest is empty", () => {
+    expect(recordCount(manifest, [], manifest)).toMatchObject({ recorded: 0, allowed: manifest, ok: false });
+    expect(recordCount([], [])).toMatchObject({ manifest: 0, recorded: 0, ok: false });
+  });
+
   it("reads a list of ids without empty lines and comments", () => {
     expect(idList("# a comment\r\na/s1\n\n  b/s2  \n")).toEqual(["a/s1", "b/s2"]);
   });

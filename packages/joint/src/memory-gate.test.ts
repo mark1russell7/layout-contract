@@ -65,6 +65,11 @@ describe("the gate", () => {
     });
   });
 
+  it("fails when it examines nothing: no expected input or no mode", () => {
+    expect(memoryGate([], ["bench-6144"], [ok("a", 100)]).pass).toBe(false);
+    expect(memoryGate(["a"], [], [ok("a", 100)]).pass).toBe(false);
+  });
+
   it("needs a probe in each mode", () => {
     const gate = memoryGate(["a"], ["bench-6144", "cap-2048"], [ok("a", 100)]);
     expect(gate.rows.map((r) => `${r.mode} ${r.reason}`).sort()).toEqual(["bench-6144 ", "cap-2048 no probe"]);
