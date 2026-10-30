@@ -1361,4 +1361,4 @@ The mean Brier score of M1-M4 and M6 is 0.163. The fleet rule of 2026-10-30 make
 
 - M5 is void, but its error is a lesson. I used the 67 minutes of the longest shard of the full bench as the time of one job. The job of the dense input with hubs runs its 3 seeds one after the other, and each seed takes approximately 80 minutes. Thus this one job sets the time of the run.
 - M6 is a miss. The seeds of bench-4 peaked from 3438 MB to 4287 MB in their shards. Alone, the peaks are from 2864 MB to 3337 MB, and seed 1 has the highest peak. The RSS of a shard includes the memory of the inputs before it. Thus the spread of bench-4 came from the shards, not from the seeds.
-- Seed 1 must come down by 8% to pass the gate. Step 2 of L81 probes the pairs of seed 1 with the mode `gc-6144`. It finds the pair that keeps the memory.
+- Seed 1 must come down by 8% to pass the gate. Step 2 of L81 runs the pair `maxrects-cp+gaps` alone on seed 1 and seed 2, each in a fresh process. A diff of the two names what seed 1 holds.
