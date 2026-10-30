@@ -6,6 +6,8 @@
 # The mode `bench-6144` uses the heap cap of the joint bench without forced GC. It gives the peak RSS of the input alone.
 # The mode `gc-6144` forces a full GC after each pair, so the probe gives the live heap that each pair keeps.
 # The modes `cap-3072` and `cap-2048` lower the heap cap without forced GC, so the probe gives the peak RSS and the records under the cap.
+# The mode `alloc-6144` has the heap cap of `bench-6144` and samples the allocations of each pair (alloc.jsonl). It is a diagnostic, not a gate mode.
+# The input `pairs` runs only these pairs of each input (L81 step 2). A gate of such a run is a diagnostic too.
 # The job gate examines each probe. It fails when an input has no probe, an OOM or another error, or a peak RSS of the limit or more.
 name: Memory probe
 
@@ -17,13 +19,17 @@ on:
         type: string
         default: "families"
       modes:
-        description: "The heap modes, with commas between them: bench-6144, gc-6144, cap-3072, cap-2048."
+        description: "The heap modes, with commas between them: bench-6144, gc-6144, cap-3072, cap-2048, alloc-6144."
         type: string
         default: "bench-6144"
       limit-mb:
         description: "The limit of the gate: the peak RSS in MB that each probe stays under."
         type: string
         default: "3072"
+      pairs:
+        description: "Empty for each pair, or the pair ids with commas between them, for example maxrects-cp+gaps. Each input then runs only these pairs."
+        type: string
+        default: ""
   # The nightly gate on main finds a change that brings a peak back within a day. It uses the defaults of the inputs.
   # It starts when the sweep on main ends, also after a failed sweep. Thus the heavy jobs of the two nights do not overlap (the fleet rule of 2026-10-30).
   workflow_run:
@@ -48,6 +54,7 @@ env:
   INPUTS: ${{ inputs.inputs || 'families' }}
   MODES: ${{ inputs.modes || 'bench-6144' }}
   LIMIT: ${{ inputs.limit-mb || '3072' }}
+  PAIRS: ${{ inputs.pairs || '' }}
 
 jobs:
   plan:
@@ -105,8 +112,9 @@ jobs:
         run: |
           case "$LIMIT" in ''|*[!0-9]*) echo "The limit is a count of MB, not $LIMIT."; exit 1;; esac
           for m in ${MODES//,/ }; do
-            case "$m" in bench-6144|gc-6144|cap-3072|cap-2048) ;; *) echo "The mode is bench-6144, gc-6144, cap-3072 or cap-2048, not $m."; exit 1;; esac
+            case "$m" in bench-6144|gc-6144|cap-3072|cap-2048|alloc-6144) ;; *) echo "The mode is bench-6144, gc-6144, cap-3072, cap-2048 or alloc-6144, not $m."; exit 1;; esac
           done
+          case "$PAIRS" in *[!A-Za-z0-9+,_-]*) echo "The pairs $PAIRS have a character that is not allowed."; exit 1;; esac
           if [ "$INPUTS" = families ]; then
             list="$(node scripts/bench.mjs families)"
           else
@@ -154,6 +162,7 @@ jobs:
             gc-6144) flags="--expose-gc --max-old-space-size=6144" ;;
             cap-3072) flags="--max-old-space-size=3072" ;;
             cap-2048) flags="--max-old-space-size=2048" ;;
+            alloc-6144) flags="--max-old-space-size=6144" ;;
           esac
           # Each input of the group gets its own process and its own folder, so the peak RSS of one seed does not include another seed.
           errors=0
@@ -162,7 +171,7 @@ jobs:
             k=$((k + 1))
             out="probe/$k"
             status=0
-            node $flags scripts/bench.mjs probe --inputs "$one" --out "$out" || status=$?
+            node $flags scripts/bench.mjs probe --inputs "$one" ${PAIRS:+--pairs "$PAIRS"} --out "$out" || status=$?
             echo "The probe of $one ended with the status $status." | tee -a "$GITHUB_STEP_SUMMARY"
             if [ -f "$out/probe.md" ]; then cat "$out/probe.md" >> "$GITHUB_STEP_SUMMARY"; fi
             mkdir -p "$out"

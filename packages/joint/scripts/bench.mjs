@@ -30,6 +30,7 @@
 // analyze reads the folds of the greedy portfolios from the split "default" of the split file of the corpus (corpus/splits).
 // analyze fails when an input of the manifest has no records, unless the file of `--allow-missing` lists it. The files list one input id on each line.
 import { appendFileSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
+import { Session } from "node:inspector";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import {
@@ -221,8 +222,43 @@ if (command === "check") {
   mkdirSync(out, { recursive: true });
   const ids = (args.inputs ?? "").split(",").filter((x) => x !== "");
   if (ids.length === 0) throw new RangeError("The probe needs --inputs <id[,id]>.");
+  // With --pairs, the probe runs only these pairs of each input, in a fresh process (L81 step 2). The runner then packs only the entries of these pairs.
+  const pairs = (args.pairs ?? "").split(",").filter((x) => x !== "");
   const byId = new Map(corpusSlice().map((row) => [row.entry.id, row]));
   const env = runEnv();
+  // The mode alloc-6144 samples the allocations of each pair, also of the objects that a GC collected before the end of the pair.
+  // alloc.jsonl then has the functions that allocated the most bytes in each pair. A diff of two inputs names the code that makes the larger peak.
+  const sampler = process.env.MODE === "alloc-6144" ? new Session() : undefined;
+  const post = (method, params = {}) => {
+    let result;
+    let failure;
+    sampler.post(method, params, (error, value) => {
+      failure = error;
+      result = value;
+    });
+    if (failure) throw failure;
+    if (result === undefined) throw new Error(`The inspector did not answer ${method} at once.`);
+    return result;
+  };
+  const SAMPLE = { samplingInterval: 32768, includeObjectsCollectedByMajorGC: true, includeObjectsCollectedByMinorGC: true };
+  const allocTop = (profile) => {
+    const bytes = new Map();
+    const walk = (node) => {
+      const frame = node.callFrame;
+      const key = `${frame.functionName || "(anonymous)"} ${frame.url.replace(/^.*node_modules\//, "")}:${frame.lineNumber + 1}`;
+      bytes.set(key, (bytes.get(key) ?? 0) + node.selfSize);
+      for (const child of node.children) walk(child);
+    };
+    walk(profile.head);
+    const total = [...bytes.values()].reduce((s, b) => s + b, 0);
+    const mb1 = (b) => Math.round(b / 104857.6) / 10;
+    return { totalMb: mb1(total), top: [...bytes].sort((a, b) => b[1] - a[1]).slice(0, 20).map(([at, b]) => ({ at, mb: mb1(b) })) };
+  };
+  if (sampler !== undefined) {
+    sampler.connect();
+    post("HeapProfiler.enable");
+  }
+  const alloc = join(out, "alloc.jsonl");
   const commit = process.env.GITHUB_SHA;
   const gc = typeof globalThis.gc === "function" ? globalThis.gc : undefined;
   const mb = (bytes) => Math.round(bytes / 2 ** 20);
@@ -240,14 +276,19 @@ if (command === "check") {
     let peakHeap = 0;
     let peakPair = "";
     const lines = [];
-    for (const run of pairRuns(row.input, row.entry.cell, { env, corpus: set, lanes, iterate, freeRoutes: true, ...(commit === undefined ? {} : { commit }) })) {
+    if (sampler !== undefined) post("HeapProfiler.startSampling", SAMPLE);
+    for (const run of pairRuns(row.input, row.entry.cell, { env, corpus: set, lanes, iterate, freeRoutes: true, ...(pairs.length === 0 ? {} : { pairs }), ...(commit === undefined ? {} : { commit }) })) {
       appendFileSync(records, JSON.stringify(run.record) + "\n");
+      if (sampler !== undefined) {
+        appendFileSync(alloc, JSON.stringify({ input: id, pair: run.record.strategy, cpu: env.cpu, sampling: SAMPLE, ...allocTop(post("HeapProfiler.stopSampling").profile) }) + "\n");
+        post("HeapProfiler.startSampling", SAMPLE);
+      }
       const before = process.memoryUsage();
       gc?.();
       const after = process.memoryUsage();
       const now = performance.now();
       // Each fact has the CPU model and the heap mode, because a time and a peak are true only for them (the fleet rule of 2026-10-30).
-      const fact = { input: id, pair: run.record.strategy, ms: Math.round(now - last), heapBefore: mb(before.heapUsed), heapLive: gc === undefined ? null : mb(after.heapUsed), rss: mb(before.rss), maxRss: mb(process.resourceUsage().maxRSS * 1024), cpu: env.cpu, mode: process.env.MODE ?? "none" };
+      const fact = { input: id, pair: run.record.strategy, ms: Math.round(now - last), heapBefore: mb(before.heapUsed), heapLive: gc === undefined ? null : mb(after.heapUsed), rss: mb(before.rss), external: mb(before.external), buffers: mb(before.arrayBuffers), maxRss: mb(process.resourceUsage().maxRSS * 1024), cpu: env.cpu, mode: process.env.MODE ?? "none" };
       lines.push(JSON.stringify(fact) + "\n");
       if (fact.heapBefore > peakHeap) {
         peakHeap = fact.heapBefore;
@@ -256,6 +297,7 @@ if (command === "check") {
       last = performance.now();
     }
     appendFileSync(facts, lines.join(""));
+    if (sampler !== undefined) post("HeapProfiler.stopSampling");
     console.log(`  peak rss ${mb(process.resourceUsage().maxRSS * 1024)} MB after ${id}`);
     console.log(`  the largest heap after a pair: ${peakHeap} MB, after ${peakPair}`);
     console.log(`${id}: ${lines.length} pairs, ${Math.round(performance.now() - t0)} ms`);
