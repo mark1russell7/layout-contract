@@ -1357,7 +1357,7 @@ Run `40993165948` on main examined 293 probes with the limit 3072 MB. 1 probe fa
 | M5 | 0.55 | false | 0.303 |
 | M6 | 0.5 | false | 0.250 |
 
-The mean Brier score is 0.186.
+The mean Brier score is 0.186. The fleet rule of 2026-10-30 makes this score void. Each resource record must have the CPU model of the runner, and these records do not. The next gate records the CPU model, and M1-M6 get a score again on it.
 
 - M5 is a miss. I used the 67 minutes of the longest shard of the full bench as the time of one job. The job of the dense input with hubs runs its 3 seeds one after the other, and each seed takes approximately 80 minutes. Thus this one job sets the time of the run.
 - M6 is a miss. The seeds of bench-4 peaked from 3438 MB to 4287 MB in their shards. Alone, the peaks are from 2864 MB to 3337 MB, and seed 1 has the highest peak. The RSS of a shard includes the memory of the inputs before it. Thus the spread of bench-4 came from the shards, not from the seeds.
