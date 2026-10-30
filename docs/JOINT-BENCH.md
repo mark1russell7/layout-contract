@@ -1314,16 +1314,19 @@ The gate takes its inputs from the bench, so it cannot leave out a family.
 - `bench.mjs families` gives the input with the largest planned cost of each family. A family is an input id without its seed. `joint-v2` has 101 families.
 - The workflow `memory-probe.yml` uses these inputs by default. The mode `bench-6144` has the heap cap of the bench and no forced GC.
 - The job `gate` fails when an input has no probe, an OOM or another error, or a peak RSS of 3072 MB or more.
-- The seeds of a family have the same planned cost, so the gate takes seed 1. The seeds of the dense input with hubs had peaks from 3438 MB to 4287 MB. Thus a family near the limit can pass on seed 1 and fail on another seed.
+- The seeds of a family often have the same planned cost. Then the gate probes each of these seeds, and it fails on the worst seed. A gate on seed 1 alone is a gate on a chosen input. The seeds of the dense input with hubs peaked from 3438 MB to 4287 MB.
+- `joint-v2` gives 293 inputs in 101 groups: a group of 3 seeds, or a group of 1 input. A matrix of GitHub has a maximum of 256 jobs, so each job probes one group. Each seed of the group runs in its own process, one after the other.
+- The gate runs only when you start it. The full gate costs about as many CI minutes as one full bench.
 
 ### The prediction for the first run of the gate
 
-I wrote these claims before the run. The model of memory and of the time in CI is weak (L79), so those claims have a p of 0.6 or less. G2 has more because bench-4 measured it.
+I wrote these claims before the run. The model of memory and of the time in CI is weak (L79), so those claims have a p of 0.6 or less. M2 has more because bench-4 measured it. The peaks of bench-4 are shard peaks: the RSS of a shard includes the inputs before it. Thus a probe of one input alone can have a lower peak.
 
 | Claim | p | Claim text |
 |---|---|---|
-| G1 | 0.7 | The gate has a probe with the status 0 or 134 for each of the 101 inputs. No row is "no probe". |
-| G2 | 0.8 | The gate fails, and the dense input with hubs has a peak RSS of 3072 MB or more. |
-| G3 | 0.55 | The dense input with hubs is the only input of the gate with a peak RSS of 3072 MB or more. |
-| G4 | 0.6 | No probe of the gate has the status 134 (an OOM). |
-| G5 | 0.6 | The run of the gate takes less than 2 hours from its start to its end. |
+| M1 | 0.7 | The gate has a probe with the status 0 or 134 for each of the 293 inputs. No row is "no probe", and no job reaches its timeout. |
+| M2 | 0.75 | The gate fails, and one or more seeds of the dense input with hubs have a peak RSS of 3072 MB or more. |
+| M3 | 0.5 | The dense input with hubs is the only family with a seed at a peak RSS of 3072 MB or more. |
+| M4 | 0.6 | No probe of the gate has the status 134 (an OOM). |
+| M5 | 0.55 | The run of the gate takes less than 4 hours from its start to its end. |
+| M6 | 0.5 | The worst seed of the dense input with hubs has a peak RSS 10% or more above the peak of its seed 1. |

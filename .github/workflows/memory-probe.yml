@@ -1,6 +1,8 @@
 # The memory probe of L77 and the memory gate of L81 (`docs/JOINT-BENCH.md`). It runs the joint bench on single inputs under a stated heap mode.
 # Each job runs one input with one mode, and writes the memory facts of each pair and the records.
 # The input `families` (the default) gives the largest input of each family of the corpus: `bench.mjs families`. Thus the gate cannot leave out a family.
+# The seeds of a family often have the same planned cost. Then the job of the family probes each of these seeds, one after the other, each in its own process.
+# The gate examines each seed. A gate on seed 1 alone is a gate on a chosen input: the seeds of the dense input with hubs peaked from 3438 MB to 4287 MB.
 # The mode `bench-6144` uses the heap cap of the joint bench without forced GC. It gives the peak RSS of the input alone.
 # The mode `gc-6144` forces a full GC after each pair, so the probe gives the live heap that each pair keeps.
 # The modes `cap-3072` and `cap-2048` lower the heap cap without forced GC, so the probe gives the peak RSS and the records under the cap.
@@ -11,7 +13,7 @@ on:
   workflow_dispatch:
     inputs:
       inputs:
-        description: "families, or the input ids of joint-v2 with commas between them. Each input gets its own job for each mode."
+        description: "families, or the input ids of joint-v2 with commas between them. Each input gets its own job for each mode. In families, each family gets one job for each mode."
         type: string
         default: "families"
       modes:
@@ -63,15 +65,15 @@ jobs:
             done
             list="$(printf '%s' "$INPUTS" | jq -Rc 'split(",") | map(select(. != ""))')"
           fi
-          echo "The plan has $(printf '%s' "$list" | jq length) inputs." | tee -a "$GITHUB_STEP_SUMMARY"
+          echo "The plan has $(printf '%s' "$list" | jq length) jobs and $(printf '%s' "$list" | jq '[.[] | split(",") | length] | add') inputs for each mode." | tee -a "$GITHUB_STEP_SUMMARY"
           echo "inputs=$list" >> "$GITHUB_OUTPUT"
           echo "modes=$(printf '%s' "$MODES" | jq -Rc 'split(",") | map(select(. != ""))')" >> "$GITHUB_OUTPUT"
 
   probe:
     needs: plan
     runs-on: ubuntu-latest
-    # The most costly input of joint-v2 took 81 minutes in run 40884908305. A forced GC after each pair adds time.
-    timeout-minutes: 180
+    # The longest shard of the full bench run 40971129437 took 67 minutes. A job of a family runs up to 3 seeds, one after the other, and a forced GC after each pair adds time.
+    timeout-minutes: 340
     strategy:
       fail-fast: false
       max-parallel: 20
@@ -88,7 +90,7 @@ jobs:
           node-version: 26
           cache: pnpm
       - run: pnpm install --frozen-lockfile
-      - name: Probe one input
+      - name: Probe each input of the group
         working-directory: packages/joint
         env:
           INPUT: ${{ matrix.input }}
@@ -100,17 +102,25 @@ jobs:
             cap-3072) flags="--max-old-space-size=3072" ;;
             cap-2048) flags="--max-old-space-size=2048" ;;
           esac
-          status=0
-          node $flags scripts/bench.mjs probe --inputs "$INPUT" --out probe || status=$?
-          echo "The probe ended with the status $status." | tee -a "$GITHUB_STEP_SUMMARY"
-          if [ -f probe/probe.md ]; then cat probe/probe.md >> "$GITHUB_STEP_SUMMARY"; fi
-          mkdir -p probe
-          echo "$status" > probe/status.txt
-          printf '%s\n' "$INPUT" > probe/input.txt
-          printf '%s\n' "$MODE" > probe/mode.txt
-          if [ ! -f probe/probe.jsonl ]; then : > probe/probe.jsonl; fi
-          # 134 is an abort of V8 (an OOM): the artifact records it, and the job passes. The gate fails on it. Each other status is an error of the probe.
-          if [ "$status" != 0 ] && [ "$status" != 134 ]; then echo "::error::The probe stopped with the status $status, not with an OOM."; exit 1; fi
+          # Each input of the group gets its own process and its own folder, so the peak RSS of one seed does not include another seed.
+          errors=0
+          k=0
+          for one in ${INPUT//,/ }; do
+            k=$((k + 1))
+            out="probe/$k"
+            status=0
+            node $flags scripts/bench.mjs probe --inputs "$one" --out "$out" || status=$?
+            echo "The probe of $one ended with the status $status." | tee -a "$GITHUB_STEP_SUMMARY"
+            if [ -f "$out/probe.md" ]; then cat "$out/probe.md" >> "$GITHUB_STEP_SUMMARY"; fi
+            mkdir -p "$out"
+            echo "$status" > "$out/status.txt"
+            printf '%s\n' "$one" > "$out/input.txt"
+            printf '%s\n' "$MODE" > "$out/mode.txt"
+            if [ ! -f "$out/probe.jsonl" ]; then : > "$out/probe.jsonl"; fi
+            # 134 is an abort of V8 (an OOM): the artifact records it, and the job passes. The gate fails on it. Each other status is an error of the probe.
+            if [ "$status" != 0 ] && [ "$status" != 134 ]; then echo "::error::The probe of $one stopped with the status $status, not with an OOM."; errors=$((errors + 1)); fi
+          done
+          if [ "$errors" != 0 ]; then exit 1; fi
       - id: name
         env:
           INPUT: ${{ matrix.input }}

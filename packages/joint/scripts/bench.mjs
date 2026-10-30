@@ -8,7 +8,7 @@
 //           [--compare <a:b[,a:b]>] [--exclude-pack <id[,id]>] [--oracle-without <id[,id]>] [--times <spec[,spec]>] [--jobs <file>] [--rank-top <n>]
 //                                                                            writes <dir>/report.json and <dir>/report.md
 //   probe --inputs <id[,id]> --out <dir> [--corpus <set>]                  writes <dir>/records-probe.jsonl and <dir>/probe.jsonl (L77)
-//   families [--corpus <set>]                                               prints the JSON list of the largest input of each family (L81)
+//   families [--corpus <set>]                                               prints the JSON list of the probe groups: the tied largest inputs of each family (L81)
 //   gate --probes <dir> --expected <file> --modes <m[,m]> [--limit-mb <n>]  examines the probes and writes <dir>/gate.md (L81)
 //                                                                            with lane pairs, also <dir>/report-without-lanes.json and .md
 //
@@ -37,7 +37,7 @@ import {
   BASELINE,
   DENSE_HUBS,
   checkCorpus,
-  familyProbeInputs,
+  familyProbeGroups,
   gateMarkdown,
   idList,
   isLanePack,
@@ -273,16 +273,18 @@ if (command === "check") {
   ];
   writeFileSync(join(out, "probe.md"), md.join("\n") + "\n");
 } else if (command === "families") {
-  // The inputs of the memory gate: the input with the largest planned cost of each family, with the pairs of the default bench.
-  console.log(JSON.stringify(familyProbeInputs(costedRows(corpusSlice(), PACK_ENTRIES.length * ROUTERS.length, 0))));
+  // The groups of the memory gate: the inputs with the largest planned cost of each family, with the pairs of the default bench. Each group is one string with commas.
+  console.log(JSON.stringify(familyProbeGroups(costedRows(corpusSlice(), PACK_ENTRIES.length * ROUTERS.length, 0)).map((group) => group.join(","))));
 } else if (command === "gate") {
-  // Each folder of --probes is the artifact of one probe job: input.txt, mode.txt, status.txt and probe.jsonl.
+  // Each folder under --probes with an input.txt is the probe of one input: input.txt, mode.txt, status.txt and probe.jsonl. A job of one family has a folder for each seed.
   const dir = args.probes ?? "probes";
-  const expected = JSON.parse(readFileSync(args.expected, "utf8"));
+  // The file of --expected is the JSON list of `families`: one string with commas for each family.
+  const expected = JSON.parse(readFileSync(args.expected, "utf8")).flatMap((group) => group.split(",")).filter((id) => id !== "");
   const modes = (args.modes ?? "").split(",").filter((m) => m !== "");
   if (modes.length === 0) throw new RangeError("The gate needs --modes <m[,m]>.");
   const text = (sub, name) => readFileSync(join(dir, sub, name), "utf8").trim();
-  const results = readdirSync(dir, { withFileTypes: true }).filter((d) => d.isDirectory()).map(({ name: sub }) => {
+  const subs = readdirSync(dir, { recursive: true }).map(String).filter((n) => n.split(/[\\/]/).at(-1) === "input.txt").map((n) => dirname(n));
+  const results = subs.map((sub) => {
     // The probe writes an empty probe.jsonl at its start, and the facts of an input at its end. Thus an OOM gives no facts for the input.
     const facts = readFileSync(join(dir, sub, "probe.jsonl"), "utf8").split("\n").filter((l) => l !== "").map((l) => JSON.parse(l));
     return { input: text(sub, "input.txt"), mode: text(sub, "mode.txt"), status: Number(text(sub, "status.txt")), peakRssMb: facts.length === 0 ? undefined : Math.max(...facts.map((f) => f.maxRss)) };

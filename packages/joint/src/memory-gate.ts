@@ -15,15 +15,19 @@ export function familyOf(id: string): string {
   return id.replace(/\/s\d+$/, "");
 }
 
-/** This function gives the input with the largest planned cost of each family, in the order of the first input of each family. An equal cost keeps the first input. */
-export function familyProbeInputs(inputs: readonly CostedInput[]): string[] {
-  const best = new Map<string, CostedInput>();
+/**
+ * This function gives the probe group of each family: each input with the largest planned cost of the family, in the order of the families.
+ * The seeds of a family often have the same cost. Then the group has each of these seeds, because the peak of a seed can be 25% above the peak of seed 1.
+ */
+export function familyProbeGroups(inputs: readonly CostedInput[]): string[][] {
+  const best = new Map<string, { cost: number; ids: string[] }>();
   for (const input of inputs) {
     const family = familyOf(input.id);
     const old = best.get(family);
-    if (old === undefined || input.cost > old.cost) best.set(family, input);
+    if (old === undefined || input.cost > old.cost) best.set(family, { cost: input.cost, ids: [input.id] });
+    else if (input.cost === old.cost) old.ids.push(input.id);
   }
-  return [...best.values()].map((input) => input.id);
+  return [...best.values()].map((group) => group.ids);
 }
 
 /** The result of the probe of one input in one heap mode. The peak is `undefined` when the probe wrote no facts, for example after an OOM. */
