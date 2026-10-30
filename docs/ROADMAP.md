@@ -52,6 +52,7 @@ This file lists the items of the roadmap of this repository. The status page of 
 | L75 | later | P2 | Objectives under an interaction |
 | L76 | later | P2 | The orbit of a node: a soft keep-out margin |
 | L80 | later | P3 | Site forms for packSpace of packing, then drop PACK_EXTRAS |
+| L82 | later | P2 | The bench scripts in TypeScript (rule typed-scripts of conventions 0.5.0) |
 
 ## Done
 

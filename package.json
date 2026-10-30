@@ -12,10 +12,11 @@
     "template": "template repo",
     "test": "pnpm -r run test && pnpm run test:release && pnpm run test:ai-review && node scripts/check-shared.mjs",
     "test:release": "node --test \"scripts/release/*.test.mjs\"",
-    "test:ai-review": "node --test \"scripts/ai-review/*.test.mjs\"",
-    "typecheck": "pnpm -r run typecheck",
+    "test:ai-review": "node --test \"scripts/ai-review/*.test.ts\"",
+    "typecheck": "pnpm -r run typecheck && pnpm run typecheck:scripts",
+    "typecheck:scripts": "tsc -p tsconfig.scripts.json",
     "lint:ste": "ste-lint",
-    "check:boundaries": "depcruise --config .dependency-cruiser.mjs packages",
+    "check:boundaries": "depcruise --config .dependency-cruiser.ts packages",
     "check:api": "api-report check",
     "check:conventions": "conventions check"
   },
@@ -23,14 +24,27 @@
     "@arethetypeswrong/core": "^0.18.5",
     "@mark1russell7/api-report": "^0.2.0",
     "@mark1russell7/boundaries": "^0.2.0",
-    "@mark1russell7/conventions": "^0.3.1",
+    "@mark1russell7/conventions": "^0.5.0",
     "@mark1russell7/cue": "^1.0.2",
     "@mark1russell7/ste-lint": "^0.1.1",
     "@mark1russell7/template-cli": "^0.1.0",
     "@swc/core": "^1.15.0",
+    "@types/node": "^26.6.5",
     "dependency-cruiser": "^18.7.0",
     "publint": "^0.3.25",
     "tsx": "^4.23.15",
     "typescript": "^7.0.2"
+  },
+  "conventions": {
+    "rules": {
+      "typed-scripts": {
+        "ignore": [
+          "scripts/release/**",
+          "scripts/check-shared.mjs",
+          "packages/*/scripts/*.mjs"
+        ],
+        "reason": "scripts/release/ is the release standard: only the release session syncs it, and the template has its .ts files. scripts/check-shared.mjs is the shared block checker of PROMOTION.md, the same file in packing and highways (packing #187). The bench scripts of packages/*/scripts move to TypeScript in roadmap item L82."
+      }
+    }
   }
 }
