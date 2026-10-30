@@ -1343,3 +1343,27 @@ I wrote these claims before the run. The model of memory and of the time in CI i
 | M4 | 0.6 | No probe of the gate has the status 134 (an OOM). |
 | M5 | 0.55 | The run of the gate takes less than 4 hours from its start to its end. |
 | M6 | 0.5 | The worst seed of the dense input with hubs has a peak RSS 10% or more above the peak of its seed 1. |
+
+### The prediction for step 2: the pair `maxrects-cp+gaps` alone
+
+In the first gate, seed 1 of the dense input with hubs peaked at 3337 MB, at the pair `maxrects-cp+gaps`. That pair added 874 MB to the peak RSS of seed 1, and 280 MB to the peak of seed 2.
+Step 2 runs only this pair on seed 1 and on seed 2, each in a fresh process (`--pairs` of `bench.mjs probe`). Each seed runs in two modes:
+
+- `bench-6144`, the mode of the gate. It gives the peak RSS of the pair alone.
+- `alloc-6144`, a diagnostic with the same heap cap. It samples the allocations of the pair, also of the objects that a GC collected. `alloc.jsonl` has the 20 functions that allocated the most bytes.
+
+The peak of the pair comes during the pair, and the heap after the pair was only 609 MB. A heap snapshot after the pair shows only what stays. So the diagnostic samples each allocation of the pair, and a diff of seed 1 against seed 2 names the code of the larger peak.
+Each fact also has the external memory and the memory of the array buffers too, because a peak RSS can be outside the JS heap.
+
+I wrote these claims before the run.
+
+| Claim | p | Claim text |
+|---|---|---|
+| S1 | 0.6 | In `bench-6144`, the peak RSS of seed 1 alone is 400 MB or more above the peak RSS of seed 2 alone. |
+| S2 | 0.75 | In `bench-6144`, the pair alone stays under 3072 MB on both seeds. |
+| S3 | 0.65 | In `alloc-6144`, the function that allocates the most bytes in seed 1 is in `@mark1russell7/highways`, not in the joint runner. |
+| S4 | 0.55 | The sampled allocation of seed 1 is 1.5 times the sampled allocation of seed 2, or more. |
+| S5 | 0.5 | The function with the largest gap of bytes, seed 1 minus seed 2, is `gapPlan` of `highways` or a function that it calls. |
+
+If S1 is false, the pair alone does not make the gap. Then the gap of seed 1 comes from the memory that the pairs before it keep, and step 2 examines that sequence.
+A fix passes L81 only when seed 1 stays under 3072 MB in a full run of the gate in `bench-6144`. A pass in a diagnostic mode does not pass L81.
