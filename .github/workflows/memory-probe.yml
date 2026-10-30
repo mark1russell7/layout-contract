@@ -25,8 +25,20 @@ on:
         type: string
         default: "3072"
   # The nightly gate on main finds a change that brings a peak back within a day. It uses the defaults of the inputs.
+  # It starts when the sweep on main ends, also after a failed sweep. Thus the heavy jobs of the two nights do not overlap (the fleet rule of 2026-10-30).
+  workflow_run:
+    workflows: [Sweep]
+    types: [completed]
+    branches: [main]
+  # The schedule is the fallback for a night with no sweep. It stops when a sweep on main started on the same day.
   schedule:
-    - cron: "17 5 * * *"
+    # Each scheduled heavy run of the fleet has its own minute (the rule of 2026-10-30).
+    - cron: "53 5 * * *"
+
+# A new run on the same ref waits for the run before it. A gate record that runs halfway has no value when it stops.
+concurrency:
+  group: memory-probe-${{ github.ref }}
+  cancel-in-progress: false
 
 permissions:
   contents: read
@@ -49,7 +61,9 @@ jobs:
       inputs: ${{ steps.plan.outputs.inputs }}
       modes: ${{ steps.plan.outputs.modes }}
     steps:
-      # A nightly run stops here when the last nightly run that finished (pass or fail) examined the same commit of main. It has no new data.
+      # A nightly run stops here in two cases. It has no new data.
+      # (1) The last nightly gate examined the same commit of main. Only a run whose job gate passed or failed counts, because a run that stopped here also ends as a success.
+      # (2) A scheduled run is the fallback, and a sweep on main started today. The end of that sweep starts the gate.
       - id: changed
         env:
           GH_TOKEN: ${{ github.token }}
@@ -59,8 +73,17 @@ jobs:
         run: |
           skip=false
           if [ "$EVENT" = schedule ]; then
-            last="$(gh run list -R "$REPO" --workflow memory-probe.yml --branch main --event schedule --limit 20 --json headSha,status,conclusion --jq '[.[] | select(.status == "completed" and (.conclusion == "success" or .conclusion == "failure"))][0].headSha // ""')"
-            if [ "$last" = "$SHA" ]; then skip=true; echo "The last nightly run examined $SHA. This run stops." | tee -a "$GITHUB_STEP_SUMMARY"; fi
+            today="$(date -u +%Y-%m-%d)"
+            sweeps="$(gh run list -R "$REPO" --workflow sweep.yml --branch main --limit 10 --json createdAt --jq "[.[] | select(.createdAt >= \"$today\")] | length")"
+            if [ "$sweeps" != 0 ]; then skip=true; echo "A sweep on main started on $today. The end of the sweep starts the gate, so this fallback run stops." | tee -a "$GITHUB_STEP_SUMMARY"; fi
+          fi
+          if [ "$skip" = false ] && { [ "$EVENT" = schedule ] || [ "$EVENT" = workflow_run ]; }; then
+            last=""
+            for id in $(gh run list -R "$REPO" --workflow memory-probe.yml --branch main --status completed --limit 20 --json databaseId,event --jq '.[] | select(.event == "schedule" or .event == "workflow_run") | .databaseId'); do
+              last="$(gh run view "$id" -R "$REPO" --json jobs,headSha --jq 'if ([.jobs[] | select(.name == "gate" and (.conclusion == "success" or .conclusion == "failure"))] | length) > 0 then .headSha else "" end')"
+              if [ -n "$last" ]; then break; fi
+            done
+            if [ "$last" = "$SHA" ]; then skip=true; echo "The last nightly gate examined $SHA. This run stops." | tee -a "$GITHUB_STEP_SUMMARY"; fi
           fi
           echo "skip=$skip" >> "$GITHUB_OUTPUT"
       - if: steps.changed.outputs.skip != 'true'
@@ -105,7 +128,8 @@ jobs:
     timeout-minutes: 340
     strategy:
       fail-fast: false
-      max-parallel: 20
+      # The account runs at most 20 jobs at once, for all repos together. The fleet rule of 2026-10-30 (STRATEGY.md) gives a heavy workflow 3 jobs at once, so gates and releases get runners.
+      max-parallel: 3
       matrix:
         input: ${{ fromJSON(needs.plan.outputs.inputs) }}
         mode: ${{ fromJSON(needs.plan.outputs.modes) }}
@@ -185,11 +209,21 @@ jobs:
         working-directory: packages/joint
         env:
           EXPECTED: ${{ needs.plan.outputs.inputs }}
+          # The sweep that this gate followed, for a run that the end of a sweep started.
+          SWEEP_ID: ${{ github.event.workflow_run.id }}
+          SWEEP_RESULT: ${{ github.event.workflow_run.conclusion }}
+          SWEEP_URL: ${{ github.event.workflow_run.html_url }}
+          EVENT: ${{ github.event_name }}
         run: |
           mkdir -p probes
           printf '%s' "$EXPECTED" > expected.json
           status=0
           node scripts/bench.mjs gate --probes probes --expected expected.json --modes "$MODES" --limit-mb "$LIMIT" || status=$?
+          if [ -n "$SWEEP_ID" ]; then
+            printf '\nThis gate followed the sweep run [%s](%s), with the result %s.\n' "$SWEEP_ID" "$SWEEP_URL" "$SWEEP_RESULT" >> probes/gate.md
+          else
+            printf '\nThis gate followed no sweep. The event was %s.\n' "$EVENT" >> probes/gate.md
+          fi
           cat probes/gate.md >> "$GITHUB_STEP_SUMMARY"
           exit "$status"
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2

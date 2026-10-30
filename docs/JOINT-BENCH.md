@@ -1316,7 +1316,20 @@ The gate takes its inputs from the bench, so it cannot leave out a family.
 - The job `gate` fails when an input has no probe, an OOM or another error, or a peak RSS of 3072 MB or more.
 - The seeds of a family often have the same planned cost. Then the gate probes each of these seeds, and it fails on the worst seed. A gate on seed 1 alone is a gate on a chosen input. The seeds of the dense input with hubs peaked from 3438 MB to 4287 MB.
 - `joint-v2` gives 293 inputs in 101 groups: a group of 3 seeds, or a group of 1 input. A matrix of GitHub has a maximum of 256 jobs, so each job probes one group. Each seed of the group runs in its own process, one after the other.
-- The gate runs only when you start it. The full gate costs about as many CI minutes as one full bench.
+- The gate runs each night on main when the sweep on main ends, also after a failed sweep. Thus the heavy jobs of the two do not overlap. The gate writes the sweep run that it followed in `gate.md`.
+- A night with no sweep gets the gate at 05:53 UTC. This scheduled run stops when a sweep on main started on the same day.
+- A nightly gate stops at its start when the last nightly gate examined the same commit of main. You can also start the gate. The full gate costs about as many CI minutes as one full bench.
+- The gate runs 3 probe jobs at the same time. The account runs at most 20 jobs at once for all repos, and the fleet rule of 2026-10-30 gives a heavy workflow 3 of them.
+
+### The prediction for a gate with 3 jobs at once
+
+The first gate ran 20 jobs at once. Its 100 shorter probe jobs took 782 job minutes, and the job of the dense input with hubs ran for more than 150 minutes. I wrote these claims before the first gate with 3 jobs at once.
+
+| Claim | p | Claim text |
+|---|---|---|
+| N1 | 0.6 | The gate takes 5 to 8 hours from its start to its end. |
+| N2 | 0.85 | No probe job of the gate waits so long that GitHub cancels it. |
+| N3 | 0.25 | A night with a sweep and the gate after it ends before 14:00 UTC. The midpoints (a sweep of 360 minutes from 03:37, and a gate of 6.5 hours) give 16:00. |
 
 ### The prediction for the first run of the gate
 
