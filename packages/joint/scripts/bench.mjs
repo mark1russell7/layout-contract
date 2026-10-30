@@ -280,7 +280,7 @@ if (command === "check") {
     for (const run of pairRuns(row.input, row.entry.cell, { env, corpus: set, lanes, iterate, freeRoutes: true, ...(pairs.length === 0 ? {} : { pairs }), ...(commit === undefined ? {} : { commit }) })) {
       appendFileSync(records, JSON.stringify(run.record) + "\n");
       if (sampler !== undefined) {
-        appendFileSync(alloc, JSON.stringify({ input: id, pair: run.record.strategy, cpu: env.cpu, ...allocTop(post("HeapProfiler.stopSampling").profile) }) + "\n");
+        appendFileSync(alloc, JSON.stringify({ input: id, pair: run.record.strategy, cpu: env.cpu, sampling: SAMPLE, ...allocTop(post("HeapProfiler.stopSampling").profile) }) + "\n");
         post("HeapProfiler.startSampling", SAMPLE);
       }
       const before = process.memoryUsage();
