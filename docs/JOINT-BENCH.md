@@ -1343,3 +1343,22 @@ I wrote these claims before the run. The model of memory and of the time in CI i
 | M4 | 0.6 | No probe of the gate has the status 134 (an OOM). |
 | M5 | 0.55 | The run of the gate takes less than 4 hours from its start to its end. |
 | M6 | 0.5 | The worst seed of the dense input with hubs has a peak RSS 10% or more above the peak of its seed 1. |
+
+### The result of the first run of the gate
+
+Run `40993165948` on main examined 293 probes with the limit 3072 MB. 1 probe failed: seed 1 of the dense input with hubs, with a peak RSS of 3337 MB. Seed 2 peaked at 2930 MB and seed 3 at 2864 MB. The next family peaked at 2247 MB. Each probe has the status 0. The run took 4 hours and 10 minutes, and the job of the dense input with hubs took 248 minutes.
+
+| Claim | p | Result | Brier |
+|---|---|---|---|
+| M1 | 0.7 | true | 0.090 |
+| M2 | 0.75 | true | 0.063 |
+| M3 | 0.5 | true | 0.250 |
+| M4 | 0.6 | true | 0.160 |
+| M5 | 0.55 | void | none |
+| M6 | 0.5 | false | 0.250 |
+
+The mean Brier score of M1-M4 and M6 is 0.163. The fleet rule of 2026-10-30 makes M5 void. A time depends on the CPU model of the runner, and the jobs ran on 5 CPU models. Each record of the gate has the CPU model and the mode. A memory peak does not depend on the CPU model, so M1-M4 and M6 stand.
+
+- M5 is void, but its error is a lesson. I used the 67 minutes of the longest shard of the full bench as the time of one job. The job of the dense input with hubs runs its 3 seeds one after the other, and each seed takes approximately 80 minutes. Thus this one job sets the time of the run.
+- M6 is a miss. The seeds of bench-4 peaked from 3438 MB to 4287 MB in their shards. Alone, the peaks are from 2864 MB to 3337 MB, and seed 1 has the highest peak. The RSS of a shard includes the memory of the inputs before it. Thus the spread of bench-4 came from the shards, not from the seeds.
+- Seed 1 must come down by 8% to pass the gate. Step 2 of L81 runs the pair `maxrects-cp+gaps` alone on seed 1 and seed 2, each in a fresh process. A diff of the two names what seed 1 holds.
