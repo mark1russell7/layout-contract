@@ -10,7 +10,6 @@ This file lists the items of the roadmap of this repository. The status page of 
 | L34 | in progress | P1 | The strategy space as data |
 | L52 | in progress | P1 | Measure joint space coverage, with a weekly trend that rises |
 | L60 | in progress | P1 | Text measuring and line breaking as a layout step |
-| L79 | in progress | P2 | bench-4: the next version of the joint space |
 
 ## Next
 
@@ -100,3 +99,4 @@ This file lists the items of the roadmap of this repository. The status page of 
 | L64 | done | P1 | Balance and stability measures in the contract (0.2.19) |
 | L77 | done | P1 | Find and bound what fills 6 GB on the 1000-box inputs |
 | L78 | done | P2 | An open playground |
+| L79 | done | P2 | bench-4: the next version of the joint space |
