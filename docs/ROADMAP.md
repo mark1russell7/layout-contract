@@ -10,6 +10,7 @@ This file lists the items of the roadmap of this repository. The status page of 
 | L34 | in progress | P1 | The strategy space as data |
 | L52 | in progress | P1 | Measure joint space coverage, with a weekly trend that rises |
 | L60 | in progress | P1 | Text measuring and line breaking as a layout step |
+| L79 | in progress | P2 | bench-4: the next version of the joint space |
 
 ## Next
 
@@ -28,7 +29,6 @@ This file lists the items of the roadmap of this repository. The status page of 
 | L71 | next | P2 | A bound-first fast path for labels from a declared character set |
 | L72 | next | P1 | Neat is a family of objectives, not one |
 | L73 | next | P1 | Clarity of structure: macro and micro measures |
-| L79 | next | P2 | bench-4: the next version of the joint space |
 
 ## Later
 
@@ -51,6 +51,8 @@ This file lists the items of the roadmap of this repository. The status page of 
 | L74 | later | P2 | Forces you compose from queries (ghost edges) |
 | L75 | later | P2 | Objectives under an interaction |
 | L76 | later | P2 | The orbit of a node: a soft keep-out margin |
+| L80 | later | P3 | Site forms for packSpace of packing, then drop PACK_EXTRAS |
+| L81 | later | P2 | Peak memory of the dense input with hubs (3.4-4.3 GB) |
 
 ## Done
 

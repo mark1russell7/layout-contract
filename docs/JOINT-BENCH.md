@@ -1254,3 +1254,53 @@ The records of each router stay the same: all 585 records of `gc-6144` equal run
 No router stands out after the fix. The largest heap comes from `search`, `shared-all`, `sections`, `gaps` or `portfolio`. A peak RSS of less than 3 GB is the target of L77, so L77 is done. bench-4 (L79) no longer waits.
 
 The CI of `highways` also has a heap gate since highways #193. It routes the dense board of ROUTE-SCALE with each of the 15 routers, each with a cap from its measured peak.
+
+## The prediction for bench-4 (L79)
+
+bench-4 uses `packing` `^0.4.0`. The outputs of an explicit strategy are byte-equal to 0.3.0. It has 18 pack entries and 270 pairs:
+
+- the 13 entries of bench-3, in the same order.
+- the 4 order searches of `packing` 0.3.0 (k26 of `packing`): `anneal-maxrects-bl-k16`, `anneal-skyline-k16`, `genetic-maxrects-bl-k16` and `tabu-maxrects-bl-k16`, each with 16 packs of its member.
+- `pack`: the choice of `pack()` without a strategy (`PACK_DEFAULT_TABLE`).
+
+The registry of `packing` has no strategy for the choice of `pack()`. The entry `pack` is `select` with a different table. A container of fixed size gets the branch of `SELECT_TABLE` for a fixed size. Each other container gets `rows`. The test `pack-default.test.ts` compares the entry with `defaultLayoutOf` on inputs of each container kind.
+
+The claims 9 and 10 of the prediction `packing-k58-step-a` of `packing` name `pack()`. They are A9 and A10. The entry `select` is the default of the registry (`DEFAULT_STRATEGY`). It also picks `maxrects-bl` on some inputs of free size. B9 and B10 apply the two claims to `select`, as more data.
+
+The run is one full run of `joint-v2`, compared with run `40884908305`. The claims were written before the run.
+
+| Claim | p | Claim |
+|---|---|---|
+| B1 | 0.8 | The checks of the pull request pass, with the slice `pr` of the 270 pairs. |
+| B2 | 0.85 | The output hash of each pair of the 13 entries of bench-3 equals run `40884908305`. |
+| B3 | 0.75 | Each shard ends with no error of memory, and the peak RSS of each input is less than 3 GB. |
+| B4 | 0.5 | The longest shard is at most 1.4 times the longest shard of run `40884908305`. |
+| B5 | 0.85 | Each order search has no hard breaks on an input where its member has none. |
+| A9 | 0.97 | `pack` gives the hash of `rows` on each input of `joint-v2` that is not of fixed size. |
+| A10 | 0.8 | The stress misses of `pack` with `portfolio` are at most the stress misses of `rows` with `portfolio`. |
+| B9 | 0.15 | `select` gives the hash of `rows` on each input of `joint-v2` that is not of fixed size. |
+| B10 | 0.25 | The stress misses of `select` with `portfolio` are at most the stress misses of `rows` with `portfolio`. |
+
+A9 is true by its construction, if the table copies `defaultLayoutOf`. On a fixed size, `maxrects-bl` packs closer than `rows`, and that can add stress misses. The largest peak of L77 was 1893 MB with the cap of 2 GB, so B3 is not sure.
+
+## The result of bench-4 (L79)
+
+The full run [`40971129437`](https://github.com/mark1russell7/layout-contract/actions/runs/40971129437) ran on commit `a7d8f5f`. The run [`40990459481`](https://github.com/mark1russell7/layout-contract/actions/runs/40990459481) analyzed its records again with the baseline `pack+portfolio`. Each of the 303 inputs has a record for each of the 270 pairs, so the run has 81810 records.
+
+| Claim | p | Result | Data |
+|---|---|---|---|
+| B1 | 0.8 | Miss | The first push failed on 2 pins of `space.test.ts` that still counted 195 pairs. Later, a test timed out at 5.3 s. |
+| B2 | 0.85 | Hit | The 59085 records of the 13 entries of bench-3 have the same output hash as run `40884908305`. |
+| B3 | 0.75 | Miss | No shard had an error of memory. The 3 seeds of the dense input with hubs (`freeHeight`, `bimodal`, `n1000`) had a peak RSS of 3438 MB to 4287 MB. |
+| B4 | 0.5 | Hit | The longest shard took 67.1 minutes. Run `40884908305` took 80.3 minutes, so the ratio is 0.84. |
+| B5 | 0.85 | Miss | The order searches have no hard breaks of the pack. But 3 of the 4 have route breaks on 1 to 3 pairs where their member has none. |
+| A9 | 0.97 | Hit | `pack` gives the hash of `rows` on each of the 3420 pairs of an input that is not of fixed size. |
+| A10 | 0.8 | Hit | On the 81 stress inputs, `pack+portfolio` and `rows+portfolio` have the same misses at each rule and cap (68 to 73). |
+| B9 | 0.15 | False | `select` gives a hash different from `rows` on 615 of the 3420 pairs. These are free inputs with a heavy tail. |
+| B10 | 0.25 | False | On the stress inputs, `select+portfolio` has 72 to 74 misses, and `rows+portfolio` has 68 to 73. |
+
+The Brier score of the 7 claims of the score (B1 to B5, A9, A10) is 0.320. The Brier score of A9 and A10, the claims 9 and 10 of `packing`, is 0.020. B9 and B10 are extra data.
+
+- On all 222 inputs, `pack+portfolio` has 3 to 6 misses fewer than `rows+portfolio`. Its gain is 0.009 to 0.018, and each interval is open.
+- The largest peak RSS fell from 6184 MB in run `40884908305` to 4287 MB. The memory probe of L77 did not measure the dense input with hubs. Roadmap item L81 examines its peak.
+- The route breaks of B5 come from a different layout, not from a fault of the pack. A different layout gives the router a different problem.

@@ -13,8 +13,9 @@
 // The corpus is `joint-v2` by default. The slice `pr` is the small slice of the pull request: seed 1 of the specs with count 10 and of the fixed cases.
 // The shards get the inputs by their planned cost (`plannedCost`, `planShards`). Each shard job computes the same plan.
 // The cost model is data/cost-margins.json. scripts/fit-cost.mjs writes it from the shard logs of a full run.
-// analyze gives the gains over each baseline pair of `--baseline`. The default is `BASELINE` (rows+portfolio), and select+portfolio when the records have it.
-// `--compare a:b` gives the misses and the scores of the pairs a and b, and the gain of a over b. The default is select+portfolio:rows+portfolio when the records have both.
+// analyze gives the gains over each baseline pair of `--baseline`. The default is `BASELINE` (rows+portfolio), and select+portfolio and pack+portfolio when the records have them.
+// `--compare a:b` gives the misses and the scores of the pairs a and b, and the gain of a over b.
+// The default compares select+portfolio and pack+portfolio with rows+portfolio, when the records have the two pairs. The entry `pack` is the choice of `pack()` of `packing`.
 // `--exclude-pack` removes the records of the pack entries before the analysis. `--oracle-without` gives a second oracle without their pairs. Its default is select.
 // When the records have the pack entry select, the report checks each of its records against the record of the member that its table picks.
 // `--times` gives the route times of the specs. The default is `DENSE_HUBS`. `--jobs` reads the output of `gh run view <id> --json jobs` and gives the shard times.
@@ -282,7 +283,8 @@ if (command === "check") {
   const hasPair = (pair) => !exclude.includes(packOf(pair)) && records.some((r) => r.strategy === pair);
   const hasSelect = !exclude.includes(SELECT_PACK) && records.some((r) => packOf(r.strategy) === SELECT_PACK);
   const selectPortfolio = pairId(SELECT_PACK, PORTFOLIO_ROUTER);
-  const baselines = list(args.baseline) ?? [BASELINE, ...(hasPair(selectPortfolio) ? [selectPortfolio] : [])];
+  const packPortfolio = pairId("pack", PORTFOLIO_ROUTER);
+  const baselines = list(args.baseline) ?? [BASELINE, ...[selectPortfolio, packPortfolio].filter(hasPair)];
   // The lane pairs of L13: each lane pair against its base pair, the pair of the same pack entry and router.
   const lanePairs = [...new Set(records.map((r) => r.strategy))].filter((p) => isLanePack(packOf(p)) && hasPair(p)).sort();
   const laneCompare = lanePairs.flatMap((p) => {
@@ -294,7 +296,7 @@ if (command === "check") {
     const start = parts === undefined ? undefined : pairId([ITER_VARIANTS[0].name, parts.pack, parts.router].join("."), parts.router);
     return rounds !== undefined && rounds > 1 && start !== undefined && hasPair(start) ? [...own, `${p}:${start}`] : own;
   });
-  const defaultCompare = [...(hasPair(selectPortfolio) && hasPair(BASELINE) ? [`${selectPortfolio}:${BASELINE}`] : []), ...laneCompare];
+  const defaultCompare = [...(hasPair(BASELINE) ? [selectPortfolio, packPortfolio].filter(hasPair).map((p) => `${p}:${BASELINE}`) : []), ...laneCompare];
   const compare = (list(args.compare) ?? defaultCompare).map((c) => {
     const pair = c.split(":");
     if (pair.length !== 2) throw new RangeError(`A comparison is two pairs with a colon, for example ${selectPortfolio}:${BASELINE}, not "${c}".`);

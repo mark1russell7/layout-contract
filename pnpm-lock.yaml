@@ -212,8 +212,8 @@ importers:
         specifier: workspace:*
         version: link:../layout-contract
       '@mark1russell7/packing':
-        specifier: ^0.2.14
-        version: 0.2.17
+        specifier: ^0.4.0
+        version: 0.4.0
     devDependencies:
       '@mark1russell7/cue':
         specifier: ^1.0.2
@@ -258,8 +258,8 @@ importers:
         specifier: workspace:*
         version: link:../layout-contract
       '@mark1russell7/packing':
-        specifier: ^0.2.14
-        version: 0.2.17
+        specifier: ^0.4.0
+        version: 0.4.0
       marked:
         specifier: ^18.1.2
         version: 18.1.2
@@ -499,16 +499,16 @@ packages:
   '@mark1russell7/highways@0.9.10':
     resolution: {integrity: sha512-X8HDKgFP4U4RNLUcfzZ6zolQhXr+m8LAjwto9AlQpbPnpQPYjG1QN9ZBzcvhONC57e6qqsodBtE7JzZKsocMyA==}
 
-  '@mark1russell7/layout-contract@0.2.12':
-    resolution: {integrity: sha512-l2GYMp5c4Sa2ddKBWNXOMZIYx1Uf1+ROYhnpcWm1l1WU6KF3GiwxvMC0ObmlHt/YlsHScfoBvL2BtF72rY6Svw==}
-    engines: {node: '>=22.12'}
-
   '@mark1russell7/layout-contract@0.2.15':
     resolution: {integrity: sha512-hHZxuCTsLEhzkCrTmZmOcLsvUg2SIpSBlAj2shoS5mMRr5WUCGA9Yu/6UT1IGia3kqllLO2EFSkq94DozPCR7g==}
     engines: {node: '>=22.12'}
 
-  '@mark1russell7/packing@0.2.17':
-    resolution: {integrity: sha512-oIDTz9zq76Fe6fETCAt2eLbK5EeQ4hpgOhsbs30mR1qQVtPZIbnEqhyV/UQfutYQuzcBqg6Fb7NtrFb5T7ahiw==}
+  '@mark1russell7/layout-contract@0.2.21':
+    resolution: {integrity: sha512-Mls2V7uo5zGS6o5apBCJAKN3T4oZ3A2yuxUJUBzICDzIWT+YiIP+yOcBfVpjf22cPG5GMr+/abC7UJ4u4bXTlA==}
+    engines: {node: '>=22.12'}
+
+  '@mark1russell7/packing@0.4.0':
+    resolution: {integrity: sha512-VgBZ0W+QZel5MgFbqeQD8E88/FY4Kky6lwyJGgNONRDDd5MO+ygmVn4A14P1mxVe7mqF5+Ams+04JFiEe/0Rdg==}
     engines: {node: '>=22.12'}
 
   '@mark1russell7/ste-lint@0.1.1':
@@ -1675,13 +1675,13 @@ snapshots:
     dependencies:
       '@mark1russell7/layout-contract': 0.2.15
 
-  '@mark1russell7/layout-contract@0.2.12': {}
-
   '@mark1russell7/layout-contract@0.2.15': {}
 
-  '@mark1russell7/packing@0.2.17':
+  '@mark1russell7/layout-contract@0.2.21': {}
+
+  '@mark1russell7/packing@0.4.0':
     dependencies:
-      '@mark1russell7/layout-contract': 0.2.12
+      '@mark1russell7/layout-contract': 0.2.21
 
   '@mark1russell7/ste-lint@0.1.1':
     dependencies:
