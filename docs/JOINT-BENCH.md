@@ -1304,3 +1304,26 @@ The Brier score of the 7 claims of the score (B1 to B5, A9, A10) is 0.320. The B
 - On all 222 inputs, `pack+portfolio` has 3 to 6 misses fewer than `rows+portfolio`. Its gain is 0.009 to 0.018, and each interval is open.
 - The largest peak RSS fell from 6184 MB in run `40884908305` to 4287 MB. The memory probe of L77 did not measure the dense input with hubs. Roadmap item L81 examines its peak.
 - The route breaks of B5 come from a different layout, not from a fault of the pack. A different layout gives the router a different problem.
+
+## The memory gate (L81)
+
+The probe of L77 ran 3 inputs that I chose: the top 3 peaks of run `40884908305`. They did not cover each family. The dense input with hubs (`freeHeight`, `bimodal`, `n1000`, `e-dense.hubs`) peaked at 4.1-4.2 GB in that run, and at 3.4-4.3 GB in bench-4. Thus L77 did not meet its target of less than 3 GB on each 1000-box input.
+
+The gate takes its inputs from the bench, so it cannot leave out a family.
+
+- `bench.mjs families` gives the input with the largest planned cost of each family. A family is an input id without its seed. `joint-v2` has 101 families.
+- The workflow `memory-probe.yml` uses these inputs by default. The mode `bench-6144` has the heap cap of the bench and no forced GC.
+- The job `gate` fails when an input has no probe, an OOM or another error, or a peak RSS of 3072 MB or more.
+- The seeds of a family have the same planned cost, so the gate takes seed 1. The seeds of the dense input with hubs had peaks from 3438 MB to 4287 MB. Thus a family near the limit can pass on seed 1 and fail on another seed.
+
+### The prediction for the first run of the gate
+
+I wrote these claims before the run. The model of memory and of the time in CI is weak (L79), so those claims have a p of 0.6 or less. G2 has more because bench-4 measured it.
+
+| Claim | p | Claim text |
+|---|---|---|
+| G1 | 0.7 | The gate has a probe with the status 0 or 134 for each of the 101 inputs. No row is "no probe". |
+| G2 | 0.8 | The gate fails, and the dense input with hubs has a peak RSS of 3072 MB or more. |
+| G3 | 0.55 | The dense input with hubs is the only input of the gate with a peak RSS of 3072 MB or more. |
+| G4 | 0.6 | No probe of the gate has the status 134 (an OOM). |
+| G5 | 0.6 | The run of the gate takes less than 2 hours from its start to its end. |
