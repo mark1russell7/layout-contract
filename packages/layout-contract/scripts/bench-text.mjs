@@ -3,8 +3,10 @@
 //   node scripts/bench-text.mjs --base <file> --head <file> [--calls 100000] [--rounds 7]
 //
 // <file> is the path of a built `text.js`. The labels have the shape of the labels of a consumer page: 333 distinct texts of approximately 8 characters, mostly one word.
-// The rounds of the two builds alternate, so a slow period of the runner touches both. The script writes a Markdown table to stdout.
+// The rounds of the two builds alternate, so a slow period of the runner touches both. Each round swaps the order of the builds (ABBA), so neither build always runs second.
+// One untimed call of each build comes before the rounds, as the warm-up. The script writes a Markdown table with the CPU model to stdout.
 // Start it only in CI (`.github/workflows/text-bench.yml`). A shared computer gives times that are not stable.
+import { cpus } from "node:os";
 import { pathToFileURL } from "node:url";
 
 const args = {};
@@ -62,12 +64,12 @@ for (const name of ["base", "head"]) {
   round(text);
   builds[name] = { text, times: [], segmenters: made - before };
 }
-for (let k = 0; k < rounds; k++) for (const name of ["base", "head"]) builds[name].times.push(round(builds[name].text));
+for (let k = 0; k < rounds; k++) for (const name of k % 2 === 0 ? ["base", "head"] : ["head", "base"]) builds[name].times.push(round(builds[name].text));
 
 const median = (v) => [...v].sort((a, b) => a - b)[Math.floor(v.length / 2)];
 const base = median(builds.base.times);
 const head = median(builds.head.times);
-console.log(`The bench of \`/text\`: ${calls} layouts of ${labels.length} labels for each round, ${rounds} rounds, node ${process.version}.`);
+console.log(`The bench of \`/text\`: ${calls} layouts of ${labels.length} labels for each round, ${rounds} rounds in the order ABBA, node ${process.version}, CPU ${cpus()[0]?.model ?? "unknown"}.`);
 console.log("");
 console.log("| Build | Median ms | Microseconds for each layout | Segmenters made |");
 console.log("|---|---|---|---|");

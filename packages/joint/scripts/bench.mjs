@@ -246,7 +246,8 @@ if (command === "check") {
       gc?.();
       const after = process.memoryUsage();
       const now = performance.now();
-      const fact = { input: id, pair: run.record.strategy, ms: Math.round(now - last), heapBefore: mb(before.heapUsed), heapLive: gc === undefined ? null : mb(after.heapUsed), rss: mb(before.rss), maxRss: mb(process.resourceUsage().maxRSS * 1024) };
+      // Each fact has the CPU model and the heap mode, because a time and a peak are true only for them (the fleet rule of 2026-10-30).
+      const fact = { input: id, pair: run.record.strategy, ms: Math.round(now - last), heapBefore: mb(before.heapUsed), heapLive: gc === undefined ? null : mb(after.heapUsed), rss: mb(before.rss), maxRss: mb(process.resourceUsage().maxRSS * 1024), cpu: env.cpu, mode: process.env.MODE ?? "none" };
       lines.push(JSON.stringify(fact) + "\n");
       if (fact.heapBefore > peakHeap) {
         peakHeap = fact.heapBefore;
@@ -263,7 +264,7 @@ if (command === "check") {
   const all = readFileSync(facts, "utf8").split("\n").filter((l) => l !== "").map((l) => JSON.parse(l));
   const top = [...all].sort((a, b) => b.heapBefore - a.heapBefore).slice(0, 10);
   const md = [
-    `### Memory probe: ${process.execArgv.join(" ") || "no node flags"}`,
+    `### Memory probe: ${process.env.MODE ?? "no mode"} (${process.execArgv.join(" ") || "no node flags"}), CPU ${env.cpu}`,
     "",
     `The peak RSS is ${Math.max(...all.map((f) => f.maxRss))} MB. The largest live heap after a forced GC is ${gc === undefined ? "not measured" : `${Math.max(...all.map((f) => f.heapLive))} MB`}.`,
     "",
