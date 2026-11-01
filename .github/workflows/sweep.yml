@@ -37,6 +37,10 @@ on:
         description: "The count of the rows of a Saltelli design for round 1 (L52), or empty for a normal night. Round 1 then runs the design instead of a new sample."
         type: string
         default: ""
+      budget-minutes:
+        description: "The wall minutes of the two rounds together, or empty for no budget. A scheduled night computes its budget from the window."
+        type: string
+        default: ""
       dry-run:
         description: "Run the night, but do not push to the branch sweep-data."
         type: boolean
@@ -58,10 +62,15 @@ jobs:
   plan:
     runs-on: ubuntu-latest
     timeout-minutes: 15
+    permissions:
+      contents: read
+      actions: read
     outputs:
       shards: ${{ steps.plan.outputs.shards }}
       date: ${{ steps.plan.outputs.date }}
       skip: ${{ steps.plan.outputs.skip }}
+      end: ${{ steps.budget.outputs.end }}
+      gate: ${{ steps.budget.outputs.gate }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -76,18 +85,51 @@ jobs:
         run: |
           mkdir -p "$RUNNER_TEMP/data"
           if git fetch --depth 1 origin sweep-data; then git archive FETCH_HEAD | tar -x -C "$RUNNER_TEMP/data"; else echo "The branch sweep-data does not exist yet. The night starts a new state."; fi
+      # The budget of a night (L81). The window of a scheduled night ends at 14:00 UTC. The gate after the sweep takes its expected minutes from the window, but only when main changed since the last nightly gate.
+      # The expected minutes of the gate are the median of the last 3 nightly gates. With no budget, the plan has only the limits of the inputs.
+      - name: Compute the budget of the night
+        id: budget
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          EVENT: ${{ github.event_name }}
+          SHA: ${{ github.sha }}
+          BUDGET: ${{ inputs.budget-minutes }}
+        run: |
+          now="$(date -u +%s)"
+          case "$BUDGET" in '') ;; *[!0-9]*) echo "The budget is a count of minutes, not $BUDGET."; exit 1;; *) echo "end=$((now + BUDGET * 60))" >> "$GITHUB_OUTPUT"; echo "gate=0" >> "$GITHUB_OUTPUT"; exit 0;; esac
+          if [ "$EVENT" != schedule ]; then echo "A dispatch with no budget-minutes has no budget."; exit 0; fi
+          last=""; mins=""; count=0
+          for id in $(gh run list -R "$REPO" --workflow memory-probe.yml --branch main --status completed --limit 20 --json databaseId,event --jq '.[] | select(.event == "schedule" or .event == "workflow_run") | .databaseId'); do
+            row="$(gh run view "$id" -R "$REPO" --json jobs,headSha,startedAt,updatedAt --jq 'if ([.jobs[] | select(.name == "gate" and (.conclusion == "success" or .conclusion == "failure"))] | length) > 0 then "\(.headSha) \((((.updatedAt | fromdate) - (.startedAt | fromdate)) / 60) | floor)" else "" end')"
+            if [ -z "$row" ]; then continue; fi
+            if [ -z "$last" ]; then last="${row%% *}"; fi
+            mins="$mins ${row##* }"; count=$((count + 1))
+            if [ "$count" -ge 3 ]; then break; fi
+          done
+          gate="$(echo $mins | tr ' ' '\n' | sort -n | awk '{ a[NR] = $1 } END { print NR == 0 ? 360 : a[int((NR + 1) / 2)] }')"
+          if [ "$last" = "$SHA" ]; then gate=0; fi
+          end="$(date -u -d "$(date -u +%Y-%m-%d) 14:00" +%s)"
+          echo "The window ends at $(date -u -d "@$end" +%H:%M) UTC. The gate takes $gate minutes (the last nightly gate examined ${last:-no commit}). The rounds get $(( (end - now) / 60 - gate )) minutes." | tee -a "$GITHUB_STEP_SUMMARY"
+          echo "end=$end" >> "$GITHUB_OUTPUT"
+          echo "gate=$gate" >> "$GITHUB_OUTPUT"
       - name: Plan round 1
         id: plan
         working-directory: packages/joint
         env:
           DATE: ${{ inputs.date }}
           DESIGN: ${{ inputs.design }}
+          END: ${{ steps.budget.outputs.end }}
+          GATE: ${{ steps.budget.outputs.gate }}
         run: |
           date="${DATE:-$(date -u +%Y-%m-%d)}"
           case "$date" in [0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]) ;; *) echo "The date has the form YYYY-MM-DD, not $date."; exit 1;; esac
           for v in "$MAX_SHARDS" "$TARGET_MINUTES" "$MAX_CONFIGS"; do case "$v" in ''|*[!0-9]*) echo "The limits are numbers, not $v."; exit 1;; esac; done
           case "$DESIGN" in '') ;; *[!0-9]*) echo "The design is a count of rows, not $DESIGN."; exit 1;; esac
-          node scripts/sweep.mjs plan --data "$RUNNER_TEMP/data" --out night --date "$date" --max-shards "$MAX_SHARDS" --target-minutes "$TARGET_MINUTES" --max-configs "$MAX_CONFIGS" ${DESIGN:+--design "$DESIGN"}
+          # Round 1 gets half of the budget, and round 2 gets what is left at the race.
+          budget=""
+          if [ -n "$END" ]; then budget=$(( ((END - $(date -u +%s)) / 60 - GATE) / 2 )); if [ "$budget" -lt 30 ]; then budget=30; fi; fi
+          node scripts/sweep.mjs plan --data "$RUNNER_TEMP/data" --out night --date "$date" --max-shards "$MAX_SHARDS" --target-minutes "$TARGET_MINUTES" --max-configs "$MAX_CONFIGS" ${DESIGN:+--design "$DESIGN"} ${budget:+--budget-minutes "$budget" --lanes 3}
           echo "date=$date" >> "$GITHUB_OUTPUT"
           echo "shards=$(cat night/matrix.json | tr -d ' \n')" >> "$GITHUB_OUTPUT"
           if [ -f night/skip.txt ]; then echo "skip=true" >> "$GITHUB_OUTPUT"; else echo "skip=false" >> "$GITHUB_OUTPUT"; fi
@@ -129,7 +171,8 @@ jobs:
           SHARD: ${{ matrix.shard }}
           # The design night of 2026-10-29 (run 40890060521) went above the default heap of approximately 4 GB on inputs of 1000 boxes. The runner has 16 GB.
           NODE_OPTIONS: --max-old-space-size=6144
-        run: node scripts/sweep.mjs run --plan night --shard "$SHARD" --out records
+        # The deadline is 15 minutes under the timeout of the job. A shard stops cleanly before a unit that does not end in time, and keeps its records.
+        run: node scripts/sweep.mjs run --plan night --shard "$SHARD" --out records --deadline-minutes 105
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         if: ${{ !cancelled() }}
         with:
@@ -165,8 +208,13 @@ jobs:
       - name: Race the configs and plan round 2
         id: race
         working-directory: packages/joint
+        env:
+          END: ${{ needs.plan.outputs.end }}
+          GATE: ${{ needs.plan.outputs.gate }}
         run: |
-          node scripts/sweep.mjs race --night night --records records --out night2 --max-shards "$MAX_SHARDS" --target-minutes "$TARGET_MINUTES" --max-configs "$MAX_CONFIGS"
+          budget=""
+          if [ -n "$END" ]; then budget=$(( (END - $(date -u +%s)) / 60 - GATE )); if [ "$budget" -lt 30 ]; then budget=30; fi; fi
+          node scripts/sweep.mjs race --night night --records records --out night2 --max-shards "$MAX_SHARDS" --target-minutes "$TARGET_MINUTES" --max-configs "$MAX_CONFIGS" ${budget:+--budget-minutes "$budget" --lanes 3}
           echo "shards=$(cat night2/matrix.json | tr -d ' \n')" >> "$GITHUB_OUTPUT"
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
@@ -205,7 +253,8 @@ jobs:
           SHARD: ${{ matrix.shard }}
           # The design night of 2026-10-29 (run 40890060521) went above the default heap of approximately 4 GB on inputs of 1000 boxes. The runner has 16 GB.
           NODE_OPTIONS: --max-old-space-size=6144
-        run: node scripts/sweep.mjs run --plan night2 --shard "$SHARD" --out records
+        # The same deadline as round 1.
+        run: node scripts/sweep.mjs run --plan night2 --shard "$SHARD" --out records --deadline-minutes 105
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         if: ${{ !cancelled() }}
         with:
@@ -253,7 +302,8 @@ jobs:
 
   publish:
     needs: [plan, summarize]
-    if: ${{ needs.summarize.result == 'success' && !inputs.dry-run && github.ref == 'refs/heads/main' }}
+    # !cancelled() keeps the implicit success() out: a cancelled shard must not drop the data of the night (L81).
+    if: ${{ !cancelled() && needs.summarize.result == 'success' && !inputs.dry-run && github.ref == 'refs/heads/main' }}
     runs-on: ubuntu-latest
     timeout-minutes: 10
     # Only this job writes. It pushes to the branch sweep-data, never to main.

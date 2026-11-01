@@ -72,6 +72,35 @@ describe("a night of the sweep on small inputs", () => {
     expect(state.nights[0]!.round2?.configs).toBe(second.facts.configs);
   });
 
+  it("rotates the screened configs: a config that does not fit comes first on the next night", () => {
+    const state = emptyState("test", "test", INPUTS);
+    const first = planRound1(state, INPUTS, { ...OPTIONS, maxShards: 4 });
+    const screened = Object.keys(first.configs).filter((id) => state.configs[id]!.status === "screened");
+    expect(screened.length).toBeGreaterThan(2);
+    // The first night stops before the jobs of the screened configs: only the baseline arm has records. Each screened config still needs the screen.
+    const base = new Set(baselineIds());
+    const recordsOf = (night: ReturnType<typeof planRound1>, keep: (id: string) => boolean): LayoutRecord[] =>
+      night.plan.units.flatMap((u) => u.configs.filter(keep).map((c) => record(c, u.input, 0.4)));
+    applyRecords(state, recordsOf(first, (id) => base.has(id)), INPUTS, OPTIONS.date);
+    for (const id of screened) expect(state.configs[id]!.ran).toBeUndefined();
+    // A small budget takes only some of the screened configs, and no new config.
+    const planned = (night: ReturnType<typeof planRound1>): string[] => screened.filter((id) => id in night.configs);
+    // The budget of one shard is 60% of the first night: the baseline arm and some of the screened configs.
+    const total = first.plan.loads.reduce((s, l) => s + l, 0);
+    const small = { ...OPTIONS, target: (total * 0.6) / 0.9, maxShards: 1, maxConfigs: 1 };
+    const second = planRound1(state, INPUTS, { ...small, date: "2026-10-29" });
+    const took = planned(second);
+    expect(took.length).toBeGreaterThan(0);
+    expect(took.length).toBeLessThan(screened.length);
+    applyRecords(state, recordsOf(second, (id) => took.includes(id)), INPUTS, "2026-10-29");
+    for (const id of took) expect(state.configs[id]!.ran).toBe("2026-10-29");
+    const waited = screened.filter((id) => !took.includes(id));
+    for (const id of waited) expect(state.configs[id]!.ran).toBeUndefined();
+    // The next night takes the configs that waited before the configs of the night before.
+    const third = planRound1(state, INPUTS, { ...small, date: "2026-10-30" });
+    expect(planned(third).slice(0, Math.min(waited.length, planned(third).length))).toEqual(waited.slice(0, Math.min(waited.length, planned(third).length)));
+  });
+
   it("counts the drift of the baseline arm", () => {
     const state = emptyState("test", "test", INPUTS);
     const base = baselineIds();

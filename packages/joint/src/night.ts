@@ -42,6 +42,11 @@ export interface ConfigEntry {
   decided?: string;
   label?: string;
   mean?: number;
+  /**
+   * The date of the last night that gave a record of the config. The plans rotate: the config with the oldest date comes first.
+   * A config that a stopped shard did not run keeps its old date, so it comes first on the next night. The atlas shows the age of each result.
+   */
+  ran?: string;
 }
 
 /** The facts of one round of a night. */
@@ -195,6 +200,12 @@ function finish(
   return { round, date: options.date, plan, configs, runs, facts };
 }
 
+/** This function sorts configs for the rotation: the config that a night planned the longest time ago comes first. A config that no night planned is the oldest. */
+function byAge<T extends { readonly id: string }>(state: SweepState, items: readonly T[]): T[] {
+  const age = (x: T): string => state.configs[x.id]!.ran ?? "";
+  return [...items].sort((a, b) => (age(a) < age(b) ? -1 : age(a) > age(b) ? 1 : 0));
+}
+
 /** This function gives the new configs of a round for a budget, in the order of their coverage need. */
 function freshFor(state: SweepState, seed: number, screen: readonly SweepInput[], budget: number, options: PlanOptions): StrategyConfig[] {
   const space = options.space ?? JOINT_SPACE;
@@ -214,8 +225,9 @@ function freshFor(state: SweepState, seed: number, screen: readonly SweepInput[]
 /**
  * This function plans round 1 of a night, in the order of priority:
  * - the baseline arm on each input of the corpus, for the paired comparisons and the check of the drift,
- * - the screened configs without each input of the screen (seed 1 of each spec),
- * - a sample of new configs on the screen, seeded by the date, while the budget lasts.
+ * - the screened configs without each input of the screen (seed 1 of each spec), the oldest first, while the budget lasts,
+ * - a sample of new configs on the screen, seeded by the date, with the rest of the budget.
+ * A screened config that does not fit waits for the next night.
  */
 export function planRound1(state: SweepState, inputs: readonly SweepInput[], options: PlanOptions): NightPlan {
   const space = options.space ?? JOINT_SPACE;
@@ -223,10 +235,19 @@ export function planRound1(state: SweepState, inputs: readonly SweepInput[], opt
   const screen = screenInputs(inputs);
   const jobs: SweepJob[] = [];
   for (const id of baselineIds(space)) for (const i of inputs) jobs.push({ config: id, input: i.id });
-  for (const [id, c] of Object.entries(state.configs)) if (c.status === "screened") for (const i of missingOf(state, id, screen, at)) jobs.push({ config: id, input: i.id });
   const byId = new Map(inputs.map((i) => [i.id, i]));
-  const used = jobs.reduce((s, j) => s + jobCost(configRun(state.configs[j.config]!.config, space), byId.get(j.input)!), 0);
-  const budget = options.maxShards * options.target * SWEEP_FILL - used;
+  const costOf = (id: string, missing: readonly SweepInput[]): number => {
+    const run = configRun(state.configs[id]!.config, space);
+    return missing.reduce((s, i) => s + jobCost(run, byId.get(i.id)!), 0);
+  };
+  const base = baselineIds(space).reduce((s, id) => s + costOf(id, inputs), 0);
+  const screened = Object.entries(state.configs)
+    .filter(([, c]) => c.status === "screened")
+    .map(([id]) => ({ id, missing: missingOf(state, id, screen, at) }))
+    .filter((s) => s.missing.length > 0);
+  const { taken, cost } = takeBudget(byAge(state, screened), (s) => costOf(s.id, s.missing), options.maxShards * options.target * SWEEP_FILL - base);
+  for (const s of taken) for (const i of s.missing) jobs.push({ config: s.id, input: i.id });
+  const budget = options.maxShards * options.target * SWEEP_FILL - base - cost;
   const fresh = freshFor(state, nightSeed(options.date), screen, budget, options);
   for (const config of fresh) {
     const id = configId(space, config);
@@ -302,6 +323,7 @@ export function applyRecords(state: SweepState, records: readonly LayoutRecord[]
     const values = new Map<string, ReturnType<typeof sweepValue>>();
     for (const r of list) {
       if (state.configs[r.strategy] === undefined) continue;
+      state.configs[r.strategy]!.ran = date;
       const v = sweepValue(r, reference);
       values.set(r.strategy, v);
       scores.set(r.strategy, v.score);
@@ -400,7 +422,7 @@ export function raceNight(state: SweepState, inputs: readonly SweepInput[], opti
 
 /**
  * This function plans round 2 of a night, in the order of priority:
- * - the alive configs without each input of the corpus, from the largest mean against the incumbent, while the budget lasts,
+ * - the alive configs without each input of the corpus, the oldest first and then from the largest mean against the incumbent, while the budget lasts,
  * - a second sample of new configs on the screen, from the least covered strata, with the rest of the budget.
  */
 export function planRound2(state: SweepState, inputs: readonly SweepInput[], options: PlanOptions): NightPlan {
@@ -413,12 +435,14 @@ export function planRound2(state: SweepState, inputs: readonly SweepInput[], opt
     .sort(([a, x], [b, y]) => (y.mean ?? 0) - (x.mean ?? 0) || (a < b ? -1 : 1))
     .map(([id]) => ({ id, missing: missingOf(state, id, inputs, at) }))
     .filter((a) => a.missing.length > 0);
+  // The sort is stable, so the configs of one age keep the order of their means.
+  const rotated = byAge(state, alive);
   const budget = options.maxShards * options.target * SWEEP_FILL;
   const costOf = (a: { id: string; missing: SweepInput[] }): number => {
     const run = configRun(state.configs[a.id]!.config, space);
     return a.missing.reduce((s, i) => s + jobCost(run, byId.get(i.id)!), 0);
   };
-  const { taken, cost } = takeBudget(alive, costOf, budget);
+  const { taken, cost } = takeBudget(rotated, costOf, budget);
   const jobs: SweepJob[] = taken.flatMap((a) => a.missing.map((i) => ({ config: a.id, input: i.id })));
   const fresh = freshFor(state, nightSeed(options.date) * 2 + 1, screen, budget - cost, options);
   for (const config of fresh) {
