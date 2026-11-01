@@ -1,6 +1,6 @@
 import { canonicalInput, type LayoutInput } from "./input.ts";
 import { RECORD_EPS } from "./tolerance.ts";
-import { utf8 } from "./utf8.ts";
+import { utf8Write } from "./utf8.ts";
 
 /** The round constants of SHA-256. */
 const K: readonly number[] = [
@@ -16,12 +16,13 @@ const K: readonly number[] = [
  * It uses no API of Node or of the browser.
  */
 export function sha256Hex(text: string): string {
-  const bytes = utf8(text);
-  const bits = bytes.length * 8;
-  const total = Math.ceil((bytes.length + 9) / 64) * 64;
+  // The bytes go straight into the padded buffer, so the digest makes one array, not a list of the bytes and a copy.
+  const length = utf8Write(text);
+  const bits = length * 8;
+  const total = Math.ceil((length + 9) / 64) * 64;
   const data = new Uint8Array(total);
-  data.set(bytes);
-  data[bytes.length] = 0x80;
+  utf8Write(text, data);
+  data[length] = 0x80;
   const view = new DataView(data.buffer);
   view.setUint32(total - 8, Math.floor(bits / 0x100000000));
   view.setUint32(total - 4, bits >>> 0);
