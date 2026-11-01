@@ -1,6 +1,7 @@
 import { createHash } from "node:crypto";
 import { describe, expect, it } from "vitest";
 import { canonicalJson, documentHash, exercised, outputGroups, outputHash, RECORD_EPS, sha256Hex } from "./index.ts";
+import { utf8, utf8Write } from "./utf8.ts";
 
 const nodeSha = (text: string): string => createHash("sha256").update(text, "utf8").digest("hex");
 const exact = { grid: 0 };
@@ -9,6 +10,24 @@ describe("sha256Hex", () => {
   it("gives the digest of node:crypto", () => {
     const texts = ["", "abc", "x".repeat(55), "x".repeat(56), "x".repeat(64), "a long text of more than one block. ".repeat(20), "Fréchet ✓ 日本語 😀"];
     for (const t of texts) expect(sha256Hex(t)).toBe(nodeSha(t));
+  });
+
+  it("gives the bytes of the earlier encoder, also for a lone surrogate", () => {
+    // The encoder before L81: a list of the bytes, from the code points of `for...of`.
+    const earlier = (text: string): number[] => {
+      const bytes: number[] = [];
+      for (const ch of text) {
+        const c = ch.codePointAt(0)!;
+        if (c < 0x80) bytes.push(c);
+        else if (c < 0x800) bytes.push(0xc0 | (c >> 6), 0x80 | (c & 63));
+        else if (c < 0x10000) bytes.push(0xe0 | (c >> 12), 0x80 | ((c >> 6) & 63), 0x80 | (c & 63));
+        else bytes.push(0xf0 | (c >> 18), 0x80 | ((c >> 12) & 63), 0x80 | ((c >> 6) & 63), 0x80 | (c & 63));
+      }
+      return bytes;
+    };
+    const texts = ["", "abc", "Fréchet ✓ 日本語 😀", "\ud800", "a\udc00b", "\ud83d", "😀\ud83d", "\udc00𐀀", "x߿ࠀ￿"];
+    for (const t of texts) expect([...utf8(t)]).toEqual(earlier(t));
+    expect(utf8Write("😀é", new Uint8Array(8), 2)).toBe(8);
   });
 
   it("gives the known digest of abc", () => {
