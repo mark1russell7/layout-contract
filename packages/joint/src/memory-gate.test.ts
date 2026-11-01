@@ -70,6 +70,12 @@ describe("the gate", () => {
     expect(memoryGate(["a"], [], [ok("a", 100)]).pass).toBe(false);
   });
 
+  it("examines each repeat of an input", () => {
+    const gate = memoryGate(["a"], ["bench-6144"], [ok("a", 100), ok("a", MEMORY_GATE_MB + 1), ok("a", 200)]);
+    expect(gate.pass).toBe(false);
+    expect(gate.rows.map((r) => r.peakRssMb)).toEqual([MEMORY_GATE_MB + 1, 200, 100]);
+  });
+
   it("needs a probe in each mode", () => {
     const gate = memoryGate(["a"], ["bench-6144", "cap-2048"], [ok("a", 100)]);
     expect(gate.rows.map((r) => `${r.mode} ${r.reason}`).sort()).toEqual(["bench-6144 ", "cap-2048 no probe"]);

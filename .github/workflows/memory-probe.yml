@@ -8,6 +8,8 @@
 # The modes `cap-3072` and `cap-2048` lower the heap cap without forced GC, so the probe gives the peak RSS and the records under the cap.
 # The mode `alloc-6144` has the heap cap of `bench-6144` and samples the allocations of each pair (alloc.jsonl). It is a diagnostic, not a gate mode.
 # The input `pairs` runs only these pairs of each input (L81 step 2). A gate of such a run is a diagnostic too.
+# The mode `measure-6144` has the heap cap of `bench-6144`, samples the allocations and forces a full GC after each pair. Its summary.jsonl gives the allocation and the retained heap of each input.
+# The input `repeats` runs each job that count of times, each in its own job and artifact (the A/A repeat of L81). The gate examines each repeat.
 # The job gate examines each probe. It fails when an input has no probe, an OOM or another error, or a peak RSS of the limit or more.
 name: Memory probe
 
@@ -19,7 +21,7 @@ on:
         type: string
         default: "families"
       modes:
-        description: "The heap modes, with commas between them: bench-6144, gc-6144, cap-3072, cap-2048, alloc-6144."
+        description: "The heap modes, with commas between them: bench-6144, gc-6144, cap-3072, cap-2048, alloc-6144, measure-6144."
         type: string
         default: "bench-6144"
       limit-mb:
@@ -30,6 +32,10 @@ on:
         description: "Empty for each pair, or the pair ids with commas between them, for example maxrects-cp+gaps. Each input then runs only these pairs."
         type: string
         default: ""
+      repeats:
+        description: "The count of the runs of each job, from 1 to 9. Each run has its own job and artifact."
+        type: string
+        default: "1"
   # The nightly gate on main finds a change that brings a peak back within a day. It uses the defaults of the inputs.
   # It starts when the sweep on main ends, also after a failed sweep. Thus the heavy jobs of the two nights do not overlap (the fleet rule of 2026-10-30).
   workflow_run:
@@ -55,6 +61,7 @@ env:
   MODES: ${{ inputs.modes || 'bench-6144' }}
   LIMIT: ${{ inputs.limit-mb || '3072' }}
   PAIRS: ${{ inputs.pairs || '' }}
+  REPEATS: ${{ inputs.repeats || '1' }}
 
 jobs:
   plan:
@@ -67,6 +74,7 @@ jobs:
       skip: ${{ steps.changed.outputs.skip }}
       inputs: ${{ steps.plan.outputs.inputs }}
       modes: ${{ steps.plan.outputs.modes }}
+      repeats: ${{ steps.plan.outputs.repeats }}
     steps:
       # A nightly run stops here in two cases. It has no new data.
       # (1) The last nightly gate examined the same commit of main. Only a run whose job gate passed or failed counts, because a run that stopped here also ends as a success.
@@ -112,9 +120,10 @@ jobs:
         run: |
           case "$LIMIT" in ''|*[!0-9]*) echo "The limit is a count of MB, not $LIMIT."; exit 1;; esac
           for m in ${MODES//,/ }; do
-            case "$m" in bench-6144|gc-6144|cap-3072|cap-2048|alloc-6144) ;; *) echo "The mode is bench-6144, gc-6144, cap-3072, cap-2048 or alloc-6144, not $m."; exit 1;; esac
+            case "$m" in bench-6144|gc-6144|cap-3072|cap-2048|alloc-6144|measure-6144) ;; *) echo "The mode is bench-6144, gc-6144, cap-3072, cap-2048, alloc-6144 or measure-6144, not $m."; exit 1;; esac
           done
           case "$PAIRS" in *[!A-Za-z0-9+,_-]*) echo "The pairs $PAIRS have a character that is not allowed."; exit 1;; esac
+          case "$REPEATS" in [1-9]) ;; *) echo "The repeats are a count from 1 to 9, not $REPEATS."; exit 1;; esac
           if [ "$INPUTS" = families ]; then
             list="$(node scripts/bench.mjs families)"
           else
@@ -127,6 +136,7 @@ jobs:
           echo "The plan has $(printf '%s' "$list" | jq length) jobs and $(printf '%s' "$list" | jq '[.[] | split(",") | length] | add') inputs for each mode." | tee -a "$GITHUB_STEP_SUMMARY"
           echo "inputs=$list" >> "$GITHUB_OUTPUT"
           echo "modes=$(printf '%s' "$MODES" | jq -Rc 'split(",") | map(select(. != ""))')" >> "$GITHUB_OUTPUT"
+          echo "repeats=$(jq -nc --argjson n "$REPEATS" '[range(1; $n + 1)]')" >> "$GITHUB_OUTPUT"
 
   probe:
     needs: plan
@@ -141,6 +151,7 @@ jobs:
       matrix:
         input: ${{ fromJSON(needs.plan.outputs.inputs) }}
         mode: ${{ fromJSON(needs.plan.outputs.modes) }}
+        repeat: ${{ fromJSON(needs.plan.outputs.repeats) }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -163,6 +174,7 @@ jobs:
             cap-3072) flags="--max-old-space-size=3072" ;;
             cap-2048) flags="--max-old-space-size=2048" ;;
             alloc-6144) flags="--max-old-space-size=6144" ;;
+            measure-6144) flags="--expose-gc --max-old-space-size=6144" ;;
           esac
           # Each input of the group gets its own process and its own folder, so the peak RSS of one seed does not include another seed.
           errors=0
@@ -187,7 +199,9 @@ jobs:
         env:
           INPUT: ${{ matrix.input }}
           MODE: ${{ matrix.mode }}
-        run: echo "name=probe-${MODE}-$(printf '%s' "$INPUT" | sha256sum | cut -c1-8)" >> "$GITHUB_OUTPUT"
+          REPEAT: ${{ matrix.repeat }}
+        # The name has the repeat, so the artifacts of two repeats of one input do not collide.
+        run: echo "name=probe-${MODE}-$(printf '%s' "$INPUT" | sha256sum | cut -c1-8)-r${REPEAT}" >> "$GITHUB_OUTPUT"
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         if: ${{ !cancelled() }}
         with:

@@ -64,17 +64,22 @@ export interface GateResult {
  *
  * The gate also fails when it has no rows: no expected input or no mode.
  *
+ * Each probe gives one row, so each repeat of an input counts (the A/A repeat of L81).
+ *
  * The rows with the largest peaks come first, and the rows without a peak come before them.
  */
 export function memoryGate(expected: readonly string[], modes: readonly string[], results: readonly ProbeResult[], limitMb: number = MEMORY_GATE_MB): GateResult {
-  const byKey = new Map(results.map((r) => [`${r.mode}|${r.input}`, r]));
+  const byKey = new Map<string, ProbeResult[]>();
+  for (const r of results) byKey.set(`${r.mode}|${r.input}`, [...(byKey.get(`${r.mode}|${r.input}`) ?? []), r]);
   const rows: GateRow[] = [];
   for (const mode of modes)
     for (const input of expected) {
-      const r = byKey.get(`${mode}|${input}`);
-      const reason =
-        r === undefined ? "no probe" : r.status === 134 ? "OOM (status 134)" : r.status !== 0 ? `status ${r.status}` : r.peakRssMb === undefined ? "no peak" : r.peakRssMb >= limitMb ? `peak ${r.peakRssMb} MB, limit ${limitMb} MB` : "";
-      rows.push({ family: familyOf(input), input, mode, status: r?.status, peakRssMb: r?.peakRssMb, reason });
+      const probes = byKey.get(`${mode}|${input}`) ?? [undefined];
+      for (const r of probes) {
+        const reason =
+          r === undefined ? "no probe" : r.status === 134 ? "OOM (status 134)" : r.status !== 0 ? `status ${r.status}` : r.peakRssMb === undefined ? "no peak" : r.peakRssMb >= limitMb ? `peak ${r.peakRssMb} MB, limit ${limitMb} MB` : "";
+        rows.push({ family: familyOf(input), input, mode, status: r?.status, peakRssMb: r?.peakRssMb, reason });
+      }
     }
   rows.sort((a, b) => (b.peakRssMb ?? Infinity) - (a.peakRssMb ?? Infinity));
   // A gate with no rows examined nothing, so it fails.

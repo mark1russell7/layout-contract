@@ -226,9 +226,10 @@ if (command === "check") {
   const pairs = (args.pairs ?? "").split(",").filter((x) => x !== "");
   const byId = new Map(corpusSlice().map((row) => [row.entry.id, row]));
   const env = runEnv();
-  // The mode alloc-6144 samples the allocations of each pair, also of the objects that a GC collected before the end of the pair.
-  // alloc.jsonl then has the functions that allocated the most bytes in each pair. A diff of two inputs names the code that makes the larger peak.
-  const sampler = process.env.MODE === "alloc-6144" ? new Session() : undefined;
+  // The modes alloc-6144 and measure-6144 sample the allocations of each pair, also of the objects that a GC collected before the end of the pair.
+  // alloc.jsonl then has the 100 functions that allocated the most bytes in each pair. A diff of two inputs names the code that makes the larger peak.
+  // The mode measure-6144 also forces a full GC after each pair and at the end of the input (the A/A repeat of L81). Its facts have the allocation and the retained heap.
+  const sampler = process.env.MODE === "alloc-6144" || process.env.MODE === "measure-6144" ? new Session() : undefined;
   const post = (method, params = {}) => {
     let result;
     let failure;
@@ -252,7 +253,7 @@ if (command === "check") {
     walk(profile.head);
     const total = [...bytes.values()].reduce((s, b) => s + b, 0);
     const mb1 = (b) => Math.round(b / 104857.6) / 10;
-    return { totalMb: mb1(total), top: [...bytes].sort((a, b) => b[1] - a[1]).slice(0, 20).map(([at, b]) => ({ at, mb: mb1(b) })) };
+    return { totalMb: mb1(total), top: [...bytes].sort((a, b) => b[1] - a[1]).slice(0, 100).map(([at, b]) => ({ at, mb: mb1(b) })) };
   };
   if (sampler !== undefined) {
     sampler.connect();
@@ -264,8 +265,11 @@ if (command === "check") {
   const mb = (bytes) => Math.round(bytes / 2 ** 20);
   const records = join(out, "records-probe.jsonl");
   const facts = join(out, "probe.jsonl");
+  // summary.jsonl has one line for each input that ended: the sampled allocation of all pairs, the largest retained heap, the retained heap at the end and the peak RSS.
+  const summary = join(out, "summary.jsonl");
   writeFileSync(records, "");
   writeFileSync(facts, "");
+  writeFileSync(summary, "");
   console.log(`probe: ${ids.length} inputs, forced GC ${gc === undefined ? "off" : "on"}, ${process.execArgv.join(" ") || "no node flags"}`);
   for (const id of ids) {
     const row = byId.get(id);
@@ -275,12 +279,18 @@ if (command === "check") {
     let last = t0;
     let peakHeap = 0;
     let peakPair = "";
+    let allocMb = 0;
+    let liveMax = 0;
     const lines = [];
     if (sampler !== undefined) post("HeapProfiler.startSampling", SAMPLE);
     for (const run of pairRuns(row.input, row.entry.cell, { env, corpus: set, lanes, iterate, freeRoutes: true, ...(pairs.length === 0 ? {} : { pairs }), ...(commit === undefined ? {} : { commit }) })) {
       appendFileSync(records, JSON.stringify(run.record) + "\n");
+      let pairAlloc = null;
       if (sampler !== undefined) {
-        appendFileSync(alloc, JSON.stringify({ input: id, pair: run.record.strategy, cpu: env.cpu, sampling: SAMPLE, ...allocTop(post("HeapProfiler.stopSampling").profile) }) + "\n");
+        const top = allocTop(post("HeapProfiler.stopSampling").profile);
+        pairAlloc = top.totalMb;
+        allocMb += top.totalMb;
+        appendFileSync(alloc, JSON.stringify({ input: id, pair: run.record.strategy, cpu: env.cpu, sampling: SAMPLE, ...top }) + "\n");
         post("HeapProfiler.startSampling", SAMPLE);
       }
       const before = process.memoryUsage();
@@ -288,7 +298,8 @@ if (command === "check") {
       const after = process.memoryUsage();
       const now = performance.now();
       // Each fact has the CPU model and the heap mode, because a time and a peak are true only for them (the fleet rule of 2026-10-30).
-      const fact = { input: id, pair: run.record.strategy, ms: Math.round(now - last), heapBefore: mb(before.heapUsed), heapLive: gc === undefined ? null : mb(after.heapUsed), rss: mb(before.rss), external: mb(before.external), buffers: mb(before.arrayBuffers), maxRss: mb(process.resourceUsage().maxRSS * 1024), cpu: env.cpu, mode: process.env.MODE ?? "none" };
+      const fact = { input: id, pair: run.record.strategy, ms: Math.round(now - last), heapBefore: mb(before.heapUsed), heapLive: gc === undefined ? null : mb(after.heapUsed), rss: mb(before.rss), external: mb(before.external), buffers: mb(before.arrayBuffers), maxRss: mb(process.resourceUsage().maxRSS * 1024), allocMb: pairAlloc, cpu: env.cpu, mode: process.env.MODE ?? "none" };
+      if (fact.heapLive !== null && fact.heapLive > liveMax) liveMax = fact.heapLive;
       lines.push(JSON.stringify(fact) + "\n");
       if (fact.heapBefore > peakHeap) {
         peakHeap = fact.heapBefore;
@@ -298,6 +309,23 @@ if (command === "check") {
     }
     appendFileSync(facts, lines.join(""));
     if (sampler !== undefined) post("HeapProfiler.stopSampling");
+    gc?.();
+    const end = process.memoryUsage();
+    appendFileSync(
+      summary,
+      JSON.stringify({
+        input: id,
+        pairs: lines.length,
+        allocMb: sampler === undefined ? null : Math.round(allocMb),
+        liveMaxMb: gc === undefined ? null : liveMax,
+        liveEndMb: gc === undefined ? null : mb(end.heapUsed),
+        maxRss: mb(process.resourceUsage().maxRSS * 1024),
+        ms: Math.round(performance.now() - t0),
+        cpu: env.cpu,
+        mode: process.env.MODE ?? "none",
+        ...(sampler === undefined ? {} : { sampling: SAMPLE }),
+      }) + "\n",
+    );
     console.log(`  peak rss ${mb(process.resourceUsage().maxRSS * 1024)} MB after ${id}`);
     console.log(`  the largest heap after a pair: ${peakHeap} MB, after ${peakPair}`);
     console.log(`${id}: ${lines.length} pairs, ${Math.round(performance.now() - t0)} ms`);

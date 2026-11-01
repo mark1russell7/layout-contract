@@ -1386,3 +1386,73 @@ I wrote these claims before the run.
 
 If S1 is false, the pair alone does not make the gap. Then the gap of seed 1 comes from the memory that the pairs before it keep, and step 2 examines that sequence.
 A fix passes L81 only when seed 1 stays under 3072 MB in a full run of the gate in `bench-6144`. A pass in a diagnostic mode does not pass L81.
+
+### The result of step 2
+
+The run [41355387962](https://github.com/mark1russell7/layout-contract/actions/runs/41355387962) ran the pair `maxrects-cp+gaps` alone on seed 1 and on seed 2 of the dense input with hubs, with `highways` 0.10.0.
+
+| Mode | Seed | CPU | Peak RSS (MB) | Sampled allocation (GB) |
+|---|---|---|---|---|
+| `bench-6144` | 1 | AMD EPYC 7763 | 1878 | |
+| `bench-6144` | 2 | AMD EPYC 7763 | 1824 | |
+| `alloc-6144` | 1 | Intel Xeon 6973P-C | 1980 | 45.8 |
+| `alloc-6144` | 2 | AMD EPYC 9V74 | 1979 | 46.9 |
+
+The top 20 functions hold 90% of the sampled bytes. The functions with the most bytes, seed 1 and seed 2 in GB:
+
+| Function | Seed 1 | Seed 2 |
+|---|---|---|
+| `placeRoutes` of `highways` | 11.4 | 12.0 |
+| The `querySegment` callback of `measureQuality` of `highways` | 8.6 | 9.4 |
+| `mergeSort` | 2.9 | 2.8 |
+| `hypot` | 2.2 | 2.5 |
+| `sha256Hex` of `layout-contract` | 2.0 | 1.9 |
+
+| Claim | p | Result |
+|---|---|---|
+| S1 | 0.6 | Miss. Seed 1 alone peaks only 54 MB above seed 2 alone. |
+| S2 | 0.75 | Hit. Both seeds stay under 1900 MB in `bench-6144`. |
+| S3 | 0.65 | Hit. `placeRoutes` of `highways` allocates the most bytes. |
+| S4 | 0.55 | Miss. The allocation of seed 1 is 0.98 times the allocation of seed 2. |
+| S5 | 0.5 | Void. `alloc.jsonl` kept only 20 functions, so a function under the cut reads as 0 bytes. |
+
+The mean Brier score of S1 to S4 is 0.212.
+
+- The pair alone peaks at approximately 1.85 GB. In the full runs, the same pair peaked at 3337 to 3661 MB. Thus 1.4 to 1.8 GB of the peak comes from the pairs before it.
+- The pair allocates approximately 46 GB in approximately 3 minutes, and a GC collects almost all of it. With a heap cap of 6144 MB, the peak RSS shows when V8 collects, not the memory that the input needs. This explains the A/A spread of 25% of the first gate.
+- The allocation of the two seeds differs by only 2.5%. A count of the allocation is almost deterministic, so it is a better measure for a gate.
+- `alloc.jsonl` keeps 100 functions since this result.
+- `highways` took the allocations of `placeRoutes` and `measureQuality` as its item ALLOC-CHURN. `sha256Hex` is in this repository.
+
+### The prediction for the A/A repeat
+
+The A/A repeat gives the noise of each measure, and the gate limits come from it (the fleet rule 1e10f489).
+The run uses the mode `measure-6144` on the 3 seeds of the dense input with hubs. Each seed has 5 repeats, each in a fresh job.
+
+- `measure-6144` has the heap cap of `bench-6144`. It samples the allocations of each pair, and forces a full GC after each pair and at the end of the input.
+- `summary.jsonl` gives one line for each input, with these fields:
+  - `allocMb`: the sampled allocation of all pairs.
+  - `liveMaxMb`: the largest retained heap after a pair.
+  - `liveEndMb`: the retained heap at the end.
+  - `maxRss`: the peak RSS.
+- Each line has the CPU model. The analysis groups the repeats by CPU model.
+
+The limit of a measure is its worst value plus `max(10%, 3 × spread)`. The spread is `(max - min) / min` of the repeats of a seed. The allocation and the retained heap get a limit. The peak RSS gets a limit only when its spread is under 10%. Otherwise it is a column of the report.
+
+I wrote these claims before the run.
+
+| Claim | p | Claim text |
+|---|---|---|
+| A1 | 0.85 | For each seed, the spread of the sampled allocation over its 5 repeats is under 3%. |
+| A2 | 0.75 | For each seed, the spread of `liveMaxMb` over its 5 repeats is under 10%. |
+| A3 | 0.8 | `liveMaxMb` stays under 800 MB in each run. Thus the 1.4 to 1.8 GB of the earlier pairs is garbage, not a leak of the harness. |
+| A4 | 0.55 | On at least 1 seed, the spread of the peak RSS over its 5 repeats is 10% or more. |
+| A5 | 0.7 | The peak RSS stays under 3072 MB in each run, because the forced GC after each pair removes the garbage of the pairs before it. |
+| A6 | 0.75 | When the repeats of a seed have more than one CPU model, the allocation of each CPU model differs by less than 3%. |
+
+- A1: the work of a seed is deterministic. The sampling at 32 KB of 46 GB of allocation has a small error.
+- A3: in L77, the live heap after a forced GC between the pairs was at most 229 MB.
+- A4 is risky: the forced GC after each pair can remove most of the noise of the peak.
+- A5: the pair alone peaked under 2000 MB in step 2.
+
+If A1 and A2 are hits, the gate moves to `measure-6144`, with derived limits on the allocation and the retained heap.
