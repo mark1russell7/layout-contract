@@ -91,14 +91,14 @@ The date of the night in UTC gives the seed `YYYYMMDD`. Thus a rerun of a night 
 Round 1 has these jobs, in this order:
 
 1. The baseline arm on each of the 303 inputs: `rows+portfolio`, `select+portfolio` and the incumbent `lanes-sides.maxrects-cp.corners+corners`.
-2. The screened configs of earlier nights that do not have the full screen.
+2. The screened configs of earlier nights that do not have the full screen. The config with the oldest record goes first, while the budget lasts.
 3. New configs on the screen, while the budget lasts.
 
 The screen is seed 1 of each of the 101 specs. The budget of a round is `max-shards × target-minutes × 0.9` minutes. Round 1 subtracts the cost of the steps 1 and 2.
 
 Round 2 has these jobs, in this order:
 
-1. The configs that are alive after the race, on the inputs that they do not have. The configs with the best mean go first.
+1. The configs that are alive after the race, on the inputs that they do not have. The config with the oldest record goes first, and then the config with the best mean.
 2. New configs on the screen with the rest of the budget. Their seed is `2 × YYYYMMDD + 1`.
 
 The plan of a round:
@@ -120,6 +120,7 @@ The local plan of the first night (2026-10-29) with the defaults gives these num
 - Each night runs approximately 37 shards of less than 30 planned minutes, and screens approximately 290 new configs.
 - The 2 rounds took approximately 180 minutes of wall time with 6 shards at the same time. Since 2026-10-30, `max-parallel` runs 3 shards at the same time. The account runs at most 20 jobs at once for all repos, and the fleet rule gives a heavy workflow 3 of them.
 - Prediction (p 0.6): a night with 3 shards at once takes 300 to 420 minutes of wall time. The night starts at 03:37 UTC.
+- Result: the nights of 2026-10-31 and 2026-11-01 took 671 and 698 minutes, so the prediction is a miss. The real time of a shard was 50 to 55 minutes against a target of 30. One or two shards stopped at the limit of 120 minutes each night.
 - 290 configs are approximately 1.3% of the grid of 3 levels. The integer grid is larger, so the coverage grows each night.
 
 ### The new configs
@@ -137,6 +138,33 @@ The coverage need of a config is the sum of `1 / (1 + count)` over its strata. `
 - Each param in 3 bins of its range, for example `lanes.mode=sides.clearance#1`.
 
 Thus the sample goes first to the options, the pairs and the param bins with the fewest configs.
+
+### The budget of a night (L81)
+
+Since L81, a night uses its measured cost, a budget of wall time, a rotation and a clean stop.
+
+1. The scale is the median of real minutes over planned minutes of the shards of the last 5 nights. The plan divides the target by the scale, so a shard has `target-minutes` real minutes. A new epoch takes the scale of the epoch with the latest night. The scale of the shards of 2026-11-01 is 1.64.
+2. The window of a scheduled night ends at 14:00 UTC. The budget is the time to the end of the window, minus the expected minutes of the gate. The gate counts only when main changed since the last nightly gate. Its expected minutes are the median of the last 3 nightly gates.
+3. Round 1 gets half of the budget. Round 2 gets the time that is left at the race. A round has at most `lanes × floor(budget / (target + overhead))` shards, with 3 lanes and 6 minutes of setup for each job.
+4. A config with no record goes first, and then the config with the oldest record (`ran` of its entry). Thus each config gets a run in some nights. The field `ran` gives the age of each result for the atlas.
+5. A shard stops before a unit that does not end 105 minutes after the start of the shard, 15 minutes under the limit of the job. It keeps the records of the units that it ran. The first unit always runs. The shard file gives `stopped`, the count of the units that ran, and their planned minutes.
+6. The job `publish` runs when a shard was cancelled. Before L81, the implicit `success()` skipped it, so the nights from 2026-10-30 to 2026-11-01 did not reach the branch. The tree of 2026-11-01 came back from the artifact of its run.
+
+The summary scores the cost model by Brier. Each shard is one claim, at p 0.6: its real minutes are within 25% of its planned minutes times the scale. A stopped shard is a miss.
+
+The prediction for the first night with the budget:
+
+| Id | Claim | Confidence |
+|---|---|---|
+| B1 | No shard of the night stops at the limit of its job. | 0.75 |
+| B2 | The job `publish` pushes the night to the branch `sweep-data`. | 0.85 |
+| B3 | The night ends before 14:00 UTC, with the gate after it. | 0.55 |
+| B4 | At least half of the shards are within 25% of their planned minutes times the scale. | 0.5 |
+| B5 | No shard stops at the deadline of 105 minutes. | 0.7 |
+
+- B1 and B5: the scale makes a shard approximately 30 real minutes. The real time of the shards of 2026-11-01 was 0.36 to 3.66 times the plan, so a shard can still take 110 minutes.
+- B3 is risky: the budget uses the median gate of 375 minutes, and the gate time also changes with the queue of the runners.
+- B4 is risky: the spread of the ratio is large. One scale for all shards does not see which spec is slow.
 
 ## The score
 

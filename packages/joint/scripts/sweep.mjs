@@ -1,9 +1,10 @@
 // The nightly sweep over the joint space (`docs/SWEEP.md`, roadmap item L35). The workflow `sweep.yml` starts each command. Do not start the runs on a local computer.
 //
 //   plan --data <dir> --out <dir> [--date YYYY-MM-DD] [--target-minutes 30] [--max-shards 20] [--max-configs 400] [--corpus <set>] [--design <rows>]
+//        [--budget-minutes <wall minutes of the round> --lanes 3 --overhead-minutes 6] [--scale <real minutes of a planned minute>]
 //        reads the state of the epoch from the data branch in <dir>, plans round 1, and writes <out>/state.json, <out>/plan.json and <out>/matrix.json
 //        with --design, round 1 runs a Saltelli design of <rows> rows (`planDesign`, L52) instead of a new sample
-//   run --plan <dir> --shard <i> --out <dir>
+//   run --plan <dir> --shard <i> --out <dir> [--deadline-minutes <m>]
 //        runs the units of shard <i> of <dir>/plan.json, and writes <out>/records-<round>-<i>.jsonl and <out>/shard-<round>-<i>.json
 //   race --night <dir> --records <dir> --out <dir> [--target-minutes 30] [--max-shards 20] [--max-configs 400]
 //        adds the records of round 1 to the state, races the configs, plans round 2, and writes the same files as plan
@@ -75,24 +76,60 @@ function corpusOf(set) {
   return { rows, sweep };
 }
 
-/** This function gives the options of the plans of a round. */
-function planOptions(date) {
-  return {
-    date,
-    target: numberArg("target-minutes", 30) * 60000,
-    maxShards: numberArg("max-shards", 20),
-    maxConfigs: numberArg("max-configs", 400),
-  };
+/**
+ * This function gives the real minutes of one planned minute: the median of real over planned of the shards of the last 5 nights (L81).
+ * A stopped shard counts with the planned minutes of the units that it ran.
+ * A new epoch has no shards. Then the scale comes from the epoch of the data branch with the latest night, because the cost model is the same. With no shard at all, the scale is 1.
+ */
+function costScale(state, data) {
+  const ratiosOf = (s) =>
+    s.nights
+      .slice(-5)
+      .flatMap((n) => n.shards)
+      .map((x) => ({ planned: x.stopped === true ? x.plannedDone : x.planned, real: x.real }))
+      .filter((x) => x.planned > 0 && x.real > 0)
+      .map((x) => x.real / x.planned);
+  let ratios = ratiosOf(state);
+  const epochs = data === undefined ? "" : join(data, "epochs");
+  if (ratios.length === 0 && epochs !== "" && existsSync(epochs)) {
+    const last = (s) => s.nights.at(-1)?.date ?? "";
+    const others = readdirSync(epochs)
+      .map((e) => join(epochs, e, "state.json"))
+      .filter((file) => existsSync(file))
+      .map((file) => readJson(file))
+      .filter((s) => ratiosOf(s).length > 0)
+      .sort((a, b) => (last(a) < last(b) ? 1 : last(a) > last(b) ? -1 : 0));
+    if (others.length > 0) ratios = ratiosOf(others[0]);
+  }
+  ratios.sort((a, b) => a - b);
+  return ratios.length === 0 ? 1 : ratios[Math.floor(ratios.length / 2)];
+}
+
+/**
+ * This function gives the options of the plans of a round. The target is in real minutes, so the plan divides it by the measured scale.
+ * With --budget-minutes, the round has at most the waves of shards that end in that wall time on --lanes runners. Each job has --overhead-minutes of setup.
+ */
+function planOptions(date, state) {
+  const scale = args.scale === undefined ? costScale(state, args.data) : numberArg("scale", 1);
+  const target = numberArg("target-minutes", 30);
+  let maxShards = numberArg("max-shards", 20);
+  const budget = args["budget-minutes"] === undefined ? null : numberArg("budget-minutes", 1);
+  if (budget !== null) maxShards = Math.min(maxShards, numberArg("lanes", 3) * Math.max(1, Math.floor(budget / (target + numberArg("overhead-minutes", 6)))));
+  return { date, target: (target * 60000) / scale, maxShards, maxConfigs: numberArg("max-configs", 400), scale, budget };
 }
 
 /** This function writes the files of a plan: the state, the plan of the shards and the matrix of the workflow. */
-function writePlan(out, state, night) {
+function writePlan(out, state, night, options) {
+  // The night keeps the scale and the budget of each round, so the summary scores the cost model.
+  const entry = state.nights.find((n) => n.date === night.date);
+  entry.cost = { ...(entry.cost ?? {}), [night.round]: { scale: options.scale, budget: options.budget, maxShards: options.maxShards } };
   writeJson(join(out, "state.json"), state, 0);
   writeJson(join(out, "plan.json"), {
     round: night.round,
     date: night.date,
     epoch: state.epoch,
     corpus: state.corpus,
+    scale: options.scale,
     shards: night.plan.shards,
     loads: night.plan.loads,
     units: night.plan.units,
@@ -103,7 +140,8 @@ function writePlan(out, state, night) {
   const f = night.facts;
   console.log(
     `round ${night.round} of ${night.date}: ${f.configs} configs (${f.sampled} new), ${f.jobs} jobs, ${f.units} units, ${f.shards} shards, ` +
-      `${f.minutes.toFixed(1)} planned minutes, the longest shard ${f.longest.toFixed(1)}`,
+      `${f.minutes.toFixed(1)} planned minutes, the longest shard ${f.longest.toFixed(1)}, scale ${options.scale.toFixed(2)}, ` +
+      `budget ${options.budget === null ? "none" : `${options.budget} minutes`}, at most ${options.maxShards} shards`,
   );
 }
 
@@ -127,7 +165,8 @@ function applyRound(state, inputs, dir, plan) {
     throw new Error(`Round ${plan.round} has ${plan.units.length} units, but the folder ${dir} has no records (*.jsonl). The sweep expected the records of each shard of the round.`);
   applyRecords(state, records, inputs, plan.date);
   const night = state.nights.find((n) => n.date === plan.date);
-  for (const s of shards) night.shards.push({ round: s.round, shard: s.shard, planned: s.planned, real: s.real });
+  for (const s of shards)
+    night.shards.push({ round: s.round, shard: s.shard, planned: s.planned, real: s.real, ...(s.stopped === true ? { stopped: true, plannedDone: s.plannedDone, done: s.done, units: s.units } : {}) });
   const seen = new Set(records.map((r) => `${r.strategy}|${r.input}`));
   night.missing += plan.units.reduce((n, u) => n + u.configs.filter((c) => !seen.has(`${c}|${u.input}`)).length, 0);
   console.log(`round ${plan.round}: ${records.length} records of ${shards.length} shards.`);
@@ -153,8 +192,11 @@ if (command === "plan") {
     mkdirSync(out, { recursive: true });
     writeFileSync(join(out, "skip.txt"), `${date}\n`);
     writeJson(join(out, "matrix.json"), []);
-  } else if (args.design !== undefined) writePlan(out, state, planDesign(state, sweep, { ...planOptions(date), n: numberArg("design", 0) }));
-  else writePlan(out, state, planRound1(state, sweep, planOptions(date)));
+  } else {
+    const options = planOptions(date, state);
+    if (args.design !== undefined) writePlan(out, state, planDesign(state, sweep, { ...options, n: numberArg("design", 0) }), options);
+    else writePlan(out, state, planRound1(state, sweep, options), options);
+  }
 } else if (command === "run") {
   const dir = args.plan ?? "night";
   const plan = readJson(join(dir, "plan.json"));
@@ -170,9 +212,20 @@ if (command === "plan") {
   const env = runEnv();
   const commit = process.env.GITHUB_SHA;
   const start = performance.now();
+  // With --deadline-minutes, a unit that the cost model does not see ending before the deadline does not start (L81). The shard then stops cleanly.
+  // The records of each unit are in the file when the unit ends, so a stop keeps the finished work. The next nights plan the rest.
+  const deadline = args["deadline-minutes"] === undefined ? Infinity : numberArg("deadline-minutes", 1) * 60000;
+  const scale = plan.scale ?? 1;
+  let done = 0;
+  let plannedDone = 0;
   console.log(`round ${plan.round} shard ${shard} of ${plan.shards.length}: ${plan.shards[shard].length} units, ${(plan.loads[shard] / 60000).toFixed(1)} planned minutes`);
   for (const id of plan.shards[shard]) {
     const unit = units.get(id);
+    // The first unit always runs, so a unit that is longer than the deadline does not wait for ever.
+    if (done > 0 && performance.now() - start + unit.cost * scale > deadline) {
+      console.log(`The shard stops before ${unit.id}: it is ${((performance.now() - start) / 60000).toFixed(1)} minutes in, and the unit has ${((unit.cost * scale) / 60000).toFixed(1)} expected minutes.`);
+      break;
+    }
     const { input, entry } = byInput.get(unit.input);
     const runs = unit.configs.map((c) => ({ id: c, run: plan.runs[c] }));
     const pairs = runs.filter((r) => r.run.lane === undefined && r.run.iter === undefined).map((r) => r.run.pair);
@@ -190,8 +243,17 @@ if (command === "plan") {
     // The rounds of the iteration chains count as pairs, at `iterPlanPairs` (3 pairs for each round), as the plan counts them.
     const pairCount = runs.length + iterPlanPairs(iterate);
     console.log(`${unit.id}: ${records.length} records, ${skipped} skipped, ${Math.round(performance.now() - t0)} ms, ${pairCount} pairs, ${passes} lane passes`);
+    done++;
+    plannedDone += unit.cost;
   }
-  writeJson(join(out, `shard-${plan.round}-${shard}.json`), { round: plan.round, shard, planned: plan.loads[shard] / 60000, real: (performance.now() - start) / 60000 });
+  const count = plan.shards[shard].length;
+  writeJson(join(out, `shard-${plan.round}-${shard}.json`), {
+    round: plan.round,
+    shard,
+    planned: plan.loads[shard] / 60000,
+    real: (performance.now() - start) / 60000,
+    ...(done < count ? { stopped: true, done, units: count, plannedDone: plannedDone / 60000 } : {}),
+  });
 } else if (command === "race") {
   const dir = args.night ?? "night";
   const state = readJson(join(dir, "state.json"));
@@ -202,7 +264,8 @@ if (command === "plan") {
   const labels = {};
   for (const o of outcomes) labels[o.label] = (labels[o.label] ?? 0) + 1;
   console.log(`race of ${plan.date}: ${JSON.stringify(state.nights.at(-1).race)}, labels ${JSON.stringify(labels)}`);
-  writePlan(args.out ?? "night2", state, planRound2(state, sweep, planOptions(plan.date)));
+  const options = planOptions(plan.date, state);
+  writePlan(args.out ?? "night2", state, planRound2(state, sweep, options), options);
 } else if (command === "summarize") {
   const dir = args.night ?? "night2";
   const state = readJson(join(dir, "state.json"));
@@ -246,6 +309,7 @@ function nightFacts(state, night) {
   const planned = night.shards.reduce((s, x) => s + x.planned, 0);
   const real = night.shards.reduce((s, x) => s + x.real, 0);
   return {
+    costModel: costModelScore(night),
     longestShard: Math.max(0, ...night.shards.map((s) => s.real)),
     newConfigs: (night.round1?.sampled ?? 0) + (night.round2?.sampled ?? 0),
     raced: night.race?.raced ?? 0,
@@ -258,6 +322,20 @@ function nightFacts(state, night) {
   };
 }
 
+/** The claim of the cost model for each shard (`docs/SWEEP.md`): the real minutes are within 25% of the planned minutes times the scale. */
+const COST_CLAIM = { p: 0.6, within: 0.25 };
+
+/** This function scores the cost model of a night by Brier: one claim for each shard. A stopped shard is a miss. */
+function costModelScore(night) {
+  const rows = night.shards.map((s) => {
+    const expected = s.planned * (night.cost?.[s.round]?.scale ?? 1);
+    const hit = s.stopped !== true && Math.abs(s.real - expected) <= COST_CLAIM.within * expected;
+    return { hit, brier: (COST_CLAIM.p - (hit ? 1 : 0)) ** 2 };
+  });
+  const hits = rows.filter((r) => r.hit).length;
+  return { ...COST_CLAIM, shards: rows.length, hits, stopped: night.shards.filter((s) => s.stopped === true).length, brier: rows.length === 0 ? null : rows.reduce((s, r) => s + r.brier, 0) / rows.length, cost: night.cost ?? {} };
+}
+
 /** This function gives the summary of a night in Markdown. */
 function nightMarkdown(state, night, counts, facts) {
   const lines = [`# Sweep of ${night.date}`, "", `Epoch \`${state.epoch}\`, seed ${night.seed}${night.run ? `, run ${night.run}` : ""}.`, ""];
@@ -265,6 +343,8 @@ function nightMarkdown(state, night, counts, facts) {
   for (const [k, r] of [["1", night.round1], ["2", night.round2]]) if (r) lines.push(`| ${k} | ${r.configs} | ${r.sampled} | ${r.jobs} | ${r.units} | ${r.shards} | ${r.minutes.toFixed(1)} | ${r.longest.toFixed(1)} |`);
   lines.push("", `Race: ${JSON.stringify(night.race ?? {})}.`, "", `Status counts: ${JSON.stringify(counts)}.`, "");
   lines.push(`Shards: ${night.shards.length}, the longest ${facts.longestShard.toFixed(1)} real minutes. Planned ${facts.plannedMinutes.toFixed(1)} minutes in all, real ${facts.realMinutes.toFixed(1)}.`);
+  const cm = facts.costModel;
+  lines.push(`Cost model: scale ${Object.entries(cm.cost).map(([r, c]) => `round ${r} ${c.scale.toFixed(2)}`).join(", ") || "none"}. ${cm.hits} of ${cm.shards} shards within ${cm.within * 100}% of the expected minutes, ${cm.stopped} stopped. Brier ${cm.brier === null ? "none" : cm.brier.toFixed(3)} at p ${cm.p}.`);
   lines.push(`Drift of the baseline arm: ${night.drift} inputs. Values: ${night.values}. Jobs without a record: ${night.missing}.`, "");
   lines.push("| Baseline config | Headline misses of the reference floor | Inputs |", "|---|---|---|");
   for (const [name, m] of Object.entries(facts.misses)) lines.push(`| \`${name}\` | ${m.misses} | ${m.of} |`);
