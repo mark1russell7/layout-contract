@@ -53,6 +53,8 @@ This file lists the items of the roadmap of this repository. The status page of 
 | L76 | later | P2 | The orbit of a node: a soft keep-out margin |
 | L80 | later | P3 | Site forms for packSpace of packing, then drop PACK_EXTRAS |
 | L82 | later | P2 | The bench scripts in TypeScript (rule typed-scripts of conventions 0.5.0) |
+| L83 | later | P2 | Record fields for highways: env.mode and env.context, and no deterministic claim on a skipped record |
+| L84 | later | P3 | A paired-time A/A arm in the joint bench, for the new Time row |
 
 ## Done
 
