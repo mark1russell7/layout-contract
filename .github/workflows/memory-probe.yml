@@ -45,7 +45,7 @@ on:
   # The schedule is the fallback for a night with no sweep. It stops when a sweep on main started on the same day.
   schedule:
     # Each scheduled heavy run of the fleet has its own minute (the rule of 2026-10-30).
-    - cron: "53 5 * * *"
+    - cron: "4 5 * * *"
 
 # A new run on the same ref waits for the run before it. A gate record that runs halfway has no value when it stops.
 concurrency:
