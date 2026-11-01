@@ -171,13 +171,13 @@ importers:
         version: 0.18.5
       '@mark1russell7/api-report':
         specifier: ^0.2.0
-        version: 0.2.0
+        version: 0.2.1
       '@mark1russell7/boundaries':
         specifier: ^0.2.0
         version: 0.2.0(@swc/core@1.16.20)(dependency-cruiser@18.7.0)
       '@mark1russell7/conventions':
-        specifier: ^0.7.0
-        version: 0.7.0
+        specifier: ^0.8.2
+        version: 0.8.2
       '@mark1russell7/cue':
         specifier: ^1.0.2
         version: 1.1.0
@@ -472,8 +472,8 @@ packages:
   '@loaderkit/resolve@1.0.6':
     resolution: {integrity: sha512-G8FdIoF5CypfwmD9rl8BXod5HDn8JqB0CCNBXDTaRZ+yRYhARrrSToX1zg1zy9jX3zLqigsELwhT4gNtkdQAUg==}
 
-  '@mark1russell7/api-report@0.2.0':
-    resolution: {integrity: sha512-09QIGN/YGpbIgovGQ3uzPCWFwDazOBq8s7qhfi/FU2mo1c0M/iaF9EE+1psdZxN4o9Y1U4oU7zkGYLsfCvvMMg==}
+  '@mark1russell7/api-report@0.2.1':
+    resolution: {integrity: sha512-3bP316h+Thc6m4W2yvame5wTvDIMp7JDCM5CQBvDWZtjfsgr02Z7Vii9YjuPvogvkWvA4t09ihhnr73h0IKkRQ==}
     engines: {node: '>=22'}
     hasBin: true
 
@@ -489,8 +489,8 @@ packages:
       dependency-cruiser:
         optional: true
 
-  '@mark1russell7/conventions@0.7.0':
-    resolution: {integrity: sha512-Wqd/PQ4/TghdmXl5h5RFcn6lXOYJCW98mpE8Um65Fv0o1QnglUjv+J54FMI846dxiZlmbyGDPWZNktB+rvvGmw==}
+  '@mark1russell7/conventions@0.8.2':
+    resolution: {integrity: sha512-1x9Xs31ac7A1Ro1Cxa1Yp13zzs7/cntqlRz9o/nHoy1E2Txc4UvyQHOLrdp815XSnh7+dvscCLkubDf2aKCBiw==}
     engines: {node: '>=22'}
     hasBin: true
 
@@ -1659,14 +1659,14 @@ snapshots:
     dependencies:
       '@braidai/lang': 1.1.2
 
-  '@mark1russell7/api-report@0.2.0': {}
+  '@mark1russell7/api-report@0.2.1': {}
 
   '@mark1russell7/boundaries@0.2.0(@swc/core@1.16.20)(dependency-cruiser@18.7.0)':
     optionalDependencies:
       '@swc/core': 1.16.20
       dependency-cruiser: 18.7.0
 
-  '@mark1russell7/conventions@0.7.0': {}
+  '@mark1russell7/conventions@0.8.2': {}
 
   '@mark1russell7/cue@1.1.0': {}
 
