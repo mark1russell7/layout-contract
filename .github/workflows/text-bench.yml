@@ -4,11 +4,9 @@
 name: Text bench
 
 on:
+  # Each pull request starts this workflow, so its summary check is always there. The job changes skips the
+  # work when the pull request changes no file of the gate (CI.md of the template, "A gate with paths").
   pull_request:
-    paths:
-      - "packages/layout-contract/src/text.ts"
-      - "packages/layout-contract/scripts/bench-text.mjs"
-      - ".github/workflows/text-bench.yml"
   workflow_dispatch:
     inputs:
       base:
@@ -25,7 +23,26 @@ permissions:
   contents: read
 
 jobs:
+  changes:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+      pull-requests: read
+    outputs:
+      match: ${{ steps.changes.outputs.match }}
+    steps:
+      - id: changes
+        uses: mark1russell7/template/.github/actions/changes@f05c6eeb35e33a040bdfdcd7d07a1d2c00640f8d # main
+        with:
+          paths: |
+            packages/layout-contract/src/text.ts
+            packages/layout-contract/scripts/bench-text.mjs
+            .github/workflows/text-bench.yml
+
   bench:
+    needs: changes
+    if: needs.changes.outputs.match == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
@@ -54,3 +71,15 @@ jobs:
         working-directory: packages/layout-contract
         run: |
           node scripts/bench-text.mjs --base "$RUNNER_TEMP/base/node_modules/@mark1russell7/layout-contract/build/text.js" --head build/text.js | tee -a "$GITHUB_STEP_SUMMARY"
+
+  text-bench-ok:
+    name: Text bench OK
+    if: always()
+    needs: [changes, bench]
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    permissions: {}
+    steps:
+      - uses: mark1russell7/template/.github/actions/gate-summary@f05c6eeb35e33a040bdfdcd7d07a1d2c00640f8d # main
+        with:
+          needs: ${{ toJSON(needs) }}
