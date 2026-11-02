@@ -1496,7 +1496,14 @@ The Brier score is 0.147 (6 claims).
 - The allocation and the retained heap are almost the same in each run. Thus they are good gate measures.
 - The CPU model changes the time (67 min on 9V45, 110 to 133 min on 7763 for s2), but not the allocation.
 - The miss of A5: the retained heap after a pair is at most 450 MB, but the peak RSS is 3291 to 4393 MB. Thus the peak comes from garbage inside a pair, before V8 collects it. With a heap cap of 6144 MB, V8 lets the heap grow more before a full GC than with the smaller cap of step 2. The forced GC after each pair does not limit the peak inside a pair. My reason for A5 was wrong.
-- The peak RSS depends on the time of the GC, so it gets no limit. It stays a column of the report.
+- The peak RSS depends on the time of the GC, so it is not a regression gate. But a peak of 3.3 to 4.4 GB is a real risk on a machine with less memory. Thus the peak RSS gets a coarse ceiling, as a crash guard. Its limit is the worst peak of the limit runs plus their spread, so it fails only on a large jump.
+
+The peak is 9 times the retained heap. A probe with the mode `cap-2048` tests the explanation: it does the same work with a heap cap of 2048 MB and no forced GC. If the peak is garbage that V8 collects late, V8 collects sooner with the smaller cap, and the run ends with a smaller peak. If the code needs the memory, the run stops with an OOM. I wrote these claims before the run:
+
+| Claim | p | Claim text |
+|---|---|---|
+| G1 | 0.70 | Each of the 3 seeds ends with status 0 with `cap-2048` (no OOM). |
+| G2 | 0.70 | The peak RSS of each `cap-2048` run is under 2600 MB. |
 
 The rule of the limits changed after the prediction (the fleet strategy, 2026-11-02). The limit of a measure is the worst value of 5 or more CI runs plus their spread (max minus min). The value is rounded up to 1 MB, and the run ids and the formula are next to it. There is one limit for each CPU model with 5 or more runs, and the worst stratum for the other models. A run counts unless a check that does not use its value shows a fault.
 
@@ -1505,4 +1512,4 @@ These runs do not give the limits of `main`, for two causes:
 - `sha256Hex` allocated 2 GB in one pair, and `9d584c8` (PR #113) removed most of it. These runs are on `2ece000`, before that change.
 - Only s1 on AMD EPYC 7763 has 5 runs of one CPU model.
 
-Thus the next run measures `main`, with 5 repeats of each seed. It gives the effect of `9d584c8` and the runs of the limits. A seed with no CPU model at 5 runs gets more repeats.
+Thus the next run measures `main`, with 5 repeats of each seed. It gives the effect of `9d584c8`, the runs of the limits and the runs of the ceiling. A seed with no CPU model at 5 runs gets more repeats.
