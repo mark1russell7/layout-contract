@@ -76,3 +76,5 @@ console.log("|---|---|---|---|");
 for (const [name, ms] of [["base", base], ["head", head]]) console.log(`| ${name} | ${ms.toFixed(1)} | ${((ms * 1000) / calls).toFixed(2)} | ${builds[name].segmenters} |`);
 console.log("");
 console.log(`The head takes ${(head / base).toFixed(3)} of the time of the base.`);
+console.log("");
+console.log("The two builds run in one process, one after the other. Thus these times and this ratio are not the cost of a build alone (the fleet bench rule of 2026-11-02). This bench is a report, not a gate.");

@@ -2,6 +2,8 @@
 
 The joint benchmark packs each input of a joint corpus, and then routes the packed input. It runs each pair of a pack entry and a router. The package `packages/joint` holds the runner and the analysis. The workflow `joint-bench.yml` runs them in CI.
 
+The times in this file come from one process that runs many pairs in order. Earlier cases change the heap and the decisions of V8 for a later case, in both directions. Thus a time in this file is not the cost of a pair alone (the fleet bench rule of 2026-11-02). Use these times only to plan the shards and to compare pairs of one run.
+
 - The corpus is `joint-v2` by default (`docs/JOINT-CORPUS.md`). The first run used `joint-v1`.
 - The pack entries are the 12 entries of the benchmark of `packing` 0.2.10 without `push`, and the entry `select` (L32). The strategy `push` supports only the mode `incremental`, and each joint input is `offline`.
 - The entry `select` is the composite strategy `select` of `packing` 0.2.15, the `DEFAULT_STRATEGY` of `packDefault`. Refer to "The prediction for the select packer (L32)".
@@ -343,6 +345,8 @@ The option `composite` of `analyze` names a composite pack entry and the member 
 - The check reads all records: the stress inputs, and also the records of `--exclude-pack`.
 
 ### The route times and the shard times
+
+Each `route.ms` comes from a shard process that runs many pairs in order. It is not the cost of a route alone.
 
 - The option `times` of `analyze` gives a list of specs. For each seed of a spec, the report gives the median and the maximum `route.ms` of each router. The first router is `shared-all`.
 - `pnpm bench analyze --times <spec[,spec]>` gives the specs. The default is the dense spec with hubs and 1000 boxes (`DENSE_HUBS`), when the slice has it.
