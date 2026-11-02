@@ -56,6 +56,7 @@ This file lists the items of the roadmap of this repository. The status page of 
 | L82 | later | P2 | The bench scripts in TypeScript (rule typed-scripts of conventions 0.5.0) |
 | L83 | later | P2 | Record fields for highways: env.mode and env.context, and no deterministic claim on a skipped record |
 | L84 | later | P3 | A paired-time A/A arm in the joint bench, for the new Time row |
+| L86 | later | P3 | Move the random generators and the joint statistics to the rigor packages |
 
 ## Done
 
