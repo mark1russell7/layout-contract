@@ -1331,6 +1331,18 @@ The first gate ran 20 jobs at once. Its 100 shorter probe jobs took 782 job minu
 | N2 | 0.85 | No probe job of the gate waits so long that GitHub cancels it. |
 | N3 | 0.25 | A night with a sweep and the gate after it ends before 14:00 UTC. The midpoints (a sweep of 360 minutes from 03:37, and a gate of 6.5 hours) give 16:00. |
 
+### The result of the gate with 3 jobs at once
+
+The first gate with 3 jobs at once was run `41042609930`, after the sweep of the night of 2026-10-30. I scored the claims on 2026-11-01, and I wrote the scores here on 2026-11-02.
+
+| Claim | p | Result | Brier |
+|---|---|---|---|
+| N1 | 0.6 | true: the gate took 375 minutes | 0.160 |
+| N2 | 0.85 | true: 102 probe jobs passed, the gate job failed on its limit, and GitHub cancelled no job | 0.023 |
+| N3 | 0.25 | false: the night ended at 16:56 UTC | 0.063 |
+
+The mean Brier score of N1-N3 is 0.082. The claim on the time of the sweep in [SWEEP.md](SWEEP.md) is also a miss. With it, the mean of the night is 0.151.
+
 ### The prediction for the first run of the gate
 
 I wrote these claims before the run. The model of memory and of the time in CI is weak (L79), so those claims have a p of 0.6 or less. M2 has more because bench-4 measured it. The peaks of bench-4 are shard peaks: the RSS of a shard includes the inputs before it. Thus a probe of one input alone can have a lower peak.
