@@ -43,7 +43,7 @@ export function utf8Write(text: string, out?: Uint8Array, at = 0): number {
   return n;
 }
 
-/** This function gives the UTF-8 bytes of a string. The package has no runtime dependencies, thus it does not use `TextEncoder`. */
+/** This function gives the UTF-8 bytes of a string. It does not use `TextEncoder`, because `TextEncoder` encodes a lone surrogate as U+FFFD. */
 export function utf8(text: string): Uint8Array {
   const bytes = new Uint8Array(utf8Write(text));
   utf8Write(text, bytes);

@@ -127,7 +127,7 @@ With `{ shapes }`, it also finds `shape`: a chosen option that does not support 
 
 - The mode `grid` gives each grid point without a meta option, in a stable order. A grid of more than `limit` configs (default 100000) causes a `RangeError`.
 - The mode `sample` gives `n` configs of a seeded Latin hypercube. The options of a stage get equal strata. Each active param gets its own strata among the configs that use it.
-- A sample is deterministic for its seed. It needs no runtime dependency.
+- A sample is deterministic for its seed.
 - A sample draws again when a config breaks a constraint. After `maxTries` draws, it throws an `Error`.
 - The option `meta` is `skip` by default, so a sample has no meta option. With `sample`, a meta option draws its members from a base sample of its part.
 - A meta option with a `pool` draws one entry of its `pool`. The entries get equal strata.
