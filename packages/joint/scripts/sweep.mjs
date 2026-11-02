@@ -21,6 +21,8 @@ import {
   BASELINE_ARM,
   BENCH_SPACE_VERSION,
   baselineIds,
+  CONFIG_COST,
+  CONFIG_COST_ID,
   configLabel,
   emptyState,
   INCUMBENT,
@@ -78,14 +80,17 @@ function corpusOf(set) {
 
 /**
  * This function gives the real minutes of one planned minute: the median of real over planned of the shards of the last 5 nights (L81).
+ * Only the shards of the cost model `CONFIG_COST_ID` count, because a shard of another model has another scale.
  * A stopped shard counts with the planned minutes of the units that it ran.
- * A new epoch has no shards. Then the scale comes from the epoch of the data branch with the latest night, because the cost model is the same. With no shard at all, the scale is 1.
+ * A new epoch has no shards. Then the scale comes from the epoch of the data branch with the latest night, because the cost model is the same.
+ * With no shard of the model, the scale is the scale of the fit of the model (`CONFIG_COST.scale`).
  */
 function costScale(state, data) {
   const ratiosOf = (s) =>
     s.nights
       .slice(-5)
       .flatMap((n) => n.shards)
+      .filter((x) => x.costModel === CONFIG_COST_ID)
       .map((x) => ({ planned: x.stopped === true ? x.plannedDone : x.planned, real: x.real }))
       .filter((x) => x.planned > 0 && x.real > 0)
       .map((x) => x.real / x.planned);
@@ -102,7 +107,7 @@ function costScale(state, data) {
     if (others.length > 0) ratios = ratiosOf(others[0]);
   }
   ratios.sort((a, b) => a - b);
-  return ratios.length === 0 ? 1 : ratios[Math.floor(ratios.length / 2)];
+  return ratios.length === 0 ? CONFIG_COST.scale : ratios[Math.floor(ratios.length / 2)];
 }
 
 /**
@@ -130,6 +135,7 @@ function writePlan(out, state, night, options) {
     epoch: state.epoch,
     corpus: state.corpus,
     scale: options.scale,
+    costModel: CONFIG_COST_ID,
     shards: night.plan.shards,
     loads: night.plan.loads,
     units: night.plan.units,
@@ -166,7 +172,7 @@ function applyRound(state, inputs, dir, plan) {
   applyRecords(state, records, inputs, plan.date);
   const night = state.nights.find((n) => n.date === plan.date);
   for (const s of shards)
-    night.shards.push({ round: s.round, shard: s.shard, planned: s.planned, real: s.real, ...(s.stopped === true ? { stopped: true, plannedDone: s.plannedDone, done: s.done, units: s.units } : {}) });
+    night.shards.push({ round: s.round, shard: s.shard, planned: s.planned, real: s.real, ...(plan.costModel === undefined ? {} : { costModel: plan.costModel }), ...(s.stopped === true ? { stopped: true, plannedDone: s.plannedDone, done: s.done, units: s.units } : {}) });
   const seen = new Set(records.map((r) => `${r.strategy}|${r.input}`));
   night.missing += plan.units.reduce((n, u) => n + u.configs.filter((c) => !seen.has(`${c}|${u.input}`)).length, 0);
   console.log(`round ${plan.round}: ${records.length} records of ${shards.length} shards.`);

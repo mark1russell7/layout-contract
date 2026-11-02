@@ -217,6 +217,9 @@ importers:
       '@mark1russell7/packing':
         specifier: ^0.4.0
         version: 0.4.1
+      '@mark1russell7/rigor-statistics':
+        specifier: ^0.1.0
+        version: 0.1.0
     devDependencies:
       '@mark1russell7/cue':
         specifier: ^1.0.2
@@ -509,6 +512,14 @@ packages:
   '@mark1russell7/packing@0.4.1':
     resolution: {integrity: sha512-V+2ZVIiJPFeQhTiKCl8ONaHEr5vlaBrPDi/dCuUlUQgy0ffXst+hsb82U0XZaPVfF8bEt/PdzuYwGwGJ5s83WQ==}
     engines: {node: '>=22.12'}
+
+  '@mark1russell7/rigor-generators@0.1.0':
+    resolution: {integrity: sha512-xhXvLzZQlDH6ysAbqEjbha6fs1GbvO9RflSXwYbA3QMryxu4zEikbxahEDQCIxVSis+2pfX/18PHU3+X+jJmPw==}
+    engines: {node: '>=22'}
+
+  '@mark1russell7/rigor-statistics@0.1.0':
+    resolution: {integrity: sha512-2sqsFf6BLwN3NVxLcu+QpOUE7o4HFUeNE0O5if+62rBITRpgGpRaMs6DwjkTzRYzxt7dOqBnMr56GaNMHXb6PA==}
+    engines: {node: '>=22'}
 
   '@mark1russell7/ste-lint@0.1.1':
     resolution: {integrity: sha512-NXRB3PimE1PfXT+SuGZAEXt35EdWAXQMd4Dyn6Ep+6Yzf7YBvpHN0+xo4vHpYhmg3CHNGuNvCmspLodXi8/JQg==}
@@ -1681,6 +1692,12 @@ snapshots:
   '@mark1russell7/packing@0.4.1':
     dependencies:
       '@mark1russell7/layout-contract': 0.2.21
+
+  '@mark1russell7/rigor-generators@0.1.0': {}
+
+  '@mark1russell7/rigor-statistics@0.1.0':
+    dependencies:
+      '@mark1russell7/rigor-generators': 0.1.0
 
   '@mark1russell7/ste-lint@0.1.1':
     dependencies:

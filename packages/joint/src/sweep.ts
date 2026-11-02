@@ -11,6 +11,7 @@ import {
   type StrategySpace,
   type VerdictRecord,
 } from "@mark1russell7/layout-contract";
+import { configFactor } from "./config-cost.ts";
 import { iterPlanPairs } from "./lanes.ts";
 import { HEADLINE, PICK_LEVELS, pickValues } from "./pick.ts";
 import { plannedCost, planShards, type ShardPlan } from "./plan.ts";
@@ -164,10 +165,11 @@ export function sampleConfigs(options: SampleConfigsOptions, space: StrategySpac
 /**
  * This function gives the planned cost of one config on one input in milliseconds. It is one pair and the lane passes, times the margin of the spec.
  * An iteration config also has the cost of its chain: `iterPlanPairs`, 3 pairs for each round.
+ * The cost factor of the pack entry and the router of the run (`configFactor`) multiplies the cost.
  */
-export function jobCost(run: Pick<ConfigRun, "passes"> & Partial<Pick<ConfigRun, "iter">>, input: Pick<SweepInput, "spec" | "boxes" | "edges">): number {
+export function jobCost(run: Pick<ConfigRun, "passes"> & Partial<Pick<ConfigRun, "iter" | "pack" | "router">>, input: Pick<SweepInput, "spec" | "boxes" | "edges">): number {
   const pairs = 1 + (run.iter === undefined ? 0 : iterPlanPairs([run.iter]));
-  return plannedCost(input.spec, input.boxes, input.edges, pairs, run.passes);
+  return plannedCost(input.spec, input.boxes, input.edges, pairs, run.passes) * configFactor(run);
 }
 
 /** One job of a round: one config on one input. */
