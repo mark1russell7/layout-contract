@@ -71,15 +71,18 @@ The test compares the candidate with the current default on each input of the co
 
 The A/A arm of the same jobs gives the resolution of the time test, not a fixed constant.
 
-- The median decision is valid only when `timeRatio` is more than the worst A/A p90 of the 5 jobs times 1.1.
-- The tail decision is valid only when `timeTail` is more than the worst A/A `timeTailQ` quantile on the tail set times 1.1.
-- The tail decision also needs a spread of the 5 tails of 0.1 or less. The spread is the largest tail over the smallest tail, minus 1.
+- The median decision is valid only when `timeRatio` is above the worst A/A p90 of the 5 jobs plus their spread.
+- The tail decision is valid only when `timeTail` is more than the worst A/A `timeTailQ` quantile of the tail set plus their spread.
+- The spread of 5 values is the largest value minus the smallest value. The resolution has no margin factor and no fixed tolerance.
+- Each decision uses the worst of the 5 jobs, so each job must pass. A candidate that passes in 4 jobs and not in the fifth fails.
+- A job counts only when its A/A band from p10 to p90 contains 1. A job with a band that does not contain 1 measured the runner.
+- A new job replaces a job that does not count. The record keeps the run of each job.
 - The A/A quantile uses the ratios of the `~aa` arm in `inputs[].ratio`, with the linear quantile of `paired-time/1`.
 - A decision that is not valid gives the verdict `cannot decide (noise)`. The record names the check and the A/A value. A candidate without a decision does not promote.
 - An input under `timeFloorMs` in the two arms is too small to be a cost to the user.
 - An empty tail set in the 5 jobs gives the line `tail: not measured, no input above timeFloorMs` in the record. It does not stop a promotion.
 - An empty tail set in only some jobs makes the tail decision not valid.
-- The record keeps the 5 medians and tails, the worst A/A p90 and quantile, and the CPU model of each job.
+- The record keeps the 5 medians and tails, the worst A/A values with their spreads, and the CI run. It keeps the CPU model of each job.
 
 CI does the time test, because other jobs on a local machine change the times. CI times the candidate and the default in one job and one process, in alternate order on each input.
 <!-- /shared:win-test -->
