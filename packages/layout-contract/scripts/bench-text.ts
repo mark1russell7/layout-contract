@@ -8,6 +8,7 @@
 // Start it only in CI (`.github/workflows/text-bench.yml`). A shared computer gives times that are not stable.
 import { cpus } from "node:os";
 import { pathToFileURL } from "node:url";
+import { median } from "@mark1russell7/rigor-statistics";
 import type * as TextModule from "../src/text.ts";
 
 /** One build in the bench: its module, the time of each round and the count of the segmenters that it made. */
@@ -78,7 +79,6 @@ for (const name of ["base", "head"]) {
 }
 for (let k = 0; k < rounds; k++) for (const name of k % 2 === 0 ? ["base", "head"] : ["head", "base"]) builds[name]!.times.push(round(builds[name]!.text));
 
-const median = (v: readonly number[]): number => [...v].sort((a, b) => a - b)[Math.floor(v.length / 2)]!;
 const base = median(builds["base"]!.times);
 const head = median(builds["head"]!.times);
 console.log(`The bench of \`/text\`: ${calls} layouts of ${labels.length} labels for each round, ${rounds} rounds in the order ABBA, node ${process.version}, CPU ${cpus()[0]?.model ?? "unknown"}.`);

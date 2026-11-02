@@ -120,8 +120,10 @@ const isSet = (name: string): name is JointSet => SETS.some((s) => s === name);
 const [command, ...rest] = process.argv.slice(2);
 const args: Record<string, string | undefined> = {};
 for (let i = 0; i < rest.length; i += 2) args[rest[i]!.replace(/^--/, "")] = rest[i + 1];
-const set = args["corpus"] ?? SET_V2;
-if (!isSet(set)) throw new RangeError(`The corpus is one of ${SETS.join(", ")}, not "${set}".`);
+const corpusName = args["corpus"] ?? SET_V2;
+if (!isSet(corpusName)) throw new RangeError(`The corpus is one of ${SETS.join(", ")}, not "${corpusName}".`);
+// The functions below read set, so its type is JointSet, not the narrowed string.
+const set: JointSet = corpusName;
 // The lane pairs of L13 run only with `--lanes on`. Thus the default plan and the default records do not change.
 if (args["lanes"] !== undefined && args["lanes"] !== "on" && args["lanes"] !== "off") throw new RangeError(`The option --lanes is on or off, not "${args["lanes"]}".`);
 const lanes = args["lanes"] === "on" ? laneEntries() : [];

@@ -25,6 +25,7 @@
 // The margin of a spec is the q90 of real / predicted over its seeds. The default margin is the q90 over all inputs.
 import { existsSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
+import { quantile } from "@mark1russell7/rigor-statistics";
 import { jointCorpus, laneEntries, lanePasses, PACK_ENTRIES, parseCostModel, ROUTERS, SET_V2, SETS, type CostFit, type JointSet } from "../src/index.ts";
 
 /** The wall time, the pairs and the lane passes of one input. */
@@ -168,13 +169,6 @@ const pairC = pairBest.map(round);
 const laneC = laneBest.map(round);
 const toFit = ([base, square, cross]: readonly number[]): CostFit => ({ base: base!, square: square!, cross: cross! });
 
-/** The quantile of linear interpolation between the order statistics. */
-function quantile(xs: readonly number[], p: number): number {
-  const s = [...xs].sort((a, b) => a - b);
-  const h = (s.length - 1) * p;
-  const lo = Math.floor(h);
-  return s[lo]! + (h - lo) * ((s[Math.min(lo + 1, s.length - 1)] ?? s[lo]!) - s[lo]!);
-}
 /** The most frequent value of a list. Equal counts give the smaller value. */
 const mostOf = (xs: readonly number[]): number => [...xs.reduce((m, x) => m.set(x, (m.get(x) ?? 0) + 1), new Map<number, number>())].sort((a, b) => b[1] - a[1] || a[0] - b[0])[0]![0];
 const ratio = (r: Row): number => r.ms / predict(pairC, laneC, r);
@@ -205,7 +199,8 @@ const r2 = (pred: readonly number[], real: readonly number[]): number => {
   return 1 - real.reduce((s, v, i) => s + (v - pred[i]!) ** 2, 0) / real.reduce((s, v) => s + (v - mean) ** 2, 0);
 };
 const real = rows.map((r) => r.ms);
-const models: [string, readonly number[], readonly number[]][] = [...(before === undefined ? [] : [["old", keptPair, keptLane]]), ["new", pairC, laneC]];
+const models: [string, readonly number[], readonly number[]][] = [["new", pairC, laneC]];
+if (before !== undefined) models.unshift(["old", keptPair, keptLane]);
 for (const [name, p, l] of models) {
   const pred = rows.map((r) => predict(p, l, r));
   console.log(`${name} model, pair ${p.join(", ")}, lane ${l.join(", ")}: R² ${r2(pred, real).toFixed(3)}, R² of the logs ${r2(pred.map(Math.log), real.map(Math.log)).toFixed(3)}`);

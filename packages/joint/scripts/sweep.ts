@@ -260,8 +260,10 @@ function applyRound(state: State, inputs: readonly SweepInput[], dir: string, pl
   applyRecords(state, records, inputs, plan.date);
   // applyRecords adds the night of the date to the state.
   const night = state.nights.find((n) => n.date === plan.date)!;
-  for (const s of shards)
-    night.shards.push({ round: s.round, shard: s.shard, planned: s.planned, real: s.real, ...(plan.costModel === undefined ? {} : { costModel: plan.costModel }), ...(s.stopped === true ? { stopped: true, plannedDone: s.plannedDone, done: s.done, units: s.units } : {}) });
+  for (const s of shards) {
+    const entry = { round: s.round, shard: s.shard, planned: s.planned, real: s.real, ...(plan.costModel === undefined ? {} : { costModel: plan.costModel }) };
+    night.shards.push(s.stopped === true ? { ...entry, stopped: true, plannedDone: s.plannedDone, done: s.done, units: s.units } : entry);
+  }
   const seen = new Set(records.map((r) => `${r.strategy}|${r.input}`));
   night.missing += plan.units.reduce((n, u) => n + u.configs.filter((c) => !seen.has(`${c}|${u.input}`)).length, 0);
   console.log(`round ${plan.round}: ${records.length} records of ${shards.length} shards.`);
