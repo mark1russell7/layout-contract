@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.3.0
+
+- MINOR before 1.0.0, a break: `LayoutRecord.deterministic` widens to `boolean | null`. A reader that expects a boolean breaks.
+- A skipped record has `deterministic: null`, because no run made a claim. A record without `skipped` keeps a boolean.
+- `RunEnv` has two new optional fields: `mode` and `context`. Each timing record names its mode, as the isolation rule of the fleet strategy asks.
+- `checkLayoutRecord(value)` gives the problems of one record. `parseLayoutRecord(value)` reads one record, or throws a `TypeError` with the problems.
+- An old skipped record with `deterministic: true` is still correct. `parseLayoutRecord` gives `null` in its place.
+
 ## 0.2.21
 
 - PATCH: a fix of the speed of `/text`, with no change of the API. In 0.2.20, each call of `layoutText` made a new `Intl.Segmenter`. A consumer port saw its first load take 2 to 3 times longer.

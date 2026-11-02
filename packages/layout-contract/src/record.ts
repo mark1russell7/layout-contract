@@ -1,6 +1,6 @@
 import type { Tolerance } from "./tolerance.ts";
 import type { LayoutInput } from "./input.ts";
-import { shapeKindsOf, type ShapeKind } from "./shapes.ts";
+import { isShapeKind, shapeKindsOf, type ShapeKind } from "./shapes.ts";
 
 /** The stage of a record: the packer, the router, or both together. */
 export type Stage = "pack" | "route" | "joint";
@@ -30,8 +30,11 @@ export interface LayoutRecord {
   readonly hard: Readonly<Record<string, number>>;
   /** The tolerance of each hard rule of the run. */
   readonly tolerance?: Readonly<Partial<Tolerance>>;
-  /** `true` when two runs with the same seed give the same positions. */
-  readonly deterministic: boolean;
+  /**
+   * The value is `true` when two runs with the same seed give the same positions.
+   * A skipped record has `null`, because no run made a claim. Each other record has a boolean.
+   */
+  readonly deterministic: boolean | null;
   /** The id of the prediction that was written before the run. */
   readonly prediction?: string;
   /** The median of `msRuns`, or the time of the one run. */
@@ -67,6 +70,10 @@ export interface RunEnv {
   readonly cpu: string;
   /** The count of the logical processors. */
   readonly cpus: number;
+  /** The mode of the timing, for example `process` or `fresh` of `paired-time/1`. Each timing record names its mode. */
+  readonly mode?: string;
+  /** The context of the run, for example `ci` or `local`, with the Node flags. */
+  readonly context?: string;
 }
 
 /** The facts of a run that the input does not give. */
@@ -89,4 +96,76 @@ export function toLayoutRecord(input: LayoutInput, run: RunFacts): LayoutRecord 
     edges: input.edges?.length ?? 0,
     ...(onlyRect ? {} : { shapes }),
   };
+}
+
+type Fields = Readonly<Record<string, unknown>>;
+
+const isFields = (v: unknown): v is Fields => typeof v === "object" && v !== null && !Array.isArray(v);
+
+const STAGES: readonly string[] = ["pack", "route", "joint"];
+const RECORD_STRINGS = ["step", "strategy", "corpus", "input", "inputHash", "set"] as const;
+const RECORD_NUMBERS = ["seed", "nodes", "edges", "ms"] as const;
+const RECORD_OPTIONAL_STRINGS = ["prediction", "outputHash", "skipped", "commit"] as const;
+const ENV_STRINGS = ["node", "os", "arch", "runner", "cpu"] as const;
+const ENV_OPTIONAL_STRINGS = ["mode", "context"] as const;
+
+/** This function adds a problem for each value of a map that is not a number. */
+function numberMap(out: string[], v: unknown, name: string): void {
+  if (!isFields(v)) {
+    out.push(`${name} is not an object`);
+    return;
+  }
+  for (const [key, n] of Object.entries(v)) if (typeof n !== "number") out.push(`${name}.${key} is not a number`);
+}
+
+/** This function gives the problems of the field `env` of a record. */
+function envProblems(env: unknown): string[] {
+  if (!isFields(env)) return ["env is not an object"];
+  const out: string[] = [];
+  for (const key of ENV_STRINGS) if (typeof env[key] !== "string") out.push(`env.${key} is not a string`);
+  if (typeof env["cpus"] !== "number") out.push("env.cpus is not a number");
+  for (const key of ENV_OPTIONAL_STRINGS) if (env[key] !== undefined && typeof env[key] !== "string") out.push(`env.${key} is not a string`);
+  return out;
+}
+
+/**
+ * This function gives the problems of one `layout-record/1` value. An empty list means a good record.
+ * A record that has `skipped` has `deterministic: null`. An old skipped record with a boolean is also correct.
+ * A record without `skipped` has a boolean. The check accepts fields that the format does not know.
+ */
+export function checkLayoutRecord(value: unknown): string[] {
+  if (!isFields(value)) return ["the record is not an object"];
+  const out: string[] = [];
+  const v = value;
+  if (v["schema"] !== "layout-record/1") out.push("schema is not layout-record/1");
+  if (typeof v["stage"] !== "string" || !STAGES.includes(v["stage"])) out.push("stage is not pack, route or joint");
+  for (const key of RECORD_STRINGS) if (typeof v[key] !== "string") out.push(`${key} is not a string`);
+  for (const key of RECORD_NUMBERS) if (typeof v[key] !== "number") out.push(`${key} is not a number`);
+  for (const key of RECORD_OPTIONAL_STRINGS) if (v[key] !== undefined && typeof v[key] !== "string") out.push(`${key} is not a string`);
+  if (!isFields(v["options"])) out.push("options is not an object");
+  numberMap(out, v["measures"], "measures");
+  numberMap(out, v["hard"], "hard");
+  if (v["tolerance"] !== undefined) numberMap(out, v["tolerance"], "tolerance");
+  const shapes = v["shapes"];
+  if (shapes !== undefined && (!Array.isArray(shapes) || !shapes.every(isShapeKind))) out.push("shapes is not a list of shape kinds");
+  const msRuns = v["msRuns"];
+  if (msRuns !== undefined && (!Array.isArray(msRuns) || !msRuns.every((n) => typeof n === "number"))) out.push("msRuns is not a list of numbers");
+  if (v["env"] !== undefined) out.push(...envProblems(v["env"]));
+  const deterministic = v["deterministic"];
+  if (v["skipped"] === undefined) {
+    if (typeof deterministic !== "boolean") out.push("deterministic is not a boolean, and the record has no skipped");
+  } else if (deterministic !== null && typeof deterministic !== "boolean") out.push("deterministic of a skipped record is not null or a boolean");
+  return out;
+}
+
+/**
+ * This function reads one `layout-record/1` value, for example one parsed line of a JSON Lines file.
+ * It throws a `TypeError` with the problems of `checkLayoutRecord`.
+ * An old skipped record has a boolean `deterministic`. The result has `null` in its place, because no run made that claim.
+ */
+export function parseLayoutRecord(value: unknown): LayoutRecord {
+  const problems = checkLayoutRecord(value);
+  if (problems.length > 0) throw new TypeError(`The record is not a layout-record/1: ${problems.join(", ")}.`);
+  const record = value as LayoutRecord;
+  return record.skipped !== undefined && record.deterministic !== null ? { ...record, deterministic: null } : record;
 }

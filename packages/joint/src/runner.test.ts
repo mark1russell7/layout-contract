@@ -164,6 +164,7 @@ describe("runInput", () => {
     for (const r of records) {
       expect(r.skipped).toMatch(/mode incremental/);
       expect(r.measures).toEqual({});
+      expect(r.deterministic).toBeNull();
     }
   });
 });

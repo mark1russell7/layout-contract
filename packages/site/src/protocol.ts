@@ -54,7 +54,8 @@ export interface PairView {
   readonly boxes: readonly number[];
   /** The routes, one list of numbers for each route: x and y of each point. */
   readonly routes: readonly (readonly number[])[];
-  readonly deterministic: boolean;
+  /** The value is `true` when two runs give the same output. A skipped pair has `null`, because it had no run. */
+  readonly deterministic: boolean | null;
 }
 
 /** The rank of one pair, as `rankPairs` gives it. */
