@@ -10,8 +10,7 @@
   "scripts": {
     "package": "template package",
     "template": "template repo",
-    "test": "pnpm -r run test && pnpm run test:release && pnpm run test:ai-review && node scripts/check-shared.mjs",
-    "test:release": "node --test \"scripts/release/*.test.mjs\"",
+    "test": "pnpm -r run test && pnpm run test:ai-review && node scripts/check-shared.mjs",
     "test:ai-review": "node --test \"scripts/ai-review/*.test.ts\"",
     "typecheck": "pnpm -r run typecheck && pnpm run typecheck:scripts",
     "typecheck:scripts": "tsc -p tsconfig.scripts.json",
@@ -39,11 +38,10 @@
     "rules": {
       "typed-scripts": {
         "ignore": [
-          "scripts/release/**",
           "scripts/check-shared.mjs",
           "packages/*/scripts/*.mjs"
         ],
-        "reason": "scripts/release/ is the release standard: only the release session syncs it, and the template has its .ts files. scripts/check-shared.mjs is the shared block checker of PROMOTION.md, the same file in packing and highways (packing #187). The bench scripts of packages/*/scripts move to TypeScript in roadmap item L82."
+        "reason": "scripts/check-shared.mjs is the shared block checker of PROMOTION.md, the same file in packing and highways (packing #187). The bench scripts of packages/*/scripts move to TypeScript in roadmap item L82."
       }
     }
   }
