@@ -1468,3 +1468,48 @@ I wrote these claims before the run.
 - A5: the pair alone peaked under 2000 MB in step 2.
 
 If A1 and A2 are hits, the gate moves to `measure-6144`, with derived limits on the allocation and the retained heap.
+
+### The result of the A/A repeat
+
+The run is [41360122516](https://github.com/mark1russell7/layout-contract/actions/runs/41360122516), on commit `2ece000`. The 15 probes ended with status 0, and each one has a line in `summary.jsonl`. The gate job failed, because it compares the peak RSS with the old limit of 3072 MB (A5).
+
+| Seed | CPU model | Runs | Allocation (MB), min to max | `liveMaxMb` | `liveEndMb` | Peak RSS (MB), min to max | Time (min) |
+|---|---|---|---|---|---|---|---|
+| s1 | AMD EPYC 7763 | 5 | 2207753 to 2209902 | 368 | 59 | 3716 to 4393 | 84 to 87 |
+| s2 | AMD EPYC 7763 | 4 | 2914222 to 2916297 | 368 to 369 | 59 | 3291 to 3995 | 110 to 133 |
+| s2 | AMD EPYC 9V45 | 1 | 2918813 | 368 | 59 | 3888 | 67 |
+| s3 | AMD EPYC 7763 | 2 | 3209627 to 3209920 | 450 | 59 | 3504 to 3827 | 111 to 114 |
+| s3 | AMD EPYC 9V45 | 2 | 3212741 to 3214761 | 450 | 59 | 3627 to 3943 | 68 |
+| s3 | AMD EPYC 9V74 | 1 | 3210383 | 450 | 59 | 3826 | 87 |
+
+| Claim | p | Result | Hit |
+|---|---|---|---|
+| A1 | 0.85 | The largest spread of the allocation of a seed is 0.16% (s2 and s3). | yes |
+| A2 | 0.75 | The largest spread of `liveMaxMb` of a seed is 0.27% (s2). | yes |
+| A3 | 0.8 | The largest `liveMaxMb` is 450 MB (s3). | yes |
+| A4 | 0.55 | The spread of the peak RSS is 18.2% on s1, 21.4% on s2 and 12.5% on s3. | yes |
+| A5 | 0.7 | The peak RSS is more than 3072 MB in each of the 15 runs, from 3291 to 4393 MB. | no |
+| A6 | 0.75 | The largest difference of the allocation between CPU models is 0.11% on s2 and 0.12% on s3. | yes |
+
+The Brier score is 0.147 (6 claims).
+
+- The allocation and the retained heap are almost the same in each run. Thus they are good gate measures.
+- The CPU model changes the time (67 min on 9V45, 110 to 133 min on 7763 for s2), but not the allocation.
+- The miss of A5: the retained heap after a pair is at most 450 MB, but the peak RSS is 3291 to 4393 MB. Thus the peak comes from garbage inside a pair, before V8 collects it. With a heap cap of 6144 MB, V8 lets the heap grow more before a full GC than with the smaller cap of step 2. The forced GC after each pair does not limit the peak inside a pair. My reason for A5 was wrong.
+- The peak RSS depends on the time of the GC, so it is not a regression gate. But a peak of 3.3 to 4.4 GB is a real risk on a machine with less memory. Thus the peak RSS gets a coarse ceiling, as a crash guard. Its limit is the worst peak of the limit runs plus their spread, so it fails only on a large jump.
+
+The peak is 9 times the retained heap. A probe with the mode `cap-2048` tests the explanation: it does the same work with a heap cap of 2048 MB and no forced GC. If the peak is garbage that V8 collects late, V8 collects sooner with the smaller cap, and the run ends with a smaller peak. If the code needs the memory, the run stops with an OOM. I wrote these claims before the run:
+
+| Claim | p | Claim text |
+|---|---|---|
+| G1 | 0.70 | Each of the 3 seeds ends with status 0 with `cap-2048` (no OOM). |
+| G2 | 0.70 | The peak RSS of each `cap-2048` run is under 2600 MB. |
+
+The rule of the limits changed after the prediction (the fleet strategy, 2026-11-02). The limit of a measure is the worst value of 5 or more CI runs plus their spread (max minus min). The value is rounded up to 1 MB, and the run ids and the formula are next to it. There is one limit for each CPU model with 5 or more runs, and the worst stratum for the other models. A run counts unless a check that does not use its value shows a fault.
+
+These runs do not give the limits of `main`, for two causes:
+
+- `sha256Hex` allocated 2 GB in one pair, and `9d584c8` (PR #113) removed most of it. These runs are on `2ece000`, before that change.
+- Only s1 on AMD EPYC 7763 has 5 runs of one CPU model.
+
+Thus the next run measures `main`, with 5 repeats of each seed. It gives the effect of `9d584c8`, the runs of the limits and the runs of the ceiling. A seed with no CPU model at 5 runs gets more repeats.
