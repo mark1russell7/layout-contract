@@ -11,6 +11,7 @@ This file lists the items of the roadmap of this repository. The status page of 
 | L52 | in progress | P1 | Measure joint space coverage, with a weekly trend that rises |
 | L60 | in progress | P1 | Text measuring and line breaking as a layout step |
 | L81 | in progress | P1 | Memory gate over each family of the bench, then the dense-hubs peak (3.4-4.3 GB) |
+| L85 | in progress | P2 | CI runs each command of the sweep script on a small fixture |
 
 ## Next
 
@@ -29,7 +30,6 @@ This file lists the items of the roadmap of this repository. The status page of 
 | L71 | next | P2 | A bound-first fast path for labels from a declared character set |
 | L72 | next | P1 | Neat is a family of objectives, not one |
 | L73 | next | P1 | Clarity of structure: macro and micro measures |
-| L85 | next | P2 | CI runs each command of the sweep script on a small fixture |
 
 ## Later
 

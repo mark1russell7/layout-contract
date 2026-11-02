@@ -215,6 +215,9 @@ The dropped and halved configs lose their values in the state. Their rows stay i
 - `sweep-summarize.yml` refuses a night that is not the next night of the branch. Thus it does not write over the data of a later night.
 - Each job that pushes to `sweep-data` starts `scripts/next-night.ts` before the push. The job stops when the branch got another night after the run read it.
 - The concurrency group of `sweep.yml` has the event in its key. Thus a dispatched sweep does not cancel a pending scheduled night. `sweep-summarize.yml` has a group of its own.
+- The test `src/sweep-commands.test.ts` starts each command of `sweep.mjs` with the flags of `sweep.yml`, each in its own process (L85). Thus a crash in a command fails the pull request, not the night.
+- The test runs two nights on the 3 inputs of each round that have the most configs. The second night starts from the tree of the first. Then the test starts `next-night.ts` and `sensitivity.mjs`.
+- The test also starts the commands of `bench.mjs` that the nightly memory gate uses: `families`, `jobs`, `plan`, `probe` and `gate`. It takes approximately 20 seconds.
 
 ### The branch `sweep-data`
 
