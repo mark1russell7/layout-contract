@@ -166,6 +166,20 @@ The prediction for the first night with the budget:
 - B3 is risky: the budget uses the median gate of 375 minutes, and the gate time also changes with the queue of the runners.
 - B4 is risky: the spread of the ratio is large. One scale for all shards does not see which spec is slow.
 
+The result of the night of 2026-11-02 (run [41384329446](https://github.com/mark1russell7/layout-contract/actions/runs/41384329446)), Brier 0.286:
+
+| Id | Result | Hit |
+|---|---|---|
+| B1 | All 32 shard jobs end. The longest job takes 112.2 of its 120 minutes. | yes |
+| B2 | The job `summarize` fails, so `publish` does not run. | no |
+| B3 | The sweep ends at 10:59 UTC. Its gate waits behind a limit run of `memory-probe.yml`, so it ends after 14:00 UTC. | no |
+| B4 | 6 of 32 shards are within 25% of their planned minutes times the scale. The Brier score of the cost model is 0.323. | no |
+| B5 | No shard stops at the deadline. | yes |
+
+- B2: the cause is a fault in the code, not the budget. In `scripts/sweep.mjs`, the constant `COST_CLAIM` came after the code of the commands. Thus `summarize` read it before its initialization. #130 moves it and adds a test of the order. The workflow `sweep-summarize.yml` puts the night on the branch again.
+- B3: the gate and the limit run had one concurrency group. The key of the group has the event at this time.
+- B4: one scale for all shards does not see which spec is slow. The next cost model gets a scale for each family of specs, from the 32 shards of this night. The next night scores it.
+
 ## The score
 
 The baseline arm of the night gives the reference of each input. The reference holds the pick values of the 3 configs.
@@ -199,6 +213,8 @@ The dropped and halved configs lose their values in the state. Their rows stay i
 - The job `publish` runs only for a run from `main` without `dry-run`. It does not push to `main`.
 - The workflow `sweep-summarize.yml` summarizes the night of an earlier run again, and pushes it to the branch `sweep-data`. Use it when the job `summarize` failed after the rounds ended.
 - `sweep-summarize.yml` refuses a night that is not the next night of the branch. Thus it does not write over the data of a later night.
+- Each job that pushes to `sweep-data` starts `scripts/next-night.ts` before the push. The job stops when the branch got another night after the run read it.
+- The concurrency group of `sweep.yml` has the event in its key. Thus a dispatched sweep does not cancel a pending scheduled night. `sweep-summarize.yml` has a group of its own.
 
 ### The branch `sweep-data`
 
