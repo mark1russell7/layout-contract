@@ -4,7 +4,7 @@ import { readFileSync } from "node:fs";
 import { median } from "@mark1russell7/rigor-statistics";
 
 /**
- * The cost factors of the configs, from the file `data/config-cost.json`. The script `scripts/fit-config-cost.mjs` writes the file from the records of one night.
+ * The cost factors of the configs, from the file `data/config-cost.json`. The script `scripts/fit-config-cost.ts` writes the file from the records of one night.
  * - `pack` gives the factor of each pack entry of `PACK_ENTRIES`, and `router` the factor of each router of `ROUTERS`. An entry without a factor has the factor 1.
  * - `level` multiplies each factor. With it, the planned minutes of the jobs of the night of the fit do not change.
  * - `scale` is the median of real minutes over planned minutes of the shards of the night of the fit, with the factors.
@@ -86,4 +86,72 @@ export function fitConfigFactors(records: readonly CostRecord[], turns = 20): { 
   }
   const factors = (map: Map<string, number>): Record<string, number> => Object.fromEntries([...map].sort(([a], [b]) => (a < b ? -1 : 1)).map(([k, v]) => [k, Math.round(Math.exp(v) * 1000) / 1000]));
   return { pack: factors(terms.pack), router: factors(terms.router) };
+}
+
+/** One unit of a plan for the fit: its id, its input and its configs. */
+export interface FitUnit {
+  readonly id: string;
+  readonly input: string;
+  readonly configs: readonly string[];
+}
+
+/** One plan of a round for the fit: the unit ids of each shard, and the units. */
+export interface FitPlan {
+  readonly round: number;
+  readonly shards: readonly (readonly string[])[];
+  readonly units: readonly FitUnit[];
+}
+
+/** One shard file of a round: its real minutes, and the count of the units that ran when it stopped. */
+export interface FitShard {
+  readonly round: number;
+  readonly shard: number;
+  readonly real: number;
+  readonly stopped?: boolean;
+  readonly done?: number;
+}
+
+/** The inputs of `fitConfigCost`. `job` gives the planned milliseconds of a job without the factors, and the pack entry and the router of its config. */
+export interface FitInputs {
+  readonly run: number;
+  readonly night: string;
+  readonly records: readonly CostRecord[];
+  readonly plans: readonly FitPlan[];
+  readonly shards: readonly FitShard[];
+  readonly job: (config: string, input: string) => { readonly base: number; readonly pack: string; readonly router: string };
+}
+
+/**
+ * This function fits the cost factors of one night (`scripts/fit-config-cost.ts`).
+ * - The factors come from `fitConfigFactors` over the records.
+ * - `level` keeps the planned milliseconds of the jobs of the plans.
+ * - `scale` is the median of real over planned minutes of the shards, with the factors. A stopped shard counts with the units that it ran, as in `costScale`.
+ */
+export function fitConfigCost(inputs: FitInputs): ConfigCost {
+  const { pack, router } = fitConfigFactors(inputs.records);
+  const round3 = (x: number): number => Math.round(x * 1000) / 1000;
+  const unit: ConfigCost = { run: inputs.run, night: inputs.night, records: inputs.records.length, level: 1, scale: 1, pack, router };
+  const price = (u: FitUnit, model: ConfigCost): { before: number; after: number } => {
+    let before = 0;
+    let after = 0;
+    for (const id of u.configs) {
+      const j = inputs.job(id, u.input);
+      before += j.base;
+      after += j.base * configFactor(j, model);
+    }
+    return { before, after };
+  };
+  const totals = inputs.plans.flatMap((p) => p.units).map((u) => price(u, unit));
+  const level = round3(totals.reduce((s, x) => s + x.before, 0) / totals.reduce((s, x) => s + x.after, 0));
+  const leveled = { ...unit, level };
+  const plans = new Map(inputs.plans.map((p) => [p.round, p]));
+  const ratios = inputs.shards.map((s) => {
+    const p = plans.get(s.round);
+    if (p === undefined) throw new RangeError(`fitConfigCost: the shard ${s.shard} is of round ${s.round}, and no plan has this round.`);
+    const byId = new Map(p.units.map((u) => [u.id, u]));
+    const ran = (p.shards[s.shard] ?? []).slice(0, s.stopped === true ? s.done : undefined);
+    return s.real / (ran.reduce((sum, id) => sum + price(byId.get(id)!, leveled).after, 0) / 60000);
+  });
+  if (ratios.length === 0) throw new RangeError("fitConfigCost: there are no shards.");
+  return { ...leveled, scale: round3(median(ratios)) };
 }

@@ -3,6 +3,7 @@
   "night": "2026-11-02",
   "records": 9387,
   "level": 0.267,
+  "scale": 1.504,
   "pack": {
     "anneal-maxrects-bl-k16": 3.375,
     "anneal-skyline-k16": 3.311,
@@ -39,6 +40,5 @@
     "straight": 0.281,
     "streets": 2.335,
     "trunks": 0.972
-  },
-  "scale": 1.504
+  }
 }

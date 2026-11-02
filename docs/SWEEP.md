@@ -293,7 +293,7 @@ The model above gives each pair the same time. The records of the night of 2026-
 
 - In the records of that night, the router `search` takes approximately 8 times the median record of the same input. The pack entries with a search (`anneal`, `genetic`, `tabu`) take approximately 2 to 4 times.
 - Since this change, `jobCost` multiplies the cost of a job by the factor of its pack entry and the factor of its router (`configFactor`).
-- `scripts/fit-config-cost.mjs` fits the factors from the records of one night, and writes `packages/joint/data/config-cost.json`. The fit uses medians, so a few slow records do not change it much.
+- `scripts/fit-config-cost.ts` fits the factors from the records of one night, and writes `packages/joint/data/config-cost.json`. The fit uses medians, so a few slow records do not change it much.
 - The fit has the form `log(ms) = input + pack + router`. Thus the factors come from the comparison of configs on the same input.
 - `level` keeps the planned minutes of the jobs of the night of the fit. `scale` is the median of real over planned minutes of its 32 shards with the factors: 1.504.
 - Each plan and each shard entry keeps the id of the cost model (`costModel`). `costScale` uses only the shards of the current model. Before such a shard, it uses `scale`.
