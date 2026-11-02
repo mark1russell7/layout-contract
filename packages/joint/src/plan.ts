@@ -9,7 +9,7 @@ export interface CostFit {
 }
 
 /**
- * The cost model of the plan, from the file `data/cost-margins.json`. The script `scripts/fit-cost.mjs` writes the file from the shard logs of a full run.
+ * The cost model of the plan, from the file `data/cost-margins.json`. The script `scripts/fit-cost.ts` writes the file from the shard logs of a full run.
  * - `fit` gives the predicted time of one pair. The fit makes the least sum of the squares of the logs of real / predicted.
  * - `lane` gives the predicted time of one pass of a lane pair (L13), in the same form. A model without `lane` gives a pass no time.
  * - `specs` gives the margin of each spec: the quantile `quantile` of real / predicted over the seeds of the spec.

@@ -37,7 +37,7 @@ jobs:
         with:
           paths: |
             packages/layout-contract/src/text.ts
-            packages/layout-contract/scripts/bench-text.mjs
+            packages/layout-contract/scripts/bench-text.ts
             .github/workflows/text-bench.yml
 
   bench:
@@ -70,7 +70,7 @@ jobs:
       - name: Run the bench
         working-directory: packages/layout-contract
         run: |
-          node scripts/bench-text.mjs --base "$RUNNER_TEMP/base/node_modules/@mark1russell7/layout-contract/build/text.js" --head build/text.js | tee -a "$GITHUB_STEP_SUMMARY"
+          node scripts/bench-text.ts --base "$RUNNER_TEMP/base/node_modules/@mark1russell7/layout-contract/build/text.js" --head build/text.js | tee -a "$GITHUB_STEP_SUMMARY"
 
   text-bench-ok:
     name: Text bench OK

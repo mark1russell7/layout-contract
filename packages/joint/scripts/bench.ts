@@ -15,7 +15,7 @@
 //
 // The corpus is `joint-v2` by default. The slice `pr` is the small slice of the pull request: seed 1 of the specs with count 10 and of the fixed cases.
 // The shards get the inputs by their planned cost (`plannedCost`, `planShards`). Each shard job computes the same plan.
-// The cost model is data/cost-margins.json. scripts/fit-cost.mjs writes it from the shard logs of a full run.
+// The cost model is data/cost-margins.json. scripts/fit-cost.ts writes it from the shard logs of a full run.
 // analyze gives the gains over each baseline pair of `--baseline`. The default is `BASELINE` (rows+portfolio), and select+portfolio and pack+portfolio when the records have them.
 // `--compare a:b` gives the misses and the scores of the pairs a and b, and the gain of a over b.
 // The default compares select+portfolio and pack+portfolio with rows+portfolio, when the records have the two pairs. The entry `pack` is the choice of `pack()` of `packing`.
@@ -31,9 +31,10 @@
 // analyze reads the folds of the greedy portfolios from the split "default" of the split file of the corpus (corpus/splits).
 // analyze fails when an input of the manifest has no records, unless the file of `--allow-missing` lists it. The files list one input id on each line.
 import { appendFileSync, existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
-import { Session } from "node:inspector";
+import { Session, type HeapProfiler } from "node:inspector";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
+import type { LayoutInput, LayoutRecord } from "@mark1russell7/layout-contract";
 import {
   analyze,
   BASELINE,
@@ -75,32 +76,74 @@ import {
   SET_V2,
   SETS,
   SPACINGS,
+  type AnalysisInput,
+  type AnalysisOptions,
+  type GateJob,
+  type JobFacts,
+  type JointEntry,
+  type JointManifest,
+  type JointSet,
+  type ProbeResult,
 } from "../src/index.ts";
 
+/** One input of the corpus and its entry in the manifest. */
+interface SliceRow {
+  readonly input: LayoutInput;
+  readonly entry: JointEntry;
+}
+
+/** One line of probe.jsonl: the memory facts of one pair. The memory values are in MB. */
+interface ProbeFact {
+  readonly input: string;
+  readonly pair: string;
+  readonly ms: number;
+  readonly heapBefore: number;
+  readonly heapLive: number | null;
+  readonly rss: number;
+  readonly external: number;
+  readonly buffers: number;
+  readonly maxRss: number;
+  readonly allocMb: number | null;
+  readonly cpu: string;
+  readonly mode: string;
+}
+
+/** The fields of one line of summary.jsonl that the gate reads. A mode without a sampler or a forced GC writes null. */
+interface ProbeSummary {
+  readonly allocMb: number | null;
+  readonly liveMaxMb: number | null;
+}
+
+/** This function tells if a name is the name of a joint corpus. */
+const isSet = (name: string): name is JointSet => SETS.some((s) => s === name);
+
 const [command, ...rest] = process.argv.slice(2);
-const args = {};
-for (let i = 0; i < rest.length; i += 2) args[rest[i].replace(/^--/, "")] = rest[i + 1];
-const set = args.corpus ?? SET_V2;
-if (!SETS.includes(set)) throw new RangeError(`The corpus is one of ${SETS.join(", ")}, not "${set}".`);
+const args: Record<string, string | undefined> = {};
+for (let i = 0; i < rest.length; i += 2) args[rest[i]!.replace(/^--/, "")] = rest[i + 1];
+const corpusName = args["corpus"] ?? SET_V2;
+if (!isSet(corpusName)) throw new RangeError(`The corpus is one of ${SETS.join(", ")}, not "${corpusName}".`);
+// The functions below read set, so its type is JointSet, not the narrowed string.
+const set: JointSet = corpusName;
 // The lane pairs of L13 run only with `--lanes on`. Thus the default plan and the default records do not change.
-if (args.lanes !== undefined && args.lanes !== "on" && args.lanes !== "off") throw new RangeError(`The option --lanes is on or off, not "${args.lanes}".`);
-const lanes = args.lanes === "on" ? laneEntries() : [];
+if (args["lanes"] !== undefined && args["lanes"] !== "on" && args["lanes"] !== "off") throw new RangeError(`The option --lanes is on or off, not "${args["lanes"]}".`);
+const lanes = args["lanes"] === "on" ? laneEntries() : [];
 // The iteration pairs of L11 run only with `--iterate on`, for the same reason.
-if (args.iterate !== undefined && args.iterate !== "on" && args.iterate !== "off") throw new RangeError(`The option --iterate is on or off, not "${args.iterate}".`);
-const iterate = args.iterate === "on" ? iterEntries() : [];
+if (args["iterate"] !== undefined && args["iterate"] !== "on" && args["iterate"] !== "off") throw new RangeError(`The option --iterate is on or off, not "${args["iterate"]}".`);
+const iterate = args["iterate"] === "on" ? iterEntries() : [];
 
 /** This function gives the inputs and their manifest entries, in the order of the corpus, for the slice of the arguments. */
-function corpusSlice() {
+function corpusSlice(): SliceRow[] {
   const { manifest, inputs } = jointCorpus(set);
-  const rows = inputs.map((input, i) => ({ input, entry: manifest.inputs[i] }));
-  if (args.slice === undefined) return rows;
-  if (args.slice !== "pr") throw new RangeError(`The slice is "pr", not "${args.slice}".`);
+  // The manifest has one entry for each input, in the same order.
+  const rows = inputs.map((input, i) => ({ input, entry: manifest.inputs[i]! }));
+  if (args["slice"] === undefined) return rows;
+  if (args["slice"] !== "pr") throw new RangeError(`The slice is "pr", not "${args["slice"]}".`);
   return rows.filter(({ entry }) => entry.id.endsWith("/s1") && (entry.cell.count === "10" || entry.id.includes("/edge-cases.")));
 }
 
 /** This function gives the shard plan of the slice for the count of the shards of the arguments. Each input has the cost of `plannedCost`: the predicted cost times the margin of its spec. */
 function shardPlan() {
-  const shards = Number(args.shards ?? 1);
+  const shards = Number(args["shards"] ?? 1);
   const rows = corpusSlice();
   // The lane passes use the lane term of the cost model. The rounds of the iteration pairs have no fit yet, so they cost `LANE_PASS_COST` pairs.
   const pairs = PACK_ENTRIES.length * ROUTERS.length + iterPlanPairs(iterate);
@@ -110,7 +153,7 @@ function shardPlan() {
 }
 
 /** This function gives the id, the spec and the planned cost of each row. */
-function costedRows(rows, pairs, passes) {
+function costedRows(rows: readonly SliceRow[], pairs: number, passes: number): { id: string; spec: string; cost: number }[] {
   return rows.map(({ input, entry }) => {
     const spec = entry.id.replace(/\/s\d+$/, "");
     return { id: entry.id, spec, cost: plannedCost(spec, input.boxes.length, input.edges?.length ?? 0, pairs, passes) };
@@ -118,7 +161,7 @@ function costedRows(rows, pairs, passes) {
 }
 
 /** This function reads a file of input ids. An id outside the corpus is an error. */
-function idFile(file) {
+function idFile(file: string): string[] {
   const ids = idList(readFileSync(file, "utf8"));
   const known = new Set(jointCorpus(set).manifest.inputs.map((e) => e.id));
   const bad = ids.filter((id) => !known.has(id));
@@ -137,11 +180,11 @@ if (command === "check") {
     console.error(`${file} is not the manifest of the code. Start pnpm corpus ${set}.`);
     failed = true;
   }
-  const breaks = checkCorpus(JSON.parse(committed), inputs);
+  const breaks = checkCorpus(JSON.parse(committed) as JointManifest, inputs);
   for (const b of breaks) console.error(`claim ${b.claim}: ${b.detail} Inputs: ${b.inputs.slice(0, 10).join(", ")}${b.inputs.length > 10 ? ` and ${b.inputs.length - 10} more` : ""}.`);
   if (breaks.length > 0) failed = true;
   try {
-    const folds = loadSplit(JSON.parse(committed));
+    const folds = loadSplit(JSON.parse(committed) as JointManifest);
     console.log(`${set}: the split file has ${folds.length} folds in the split default.`);
   } catch (error) {
     console.error(error instanceof Error ? error.message : String(error));
@@ -180,32 +223,32 @@ if (command === "check") {
   if (failed) process.exit(1);
 } else if (command === "plan") {
   const { plan } = shardPlan();
-  const min = (ms) => (ms / 60000).toFixed(1);
+  const min = (ms: number): string => (ms / 60000).toFixed(1);
   const loads = plan.loads.map((l, i) => ({ l, i })).sort((a, b) => b.l - a.l);
   const sum = plan.loads.reduce((s, l) => s + l, 0);
   console.log(`${set}: ${plan.shards.length} shards, ${min(sum)} predicted minutes in all, ${min(sum / plan.shards.length)} on average.`);
-  for (const { l, i } of loads.slice(0, 10)) console.log(`shard ${i}: ${min(l)} min, ${plan.shards[i].length} inputs, the most costly ${plan.shards[i].at(-1)}`);
+  for (const { l, i } of loads.slice(0, 10)) console.log(`shard ${i}: ${min(l)} min, ${plan.shards[i]!.length} inputs, the most costly ${plan.shards[i]!.at(-1)}`);
 } else if (command === "run") {
-  const shard = Number(args.shard ?? 0);
-  const out = args.out ?? "bench-out";
+  const shard = Number(args["shard"] ?? 0);
+  const out = args["out"] ?? "bench-out";
   mkdirSync(out, { recursive: true });
   const file = join(out, `records-${shard}.jsonl`);
   writeFileSync(file, "");
   const env = runEnv();
-  const commit = process.env.GITHUB_SHA;
+  const commit = process.env["GITHUB_SHA"];
   const { rows: all, shards, plan } = shardPlan();
   if (!(Number.isInteger(shard) && shard >= 0 && shard < shards)) throw new RangeError(`The shard is an integer from 0 to ${shards - 1}, not ${shard}.`);
   // The plan gives the inputs of this shard from the least predicted cost to the most.
   const byId = new Map(all.map((row) => [row.entry.id, row]));
-  const rows = plan.shards[shard].map((id) => byId.get(id));
-  console.log(`${set} shard ${shard} of ${shards}: ${rows.length} inputs, ${(plan.loads[shard] / 60000).toFixed(1)} predicted minutes`);
+  const rows = plan.shards[shard]!.map((id) => byId.get(id)!);
+  console.log(`${set} shard ${shard} of ${shards}: ${rows.length} inputs, ${(plan.loads[shard]! / 60000).toFixed(1)} predicted minutes`);
   // A pair that runs for more than SLOW_PAIR_MS prints one line with its time and the heap, so a log shows the pair of a heap failure.
-  // The lines have no "records", so fit-cost.mjs does not read them.
+  // The lines have no "records", so fit-cost.ts does not read them.
   const SLOW_PAIR_MS = 5000;
-  const mb = (bytes) => Math.round(bytes / 2 ** 20);
+  const mb = (bytes: number): number => Math.round(bytes / 2 ** 20);
   for (const { input, entry } of rows) {
     const t0 = performance.now();
-    const records = [];
+    const records: LayoutRecord[] = [];
     let last = t0;
     // freeRoutes frees the routes that no lane pair and no iteration pair reads, so a large input fits in the heap (L63).
     for (const run of pairRuns(input, entry.cell, { env, corpus: set, lanes, iterate, freeRoutes: true, ...(commit === undefined ? {} : { commit }) })) {
@@ -222,22 +265,23 @@ if (command === "check") {
 } else if (command === "probe") {
   // The memory probe of L77. It runs the inputs of `--inputs`, one after the other, and writes one line of memory facts for each pair.
   // With `node --expose-gc`, the probe forces a full GC after each pair. Then `heapLive` is the heap that the pair keeps.
-  const out = args.out ?? "probe-out";
+  const out = args["out"] ?? "probe-out";
   mkdirSync(out, { recursive: true });
-  const ids = (args.inputs ?? "").split(",").filter((x) => x !== "");
+  const ids = (args["inputs"] ?? "").split(",").filter((x) => x !== "");
   if (ids.length === 0) throw new RangeError("The probe needs --inputs <id[,id]>.");
   // With --pairs, the probe runs only these pairs of each input, in a fresh process (L81 step 2). The runner then packs only the entries of these pairs.
-  const pairs = (args.pairs ?? "").split(",").filter((x) => x !== "");
+  const pairs = (args["pairs"] ?? "").split(",").filter((x) => x !== "");
   const byId = new Map(corpusSlice().map((row) => [row.entry.id, row]));
   const env = runEnv();
   // The modes alloc-6144 and measure-6144 sample the allocations of each pair, also of the objects that a GC collected before the end of the pair.
   // alloc.jsonl then has the 100 functions that allocated the most bytes in each pair. A diff of two inputs names the code that makes the larger peak.
   // The mode measure-6144 also forces a full GC after each pair and at the end of the input (the A/A repeat of L81). Its facts have the allocation and the retained heap.
-  const sampler = process.env.MODE === "alloc-6144" || process.env.MODE === "measure-6144" ? new Session() : undefined;
-  const post = (method, params = {}) => {
-    let result;
-    let failure;
-    sampler.post(method, params, (error, value) => {
+  const sampler = process.env["MODE"] === "alloc-6144" || process.env["MODE"] === "measure-6144" ? new Session() : undefined;
+  // The function post is called only when the sampler exists.
+  const post = (method: string, params: object = {}): object => {
+    let result: object | undefined;
+    let failure: Error | null | undefined;
+    sampler!.post(method, params, (error, value) => {
       failure = error;
       result = value;
     });
@@ -246,9 +290,9 @@ if (command === "check") {
     return result;
   };
   const SAMPLE = { samplingInterval: 32768, includeObjectsCollectedByMajorGC: true, includeObjectsCollectedByMinorGC: true };
-  const allocTop = (profile) => {
-    const bytes = new Map();
-    const walk = (node) => {
+  const allocTop = (profile: HeapProfiler.SamplingHeapProfile): { totalMb: number; top: { at: string; mb: number }[] } => {
+    const bytes = new Map<string, number>();
+    const walk = (node: HeapProfiler.SamplingHeapProfileNode): void => {
       const frame = node.callFrame;
       const key = `${frame.functionName || "(anonymous)"} ${frame.url.replace(/^.*node_modules\//, "")}:${frame.lineNumber + 1}`;
       bytes.set(key, (bytes.get(key) ?? 0) + node.selfSize);
@@ -256,7 +300,7 @@ if (command === "check") {
     };
     walk(profile.head);
     const total = [...bytes.values()].reduce((s, b) => s + b, 0);
-    const mb1 = (b) => Math.round(b / 104857.6) / 10;
+    const mb1 = (b: number): number => Math.round(b / 104857.6) / 10;
     return { totalMb: mb1(total), top: [...bytes].sort((a, b) => b[1] - a[1]).slice(0, 100).map(([at, b]) => ({ at, mb: mb1(b) })) };
   };
   if (sampler !== undefined) {
@@ -264,9 +308,9 @@ if (command === "check") {
     post("HeapProfiler.enable");
   }
   const alloc = join(out, "alloc.jsonl");
-  const commit = process.env.GITHUB_SHA;
+  const commit = process.env["GITHUB_SHA"];
   const gc = typeof globalThis.gc === "function" ? globalThis.gc : undefined;
-  const mb = (bytes) => Math.round(bytes / 2 ** 20);
+  const mb = (bytes: number): number => Math.round(bytes / 2 ** 20);
   const records = join(out, "records-probe.jsonl");
   const facts = join(out, "probe.jsonl");
   // summary.jsonl has one line for each input that ended: the sampled allocation of all pairs, the largest retained heap, the retained heap at the end and the peak RSS.
@@ -285,13 +329,13 @@ if (command === "check") {
     let peakPair = "";
     let allocMb = 0;
     let liveMax = 0;
-    const lines = [];
+    const lines: string[] = [];
     if (sampler !== undefined) post("HeapProfiler.startSampling", SAMPLE);
     for (const run of pairRuns(row.input, row.entry.cell, { env, corpus: set, lanes, iterate, freeRoutes: true, ...(pairs.length === 0 ? {} : { pairs }), ...(commit === undefined ? {} : { commit }) })) {
       appendFileSync(records, JSON.stringify(run.record) + "\n");
-      let pairAlloc = null;
+      let pairAlloc: number | null = null;
       if (sampler !== undefined) {
-        const top = allocTop(post("HeapProfiler.stopSampling").profile);
+        const top = allocTop((post("HeapProfiler.stopSampling") as HeapProfiler.StopSamplingReturnType).profile);
         pairAlloc = top.totalMb;
         allocMb += top.totalMb;
         appendFileSync(alloc, JSON.stringify({ input: id, pair: run.record.strategy, cpu: env.cpu, sampling: SAMPLE, ...top }) + "\n");
@@ -302,7 +346,7 @@ if (command === "check") {
       const after = process.memoryUsage();
       const now = performance.now();
       // Each fact has the CPU model and the heap mode, because a time and a peak are true only for them (the fleet rule of 2026-10-30).
-      const fact = { input: id, pair: run.record.strategy, ms: Math.round(now - last), heapBefore: mb(before.heapUsed), heapLive: gc === undefined ? null : mb(after.heapUsed), rss: mb(before.rss), external: mb(before.external), buffers: mb(before.arrayBuffers), maxRss: mb(process.resourceUsage().maxRSS * 1024), allocMb: pairAlloc, cpu: env.cpu, mode: process.env.MODE ?? "none" };
+      const fact: ProbeFact = { input: id, pair: run.record.strategy, ms: Math.round(now - last), heapBefore: mb(before.heapUsed), heapLive: gc === undefined ? null : mb(after.heapUsed), rss: mb(before.rss), external: mb(before.external), buffers: mb(before.arrayBuffers), maxRss: mb(process.resourceUsage().maxRSS * 1024), allocMb: pairAlloc, cpu: env.cpu, mode: process.env["MODE"] ?? "none" };
       if (fact.heapLive !== null && fact.heapLive > liveMax) liveMax = fact.heapLive;
       lines.push(JSON.stringify(fact) + "\n");
       if (fact.heapBefore > peakHeap) {
@@ -326,7 +370,7 @@ if (command === "check") {
         maxRss: mb(process.resourceUsage().maxRSS * 1024),
         ms: Math.round(performance.now() - t0),
         cpu: env.cpu,
-        mode: process.env.MODE ?? "none",
+        mode: process.env["MODE"] ?? "none",
         ...(sampler === undefined ? {} : { sampling: SAMPLE }),
       }) + "\n",
     );
@@ -335,12 +379,12 @@ if (command === "check") {
     console.log(`${id}: ${lines.length} pairs, ${Math.round(performance.now() - t0)} ms`);
   }
   // probe.md has the 10 pairs with the largest heap after the pair, for the summary of the job.
-  const all = readFileSync(facts, "utf8").split("\n").filter((l) => l !== "").map((l) => JSON.parse(l));
+  const all = readFileSync(facts, "utf8").split("\n").filter((l) => l !== "").map((l) => JSON.parse(l) as ProbeFact);
   const top = [...all].sort((a, b) => b.heapBefore - a.heapBefore).slice(0, 10);
   const md = [
-    `### Memory probe: ${process.env.MODE ?? "no mode"} (${process.execArgv.join(" ") || "no node flags"}), CPU ${env.cpu}`,
+    `### Memory probe: ${process.env["MODE"] ?? "no mode"} (${process.execArgv.join(" ") || "no node flags"}), CPU ${env.cpu}`,
     "",
-    `The peak RSS is ${Math.max(...all.map((f) => f.maxRss))} MB. The largest live heap after a forced GC is ${gc === undefined ? "not measured" : `${Math.max(...all.map((f) => f.heapLive))} MB`}.`,
+    `The peak RSS is ${Math.max(...all.map((f) => f.maxRss))} MB. The largest live heap after a forced GC is ${gc === undefined ? "not measured" : `${Math.max(...all.map((f) => f.heapLive!))} MB`}.`,
     "",
     "| Input | Pair | Heap after the pair (MB) | Live heap (MB) | RSS (MB) | ms |",
     "| --- | --- | --- | --- | --- | --- |",
@@ -352,23 +396,23 @@ if (command === "check") {
   console.log(JSON.stringify(familyProbeGroups(costedRows(corpusSlice(), PACK_ENTRIES.length * ROUTERS.length, 0)).map((group) => group.join(","))));
 } else if (command === "jobs") {
   // The file of --groups is the JSON list of `families`, or another list of groups with commas. With `--limits on`, each input of `MEMORY_LIMITS` also gets a job in its mode.
-  const groups = JSON.parse(readFileSync(args.groups, "utf8"));
-  const modes = (args.modes ?? "").split(",").filter((m) => m !== "");
-  console.log(JSON.stringify(gateJobs(groups, modes, Number(args.repeats ?? 1), args.limits === "on" ? MEMORY_LIMITS : undefined)));
+  const groups = JSON.parse(readFileSync(args["groups"]!, "utf8")) as string[];
+  const modes = (args["modes"] ?? "").split(",").filter((m) => m !== "");
+  console.log(JSON.stringify(gateJobs(groups, modes, Number(args["repeats"] ?? 1), args["limits"] === "on" ? MEMORY_LIMITS : undefined)));
 } else if (command === "gate") {
   // Each folder under --probes with an input.txt is the probe of one input: input.txt, mode.txt, status.txt, probe.jsonl and summary.jsonl. A job of one family has a folder for each seed.
-  const dir = args.probes ?? "probes";
+  const dir = args["probes"] ?? "probes";
   // The file of --expected is the JSON list of `jobs`. The gate expects a probe of each input of each job in the mode of the job.
-  const expected = expectedProbes(JSON.parse(readFileSync(args.expected, "utf8")));
-  if (expected.length === 0) throw new RangeError(`The gate needs the expected probes, and ${args.expected} has none.`);
-  const text = (sub, name) => readFileSync(join(dir, sub, name), "utf8").trim();
+  const expected = expectedProbes(JSON.parse(readFileSync(args["expected"]!, "utf8")) as GateJob[]);
+  if (expected.length === 0) throw new RangeError(`The gate needs the expected probes, and ${args["expected"]} has none.`);
+  const text = (sub: string, name: string): string => readFileSync(join(dir, sub, name), "utf8").trim();
   const subs = readdirSync(dir, { recursive: true }).map(String).filter((n) => n.split(/[\\/]/).at(-1) === "input.txt").map((n) => dirname(n));
-  const results = subs.map((sub) => {
+  const results = subs.map((sub): ProbeResult => {
     // The probe writes an empty probe.jsonl at its start, and the facts of an input at its end. Thus an OOM gives no facts for the input.
-    const facts = readFileSync(join(dir, sub, "probe.jsonl"), "utf8").split("\n").filter((l) => l !== "").map((l) => JSON.parse(l));
+    const facts = readFileSync(join(dir, sub, "probe.jsonl"), "utf8").split("\n").filter((l) => l !== "").map((l) => JSON.parse(l) as ProbeFact);
     // summary.jsonl has one line for the input when the probe ended. The modes without a sampler or a forced GC write null.
     const summaryFile = join(dir, sub, "summary.jsonl");
-    const summary = existsSync(summaryFile) ? readFileSync(summaryFile, "utf8").split("\n").filter((l) => l !== "").map((l) => JSON.parse(l)).at(-1) : undefined;
+    const summary = existsSync(summaryFile) ? readFileSync(summaryFile, "utf8").split("\n").filter((l) => l !== "").map((l) => JSON.parse(l) as ProbeSummary).at(-1) : undefined;
     return {
       input: text(sub, "input.txt"),
       mode: text(sub, "mode.txt"),
@@ -383,29 +427,29 @@ if (command === "check") {
   console.log(`gate: ${gate.pass ? "pass" : "fail"}, ${gate.rows.filter((r) => r.reason !== "").length} of ${gate.rows.length} probes failed.`);
   if (!gate.pass) process.exitCode = 1;
 } else if (command === "analyze") {
-  const dir = args.records ?? "bench-out";
-  const out = args.out ?? dir;
-  const records = [];
+  const dir = args["records"] ?? "bench-out";
+  const out = args["out"] ?? dir;
+  const records: LayoutRecord[] = [];
   // The files can be in folders: `gh run download` writes each artifact into a folder of its name.
   for (const name of readdirSync(dir, { recursive: true }).map(String).filter((n) => n.endsWith(".jsonl")).sort())
-    for (const line of readFileSync(join(dir, name), "utf8").split("\n")) if (line.trim() !== "") records.push(JSON.parse(line));
+    for (const line of readFileSync(join(dir, name), "utf8").split("\n")) if (line.trim() !== "") records.push(JSON.parse(line) as LayoutRecord);
   const slice = corpusSlice();
-  const inputs = slice.map(({ entry }) => ({
+  const inputs: AnalysisInput[] = slice.map(({ entry }) => ({
     id: entry.id,
-    seed: Number(/\/s(\d+)$/.exec(entry.id)[1]),
+    seed: Number(/\/s(\d+)$/.exec(entry.id)![1]),
     spec: entry.id.replace(/\/s\d+$/, ""),
-    kind: entry.id.split("/")[1].split(".")[0],
+    kind: entry.id.split("/")[1]!.split(".")[0]!,
     cell: entry.cell,
     ...(entry.stress === true ? { stress: true } : {}),
   }));
   /** This function reads a list of ids with commas. The value `none` gives an empty list, and no value gives `undefined`. */
-  const list = (value) => (value === undefined ? undefined : value === "none" ? [] : value.split(",").map((v) => v.trim()).filter((v) => v !== ""));
+  const list = (value: string | undefined): string[] | undefined => (value === undefined ? undefined : value === "none" ? [] : value.split(",").map((v) => v.trim()).filter((v) => v !== ""));
   const exclude = list(args["exclude-pack"]) ?? [];
-  const hasPair = (pair) => !exclude.includes(packOf(pair)) && records.some((r) => r.strategy === pair);
+  const hasPair = (pair: string): boolean => !exclude.includes(packOf(pair)) && records.some((r) => r.strategy === pair);
   const hasSelect = !exclude.includes(SELECT_PACK) && records.some((r) => packOf(r.strategy) === SELECT_PACK);
   const selectPortfolio = pairId(SELECT_PACK, PORTFOLIO_ROUTER);
   const packPortfolio = pairId("pack", PORTFOLIO_ROUTER);
-  const baselines = list(args.baseline) ?? [BASELINE, ...[selectPortfolio, packPortfolio].filter(hasPair)];
+  const baselines = list(args["baseline"]) ?? [BASELINE, ...[selectPortfolio, packPortfolio].filter(hasPair)];
   // The lane pairs of L13: each lane pair against its base pair, the pair of the same pack entry and router.
   const lanePairs = [...new Set(records.map((r) => r.strategy))].filter((p) => isLanePack(packOf(p)) && hasPair(p)).sort();
   const laneCompare = lanePairs.flatMap((p) => {
@@ -414,32 +458,32 @@ if (command === "check") {
     const own = base !== undefined && hasPair(base) ? [`${p}:${base}`] : [];
     // An iteration pair with a cap above 1 also gets a compare with round 1 of its chain: the layout of lanes-sides.
     const rounds = iterRoundsOf(packOf(p));
-    const start = parts === undefined ? undefined : pairId([ITER_VARIANTS[0].name, parts.pack, parts.router].join("."), parts.router);
+    const start = parts === undefined ? undefined : pairId([ITER_VARIANTS[0]!.name, parts.pack, parts.router].join("."), parts.router);
     return rounds !== undefined && rounds > 1 && start !== undefined && hasPair(start) ? [...own, `${p}:${start}`] : own;
   });
   const defaultCompare = [...(hasPair(BASELINE) ? [selectPortfolio, packPortfolio].filter(hasPair).map((p) => `${p}:${BASELINE}`) : []), ...laneCompare];
-  const compare = (list(args.compare) ?? defaultCompare).map((c) => {
+  const compare = (list(args["compare"]) ?? defaultCompare).map((c): [string, string] => {
     const pair = c.split(":");
     if (pair.length !== 2) throw new RangeError(`A comparison is two pairs with a colon, for example ${selectPortfolio}:${BASELINE}, not "${c}".`);
-    return pair;
+    return [pair[0]!, pair[1]!];
   });
   const lanePacks = [...new Set(lanePairs.map(packOf))];
   const without = list(args["oracle-without"]) ?? (lanePacks.length > 0 ? lanePacks : hasSelect ? [SELECT_PACK] : []);
-  const times = list(args.times) ?? (inputs.some((i) => i.spec === DENSE_HUBS) ? [DENSE_HUBS] : []);
+  const times = list(args["times"]) ?? (inputs.some((i) => i.spec === DENSE_HUBS) ? [DENSE_HUBS] : []);
   // The check of select reads all records, also with --exclude-pack select.
   const composite = records.some((r) => packOf(r.strategy) === SELECT_PACK)
     ? { pack: SELECT_PACK, members: Object.fromEntries(slice.map(({ input, entry }) => [entry.id, selectMemberOf(input)])) }
     : undefined;
-  const jobs = args.jobs === undefined ? undefined : JSON.parse(readFileSync(args.jobs, "utf8")).jobs;
-  if (args.jobs !== undefined && !Array.isArray(jobs)) throw new RangeError(`${args.jobs} has no list "jobs". Write it with gh run view <id> --json jobs.`);
+  const jobs = args["jobs"] === undefined ? undefined : (JSON.parse(readFileSync(args["jobs"], "utf8")) as { jobs?: JobFacts[] }).jobs;
+  if (args["jobs"] !== undefined && !Array.isArray(jobs)) throw new RangeError(`${args["jobs"]} has no list "jobs". Write it with gh run view <id> --json jobs.`);
   const rankTop = Number(args["rank-top"] ?? RANK_TOP);
   if (!(Number.isInteger(rankTop) && rankTop >= 0)) throw new RangeError(`The option --rank-top is an integer of 0 or more, not ${args["rank-top"]}.`);
-  const options = {
+  const options: AnalysisOptions = {
     // The job check examines that the committed manifest is the manifest of the code.
-    folds: loadSplit(JSON.parse(readFileSync(join(dirname(fileURLToPath(import.meta.url)), "..", "corpus", set, "corpus.json"), "utf8"))),
+    folds: loadSplit(JSON.parse(readFileSync(join(dirname(fileURLToPath(import.meta.url)), "..", "corpus", set, "corpus.json"), "utf8")) as JointManifest),
     predictions: set === SET_V2 ? "joint-v2" : "joint-v1",
     ...(args["allow-missing"] === undefined ? {} : { allowMissing: idFile(args["allow-missing"]) }),
-    ...(args.subset === undefined ? {} : { subset: idFile(args.subset) }),
+    ...(args["subset"] === undefined ? {} : { subset: idFile(args["subset"]) }),
     ...(baselines.length === 0 ? {} : { baseline: baselines }),
     ...(compare.length === 0 ? {} : { compare }),
     ...(exclude.length === 0 ? {} : { excludePacks: exclude }),

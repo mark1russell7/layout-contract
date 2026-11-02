@@ -1,4 +1,4 @@
-# The nightly sweep over the joint strategy space (docs/SWEEP.md, roadmap item L35). It uses the bench code of packages/joint through scripts/sweep.mjs.
+# The nightly sweep over the joint strategy space (docs/SWEEP.md, roadmap item L35). It uses the bench code of packages/joint through scripts/sweep.ts.
 # The job plan reads the state of the sweep from the branch sweep-data, and plans round 1: the baseline arm on each input, and a sample of new configs on the screen.
 # The date of the night seeds the sample. The cost model (data/cost-margins.json) gives the shards a planned cost near the target.
 # Each shard of round 1 keeps its raw records as the artifact sweep-records-1-<shard>.
@@ -131,7 +131,7 @@ jobs:
           # Round 1 gets half of the budget, and round 2 gets what is left at the race.
           budget=""
           if [ -n "$END" ]; then budget=$(( ((END - $(date -u +%s)) / 60 - GATE) / 2 )); if [ "$budget" -lt 30 ]; then budget=30; fi; fi
-          node scripts/sweep.mjs plan --data "$RUNNER_TEMP/data" --out night --date "$date" --max-shards "$MAX_SHARDS" --target-minutes "$TARGET_MINUTES" --max-configs "$MAX_CONFIGS" ${DESIGN:+--design "$DESIGN"} ${budget:+--budget-minutes "$budget" --lanes 3}
+          node scripts/sweep.ts plan --data "$RUNNER_TEMP/data" --out night --date "$date" --max-shards "$MAX_SHARDS" --target-minutes "$TARGET_MINUTES" --max-configs "$MAX_CONFIGS" ${DESIGN:+--design "$DESIGN"} ${budget:+--budget-minutes "$budget" --lanes 3}
           echo "date=$date" >> "$GITHUB_OUTPUT"
           echo "shards=$(cat night/matrix.json | tr -d ' \n')" >> "$GITHUB_OUTPUT"
           if [ -f night/skip.txt ]; then echo "skip=true" >> "$GITHUB_OUTPUT"; else echo "skip=false" >> "$GITHUB_OUTPUT"; fi
@@ -174,7 +174,7 @@ jobs:
           # The design night of 2026-10-29 (run 40890060521) went above the default heap of approximately 4 GB on inputs of 1000 boxes. The runner has 16 GB.
           NODE_OPTIONS: --max-old-space-size=6144
         # The deadline is 15 minutes under the timeout of the job. A shard stops cleanly before a unit that does not end in time, and keeps its records.
-        run: node scripts/sweep.mjs run --plan night --shard "$SHARD" --out records --deadline-minutes 105
+        run: node scripts/sweep.ts run --plan night --shard "$SHARD" --out records --deadline-minutes 105
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         if: ${{ !cancelled() }}
         with:
@@ -216,7 +216,7 @@ jobs:
         run: |
           budget=""
           if [ -n "$END" ]; then budget=$(( (END - $(date -u +%s)) / 60 - GATE )); if [ "$budget" -lt 30 ]; then budget=30; fi; fi
-          node scripts/sweep.mjs race --night night --records records --out night2 --max-shards "$MAX_SHARDS" --target-minutes "$TARGET_MINUTES" --max-configs "$MAX_CONFIGS" ${budget:+--budget-minutes "$budget" --lanes 3}
+          node scripts/sweep.ts race --night night --records records --out night2 --max-shards "$MAX_SHARDS" --target-minutes "$TARGET_MINUTES" --max-configs "$MAX_CONFIGS" ${budget:+--budget-minutes "$budget" --lanes 3}
           echo "shards=$(cat night2/matrix.json | tr -d ' \n')" >> "$GITHUB_OUTPUT"
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
@@ -256,7 +256,7 @@ jobs:
           # The design night of 2026-10-29 (run 40890060521) went above the default heap of approximately 4 GB on inputs of 1000 boxes. The runner has 16 GB.
           NODE_OPTIONS: --max-old-space-size=6144
         # The same deadline as round 1.
-        run: node scripts/sweep.mjs run --plan night2 --shard "$SHARD" --out records --deadline-minutes 105
+        run: node scripts/sweep.ts run --plan night2 --shard "$SHARD" --out records --deadline-minutes 105
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         if: ${{ !cancelled() }}
         with:
@@ -294,7 +294,7 @@ jobs:
       - name: Summarize the night
         working-directory: packages/joint
         run: |
-          node scripts/sweep.mjs summarize --night night2 --records records --data "$RUNNER_TEMP/data" --out "$RUNNER_TEMP/out" --run "$GITHUB_RUN_ID"
+          node scripts/sweep.ts summarize --night night2 --records records --data "$RUNNER_TEMP/data" --out "$RUNNER_TEMP/out" --run "$GITHUB_RUN_ID"
           cat "$RUNNER_TEMP/out/night.md" >> "$GITHUB_STEP_SUMMARY"
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:

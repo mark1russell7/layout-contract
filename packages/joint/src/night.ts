@@ -1,5 +1,5 @@
 // The state of the sweep and the steps of one night (`docs/SWEEP.md`): plan round 1, apply the records, race, plan round 2.
-// The state is one JSON object. The workflow keeps it on the data branch `sweep-data`, and the script `scripts/sweep.mjs` reads and writes it.
+// The state is one JSON object. The workflow keeps it on the data branch `sweep-data`, and the script `scripts/sweep.ts` reads and writes it.
 import { configId, type LayoutRecord, type StrategyConfig, type StrategySpace } from "@mark1russell7/layout-contract";
 import { saltelliDesign, type SaltelliDesign } from "./sensitivity.ts";
 import { configRun, JOINT_SPACE, type ConfigRun } from "./space.ts";

@@ -1,6 +1,6 @@
 # The memory probe of L77 and the memory gate of L81 (`docs/JOINT-BENCH.md`). It runs the joint bench on single inputs under a stated heap mode.
 # Each job runs one input with one mode, and writes the memory facts of each pair and the records.
-# The input `families` (the default) gives the largest input of each family of the corpus: `bench.mjs families`. Thus the gate cannot leave out a family.
+# The input `families` (the default) gives the largest input of each family of the corpus: `bench.ts families`. Thus the gate cannot leave out a family.
 # The seeds of a family often have the same planned cost. Then the job of the family probes each of these seeds, one after the other, each in its own process.
 # The gate examines each seed. A gate on seed 1 alone is a gate on a chosen input: the seeds of the dense input with hubs peaked from 3438 MB to 4287 MB.
 # The mode `bench-6144` uses the heap cap of the joint bench without forced GC. It gives the peak RSS of the input alone.
@@ -126,7 +126,7 @@ jobs:
           case "$REPEATS" in [1-9]) ;; *) echo "The repeats are a count from 1 to 9, not $REPEATS."; exit 1;; esac
           limits=off
           if [ "$INPUTS" = families ]; then
-            list="$(node scripts/bench.mjs families)"
+            list="$(node scripts/bench.ts families)"
             # The inputs of MEMORY_LIMITS (src/memory-gate.ts) get a job of their own in the mode measure-6144, for the limits of the allocation and of the live heap.
             limits=on
           else
@@ -138,7 +138,7 @@ jobs:
           fi
           printf '%s' "$list" > groups.json
           # A failed command in a substitution does not stop the step, so the assignment is a command of its own.
-          jobs="$(node scripts/bench.mjs jobs --groups groups.json --modes "$MODES" --repeats "$REPEATS" --limits "$limits")"
+          jobs="$(node scripts/bench.ts jobs --groups groups.json --modes "$MODES" --repeats "$REPEATS" --limits "$limits")"
           echo "The plan has $(printf '%s' "$jobs" | jq length) jobs: $(printf '%s' "$list" | jq length) groups for each mode and repeat, and the limits are $limits." | tee -a "$GITHUB_STEP_SUMMARY"
           echo "jobs=$jobs" >> "$GITHUB_OUTPUT"
 
@@ -152,7 +152,7 @@ jobs:
       fail-fast: false
       # The account runs at most 20 jobs at once, for all repos together. The fleet rule of 2026-10-30 (STRATEGY.md) gives a heavy workflow 3 jobs at once, so gates and releases get runners.
       max-parallel: 3
-      # Each job of the plan has an input group, a mode and a repeat (`bench.mjs jobs`).
+      # Each job of the plan has an input group, a mode and a repeat (`bench.ts jobs`).
       matrix:
         include: ${{ fromJSON(needs.plan.outputs.jobs) }}
     steps:
@@ -186,7 +186,7 @@ jobs:
             k=$((k + 1))
             out="probe/$k"
             status=0
-            node $flags scripts/bench.mjs probe --inputs "$one" ${PAIRS:+--pairs "$PAIRS"} --out "$out" || status=$?
+            node $flags scripts/bench.ts probe --inputs "$one" ${PAIRS:+--pairs "$PAIRS"} --out "$out" || status=$?
             echo "The probe of $one ended with the status $status." | tee -a "$GITHUB_STEP_SUMMARY"
             if [ -f "$out/probe.md" ]; then cat "$out/probe.md" >> "$GITHUB_STEP_SUMMARY"; fi
             mkdir -p "$out"
@@ -244,7 +244,7 @@ jobs:
           mkdir -p probes
           printf '%s' "$EXPECTED" > expected.json
           status=0
-          node scripts/bench.mjs gate --probes probes --expected expected.json --limit-mb "$LIMIT" || status=$?
+          node scripts/bench.ts gate --probes probes --expected expected.json --limit-mb "$LIMIT" || status=$?
           if [ -n "$SWEEP_ID" ]; then
             printf '\nThis gate followed the sweep run [%s](%s), with the result %s.\n' "$SWEEP_ID" "$SWEEP_URL" "$SWEEP_RESULT" >> probes/gate.md
           else

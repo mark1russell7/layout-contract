@@ -135,7 +135,7 @@ The lane pairs are pairs of the analysis, as each other pair. They join the floo
 - The default compare of `pnpm bench analyze` adds each lane pair against its base pair. The default of `--oracle-without` is the lane pack entries when the records have lane pairs.
 - When the records have lane pairs, `pnpm bench analyze` also writes `report-without-lanes.json` and `report-without-lanes.md`. These reports remove the lane pairs. Their misses compare with the runs before L13.
 - The fields `through`, `fillBySpacing` and `times` do not count the lane pairs. Thus they compare with the runs before L13.
-- `fit-cost.mjs` counts the pairs and the lane passes of each input of the run. Thus a run with the lane pairs gives a fit of the lane term.
+- `fit-cost.ts` counts the pairs and the lane passes of each input of the run. Thus a run with the lane pairs gives a fit of the lane term.
 
 The plan gives each lane pass the time of the lane term of the cost model. The 18 lane pairs have 24 passes (`lanePasses`). Refer to "The shards".
 
@@ -222,7 +222,7 @@ The table above uses the margins of L32. L35 fits the lane term and the margins 
 | `--lanes on --iterate on` | 623.7 minutes | 41.8 minutes |
 
 - Each plan stays far below the limit of 360 minutes of a shard job.
-- A run with `--iterate on` gives the times of the rounds for a later fit. `fit-cost.mjs` does not count the rounds of a line of the bench yet.
+- A run with `--iterate on` gives the times of the rounds for a later fit. `fit-cost.ts` does not count the rounds of a line of the bench yet.
 
 ## The cells of highways
 
@@ -429,7 +429,7 @@ A split file of `corpus-split/1` is beside each manifest, in `packages/joint/cor
 6. An input does not go to a shard with an input of the same spec, while another shard has none. Thus a lost shard loses 1 seed of a spec, not 3.
 7. In a shard, the inputs run from the least cost to the most cost. Thus a timeout loses only the costly inputs at the end.
 
-The file `packages/joint/data/cost-margins.json` holds the cost model. The script `scripts/fit-cost.mjs` writes it from the logs of the shard jobs of a full run.
+The file `packages/joint/data/cost-margins.json` holds the cost model. The script `scripts/fit-cost.ts` writes it from the logs of the shard jobs of a full run.
 
 - The pair term comes from the wall time of each input in the run `40743187036` of L32. That run used `highways` 0.8.1 and `packing` 0.2.16, with the 130 pairs of the runner. All 303 inputs have a time.
 - The lane term and the margins come from the run `40757153151` of L13. That run had 130 pairs and 18 lane pairs with 24 passes on each input.
@@ -478,11 +478,11 @@ The limit of a shard job is 360 minutes, the limit of GitHub. At 64 shards, the 
 - With 13 shards, the plan keeps each shard of a default run below 30 minutes: 29.5 minutes for the most costly shard. 12 shards give 31.9 minutes.
 - The default stays 64 shards. Each shard of the plan is then far below the limit of 360 minutes.
 
-To fit the model again from a full run, write the logs of its jobs into one file. Then start `fit-cost.mjs` in `packages/joint`:
+To fit the model again from a full run, write the logs of its jobs into one file. Then start `fit-cost.ts` in `packages/joint`:
 
 ```sh
 gh run view <run id> -R mark1russell7/layout-contract --log > logs/run.log
-node scripts/fit-cost.mjs --logs logs --run <run id> --commit "$(gh run view <run id> -R mark1russell7/layout-contract --json headSha --jq .headSha)"
+node scripts/fit-cost.ts --logs logs --run <run id> --commit "$(gh run view <run id> -R mark1russell7/layout-contract --json headSha --jq .headSha)"
 ```
 
 - A line of the bench gives no counts. The script then counts the pairs and the passes of the code: 130 pairs since L32, and 24 passes with `--lanes on`.
@@ -1176,7 +1176,7 @@ The candidate for the first joint default changes. It was `lanes-sides.maxrects-
 - The result holds for `joint-v2`, the seeds 1 to 3, and the floor of each cell. The floor comes from the 148 pairs of this run, without the lane pairs of L13. Thus `lanes-iter1.maxrects-cp.corners+corners` has 23 misses, and `lanes-sides` had 22 in L13.
 - The cap is 3 rounds. In the stress cell, 33 to 44 of 81 records end at the cap. A higher cap is not measured.
 - The margins change for each side (`iterMargins`). A gap for each pair of facing boxes needs `packing` (k77).
-- Do not refit the cost model from this run. The fit divides by 130 pairs, and this run has 148. `fit-cost.mjs` does not count the rounds yet.
+- Do not refit the cost model from this run. The fit divides by 130 pairs, and this run has 148. `fit-cost.ts` does not count the rounds yet.
 
 ## The prediction for the memory of the large inputs (L77)
 
@@ -1197,7 +1197,7 @@ The target: the peak RSS of each input of `joint-v2` with 1000 boxes stays under
 | N3 | 0.3 | Risky: one router holds more than half of the peak live heap on that input. |
 | N4 | 0.8 | The records of a run with a lower cap equal the records of run `40884908305` without the times. |
 
-The workflow `memory-probe.yml` measures the claims. Each job runs one input with one heap mode, and the command `probe` of `scripts/bench.mjs` writes the facts of each pair:
+The workflow `memory-probe.yml` measures the claims. Each job runs one input with one heap mode, and the command `probe` of `scripts/bench.ts` writes the facts of each pair:
 
 - The mode `gc-6144` forces a full GC after each pair. Thus it gives the live heap that each pair keeps.
 - The modes `cap-3072` and `cap-2048` lower the heap cap without forced GC. Thus they give the peak RSS and the records under the cap.
@@ -1315,7 +1315,7 @@ The probe of L77 ran 3 inputs that I chose: the top 3 peaks of run `40884908305`
 
 The gate takes its inputs from the bench, so it cannot leave out a family.
 
-- `bench.mjs families` gives the input with the largest planned cost of each family. A family is an input id without its seed. `joint-v2` has 101 families.
+- `bench.ts families` gives the input with the largest planned cost of each family. A family is an input id without its seed. `joint-v2` has 101 families.
 - The workflow `memory-probe.yml` uses these inputs by default. The mode `bench-6144` has the heap cap of the bench and no forced GC.
 - The job `gate` fails when an input has no probe, an OOM or another error, or a peak RSS at the ceiling or more. The limits of input F are in "The limits of the memory gate".
 - The seeds of a family often have the same planned cost. Then the gate probes each of these seeds, and it fails on the worst seed. A gate on seed 1 alone is a gate on a chosen input. The seeds of the dense input with hubs peaked from 3438 MB to 4287 MB.
@@ -1382,7 +1382,7 @@ The mean Brier score of M1-M4 and M6 is 0.163. The fleet rule of 2026-10-30 make
 ### The prediction for step 2: the pair `maxrects-cp+gaps` alone
 
 In the first gate, seed 1 of the dense input with hubs peaked at 3337 MB, at the pair `maxrects-cp+gaps`. That pair added 874 MB to the peak RSS of seed 1, and 280 MB to the peak of seed 2.
-Step 2 runs only this pair on seed 1 and on seed 2, each in a fresh process (`--pairs` of `bench.mjs probe`). Each seed runs in two modes:
+Step 2 runs only this pair on seed 1 and on seed 2, each in a fresh process (`--pairs` of `bench.ts probe`). Each seed runs in two modes:
 
 - `bench-6144`, the mode of the gate. It gives the peak RSS of the pair alone.
 - `alloc-6144`, a diagnostic with the same heap cap. It samples the allocations of the pair, also of the objects that a GC collected. `alloc.jsonl` has the 20 functions that allocated the most bytes.

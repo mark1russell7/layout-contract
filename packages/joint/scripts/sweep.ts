@@ -13,9 +13,10 @@
 //
 // The date is the night of the run in UTC. It seeds the sample, so a rerun of a night has the same plan.
 // Each unit is one call of `runInput` on one input with the pairs and the lane entries of its configs. The records get the config id as their strategy.
-// Each unit prints `<input id>#<k>: <records> records, <skipped> skipped, <wall ms> ms, <pairs> pairs, <passes> lane passes`. `fit-cost.mjs` reads these lines.
+// Each unit prints `<input id>#<k>: <records> records, <skipped> skipped, <wall ms> ms, <pairs> pairs, <passes> lane passes`. `fit-cost.ts` reads these lines.
 import { appendFileSync, cpSync, existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
+import type { LayoutInput, LayoutRecord } from "@mark1russell7/layout-contract";
 import {
   applyRecords,
   BASELINE_ARM,
@@ -39,38 +40,124 @@ import {
   statusCounts,
   summaryRows,
   summaryTable,
+  type ConfigRun,
+  type ConfigStatus,
+  type JointEntry,
+  type JointSet,
+  type NightEntry,
+  type NightPlan,
+  type PlanOptions,
+  type RoundFacts,
+  type SummaryTable,
+  type SweepInput,
+  type SweepState,
+  type SweepUnit,
 } from "../src/index.ts";
 
+/** The facts of one shard: the planned and the real minutes. A stopped shard also has the units that it ran and their planned minutes. */
+type ShardFacts = { readonly round: number; readonly shard: number; readonly planned: number; readonly real: number } & (
+  | { readonly stopped?: undefined }
+  | { readonly stopped: true; readonly done: number; readonly units: number; readonly plannedDone: number }
+);
+
+/** The facts of one shard in a night of the state, with the id of the cost model of its plan. */
+type ShardEntry = ShardFacts & { readonly costModel?: string };
+
+/** The scale, the budget in minutes and the largest count of shards of the plan of one round. */
+interface RoundCost {
+  readonly scale: number;
+  readonly budget: number | null;
+  readonly maxShards: number;
+}
+
+/** One night in the state, with the facts that this script adds: the cost of the plan of each round, and the shards. */
+interface Night extends NightEntry {
+  cost?: Record<string, RoundCost>;
+  shards: ShardEntry[];
+}
+
+/** The state of the sweep, with the nights of this script. */
+interface State extends SweepState {
+  readonly nights: Night[];
+}
+
+/** The options of the plan of a round, with the scale of the cost model and the budget in minutes. */
+interface RoundOptions extends PlanOptions {
+  readonly scale: number;
+  readonly budget: number | null;
+}
+
+/** The file plan.json of a round. A plan of an older run has no scale and no cost model. */
+interface PlanFile {
+  readonly round: 1 | 2;
+  readonly date: string;
+  readonly epoch: string;
+  readonly corpus: string;
+  readonly scale?: number;
+  readonly costModel?: string;
+  readonly shards: readonly (readonly string[])[];
+  readonly loads: readonly number[];
+  readonly units: readonly SweepUnit[];
+  readonly runs: Readonly<Record<string, ConfigRun>>;
+  readonly facts: RoundFacts;
+}
+
+/** The facts of one epoch in the file index.json of the data branch. */
+interface EpochFacts {
+  readonly corpus: string;
+  readonly nights: number;
+  readonly last: string;
+  readonly configs: number;
+  readonly counts: Record<ConfigStatus, number>;
+}
+
+/** The file index.json of the data branch: the latest epoch and the facts of each epoch. */
+interface IndexFile {
+  readonly schema: string;
+  latest?: string;
+  readonly epochs: Record<string, EpochFacts>;
+}
+
+/** One input of the corpus and its entry in the manifest. */
+interface CorpusRow {
+  readonly input: LayoutInput;
+  readonly entry: JointEntry;
+}
+
+/** This function tells if a name is the name of a joint corpus. */
+const isSet = (name: string): name is JointSet => SETS.some((s) => s === name);
+
 const [command, ...rest] = process.argv.slice(2);
-const args = {};
-for (let i = 0; i < rest.length; i += 2) args[rest[i].replace(/^--/, "")] = rest[i + 1];
+const args: Record<string, string | undefined> = {};
+for (let i = 0; i < rest.length; i += 2) args[rest[i]!.replace(/^--/, "")] = rest[i + 1];
 
 /** This function reads a JSON file. */
-const readJson = (file) => JSON.parse(readFileSync(file, "utf8"));
+const readJson = (file: string | URL): unknown => JSON.parse(readFileSync(file, "utf8"));
 /** This function writes a JSON file, and makes its folder. */
-function writeJson(file, value, indent = 1) {
+function writeJson(file: string, value: unknown, indent = 1): void {
   mkdirSync(dirname(file), { recursive: true });
   writeFileSync(file, JSON.stringify(value, null, indent) + "\n");
 }
 /** This function gives the version of an installed engine. */
-const versionOf = (name) => readJson(new URL(`../node_modules/@mark1russell7/${name}/package.json`, import.meta.url)).version;
+const versionOf = (name: string): string => (readJson(new URL(`../node_modules/@mark1russell7/${name}/package.json`, import.meta.url)) as { version: string }).version;
 /** This function gives a number argument with a default. */
-function numberArg(name, fallback) {
+function numberArg(name: string, fallback: number): number {
   const v = Number(args[name] ?? fallback);
   if (!(Number.isFinite(v) && v > 0)) throw new RangeError(`The option --${name} is a number above 0, not "${args[name]}".`);
   return v;
 }
 
 /** This function gives the inputs of the corpus as the sweep sees them, and the manifest entry of each input. */
-function corpusOf(set) {
-  if (!SETS.includes(set)) throw new RangeError(`The corpus is one of ${SETS.join(", ")}, not "${set}".`);
+function corpusOf(set: string): { rows: CorpusRow[]; sweep: SweepInput[] } {
+  if (!isSet(set)) throw new RangeError(`The corpus is one of ${SETS.join(", ")}, not "${set}".`);
   const { manifest, inputs } = jointCorpus(set);
-  const rows = inputs.map((input, i) => ({ input, entry: manifest.inputs[i] }));
+  // The manifest has one entry for each input, in the same order.
+  const rows = inputs.map((input, i) => ({ input, entry: manifest.inputs[i]! }));
   const sweep = rows.map(({ input, entry }) => ({
     id: entry.id,
     spec: entry.id.replace(/\/s\d+$/, ""),
-    kind: entry.id.split("/")[1].split(".")[0],
-    seed: Number(/\/s(\d+)$/.exec(entry.id)[1]),
+    kind: entry.id.split("/")[1]!.split(".")[0]!,
+    seed: Number(/\/s(\d+)$/.exec(entry.id)![1]),
     stress: entry.stress === true,
     boxes: input.boxes.length,
     edges: input.edges?.length ?? 0,
@@ -85,8 +172,8 @@ function corpusOf(set) {
  * A new epoch has no shards. Then the scale comes from the epoch of the data branch with the latest night, because the cost model is the same.
  * With no shard of the model, the scale is the scale of the fit of the model (`CONFIG_COST.scale`).
  */
-function costScale(state, data) {
-  const ratiosOf = (s) =>
+function costScale(state: State, data: string | undefined): number {
+  const ratiosOf = (s: State): number[] =>
     s.nights
       .slice(-5)
       .flatMap((n) => n.shards)
@@ -97,25 +184,25 @@ function costScale(state, data) {
   let ratios = ratiosOf(state);
   const epochs = data === undefined ? "" : join(data, "epochs");
   if (ratios.length === 0 && epochs !== "" && existsSync(epochs)) {
-    const last = (s) => s.nights.at(-1)?.date ?? "";
+    const last = (s: State): string => s.nights.at(-1)?.date ?? "";
     const others = readdirSync(epochs)
       .map((e) => join(epochs, e, "state.json"))
       .filter((file) => existsSync(file))
-      .map((file) => readJson(file))
+      .map((file) => readJson(file) as State)
       .filter((s) => ratiosOf(s).length > 0)
       .sort((a, b) => (last(a) < last(b) ? 1 : last(a) > last(b) ? -1 : 0));
-    if (others.length > 0) ratios = ratiosOf(others[0]);
+    if (others.length > 0) ratios = ratiosOf(others[0]!);
   }
   ratios.sort((a, b) => a - b);
-  return ratios.length === 0 ? CONFIG_COST.scale : ratios[Math.floor(ratios.length / 2)];
+  return ratios.length === 0 ? CONFIG_COST.scale : ratios[Math.floor(ratios.length / 2)]!;
 }
 
 /**
  * This function gives the options of the plans of a round. The target is in real minutes, so the plan divides it by the measured scale.
  * With --budget-minutes, the round has at most the waves of shards that end in that wall time on --lanes runners. Each job has --overhead-minutes of setup.
  */
-function planOptions(date, state) {
-  const scale = args.scale === undefined ? costScale(state, args.data) : numberArg("scale", 1);
+function planOptions(date: string, state: State): RoundOptions {
+  const scale = args["scale"] === undefined ? costScale(state, args["data"]) : numberArg("scale", 1);
   const target = numberArg("target-minutes", 30);
   let maxShards = numberArg("max-shards", 20);
   const budget = args["budget-minutes"] === undefined ? null : numberArg("budget-minutes", 1);
@@ -124,9 +211,10 @@ function planOptions(date, state) {
 }
 
 /** This function writes the files of a plan: the state, the plan of the shards and the matrix of the workflow. */
-function writePlan(out, state, night, options) {
+function writePlan(out: string, state: State, night: NightPlan, options: RoundOptions): void {
   // The night keeps the scale and the budget of each round, so the summary scores the cost model.
-  const entry = state.nights.find((n) => n.date === night.date);
+  // The plan functions add the night of the plan to the state.
+  const entry = state.nights.find((n) => n.date === night.date)!;
   entry.cost = { ...(entry.cost ?? {}), [night.round]: { scale: options.scale, budget: options.budget, maxShards: options.maxShards } };
   writeJson(join(out, "state.json"), state, 0);
   writeJson(join(out, "plan.json"), {
@@ -152,49 +240,52 @@ function writePlan(out, state, night, options) {
 }
 
 /** This function reads the records and the shard files of a folder, also in the folders of `gh run download`. */
-function readRecords(dir) {
-  const records = [];
-  const shards = [];
+function readRecords(dir: string): { records: LayoutRecord[]; shards: ShardFacts[] } {
+  const records: LayoutRecord[] = [];
+  const shards: ShardFacts[] = [];
   if (!existsSync(dir)) return { records, shards };
   for (const name of readdirSync(dir, { recursive: true }).map(String).sort()) {
-    if (name.endsWith(".jsonl")) for (const line of readFileSync(join(dir, name), "utf8").split("\n")) if (line.trim() !== "") records.push(JSON.parse(line));
-    if (/(^|[\\/])shard-\d+-\d+\.json$/.test(name)) shards.push(readJson(join(dir, name)));
+    if (name.endsWith(".jsonl")) for (const line of readFileSync(join(dir, name), "utf8").split("\n")) if (line.trim() !== "") records.push(JSON.parse(line) as LayoutRecord);
+    if (/(^|[\\/])shard-\d+-\d+\.json$/.test(name)) shards.push(readJson(join(dir, name)) as ShardFacts);
   }
   return { records, shards };
 }
 
 /** This function adds the records and the shard times of a round to the state, and counts the jobs of the plan without a record. */
-function applyRound(state, inputs, dir, plan) {
+function applyRound(state: State, inputs: readonly SweepInput[], dir: string, plan: PlanFile): void {
   const { records, shards } = readRecords(dir);
   // A round with jobs and no records examined nothing: the download failed, or each shard stopped. The sweep stops, and the state does not change.
   if (plan.units.length > 0 && records.length === 0)
     throw new Error(`Round ${plan.round} has ${plan.units.length} units, but the folder ${dir} has no records (*.jsonl). The sweep expected the records of each shard of the round.`);
   applyRecords(state, records, inputs, plan.date);
-  const night = state.nights.find((n) => n.date === plan.date);
-  for (const s of shards)
-    night.shards.push({ round: s.round, shard: s.shard, planned: s.planned, real: s.real, ...(plan.costModel === undefined ? {} : { costModel: plan.costModel }), ...(s.stopped === true ? { stopped: true, plannedDone: s.plannedDone, done: s.done, units: s.units } : {}) });
+  // applyRecords adds the night of the date to the state.
+  const night = state.nights.find((n) => n.date === plan.date)!;
+  for (const s of shards) {
+    const entry = { round: s.round, shard: s.shard, planned: s.planned, real: s.real, ...(plan.costModel === undefined ? {} : { costModel: plan.costModel }) };
+    night.shards.push(s.stopped === true ? { ...entry, stopped: true, plannedDone: s.plannedDone, done: s.done, units: s.units } : entry);
+  }
   const seen = new Set(records.map((r) => `${r.strategy}|${r.input}`));
   night.missing += plan.units.reduce((n, u) => n + u.configs.filter((c) => !seen.has(`${c}|${u.input}`)).length, 0);
   console.log(`round ${plan.round}: ${records.length} records of ${shards.length} shards.`);
 }
 
 /** The date of today in UTC. */
-const today = () => new Date().toISOString().slice(0, 10);
+const today = (): string => new Date().toISOString().slice(0, 10);
 
 /** The claim of the cost model for each shard (`docs/SWEEP.md`): the real minutes are within 25% of the planned minutes times the scale. */
 const COST_CLAIM = { p: 0.6, within: 0.25 };
 
 if (command === "plan") {
-  const set = args.corpus ?? SET_V2;
-  const date = args.date || today();
+  const set = args["corpus"] ?? SET_V2;
+  const date = args["date"] || today();
   const { sweep } = corpusOf(set);
   const epoch = `${set}_packing-${versionOf("packing")}_highways-${versionOf("highways")}_space-${BENCH_SPACE_VERSION}`;
-  const file = join(args.data ?? "data", "epochs", epoch, "state.json");
+  const file = join(args["data"] ?? "data", "epochs", epoch, "state.json");
   // The data branch keeps the summary in its own file, so the state of the branch has no summary.
   const summaryFile = join(dirname(file), "summary.json");
-  const state = existsSync(file) ? { ...readJson(file), summary: existsSync(summaryFile) ? summaryRows(readJson(summaryFile)) : [] } : emptyState(epoch, set, sweep, undefined, date);
+  const state: State = existsSync(file) ? { ...(readJson(file) as State), summary: existsSync(summaryFile) ? summaryRows(readJson(summaryFile) as SummaryTable) : [] } : emptyState(epoch, set, sweep, undefined, date);
   console.log(existsSync(file) ? `The epoch ${epoch} has ${state.nights.length} nights.` : `The epoch ${epoch} is new.`);
-  const out = args.out ?? "night";
+  const out = args["out"] ?? "night";
   if (state.nights.some((n) => n.date === date)) {
     // A second run of one date, for example a manual run and the schedule on the same night, does nothing. The workflow skips the other jobs.
     console.log(`The state has the night ${date} already. The run skips it.`);
@@ -203,15 +294,15 @@ if (command === "plan") {
     writeJson(join(out, "matrix.json"), []);
   } else {
     const options = planOptions(date, state);
-    if (args.design !== undefined) writePlan(out, state, planDesign(state, sweep, { ...options, n: numberArg("design", 0) }), options);
+    if (args["design"] !== undefined) writePlan(out, state, planDesign(state, sweep, { ...options, n: numberArg("design", 0) }), options);
     else writePlan(out, state, planRound1(state, sweep, options), options);
   }
 } else if (command === "run") {
-  const dir = args.plan ?? "night";
-  const plan = readJson(join(dir, "plan.json"));
-  const shard = Number(args.shard ?? 0);
-  if (!(Number.isInteger(shard) && shard >= 0 && shard < plan.shards.length)) throw new RangeError(`The shard is an integer from 0 to ${plan.shards.length - 1}, not ${args.shard}.`);
-  const out = args.out ?? "records";
+  const dir = args["plan"] ?? "night";
+  const plan = readJson(join(dir, "plan.json")) as PlanFile;
+  const shard = Number(args["shard"] ?? 0);
+  if (!(Number.isInteger(shard) && shard >= 0 && shard < plan.shards.length)) throw new RangeError(`The shard is an integer from 0 to ${plan.shards.length - 1}, not ${args["shard"]}.`);
+  const out = args["out"] ?? "records";
   mkdirSync(out, { recursive: true });
   const file = join(out, `records-${plan.round}-${shard}.jsonl`);
   writeFileSync(file, "");
@@ -219,7 +310,7 @@ if (command === "plan") {
   const byInput = new Map(rows.map((row) => [row.entry.id, row]));
   const units = new Map(plan.units.map((u) => [u.id, u]));
   const env = runEnv();
-  const commit = process.env.GITHUB_SHA;
+  const commit = process.env["GITHUB_SHA"];
   const start = performance.now();
   // With --deadline-minutes, a unit that the cost model does not see ending before the deadline does not start (L81). The shard then stops cleanly.
   // The records of each unit are in the file when the unit ends, so a stop keeps the finished work. The next nights plan the rest.
@@ -227,25 +318,25 @@ if (command === "plan") {
   const scale = plan.scale ?? 1;
   let done = 0;
   let plannedDone = 0;
-  console.log(`round ${plan.round} shard ${shard} of ${plan.shards.length}: ${plan.shards[shard].length} units, ${(plan.loads[shard] / 60000).toFixed(1)} planned minutes`);
-  for (const id of plan.shards[shard]) {
-    const unit = units.get(id);
+  console.log(`round ${plan.round} shard ${shard} of ${plan.shards.length}: ${plan.shards[shard]!.length} units, ${(plan.loads[shard]! / 60000).toFixed(1)} planned minutes`);
+  for (const id of plan.shards[shard]!) {
+    const unit = units.get(id)!;
     // The first unit always runs, so a unit that is longer than the deadline does not wait for ever.
     if (done > 0 && performance.now() - start + unit.cost * scale > deadline) {
       console.log(`The shard stops before ${unit.id}: it is ${((performance.now() - start) / 60000).toFixed(1)} minutes in, and the unit has ${((unit.cost * scale) / 60000).toFixed(1)} expected minutes.`);
       break;
     }
-    const { input, entry } = byInput.get(unit.input);
-    const runs = unit.configs.map((c) => ({ id: c, run: plan.runs[c] }));
+    const { input, entry } = byInput.get(unit.input)!;
+    const runs = unit.configs.map((c) => ({ id: c, run: plan.runs[c]! }));
     const pairs = runs.filter((r) => r.run.lane === undefined && r.run.iter === undefined).map((r) => r.run.pair);
-    const lanes = runs.filter((r) => r.run.lane !== undefined).map((r) => r.run.lane);
-    const iterate = runs.filter((r) => r.run.iter !== undefined).map((r) => r.run.iter);
+    const lanes = runs.filter((r) => r.run.lane !== undefined).map((r) => r.run.lane!);
+    const iterate = runs.filter((r) => r.run.iter !== undefined).map((r) => r.run.iter!);
     const byPair = new Map(runs.map((r) => [r.run.pair, r.id]));
     const t0 = performance.now();
     // With freeRoutes, the runner frees each route after its record (L63). The records do not change.
     const records = runInput(input, entry.cell, { env, corpus: plan.corpus, pairs, lanes, iterate, freeRoutes: true, ...(commit === undefined ? {} : { commit }) })
       .filter((r) => byPair.has(r.strategy))
-      .map((r) => ({ ...r, strategy: byPair.get(r.strategy), options: { ...r.options, pair: r.strategy } }));
+      .map((r) => ({ ...r, strategy: byPair.get(r.strategy)!, options: { ...r.options, pair: r.strategy } }));
     appendFileSync(file, records.map((r) => JSON.stringify(r) + "\n").join(""));
     const skipped = records.filter((r) => r.skipped !== undefined).length;
     const passes = runs.reduce((n, r) => n + r.run.passes, 0);
@@ -255,36 +346,36 @@ if (command === "plan") {
     done++;
     plannedDone += unit.cost;
   }
-  const count = plan.shards[shard].length;
+  const count = plan.shards[shard]!.length;
   writeJson(join(out, `shard-${plan.round}-${shard}.json`), {
     round: plan.round,
     shard,
-    planned: plan.loads[shard] / 60000,
+    planned: plan.loads[shard]! / 60000,
     real: (performance.now() - start) / 60000,
     ...(done < count ? { stopped: true, done, units: count, plannedDone: plannedDone / 60000 } : {}),
   });
 } else if (command === "race") {
-  const dir = args.night ?? "night";
-  const state = readJson(join(dir, "state.json"));
-  const plan = readJson(join(dir, "plan.json"));
+  const dir = args["night"] ?? "night";
+  const state = readJson(join(dir, "state.json")) as State;
+  const plan = readJson(join(dir, "plan.json")) as PlanFile;
   const { sweep } = corpusOf(state.corpus);
-  applyRound(state, sweep, args.records ?? "records", plan);
+  applyRound(state, sweep, args["records"] ?? "records", plan);
   const outcomes = raceNight(state, sweep, { date: plan.date });
-  const labels = {};
+  const labels: Record<string, number> = {};
   for (const o of outcomes) labels[o.label] = (labels[o.label] ?? 0) + 1;
-  console.log(`race of ${plan.date}: ${JSON.stringify(state.nights.at(-1).race)}, labels ${JSON.stringify(labels)}`);
+  console.log(`race of ${plan.date}: ${JSON.stringify(state.nights.at(-1)!.race)}, labels ${JSON.stringify(labels)}`);
   const options = planOptions(plan.date, state);
-  writePlan(args.out ?? "night2", state, planRound2(state, sweep, options), options);
+  writePlan(args["out"] ?? "night2", state, planRound2(state, sweep, options), options);
 } else if (command === "summarize") {
-  const dir = args.night ?? "night2";
-  const state = readJson(join(dir, "state.json"));
-  const plan = readJson(join(dir, "plan.json"));
+  const dir = args["night"] ?? "night2";
+  const state = readJson(join(dir, "state.json")) as State;
+  const plan = readJson(join(dir, "plan.json")) as PlanFile;
   const { sweep } = corpusOf(state.corpus);
-  applyRound(state, sweep, args.records ?? "records", plan);
-  const night = state.nights.find((n) => n.date === plan.date);
-  if (args.run) night.run = args.run;
-  const out = args.out ?? "out";
-  const data = args.data ?? "data";
+  applyRound(state, sweep, args["records"] ?? "records", plan);
+  const night = state.nights.find((n) => n.date === plan.date)!;
+  if (args["run"]) night.run = args["run"];
+  const out = args["out"] ?? "out";
+  const data = args["data"] ?? "data";
   // The new tree of the data branch: each file of the old tree, and the files of this epoch.
   mkdirSync(out, { recursive: true });
   if (existsSync(data)) cpSync(data, out, { recursive: true, filter: (from) => !/[\\/]\.git([\\/]|$)/.test(from) });
@@ -296,7 +387,7 @@ if (command === "plan") {
   const facts = nightFacts(state, night);
   writeJson(join(epochDir, "nights", `${plan.date}.json`), { ...night, counts, facts });
   const indexFile = join(out, "index.json");
-  const index = existsSync(indexFile) ? readJson(indexFile) : { schema: "sweep-index/1", epochs: {} };
+  const index: IndexFile = existsSync(indexFile) ? (readJson(indexFile) as IndexFile) : { schema: "sweep-index/1", epochs: {} };
   index.latest = state.epoch;
   index.epochs[state.epoch] = { corpus: state.corpus, nights: rest.nights.length, last: plan.date, configs: Object.keys(state.configs).length, counts };
   writeJson(indexFile, index);
@@ -307,8 +398,8 @@ if (command === "plan") {
 }
 
 /** This function gives the facts of a night that the prediction of `docs/SWEEP.md` scores. */
-function nightFacts(state, night) {
-  const misses = {};
+function nightFacts(state: State, night: Night) {
+  const misses: Record<string, { misses: number; of: number }> = {};
   const ids = baselineIds();
   BASELINE_ARM.forEach((name, k) => {
     const rows = state.summary.filter((r) => r.config === ids[k] && r.cell === "headline");
@@ -332,7 +423,7 @@ function nightFacts(state, night) {
 }
 
 /** This function scores the cost model of a night by Brier: one claim for each shard. A stopped shard is a miss. */
-function costModelScore(night) {
+function costModelScore(night: Night) {
   const rows = night.shards.map((s) => {
     const expected = s.planned * (night.cost?.[s.round]?.scale ?? 1);
     const hit = s.stopped !== true && Math.abs(s.real - expected) <= COST_CLAIM.within * expected;
@@ -343,10 +434,11 @@ function costModelScore(night) {
 }
 
 /** This function gives the summary of a night in Markdown. */
-function nightMarkdown(state, night, counts, facts) {
+function nightMarkdown(state: State, night: Night, counts: Record<ConfigStatus, number>, facts: ReturnType<typeof nightFacts>): string {
   const lines = [`# Sweep of ${night.date}`, "", `Epoch \`${state.epoch}\`, seed ${night.seed}${night.run ? `, run ${night.run}` : ""}.`, ""];
   lines.push("| Round | Configs | New | Jobs | Units | Shards | Planned minutes | Longest planned shard |", "|---|---|---|---|---|---|---|---|");
-  for (const [k, r] of [["1", night.round1], ["2", night.round2]]) if (r) lines.push(`| ${k} | ${r.configs} | ${r.sampled} | ${r.jobs} | ${r.units} | ${r.shards} | ${r.minutes.toFixed(1)} | ${r.longest.toFixed(1)} |`);
+  const rounds: [string, RoundFacts | undefined][] = [["1", night.round1], ["2", night.round2]];
+  for (const [k, r] of rounds) if (r) lines.push(`| ${k} | ${r.configs} | ${r.sampled} | ${r.jobs} | ${r.units} | ${r.shards} | ${r.minutes.toFixed(1)} | ${r.longest.toFixed(1)} |`);
   lines.push("", `Race: ${JSON.stringify(night.race ?? {})}.`, "", `Status counts: ${JSON.stringify(counts)}.`, "");
   lines.push(`Shards: ${night.shards.length}, the longest ${facts.longestShard.toFixed(1)} real minutes. Planned ${facts.plannedMinutes.toFixed(1)} minutes in all, real ${facts.realMinutes.toFixed(1)}.`);
   const cm = facts.costModel;
