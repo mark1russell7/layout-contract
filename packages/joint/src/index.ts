@@ -1,6 +1,7 @@
 export * from "./browser.ts";
 export * from "./env.ts";
 export * from "./memory-gate.ts";
+export * from "./config-cost.ts";
 export * from "./plan.ts";
 export * from "./split.ts";
 export * from "./sweep.ts";

@@ -179,6 +179,7 @@ The result of the night of 2026-11-02 (run [41384329446](https://github.com/mark
 - B2: the cause is a fault in the code, not the budget. In `scripts/sweep.mjs`, the constant `COST_CLAIM` came after the code of the commands. Thus `summarize` read it before its initialization. #130 moves it and adds a test of the order. The workflow `sweep-summarize.yml` puts the night on the branch again.
 - B3: the gate and the limit run had one concurrency group. The key of the group has the event at this time.
 - B4: one scale for all shards does not see which spec is slow. The next cost model gets a scale for each family of specs, from the 32 shards of this night. The next night scores it.
+- B4, after the analysis: a scale for each spec did not help. The cost factor of each config helps, so the sweep uses it. "The cost factors of the configs" tells the data.
 
 ## The score
 
@@ -285,6 +286,32 @@ The plan uses the model of `packages/joint/data/cost-margins.json`. `docs/JOINT-
 - The time of an input is `pairs × pair(boxes, edges) + passes × lane(boxes, edges)` milliseconds, times the margin of its spec.
 - The lane term is `8.75 + 0.853 × boxes² / 1000 + 0.782 × boxes × edges / 1000`. It comes from the run `40757153151` of L13.
 - Each unit of the sweep prints its pairs and its lane passes. `fit-cost.mjs` adds the units of one input, and fits both terms from a night. The pairs of a unit count each round of an iteration chain as 3 pairs.
+
+### The cost factors of the configs
+
+The model above gives each pair the same time. The records of the night of 2026-11-02 show that the pack entry and the router of a config change the time much more.
+
+- In the records of that night, the router `search` takes approximately 8 times the median record of the same input. The pack entries with a search (`anneal`, `genetic`, `tabu`) take approximately 2 to 4 times.
+- Since this change, `jobCost` multiplies the cost of a job by the factor of its pack entry and the factor of its router (`configFactor`).
+- `scripts/fit-config-cost.ts` fits the factors from the records of one night, and writes `packages/joint/data/config-cost.json`. The fit uses medians, so a few slow records do not change it much.
+- The fit has the form `log(ms) = input + pack + router`. Thus the factors come from the comparison of configs on the same input.
+- `level` keeps the planned minutes of the jobs of the night of the fit. `scale` is the median of real over planned minutes of its 32 shards with the factors: 1.504.
+- Each plan and each shard entry keeps the id of the cost model (`costModel`). `costScale` uses only the shards of the current model. Before such a shard, it uses `scale`.
+
+The test of the models on the night of 2026-11-02 (run [41384329446](https://github.com/mark1russell7/layout-contract/actions/runs/41384329446)). Each model gets its fit and its scale from one round. The table gives the count of the shards of the other round within 25%:
+
+| Model | Fit on round 1, shards of round 2 | Fit on round 2, shards of round 1 |
+|---|---|---|
+| One scale | 1 of 18 | 3 of 14 |
+| A scale for each family of specs | 1 of 18 | 3 of 14 |
+| A scale for each spec (3 forms of the fit) | 4 of 18 | 2 to 6 of 14 |
+| A factor for each pack entry and router | 6 of 18 | 7 of 14 |
+
+- On all 32 shards of the night, each model with its median scale, 6 shards are within 25% without the factors and 8 with them.
+- In round 2, real over planned minutes of a shard is 0.36 to 3.77 without the factors. With the factors, it is 0.46 to 2.50.
+- The scale of the old model does not fit the new model. Thus the old shards do not count for `costScale`.
+- The spread that is left comes in part from sizes. At 1000 boxes, the factor of a router can be half or 1.5 times its value over all inputs. A factor for each class of size is a next step.
+- The first night after this change scores the factors (the prediction `layout-stack-L81-cost-factors`).
 
 ## The settings of the repository
 

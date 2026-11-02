@@ -7,6 +7,7 @@ import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "no
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterAll, describe, expect, it } from "vitest";
+import { CONFIG_COST, CONFIG_COST_ID } from "./config-cost.ts";
 
 const root = join(import.meta.dirname, "..");
 const dir = mkdtempSync(join(tmpdir(), "sweep-commands-"));
@@ -64,6 +65,11 @@ describe("the commands of the sweep script", () => {
     expect(first).toBe("2026-01-01");
     const tree = join(dir, "2026-01-01", "out");
     expect(readFileSync(join(tree, "night.md"), "utf8")).toContain("# Sweep of 2026-01-01");
+    // A night without shards of the cost model plans with the scale of the fit of the model. Each shard entry keeps the model.
+    expect((JSON.parse(readFileSync(join(dir, "2026-01-01", "night", "plan.json"), "utf8")) as { scale: number }).scale).toBe(CONFIG_COST.scale);
+    const index1 = JSON.parse(readFileSync(join(tree, "index.json"), "utf8")) as { latest: string };
+    const state1 = JSON.parse(readFileSync(join(tree, "epochs", index1.latest, "state.json"), "utf8")) as { nights: { shards: { costModel?: string }[] }[] };
+    expect(state1.nights[0]!.shards.map((s) => s.costModel)).toEqual([CONFIG_COST_ID, CONFIG_COST_ID]);
 
     // The second night reads the state of the first night, and the check compares its tree with the tree of the first night.
     const second = night("2026-01-02", tree, tree);
