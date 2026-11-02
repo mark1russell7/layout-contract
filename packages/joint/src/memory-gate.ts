@@ -1,4 +1,5 @@
 // The memory gate of roadmap item L81. The probe runs the largest input of each family of the corpus, and the gate examines the peak RSS of each probe.
+// For the inputs of `MEMORY_LIMITS`, the gate also examines the allocation and the live heap in the mode `LIMITS_MODE`.
 // The bench gives the list of the inputs, so the gate cannot leave out a family.
 
 /** One input of the corpus with its planned cost (`plannedCost`). */
@@ -7,8 +8,64 @@ export interface CostedInput {
   readonly cost: number;
 }
 
-/** The limit of the gate in MB: the target of L77, a peak RSS of less than 3 GB on each input. */
-export const MEMORY_GATE_MB = 3072;
+/**
+ * The ceiling of the peak RSS in MB, for each probe (`docs/JOINT-BENCH.md`, "The limits of the memory gate").
+ * The peak RSS changes with the time of the GC, so this ceiling is a guard against a crash, not a regression gate.
+ * The value is the worst peak of the 15 probes of the run 41408115284 plus their spread: 4503 + (4503 - 3215) = 5791.
+ */
+export const MEMORY_GATE_MB = 5791;
+
+/** The heap mode of the probes that the limits of `MEMORY_LIMITS` examine. This mode samples the allocation and forces a GC after each pair. */
+export const LIMITS_MODE = "measure-6144";
+
+/** The limits of one input in the mode `LIMITS_MODE`. A probe fails when a value is more than its limit. */
+export interface MemoryLimit {
+  /** The limit of the sampled allocation of all pairs, in MB. */
+  readonly allocMb: number;
+  /** The limit of the largest retained heap after a pair, in MB. */
+  readonly liveMaxMb: number;
+}
+
+/**
+ * The limits of the inputs that have 5 or more probes on `main` (`docs/JOINT-BENCH.md`, "The limits of the memory gate").
+ * Each limit is the worst value of the 5 probes of the run 41408115284 plus their spread, rounded up to 1 MB.
+ * The margin is at least one step of the measure, so the step of `liveMaxMb` is 1 MB.
+ * The probes of all CPU models count together. The CPU models change the allocation by at most 0.16%, less than the spread of the runs.
+ */
+export const MEMORY_LIMITS: Readonly<Record<string, MemoryLimit>> = {
+  "joint-v2/rect-grid.freeHeight.holes.none.bimodal.n1000.e-dense.hubs.none.free.sp-gap/s1": { allocMb: 2185752, liveMaxMb: 369 },
+  "joint-v2/rect-grid.freeHeight.holes.none.bimodal.n1000.e-dense.hubs.none.free.sp-gap/s2": { allocMb: 2892397, liveMaxMb: 370 },
+  "joint-v2/rect-grid.freeHeight.holes.none.bimodal.n1000.e-dense.hubs.none.free.sp-gap/s3": { allocMb: 3181407, liveMaxMb: 451 },
+};
+
+/** One job of the gate: a group of inputs with commas, one heap mode, and the number of the repeat. */
+export interface GateJob {
+  readonly input: string;
+  readonly mode: string;
+  readonly repeat: number;
+}
+
+/**
+ * This function gives the jobs of the gate: each group in each mode, for each repeat.
+ * With `limits`, each input with a limit also gets a job of its own in the mode `LIMITS_MODE`.
+ * One seed of input F takes 50 to 192 minutes in that mode, so each seed has its own job. These jobs come first, because they are long.
+ */
+export function gateJobs(groups: readonly string[], modes: readonly string[], repeats: number, limits?: Readonly<Record<string, MemoryLimit>>): GateJob[] {
+  const limited = limits === undefined ? [] : Object.keys(limits);
+  const jobs: GateJob[] = [];
+  for (let repeat = 1; repeat <= repeats; repeat++) {
+    for (const input of limited) jobs.push({ input, mode: LIMITS_MODE, repeat });
+    for (const mode of modes) for (const input of groups) if (input !== "") jobs.push({ input, mode, repeat });
+  }
+  return jobs;
+}
+
+/** This function gives each input of each job with the mode of the job, one time. The gate expects a probe for each of them. */
+export function expectedProbes(jobs: readonly GateJob[]): { input: string; mode: string }[] {
+  const seen = new Map<string, { input: string; mode: string }>();
+  for (const job of jobs) for (const input of job.input.split(",")) if (input !== "") seen.set(`${job.mode}|${input}`, { input, mode: job.mode });
+  return [...seen.values()];
+}
 
 /** This function gives the family of an input id: the id without its seed. For example, `joint-v2/cards.x/s2` gives `joint-v2/cards.x`. */
 export function familyOf(id: string): string {
@@ -36,6 +93,10 @@ export interface ProbeResult {
   readonly mode: string;
   readonly status: number;
   readonly peakRssMb: number | undefined;
+  /** The sampled allocation from `summary.jsonl`, in the modes that sample it. */
+  readonly allocMb?: number | undefined;
+  /** The largest retained heap from `summary.jsonl`, in the modes that force a GC. */
+  readonly liveMaxMb?: number | undefined;
 }
 
 /** One row of the gate: one input in one mode. The field `reason` tells why the row fails, and it is empty when the row passes. */
@@ -45,6 +106,8 @@ export interface GateRow {
   readonly mode: string;
   readonly status: number | undefined;
   readonly peakRssMb: number | undefined;
+  readonly allocMb: number | undefined;
+  readonly liveMaxMb: number | undefined;
   readonly reason: string;
 }
 
@@ -56,11 +119,12 @@ export interface GateResult {
 }
 
 /**
- * This function examines the probes for each expected input in each mode. A row fails in these conditions:
+ * This function examines the probes of each expected input in its mode. A row fails in these conditions:
  *
  * - The input has no probe in the mode.
  * - The status is not 0. The status 134 is an OOM of V8.
  * - The probe has no peak, or the peak is the limit or more.
+ * - In the mode `LIMITS_MODE`, the input has an entry in `limits`, and the probe has no value or a value above its limit.
  *
  * The gate also fails when it has no rows: no expected input or no mode.
  *
@@ -68,22 +132,38 @@ export interface GateResult {
  *
  * The rows with the largest peaks come first, and the rows without a peak come before them.
  */
-export function memoryGate(expected: readonly string[], modes: readonly string[], results: readonly ProbeResult[], limitMb: number = MEMORY_GATE_MB): GateResult {
+export function memoryGate(
+  expected: readonly { input: string; mode: string }[],
+  results: readonly ProbeResult[],
+  limitMb: number = MEMORY_GATE_MB,
+  limits: Readonly<Record<string, MemoryLimit>> = MEMORY_LIMITS,
+): GateResult {
   const byKey = new Map<string, ProbeResult[]>();
   for (const r of results) byKey.set(`${r.mode}|${r.input}`, [...(byKey.get(`${r.mode}|${r.input}`) ?? []), r]);
   const rows: GateRow[] = [];
-  for (const mode of modes)
-    for (const input of expected) {
-      const probes = byKey.get(`${mode}|${input}`) ?? [undefined];
-      for (const r of probes) {
-        const reason =
-          r === undefined ? "no probe" : r.status === 134 ? "OOM (status 134)" : r.status !== 0 ? `status ${r.status}` : r.peakRssMb === undefined ? "no peak" : r.peakRssMb >= limitMb ? `peak ${r.peakRssMb} MB, limit ${limitMb} MB` : "";
-        rows.push({ family: familyOf(input), input, mode, status: r?.status, peakRssMb: r?.peakRssMb, reason });
-      }
+  for (const { input, mode } of expected) {
+    const limit = mode === LIMITS_MODE ? limits[input] : undefined;
+    const probes = byKey.get(`${mode}|${input}`) ?? [undefined];
+    for (const r of probes) {
+      const reason =
+        r === undefined ? "no probe" : r.status === 134 ? "OOM (status 134)" : r.status !== 0 ? `status ${r.status}` : r.peakRssMb === undefined ? "no peak" : r.peakRssMb >= limitMb ? `peak ${r.peakRssMb} MB, limit ${limitMb} MB` : limitReason(r, limit);
+      rows.push({ family: familyOf(input), input, mode, status: r?.status, peakRssMb: r?.peakRssMb, allocMb: r?.allocMb, liveMaxMb: r?.liveMaxMb, reason });
     }
+  }
   rows.sort((a, b) => (b.peakRssMb ?? Infinity) - (a.peakRssMb ?? Infinity));
   // A gate with no rows examined nothing, so it fails.
   return { pass: rows.length > 0 && rows.every((r) => r.reason === ""), limitMb, rows };
+}
+
+/** This function gives the reason why a probe breaks its limits, or an empty string. It gives an empty string when the input has no limits. */
+function limitReason(r: ProbeResult, limit: MemoryLimit | undefined): string {
+  if (limit === undefined) return "";
+  const problems: string[] = [];
+  if (r.allocMb === undefined) problems.push("no allocation");
+  else if (r.allocMb > limit.allocMb) problems.push(`allocation ${r.allocMb} MB, limit ${limit.allocMb} MB`);
+  if (r.liveMaxMb === undefined) problems.push("no live heap");
+  else if (r.liveMaxMb > limit.liveMaxMb) problems.push(`live heap ${r.liveMaxMb} MB, limit ${limit.liveMaxMb} MB`);
+  return problems.join(", ");
 }
 
 /** This function gives the gate as Markdown: the result, the count of the failed rows, and a table of all rows. */
@@ -94,8 +174,8 @@ export function gateMarkdown(gate: GateResult): string {
     "",
     `The gate examined ${gate.rows.length} probes, with the limit ${gate.limitMb} MB. ${failed.length} failed.`,
     "",
-    "| Input | Mode | Status | Peak RSS (MB) | Result |",
-    "| --- | --- | --- | --- | --- |",
-    ...gate.rows.map((r) => `| ${r.input} | ${r.mode} | ${r.status ?? ""} | ${r.peakRssMb ?? ""} | ${r.reason === "" ? "pass" : r.reason} |`),
+    "| Input | Mode | Status | Peak RSS (MB) | Allocation (MB) | Largest live heap (MB) | Result |",
+    "| --- | --- | --- | --- | --- | --- | --- |",
+    ...gate.rows.map((r) => `| ${r.input} | ${r.mode} | ${r.status ?? ""} | ${r.peakRssMb ?? ""} | ${r.allocMb ?? ""} | ${r.liveMaxMb ?? ""} | ${r.reason === "" ? "pass" : r.reason} |`),
   ].join("\n") + "\n";
 }

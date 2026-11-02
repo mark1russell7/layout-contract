@@ -9,7 +9,8 @@
 //                                                                            writes <dir>/report.json and <dir>/report.md
 //   probe --inputs <id[,id]> --out <dir> [--corpus <set>]                  writes <dir>/records-probe.jsonl and <dir>/probe.jsonl (L77)
 //   families [--corpus <set>]                                               prints the JSON list of the probe groups: the tied largest inputs of each family (L81)
-//   gate --probes <dir> --expected <file> --modes <m[,m]> [--limit-mb <n>]  examines the probes and writes <dir>/gate.md (L81)
+//   jobs --groups <file> --modes <m[,m]> --repeats <n> [--limits on]       prints the JSON list of the jobs of the gate (L81)
+//   gate --probes <dir> --expected <file> [--limit-mb <n>]                 examines the probes of the jobs of <file> and writes <dir>/gate.md (L81)
 //                                                                            with lane pairs, also <dir>/report-without-lanes.json and .md
 //
 // The corpus is `joint-v2` by default. The slice `pr` is the small slice of the pull request: seed 1 of the specs with count 10 and of the fixed cases.
@@ -29,7 +30,7 @@
 // analyze also compares each iteration pair with a cap above 1 with round 1 of its chain, the pair `lanes-iter1` of the same pack entry and router.
 // analyze reads the folds of the greedy portfolios from the split "default" of the split file of the corpus (corpus/splits).
 // analyze fails when an input of the manifest has no records, unless the file of `--allow-missing` lists it. The files list one input id on each line.
-import { appendFileSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
+import { appendFileSync, existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { Session } from "node:inspector";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -38,7 +39,9 @@ import {
   BASELINE,
   DENSE_HUBS,
   checkCorpus,
+  expectedProbes,
   familyProbeGroups,
+  gateJobs,
   gateMarkdown,
   idList,
   isLanePack,
@@ -52,6 +55,7 @@ import {
   lanePasses,
   loadSplit,
   MEMORY_GATE_MB,
+  MEMORY_LIMITS,
   memoryGate,
   manifestJson,
   PACK_ENTRIES,
@@ -346,22 +350,35 @@ if (command === "check") {
 } else if (command === "families") {
   // The groups of the memory gate: the inputs with the largest planned cost of each family, with the pairs of the default bench. Each group is one string with commas.
   console.log(JSON.stringify(familyProbeGroups(costedRows(corpusSlice(), PACK_ENTRIES.length * ROUTERS.length, 0)).map((group) => group.join(","))));
-} else if (command === "gate") {
-  // Each folder under --probes with an input.txt is the probe of one input: input.txt, mode.txt, status.txt and probe.jsonl. A job of one family has a folder for each seed.
-  const dir = args.probes ?? "probes";
-  // The file of --expected is the JSON list of `families`: one string with commas for each family.
-  const expected = JSON.parse(readFileSync(args.expected, "utf8")).flatMap((group) => group.split(",")).filter((id) => id !== "");
-  if (expected.length === 0) throw new RangeError(`The gate needs the expected inputs, and ${args.expected} has none.`);
+} else if (command === "jobs") {
+  // The file of --groups is the JSON list of `families`, or another list of groups with commas. With `--limits on`, each input of `MEMORY_LIMITS` also gets a job in its mode.
+  const groups = JSON.parse(readFileSync(args.groups, "utf8"));
   const modes = (args.modes ?? "").split(",").filter((m) => m !== "");
-  if (modes.length === 0) throw new RangeError("The gate needs --modes <m[,m]>.");
+  console.log(JSON.stringify(gateJobs(groups, modes, Number(args.repeats ?? 1), args.limits === "on" ? MEMORY_LIMITS : undefined)));
+} else if (command === "gate") {
+  // Each folder under --probes with an input.txt is the probe of one input: input.txt, mode.txt, status.txt, probe.jsonl and summary.jsonl. A job of one family has a folder for each seed.
+  const dir = args.probes ?? "probes";
+  // The file of --expected is the JSON list of `jobs`. The gate expects a probe of each input of each job in the mode of the job.
+  const expected = expectedProbes(JSON.parse(readFileSync(args.expected, "utf8")));
+  if (expected.length === 0) throw new RangeError(`The gate needs the expected probes, and ${args.expected} has none.`);
   const text = (sub, name) => readFileSync(join(dir, sub, name), "utf8").trim();
   const subs = readdirSync(dir, { recursive: true }).map(String).filter((n) => n.split(/[\\/]/).at(-1) === "input.txt").map((n) => dirname(n));
   const results = subs.map((sub) => {
     // The probe writes an empty probe.jsonl at its start, and the facts of an input at its end. Thus an OOM gives no facts for the input.
     const facts = readFileSync(join(dir, sub, "probe.jsonl"), "utf8").split("\n").filter((l) => l !== "").map((l) => JSON.parse(l));
-    return { input: text(sub, "input.txt"), mode: text(sub, "mode.txt"), status: Number(text(sub, "status.txt")), peakRssMb: facts.length === 0 ? undefined : Math.max(...facts.map((f) => f.maxRss)) };
+    // summary.jsonl has one line for the input when the probe ended. The modes without a sampler or a forced GC write null.
+    const summaryFile = join(dir, sub, "summary.jsonl");
+    const summary = existsSync(summaryFile) ? readFileSync(summaryFile, "utf8").split("\n").filter((l) => l !== "").map((l) => JSON.parse(l)).at(-1) : undefined;
+    return {
+      input: text(sub, "input.txt"),
+      mode: text(sub, "mode.txt"),
+      status: Number(text(sub, "status.txt")),
+      peakRssMb: facts.length === 0 ? undefined : Math.max(...facts.map((f) => f.maxRss)),
+      allocMb: summary?.allocMb ?? undefined,
+      liveMaxMb: summary?.liveMaxMb ?? undefined,
+    };
   });
-  const gate = memoryGate(expected, modes, results, Number(args["limit-mb"] ?? MEMORY_GATE_MB));
+  const gate = memoryGate(expected, results, Number(args["limit-mb"] ?? MEMORY_GATE_MB));
   writeFileSync(join(dir, "gate.md"), gateMarkdown(gate));
   console.log(`gate: ${gate.pass ? "pass" : "fail"}, ${gate.rows.filter((r) => r.reason !== "").length} of ${gate.rows.length} probes failed.`);
   if (!gate.pass) process.exitCode = 1;

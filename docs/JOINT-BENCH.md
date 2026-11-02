@@ -1317,7 +1317,7 @@ The gate takes its inputs from the bench, so it cannot leave out a family.
 
 - `bench.mjs families` gives the input with the largest planned cost of each family. A family is an input id without its seed. `joint-v2` has 101 families.
 - The workflow `memory-probe.yml` uses these inputs by default. The mode `bench-6144` has the heap cap of the bench and no forced GC.
-- The job `gate` fails when an input has no probe, an OOM or another error, or a peak RSS of 3072 MB or more.
+- The job `gate` fails when an input has no probe, an OOM or another error, or a peak RSS at the ceiling or more. The limits of input F are in "The limits of the memory gate".
 - The seeds of a family often have the same planned cost. Then the gate probes each of these seeds, and it fails on the worst seed. A gate on seed 1 alone is a gate on a chosen input. The seeds of the dense input with hubs peaked from 3438 MB to 4287 MB.
 - `joint-v2` gives 293 inputs in 101 groups: a group of 3 seeds, or a group of 1 input. A matrix of GitHub has a maximum of 256 jobs, so each job probes one group. Each seed of the group runs in its own process, one after the other.
 - The gate runs each night on main when the sweep on main ends, also after a failed sweep. Thus the heavy jobs of the two do not overlap. The gate writes the sweep run that it followed in `gate.md`.
@@ -1517,3 +1517,85 @@ These runs do not give the limits of `main`, for two causes:
 - Only s1 on AMD EPYC 7763 has 5 runs of one CPU model.
 
 Thus the next run measures `main`, with 5 repeats of each seed. It gives the effect of `9d584c8`, the runs of the limits and the runs of the ceiling. A seed with no CPU model at 5 runs gets more repeats.
+
+### The result of the probe with a heap cap of 2048 MB
+
+The run is [41420167401](https://github.com/mark1russell7/layout-contract/actions/runs/41420167401), on commit `93c6010` of `main`. Each seed ran 1 time, in its own job.
+
+| Claim | p | Result | Hit |
+|---|---|---|---|
+| G1 | 0.70 | Each of the 3 runs ended with status 0 and 270 pairs. | yes |
+| G2 | 0.70 | The peak RSS is 1631 MB on s1, 1725 MB on s2 and 1638 MB on s3. | yes |
+
+The Brier score is 0.089 (2 claims).
+
+- With the smaller cap, the same work ends with a peak of less than half. Thus the peak at a cap of 6144 MB is garbage that V8 collects late. The code does not need that memory.
+- Thus the peak RSS at a cap of 6144 MB is not a regression measure. It gets only the ceiling of the next sections.
+
+### The prediction for the limit run
+
+The limit run measures `main` after `9d584c8`. It has the mode `measure-6144` and 5 repeats of each seed of the dense input with hubs. I wrote these claims before the run:
+
+| Claim | p | Claim text |
+|---|---|---|
+| M1 | 0.70 | On each seed, the mean allocation is less than the smallest allocation of the seed in the A/A repeat. |
+| M2 | 0.70 | On each seed, the largest `liveMaxMb` is within 2% of the A/A value: 368, 369 and 450 MB. |
+| M3 | 0.70 | On each seed, the spread of the allocation (max minus min, divided by min) is less than 1%. |
+
+### The result of the limit run
+
+The run is [41408115284](https://github.com/mark1russell7/layout-contract/actions/runs/41408115284), on commit `93c6010` of `main`. The 15 probes ended with status 0 and 270 pairs. The gate job failed, because it compares the peak RSS with the old limit of 3072 MB.
+
+| Seed | CPU model | Runs | Allocation (MB), min to max | `liveMaxMb` | `liveEndMb` | Peak RSS (MB), min to max | Time (min) |
+|---|---|---|---|---|---|---|---|
+| s1 | AMD EPYC 7763 | 3 | 2178555 to 2180165 | 368 | 59 | 3215 to 4404 | 87 to 88 |
+| s1 | AMD EPYC 9V45 | 1 | 2181901 | 368 | 59 | 4384 | 50 |
+| s1 | AMD EPYC 9V74 | 1 | 2178050 | 368 | 59 | 3762 | 90 |
+| s2 | AMD EPYC 7763 | 2 | 2881221 to 2882930 | 368 to 369 | 59 | 3672 to 4503 | 111 to 112 |
+| s2 | AMD EPYC 9V45 | 1 | 2886809 | 368 | 59 | 3612 | 67 |
+| s2 | Intel Xeon Platinum 8573C | 2 | 2883642 to 2883704 | 368 | 59 | 3670 to 3674 | 91 to 101 |
+| s3 | AMD EPYC 7763 | 3 | 3173755 to 3175543 | 450 | 59 | 3476 to 4043 | 114 to 119 |
+| s3 | AMD EPYC 9V74 | 2 | 3169679 to 3173197 | 450 | 59 | 3365 to 3466 | 96 to 192 |
+
+| Claim | p | Result | Hit |
+|---|---|---|---|
+| M1 | 0.70 | The mean allocation is 2179522 MB on s1, 2883661 MB on s2 and 3173214 MB on s3. These values are 1.3%, 1.0% and 1.1% less than the smallest A/A values. This is the effect of `9d584c8`. | yes |
+| M2 | 0.70 | The largest `liveMaxMb` is 368 MB on s1, 369 MB on s2 and 450 MB on s3. These are the A/A values. | yes |
+| M3 | 0.70 | The spread of the allocation is 0.18% on s1, 0.19% on s2 and 0.19% on s3. | yes |
+
+The Brier score is 0.089 (3 claims).
+
+### The limits of the memory gate
+
+No seed has 5 runs of one CPU model. Thus the limits of each seed use the probes of all CPU models together. Two checks give the reason:
+
+- A6 of the A/A repeat: the CPU models change the allocation by at most 0.12%.
+- The run 41408115284: the CPU models change the allocation by at most 0.16% (s2). This is less than the spread of 0.18% to 0.19% of one seed.
+- The allocation counts the bytes that the code asks for. The speed of the CPU does not change it. The time changes, from 50 to 192 minutes for one seed.
+
+The formula of each limit is the worst value of the 5 probes of the run 41408115284 plus the margin, rounded up to 1 MB. The margin is the larger of two values: the spread of the 5 probes (max minus min), and one step of the measure. The two measures have steps of 1 MB.
+
+| Seed | Allocation (MB): worst + margin | Allocation limit (MB) | `liveMaxMb` (MB): worst + margin | `liveMaxMb` limit (MB) |
+|---|---|---|---|---|
+| s1 | 2181901 + 3851 | 2185752 | 368 + 1 (the spread is 0) | 369 |
+| s2 | 2886809 + 5588 | 2892397 | 369 + 1 | 370 |
+| s3 | 3175543 + 5864 | 3181407 | 450 + 1 (the spread is 0) | 451 |
+
+- The limits are in `MEMORY_LIMITS` of `src/memory-gate.ts`. A test examines each limit against the values of this table.
+- A probe fails when a value is more than its limit, or when it has no value.
+- The ceiling of the peak RSS is the worst peak of the 15 probes plus their spread: 4503 + (4503 - 3215) = 5791 MB. It applies to each probe of each input. It is a guard against a crash, because the peak RSS depends on the time of the GC.
+- The scope: the limits of the allocation and of `liveMaxMb` cover only the 3 seeds of input F, the dense input with hubs. The other 100 families have only the ceiling of the peak RSS.
+
+The nightly gate keeps the mode `bench-6144` on each family, input F too. It also gives each seed of F one job in the mode `measure-6144`, with these limits. One seed takes up to 192 minutes in this mode. Thus 3 seeds in one job take more than the timeout of 340 minutes, and each seed has its own job.
+
+The cost of the 3 jobs comes from the times of the run 41408115284. It is not small:
+
+| Measure | Value |
+|---|---|
+| The time of one job, median (min to max) | s1 87 (50 to 90), s2 101 (67 to 112), s3 117 (96 to 192) minutes |
+| The sum of the medians of the 3 jobs | 305 runner minutes |
+| The last two full nightly gates, [41008166915](https://github.com/mark1russell7/layout-contract/actions/runs/41008166915) and [41042609930](https://github.com/mark1russell7/layout-contract/actions/runs/41042609930) | 978 and 1056 runner minutes, 3.4 and 6.3 hours |
+| The added runner minutes | 29% to 31% |
+| The added time of the run, with 3 jobs at once | approximately 100 minutes |
+
+A nightly gate stops at its start when the last nightly gate examined the same commit. Thus the full cost comes only on a night after a change of `main`.

@@ -10,14 +10,15 @@
 # The input `pairs` runs only these pairs of each input (L81 step 2). A gate of such a run is a diagnostic too.
 # The mode `measure-6144` has the heap cap of `bench-6144`, samples the allocations and forces a full GC after each pair. Its summary.jsonl gives the allocation and the retained heap of each input.
 # The input `repeats` runs each job that count of times, each in its own job and artifact (the A/A repeat of L81). The gate examines each repeat.
-# The job gate examines each probe. It fails when an input has no probe, an OOM or another error, or a peak RSS of the limit or more.
+# The job gate examines each probe. It fails when an input has no probe, an OOM or another error, or a peak RSS of the ceiling or more.
+# In families, each seed of input F also gets a job in the mode measure-6144. The gate compares its allocation and live heap with MEMORY_LIMITS.
 name: Memory probe
 
 on:
   workflow_dispatch:
     inputs:
       inputs:
-        description: "families, or the input ids of joint-v2 with commas between them. Each input gets its own job for each mode. In families, each family gets one job for each mode."
+        description: "families, or the input ids of joint-v2 with commas between them. Each input gets its own job for each mode. In families, each family gets one job for each mode, and each input with limits gets one measure-6144 job."
         type: string
         default: "families"
       modes:
@@ -25,9 +26,9 @@ on:
         type: string
         default: "bench-6144"
       limit-mb:
-        description: "The limit of the gate: the peak RSS in MB that each probe stays under."
+        description: "The ceiling of the gate: the peak RSS in MB that each probe stays under. It is a guard against a crash (docs/JOINT-BENCH.md)."
         type: string
-        default: "3072"
+        default: "5791"
       pairs:
         description: "Empty for each pair, or the pair ids with commas between them, for example maxrects-cp+gaps. Each input then runs only these pairs."
         type: string
@@ -60,7 +61,7 @@ permissions:
 env:
   INPUTS: ${{ inputs.inputs || 'families' }}
   MODES: ${{ inputs.modes || 'bench-6144' }}
-  LIMIT: ${{ inputs.limit-mb || '3072' }}
+  LIMIT: ${{ inputs.limit-mb || '5791' }}
   PAIRS: ${{ inputs.pairs || '' }}
   REPEATS: ${{ inputs.repeats || '1' }}
 
@@ -73,9 +74,7 @@ jobs:
       actions: read
     outputs:
       skip: ${{ steps.changed.outputs.skip }}
-      inputs: ${{ steps.plan.outputs.inputs }}
-      modes: ${{ steps.plan.outputs.modes }}
-      repeats: ${{ steps.plan.outputs.repeats }}
+      jobs: ${{ steps.plan.outputs.jobs }}
     steps:
       # A nightly run stops here in two cases. It has no new data.
       # (1) The last nightly gate examined the same commit of main. Only a run whose job gate passed or failed counts, because a run that stopped here also ends as a success.
@@ -125,8 +124,11 @@ jobs:
           done
           case "$PAIRS" in *[!A-Za-z0-9+,_-]*) echo "The pairs $PAIRS have a character that is not allowed."; exit 1;; esac
           case "$REPEATS" in [1-9]) ;; *) echo "The repeats are a count from 1 to 9, not $REPEATS."; exit 1;; esac
+          limits=off
           if [ "$INPUTS" = families ]; then
             list="$(node scripts/bench.mjs families)"
+            # The inputs of MEMORY_LIMITS (src/memory-gate.ts) get a job of their own in the mode measure-6144, for the limits of the allocation and of the live heap.
+            limits=on
           else
             for i in ${INPUTS//,/ }; do
               case "$i" in joint-v2/*) ;; *) echo "An input id starts with joint-v2/, not $i."; exit 1;; esac
@@ -134,10 +136,11 @@ jobs:
             done
             list="$(printf '%s' "$INPUTS" | jq -Rc 'split(",") | map(select(. != ""))')"
           fi
-          echo "The plan has $(printf '%s' "$list" | jq length) jobs and $(printf '%s' "$list" | jq '[.[] | split(",") | length] | add') inputs for each mode." | tee -a "$GITHUB_STEP_SUMMARY"
-          echo "inputs=$list" >> "$GITHUB_OUTPUT"
-          echo "modes=$(printf '%s' "$MODES" | jq -Rc 'split(",") | map(select(. != ""))')" >> "$GITHUB_OUTPUT"
-          echo "repeats=$(jq -nc --argjson n "$REPEATS" '[range(1; $n + 1)]')" >> "$GITHUB_OUTPUT"
+          printf '%s' "$list" > groups.json
+          # A failed command in a substitution does not stop the step, so the assignment is a command of its own.
+          jobs="$(node scripts/bench.mjs jobs --groups groups.json --modes "$MODES" --repeats "$REPEATS" --limits "$limits")"
+          echo "The plan has $(printf '%s' "$jobs" | jq length) jobs: $(printf '%s' "$list" | jq length) groups for each mode and repeat, and the limits are $limits." | tee -a "$GITHUB_STEP_SUMMARY"
+          echo "jobs=$jobs" >> "$GITHUB_OUTPUT"
 
   probe:
     needs: plan
@@ -149,10 +152,9 @@ jobs:
       fail-fast: false
       # The account runs at most 20 jobs at once, for all repos together. The fleet rule of 2026-10-30 (STRATEGY.md) gives a heavy workflow 3 jobs at once, so gates and releases get runners.
       max-parallel: 3
+      # Each job of the plan has an input group, a mode and a repeat (`bench.mjs jobs`).
       matrix:
-        input: ${{ fromJSON(needs.plan.outputs.inputs) }}
-        mode: ${{ fromJSON(needs.plan.outputs.modes) }}
-        repeat: ${{ fromJSON(needs.plan.outputs.repeats) }}
+        include: ${{ fromJSON(needs.plan.outputs.jobs) }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -232,7 +234,7 @@ jobs:
       - name: Examine the probes
         working-directory: packages/joint
         env:
-          EXPECTED: ${{ needs.plan.outputs.inputs }}
+          EXPECTED: ${{ needs.plan.outputs.jobs }}
           # The sweep that this gate followed, for a run that the end of a sweep started.
           SWEEP_ID: ${{ github.event.workflow_run.id }}
           SWEEP_RESULT: ${{ github.event.workflow_run.conclusion }}
@@ -242,7 +244,7 @@ jobs:
           mkdir -p probes
           printf '%s' "$EXPECTED" > expected.json
           status=0
-          node scripts/bench.mjs gate --probes probes --expected expected.json --modes "$MODES" --limit-mb "$LIMIT" || status=$?
+          node scripts/bench.mjs gate --probes probes --expected expected.json --limit-mb "$LIMIT" || status=$?
           if [ -n "$SWEEP_ID" ]; then
             printf '\nThis gate followed the sweep run [%s](%s), with the result %s.\n' "$SWEEP_ID" "$SWEEP_URL" "$SWEEP_RESULT" >> probes/gate.md
           else
