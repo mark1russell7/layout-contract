@@ -66,7 +66,7 @@ The test compares the candidate with the current default on each input of the co
 | Median | For each guard measure, the median ratio is at most `1 + medianWorse`. |
 | Tail | For each guard measure, at most a `tailShare` of the inputs have a ratio above `1 + tailWorse`. |
 | Gain | One win measure has a median ratio of `1 - gainMin` or better. The sign test and the bootstrap of [The noise guard](#the-noise-guard) pass for it. |
-| Time | The time ratio of an input is `t / b`, with `t` the median time of the candidate and `b` that of the default in one `paired-time/1` report. The test uses 5 CI jobs in mode `process`, each with the A/A arm. The worst median ratio of the 5 jobs is at most `timeRatio`. The tail set holds the inputs with `b` or `t` of `timeFloorMs` or more. On the tail set, the worst `timeTailQ` quantile of the 5 jobs is at most `timeTail`. The large bench fixtures stay in their CI time limit. |
+| Time | The time ratio of an input is `t / b`, with `t` the median time of the candidate and `b` that of the default in one `paired-time/1` report. The test uses 5 CI jobs in mode `fresh`, each with the A/A arm. Each case runs in its own fresh processes. The worst median ratio of the 5 jobs is at most `timeRatio`. The tail set holds the inputs with `b` or `t` of `timeFloorMs` or more. On the tail set, the worst `timeTailQ` quantile of the 5 jobs is at most `timeTail`. The large bench fixtures stay in their CI time limit. |
 | Stability | On the base and change pairs of the corpus, each stability measure is a guard measure. It passes the median and tail tests. |
 
 The A/A arm of the same jobs gives the resolution of the time test, not a fixed constant.
@@ -84,7 +84,7 @@ The A/A arm of the same jobs gives the resolution of the time test, not a fixed 
 - An empty tail set in only some jobs makes the tail decision not valid.
 - The record keeps the 5 medians and tails, the worst A/A values with their spreads, and the CI run. It keeps the CPU model of each job.
 
-CI does the time test, because other jobs on a local machine change the times. CI times the candidate and the default in one job and one process, in alternate order on each input.
+CI does the time test, because other jobs on a local machine change the times. CI times the candidate and the default in one job, with a fresh process for each arm, each input and each round. The order of the arms rotates by the round.
 <!-- /shared:win-test -->
 
 <!-- shared:noise-guard -->
