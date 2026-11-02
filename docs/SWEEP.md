@@ -197,6 +197,8 @@ The dropped and halved configs lose their values in the state. Their rows stay i
 - The artifact `sweep-data` holds the new data tree of the night.
 - The job `publish` pushes the data tree to the branch `sweep-data`. Only this job has `contents: write`.
 - The job `publish` runs only for a run from `main` without `dry-run`. It does not push to `main`.
+- The workflow `sweep-summarize.yml` summarizes the night of an earlier run again, and pushes it to the branch `sweep-data`. Use it when the job `summarize` failed after the rounds ended.
+- `sweep-summarize.yml` refuses a night that is not the next night of the branch. Thus it does not write over the data of a later night.
 
 ### The branch `sweep-data`
 
