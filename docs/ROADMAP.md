@@ -29,6 +29,7 @@ This file lists the items of the roadmap of this repository. The status page of 
 | L71 | next | P2 | A bound-first fast path for labels from a declared character set |
 | L72 | next | P1 | Neat is a family of objectives, not one |
 | L73 | next | P1 | Clarity of structure: macro and micro measures |
+| L85 | next | P2 | CI runs each command of the sweep script on a small fixture |
 
 ## Later
 

@@ -48,8 +48,9 @@ on:
     - cron: "4 5 * * *"
 
 # A new run on the same ref waits for the run before it. A gate record that runs halfway has no value when it stops.
+# The event is in the key: GitHub keeps one pending run per group, and a dispatch with other inputs must not cancel a pending gate (fleet STRATEGY 0e36301bc).
 concurrency:
-  group: memory-probe-${{ github.ref }}
+  group: memory-probe-${{ github.event_name }}-${{ github.ref }}
   cancel-in-progress: false
 
 permissions:

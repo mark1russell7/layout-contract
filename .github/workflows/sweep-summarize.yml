@@ -1,7 +1,7 @@
 # Summarize again the night of an earlier run of sweep.yml, and push its data to the branch sweep-data (L81).
 # Use it when the job summarize of a night failed after its rounds ended, for example because of a bug in sweep.mjs.
 # It downloads the artifacts sweep-night-2 and sweep-records-2-* of that run. The rounds do not run again.
-# It refuses a night that is not the next night of the branch sweep-data, so it never removes the data of a later night.
+# It refuses a night that is not the next night of the branch sweep-data, so it does not remove the data of a later night.
 name: Sweep summarize
 
 on:
@@ -19,9 +19,9 @@ on:
 permissions:
   contents: read
 
-# The group of sweep.yml, so a night and this job never write the branch at the same time.
+# A group of its own, so this job does not cancel a pending night of sweep.yml. The check before the push keeps the nights of the branch.
 concurrency:
-  group: sweep-${{ github.ref }}
+  group: sweep-summarize-${{ github.ref }}
   cancel-in-progress: false
 
 jobs:
@@ -31,8 +31,6 @@ jobs:
     permissions:
       contents: read
       actions: read
-    outputs:
-      date: ${{ steps.check.outputs.date }}
     steps:
       - name: Check the run id
         env:
@@ -64,23 +62,6 @@ jobs:
         run: |
           mkdir -p "$RUNNER_TEMP/data"
           if git fetch --depth 1 origin sweep-data; then git archive FETCH_HEAD | tar -x -C "$RUNNER_TEMP/data"; fi
-      - name: Check that the night is the next night of the branch
-        id: check
-        working-directory: packages/joint
-        run: |
-          node -e '
-            const { existsSync, readFileSync } = require("node:fs");
-            const read = (f) => JSON.parse(readFileSync(f, "utf8"));
-            const state = read("night2/state.json");
-            const date = read("night2/plan.json").date;
-            const file = `${process.argv[1]}/epochs/${state.epoch}/state.json`;
-            const before = existsSync(file) ? read(file).nights.map((n) => n.date) : [];
-            const expected = state.nights.map((n) => n.date).slice(0, -1);
-            if (state.nights.at(-1)?.date !== date) throw new Error(`The state of the run does not end with the night ${date}.`);
-            if (JSON.stringify(before) !== JSON.stringify(expected)) throw new Error(`The branch has the nights ${before.join(", ") || "none"}, but the night ${date} comes after ${expected.join(", ") || "none"}. The job does not write over a later night.`);
-            console.log(`The night ${date} is the next night of the branch.`);
-            require("node:fs").appendFileSync(process.env.GITHUB_OUTPUT, `date=${date}\n`);
-          ' "$RUNNER_TEMP/data"
       - name: Summarize the night
         working-directory: packages/joint
         env:
@@ -88,6 +69,9 @@ jobs:
         run: |
           node scripts/sweep.mjs summarize --night night2 --records records --data "$RUNNER_TEMP/data" --out "$RUNNER_TEMP/out" --run "$RUN"
           cat "$RUNNER_TEMP/out/night.md" >> "$GITHUB_STEP_SUMMARY"
+      - name: Check that the night is the next night of the branch
+        working-directory: packages/joint
+        run: node scripts/next-night.ts "$RUNNER_TEMP/out" "$RUNNER_TEMP/data"
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: sweep-data
@@ -108,9 +92,20 @@ jobs:
         with:
           name: sweep-data
           path: ${{ runner.temp }}/out
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 26
+      # Another run can push a night after this run read the branch. Then a push of this tree removes that night, so the job stops.
+      - name: Check that the night is the next night of the branch
+        id: next
+        run: |
+          mkdir -p "$RUNNER_TEMP/branch"
+          if git fetch --depth 1 origin sweep-data; then git archive FETCH_HEAD | tar -x -C "$RUNNER_TEMP/branch"; fi
+          date=$(node packages/joint/scripts/next-night.ts "$RUNNER_TEMP/out" "$RUNNER_TEMP/branch")
+          echo "date=$date" >> "$GITHUB_OUTPUT"
       - name: Push the data of the night to the branch sweep-data
         env:
-          DATE: ${{ needs.summarize.outputs.date }}
+          DATE: ${{ steps.next.outputs.date }}
           RUN: ${{ inputs.run }}
         run: |
           git config user.name "github-actions[bot]"

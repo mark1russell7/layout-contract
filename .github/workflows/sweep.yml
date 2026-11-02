@@ -49,8 +49,10 @@ on:
 permissions:
   contents: read
 
+# The event is in the key, so a dispatched sweep does not cancel a pending scheduled night (fleet STRATEGY 0e36301bc).
+# Two nights can then run at the same time. The job publish of each one stops when the other pushed first.
 concurrency:
-  group: sweep-${{ github.ref }}
+  group: sweep-${{ github.event_name }}-${{ github.ref }}
   cancel-in-progress: false
 
 env:
@@ -315,6 +317,17 @@ jobs:
         with:
           name: sweep-data
           path: ${{ runner.temp }}/out
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 26
+      # Another run can push a night after this run read the branch. Then a push of this tree removes that night, so the job stops.
+      - name: Check that the night is the next night of the branch
+        id: next
+        run: |
+          mkdir -p "$RUNNER_TEMP/branch"
+          if git fetch --depth 1 origin sweep-data; then git archive FETCH_HEAD | tar -x -C "$RUNNER_TEMP/branch"; fi
+          date=$(node packages/joint/scripts/next-night.ts "$RUNNER_TEMP/out" "$RUNNER_TEMP/branch")
+          echo "date=$date" >> "$GITHUB_OUTPUT"
       - name: Push the data of the night to the branch sweep-data
         env:
           DATE: ${{ needs.plan.outputs.date }}
