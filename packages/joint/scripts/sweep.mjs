@@ -175,6 +175,9 @@ function applyRound(state, inputs, dir, plan) {
 /** The date of today in UTC. */
 const today = () => new Date().toISOString().slice(0, 10);
 
+/** The claim of the cost model for each shard (`docs/SWEEP.md`): the real minutes are within 25% of the planned minutes times the scale. */
+const COST_CLAIM = { p: 0.6, within: 0.25 };
+
 if (command === "plan") {
   const set = args.corpus ?? SET_V2;
   const date = args.date || today();
@@ -321,9 +324,6 @@ function nightFacts(state, night) {
     incumbent: INCUMBENT,
   };
 }
-
-/** The claim of the cost model for each shard (`docs/SWEEP.md`): the real minutes are within 25% of the planned minutes times the scale. */
-const COST_CLAIM = { p: 0.6, within: 0.25 };
 
 /** This function scores the cost model of a night by Brier: one claim for each shard. A stopped shard is a miss. */
 function costModelScore(night) {
