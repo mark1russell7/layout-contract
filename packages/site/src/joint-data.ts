@@ -1,5 +1,5 @@
 // The step from the report.json of a joint benchmark run to the compact data file of the site.
-// scripts/joint-data.mjs starts it. Node runs this file with its type stripping, so it uses no TypeScript-only syntax.
+// scripts/joint-data.ts starts it. Node runs this file with its type stripping, so it uses no TypeScript-only syntax.
 import { JOINT_SCHEMA, type Baseline, type CellSummary, type CellView, type Compare, type Interval, type JointData, type PartBest, type RankRow } from "./data.ts";
 
 /** The rule and the cap of the headline cell (`docs/JOINT-BENCH.md`). */

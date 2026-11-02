@@ -1,5 +1,5 @@
 # Summarize again the night of an earlier run of sweep.yml, and push its data to the branch sweep-data (L81).
-# Use it when the job summarize of a night failed after its rounds ended, for example because of a bug in sweep.mjs.
+# Use it when the job summarize of a night failed after its rounds ended, for example because of a bug in sweep.ts.
 # It downloads the artifacts sweep-night-2 and sweep-records-2-* of that run. The rounds do not run again.
 # It refuses a night that is not the next night of the branch sweep-data, so it does not remove the data of a later night.
 name: Sweep summarize
@@ -67,7 +67,7 @@ jobs:
         env:
           RUN: ${{ inputs.run }}
         run: |
-          node scripts/sweep.mjs summarize --night night2 --records records --data "$RUNNER_TEMP/data" --out "$RUNNER_TEMP/out" --run "$RUN"
+          node scripts/sweep.ts summarize --night night2 --records records --data "$RUNNER_TEMP/data" --out "$RUNNER_TEMP/out" --run "$RUN"
           cat "$RUNNER_TEMP/out/night.md" >> "$GITHUB_STEP_SUMMARY"
       - name: Check that the night is the next night of the branch
         working-directory: packages/joint

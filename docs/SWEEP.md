@@ -216,9 +216,9 @@ The dropped and halved configs lose their values in the state. Their rows stay i
 - `sweep-summarize.yml` refuses a night that is not the next night of the branch. Thus it does not write over the data of a later night.
 - Each job that pushes to `sweep-data` starts `scripts/next-night.ts` before the push. The job stops when the branch got another night after the run read it.
 - The concurrency group of `sweep.yml` has the event in its key. Thus a dispatched sweep does not cancel a pending scheduled night. `sweep-summarize.yml` has a group of its own.
-- The test `src/sweep-commands.test.ts` starts each command of `sweep.mjs` with the flags of `sweep.yml`, each in its own process (L85). Thus a crash in a command fails the pull request, not the night.
-- The test runs two nights on the 3 inputs of each round that have the most configs. The second night starts from the tree of the first. Then the test starts `next-night.ts` and `sensitivity.mjs`.
-- The test also starts the commands of `bench.mjs` that the nightly memory gate uses: `families`, `jobs`, `plan`, `probe` and `gate`. It takes approximately 20 seconds.
+- The test `src/sweep-commands.test.ts` starts each command of `sweep.ts` with the flags of `sweep.yml`, each in its own process (L85). Thus a crash in a command fails the pull request, not the night.
+- The test runs two nights on the 3 inputs of each round that have the most configs. The second night starts from the tree of the first. Then the test starts `next-night.ts` and `sensitivity.ts`.
+- The test also starts the commands of `bench.ts` that the nightly memory gate uses: `families`, `jobs`, `plan`, `probe` and `gate`. It takes approximately 20 seconds.
 
 ### The branch `sweep-data`
 
@@ -277,7 +277,7 @@ The first-order table cannot show the share of an interaction. A design night gi
 - `totalOrder` gives the first index of Saltelli (2010) and the total index of Jansen (1999) for each stage. A bootstrap over the rows gives the intervals.
 - A total index above the first index shows an interaction of that stage. Night 1 showed such an interaction of the lanes with the router.
 - The state keeps each design in `designs`. The race keeps the values of the configs of a design, so the rows stay full.
-- `node scripts/sensitivity.mjs --state <state.json> --total [<date>]` gives the table of the design of that date, or of the last design.
+- `node scripts/sensitivity.ts --state <state.json> --total [<date>]` gives the table of the design of that date, or of the last design.
 
 ## The cost model
 
@@ -285,7 +285,7 @@ The plan uses the model of `packages/joint/data/cost-margins.json`. `docs/JOINT-
 
 - The time of an input is `pairs × pair(boxes, edges) + passes × lane(boxes, edges)` milliseconds, times the margin of its spec.
 - The lane term is `8.75 + 0.853 × boxes² / 1000 + 0.782 × boxes × edges / 1000`. It comes from the run `40757153151` of L13.
-- Each unit of the sweep prints its pairs and its lane passes. `fit-cost.mjs` adds the units of one input, and fits both terms from a night. The pairs of a unit count each round of an iteration chain as 3 pairs.
+- Each unit of the sweep prints its pairs and its lane passes. `fit-cost.ts` adds the units of one input, and fits both terms from a night. The pairs of a unit count each round of an iteration chain as 3 pairs.
 
 ### The cost factors of the configs
 

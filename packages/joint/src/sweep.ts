@@ -1,5 +1,5 @@
 // The nightly sweep over the joint space (roadmap item L35, `docs/SWEEP.md`). It plans the nights, scores the records, races the configs and keeps the summary.
-// The functions are pure. The script `scripts/sweep.mjs` reads and writes the files, and runs the shards with `runInput`.
+// The functions are pure. The script `scripts/sweep.ts` reads and writes the files, and runs the shards with `runInput`.
 import {
   canonicalConfig,
   configId,

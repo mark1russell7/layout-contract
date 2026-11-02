@@ -8,7 +8,7 @@ import { median } from "@mark1russell7/rigor-statistics";
  * - `pack` gives the factor of each pack entry of `PACK_ENTRIES`, and `router` the factor of each router of `ROUTERS`. An entry without a factor has the factor 1.
  * - `level` multiplies each factor. With it, the planned minutes of the jobs of the night of the fit do not change.
  * - `scale` is the median of real minutes over planned minutes of the shards of the night of the fit, with the factors.
- *   The sweep uses it until it has shards of this model (`costScale` of `sweep.mjs`), because the shards of another model have another scale.
+ *   The sweep uses it until it has shards of this model (`costScale` of `sweep.ts`), because the shards of another model have another scale.
  */
 export interface ConfigCost {
   readonly run: number;

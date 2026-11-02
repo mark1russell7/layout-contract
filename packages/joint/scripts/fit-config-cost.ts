@@ -7,7 +7,7 @@
 // The records give the times, and the files `shard-<round>-<shard>.json` give the real minutes of each shard.
 // <state.json> is the state of the last round of the run (the artifact `sweep-night-2`). It gives the config of each record and the corpus.
 // The plans are the `plan.json` files of the rounds of the run (the artifacts `sweep-night-1` and `sweep-night-2`).
-// `fitConfigCost` does the fit. `costScale` of `sweep.mjs` uses its scale until the sweep has shards of the new model.
+// `fitConfigCost` does the fit. `costScale` of `sweep.ts` uses its scale until the sweep has shards of the new model.
 import { readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { configRun, fitConfigCost, jobCost, JOINT_SPACE, jointCorpus, type ConfigRun, type CostRecord, type FitPlan, type FitShard } from "../src/index.ts";
