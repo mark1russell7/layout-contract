@@ -16,15 +16,15 @@
   },
   "joint-v2_packing-0.4.1_highways-0.10.0_space-bench-3": {
    "corpus": "joint-v2",
-   "nights": 1,
-   "last": "2026-11-01",
-   "configs": 125,
+   "nights": 2,
+   "last": "2026-11-02",
+   "configs": 186,
    "counts": {
     "baseline": 3,
-    "screened": 37,
-    "alive": 13,
-    "dropped": 48,
-    "halved": 24,
+    "screened": 31,
+    "alive": 22,
+    "dropped": 90,
+    "halved": 40,
     "design": 0
    }
   }
