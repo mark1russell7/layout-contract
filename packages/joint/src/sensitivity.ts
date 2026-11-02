@@ -5,11 +5,13 @@ import type { SweepState } from "./night.ts";
 export interface SensitivityGroup {
   readonly name: string;
   readonly of: (config: StrategyConfig) => string;
+  /** The stage of the space that the group reads, when the group is one stage. The levels of the group are then the options of the stage. */
+  readonly stage?: string;
 }
 
 /** This function gives the group of one stage of the space. The level is the option of the stage, or `none` when the config has no choice for it. */
 export function stageGroup(name: string, stage: string): SensitivityGroup {
-  return { name, of: (config) => config.stages[stage]?.option ?? "none" };
+  return { name, stage, of: (config) => config.stages[stage]?.option ?? "none" };
 }
 
 /** The groups of the joint space: the router, the lane mode and the pack entry. */
@@ -227,6 +229,38 @@ export interface TotalOrder {
   readonly stages: readonly StageIndex[];
 }
 
+/** The responses of one row of a Saltelli design: `f(A)`, `f(B)` and `f(AB_i)` for each factor `i`. */
+export interface SaltelliResponse {
+  readonly a: number;
+  readonly b: number;
+  readonly ab: readonly number[];
+}
+
+/**
+ * This function gives the first and total index of each factor from the responses of the rows `pick`. The default is all rows.
+ * The first index is of Saltelli (2010), and the total index is of Jansen (1999). The variance is over the responses of `A` and `B`.
+ * Each row has the same count of factors. A variance of 0 gives the index 0 for each factor.
+ */
+export function saltelliIndices(rows: readonly SaltelliResponse[], pick: readonly number[] = rows.map((_, j) => j)): { first: number; total: number }[] {
+  const factors = rows[0]?.ab.length ?? 0;
+  const ys = pick.flatMap((j) => [rows[j]!.a, rows[j]!.b]);
+  const m = ys.reduce((s, v) => s + v, 0) / ys.length;
+  const v = ys.reduce((s, y) => s + (y - m) ** 2, 0) / ys.length;
+  return Array.from({ length: factors }, (_, i) => {
+    if (!(v > 0)) return { first: 0, total: 0 };
+    let first = 0;
+    let total = 0;
+    for (const j of pick) {
+      const r = rows[j]!;
+      const ab = r.ab[i]!;
+      // The responses are centered on the mean, so a gap between the means of A and B does not bias the first index.
+      first += (r.b - m) * (ab - r.a);
+      total += (r.a - ab) ** 2;
+    }
+    return { first: first / pick.length / v, total: total / pick.length / (2 * v) };
+  });
+}
+
 /**
  * This function gives the first and total index of each stage of a design on the sweep score.
  * The response of a config is its mean score over the inputs where each config of the design has a value. A bootstrap over the rows gives the intervals.
@@ -242,24 +276,8 @@ export function totalOrder(state: SweepState, design: SaltelliDesign, options: O
   const rows = design.rows.filter((r) => [r.a, r.b, ...Object.values(r.ab)].every((id) => mean.has(id)));
   if (rows.length < 2 || shared.length === 0) throw new RangeError(`totalOrder: the state has ${rows.length} full rows and ${shared.length} shared inputs. It needs 2 rows and 1 input.`);
   const f = (id: string): number => mean.get(id)!;
-  const indices = (pick: readonly number[]): { first: number; total: number }[] => {
-    const ys = pick.flatMap((j) => [f(rows[j]!.a), f(rows[j]!.b)]);
-    const m = ys.reduce((s, v) => s + v, 0) / ys.length;
-    const v = ys.reduce((s, y) => s + (y - m) ** 2, 0) / ys.length;
-    return design.stages.map((stage) => {
-      if (v === 0) return { first: 0, total: 0 };
-      let first = 0;
-      let total = 0;
-      for (const j of pick) {
-        const r = rows[j]!;
-        const ab = f(r.ab[stage]!);
-        // The responses are centered on the mean, so a gap between the means of A and B does not bias the first index.
-        first += (f(r.b) - m) * (ab - f(r.a));
-        total += (f(r.a) - ab) ** 2;
-      }
-      return { first: first / pick.length / v, total: total / pick.length / (2 * v) };
-    });
-  };
+  const responses = rows.map((r) => ({ a: f(r.a), b: f(r.b), ab: design.stages.map((stage) => f(r.ab[stage]!)) }));
+  const indices = (pick: readonly number[]): { first: number; total: number }[] => saltelliIndices(responses, pick);
   const all = rows.map((_, j) => j);
   const point = indices(all);
   const random = mulberry32(options.seed ?? 1);
