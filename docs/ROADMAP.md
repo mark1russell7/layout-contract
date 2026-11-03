@@ -38,7 +38,6 @@ This file lists the items of the roadmap of this repository. The status page of 
 | L15 | later | P1 | Joint search |
 | L16 | later | P1 | A learned selector over the pair |
 | L25 | later | P3 | A cooperative time budget for portfolio() members |
-| L37 | later | P2 | Joint verdicts under both weightings (SCREEN-WEIGHT) |
 | L38 | later | P2 | A select rule learned on the joint records |
 | L48 | later | P1 | Route-first skeleton |
 | L50 | later | P1 | Force-directed refinement after pack |
@@ -83,6 +82,7 @@ This file lists the items of the roadmap of this repository. The status page of 
 | L32 | done | P2 | Add the select packer and measure the new default pair |
 | L33 | done | P2 | Move the joint bench to highways 0.8.1 (ROUTE-SCALE) |
 | L35 | done | P1 | A nightly sweep over the strategy space in CI |
+| L37 | done | P2 | Joint verdicts under both weightings (SCREEN-WEIGHT) |
 | L39 | done | P1 | A pool of fixed member sets in strategy-space |
 | L41 | done | P2 | A pack() default entry in the joint bench |
 | L42 | done | P1 | The layout-contract site on GitHub Pages |
