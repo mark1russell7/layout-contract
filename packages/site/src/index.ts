@@ -1,6 +1,8 @@
 // The entry of the site: it reads the data files at build time, and it fills the four sections.
+// The sweep section reads the branch `sweep-data` at runtime, because the build does not read that branch.
 import contract from "@mark1russell7/layout-contract/package.json";
 import { marked } from "marked";
+import coverageText from "../content/coverage.md?raw";
 import jointText from "../content/joint.md?raw";
 import leadText from "../content/lead.md?raw";
 import spaceText from "../content/space.md?raw";
@@ -10,6 +12,7 @@ import { checkJoint, checkNews, checkSpaceFile, type JointData, type NewsData, t
 import { renderJoint } from "./joint.ts";
 import { renderNews } from "./news.ts";
 import { renderSpace, type SpaceEntry } from "./space.ts";
+import { renderSweep } from "./sweep.ts";
 import "./style.css";
 import { byId, esc } from "./ui.ts";
 
@@ -34,6 +37,7 @@ byId("lead").innerHTML = md(leadText);
 byId("joint-about").innerHTML = md(jointText);
 byId("space-about").innerHTML = md(spaceText);
 byId("sweep").innerHTML = md(sweepText);
+byId("coverage-about").innerHTML = md(coverageText);
 
 renderJoint(byId("joint"), good<JointData>(jointFiles, checkJoint).map(([, v]) => v));
 renderSpace(
@@ -42,6 +46,7 @@ renderSpace(
   contract.version,
 );
 renderNews(byId("news"), good<NewsData>(newsFiles, checkNews)[0]?.[1]);
+void renderSweep(byId("coverage"), (url, init) => fetch(url, init));
 
 if (problems.length > 0) {
   const box = byId("problems");

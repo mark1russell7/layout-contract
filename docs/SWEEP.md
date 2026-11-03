@@ -483,6 +483,8 @@ A skill is `null` when no cell has 20 rows or more.
 
 The record of the variant `blocks` on the state after the night 2026-11-02 has the held-out skill 0.141 (q10 -0.502, q90 0.432) and 141 covered cells. These are the values of the section "Folds by input and the wider λ list".
 
+The project site shows the trend in its section "Sweep coverage and efficacy maps". The page reads the file from the branch `sweep-data` when it opens. A change of the held-out median skill below 0.01 in one week is a flat week, and the site labels it as a finding to explain. `docs/SITE.md` tells the details.
+
 ## The cost model
 
 The plan uses the model of `packages/joint/data/cost-margins.json`. `docs/JOINT-BENCH.md` tells the model and its fit.
