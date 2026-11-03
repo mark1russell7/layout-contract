@@ -2,7 +2,7 @@
 // A ridge regression over the configs and the board kinds predicts the score. Its held-out error in each cell tells which part of the space the sweep measures.
 import type { StrategyConfig, StrategySpace } from "@mark1russell7/layout-contract";
 import { deriveSeed, random } from "@mark1russell7/rigor-generators";
-import { mean, median, sd } from "@mark1russell7/rigor-statistics";
+import { mean, median, quantile, sd } from "@mark1russell7/rigor-statistics";
 import { kindOf } from "./check.ts";
 import type { SweepState } from "./night.ts";
 import { JOINT_GROUPS, saltelliDesign, saltelliIndices, type SensitivityGroup } from "./sensitivity.ts";
@@ -53,12 +53,21 @@ export interface SurrogateCell {
   readonly floor: number;
   /** `rmse` divided by the larger of `floor` and `minFloor`. */
   readonly ratio: number;
+  /** The skill of the fit inside the cell: `1 - ratio²`. It is 0 for a fit that gives only the mean of the cell, and 1 for a fit with no error. */
+  readonly skill: number;
   readonly covered: boolean;
+}
+
+/** The quantiles 0.1, 0.5 and 0.9 of the skill of the cells with `minRows` rows or more. Each value is NaN when there are no such cells. */
+export interface SurrogateSkill {
+  readonly q10: number;
+  readonly median: number;
+  readonly q90: number;
 }
 
 /**
  * The coverage of the cells of the space. A covered cell has `minRows` rows or more, and a held-out RMSE of at most `floorRatio` times its floor.
- * The weekly trend reads `share`, `withRows` and `medianRatio`.
+ * The main line of the weekly trend is `skill`. The guard lines are `share` and `withRows`.
  */
 export interface SurrogateCells {
   /** The count of all cells, with the cells that have no rows. */
@@ -74,6 +83,8 @@ export interface SurrogateCells {
   readonly share: number;
   /** The median of `ratio` over the cells with `minRows` rows or more, or NaN when there are none. */
   readonly medianRatio: number;
+  /** The skill inside the cells with `minRows` rows or more. */
+  readonly skill: SurrogateSkill;
   readonly floorRatio: number;
   readonly minRows: number;
   readonly minFloor: number;
@@ -375,13 +386,16 @@ export function fitSurrogate(state: SweepState, options: SurrogateOptions = {}):
     const m = mean(c.ys);
     const floor = Math.sqrt(c.ys.reduce((s, y) => s + (y - m) ** 2, 0) / c.n);
     const ratio = rmse / Math.max(floor, minFloor);
-    return { levels: Object.fromEntries(blocks.map((b, k) => [b.name, levels[k]!])), rows: c.n, rmse, floor, ratio, covered: c.n >= minRows && ratio <= floorRatio };
+    return { levels: Object.fromEntries(blocks.map((b, k) => [b.name, levels[k]!])), rows: c.n, rmse, floor, ratio, skill: 1 - ratio ** 2, covered: c.n >= minRows && ratio <= floorRatio };
   });
   cellErrors.sort((a, b) => b.rmse - a.rmse || JSON.stringify(a.levels).localeCompare(JSON.stringify(b.levels)));
   const cellCount = blocks.reduce((s, b) => s * b.levels.length, 1);
   const covered = cellErrors.filter((c) => c.covered).length;
   const eligible = cellErrors.filter((c) => c.rows >= minRows);
   const medianRatio = eligible.length > 0 ? median(eligible.map((c) => c.ratio)) : Number.NaN;
+  const skills = eligible.map((c) => c.skill);
+  const skillAt = (p: number): number => (skills.length > 0 ? quantile(skills, p) : Number.NaN);
+  const skill: SurrogateSkill = { q10: skillAt(0.1), median: skillAt(0.5), q90: skillAt(0.9) };
 
   // The Sobol indices of the fit on all rows. Each group is the stage of the space that it reads, with the params of the stage.
   const beta = solve(best.lambda, null);
@@ -423,6 +437,7 @@ export function fitSurrogate(state: SweepState, options: SurrogateOptions = {}):
       empty: cellCount - byCell.size,
       share: byCell.size > 0 ? covered / byCell.size : 0,
       medianRatio,
+      skill,
       floorRatio,
       minRows,
       minFloor,
@@ -446,6 +461,8 @@ export function surrogateMarkdown(result: Surrogate, worst = 10): string {
     "",
     `A covered cell has ${c.minRows} rows or more and a held-out RMSE of at most ${c.floorRatio} times its floor (at least ${c.minFloor}). The median ratio of RMSE to floor is ${f(c.medianRatio)}.`,
     "",
+    `The skill inside the cells, 1 - (RMSE / floor)², over the ${c.eligible} cells with ${c.minRows} rows or more: median ${f(c.skill.median)}, q10 ${f(c.skill.q10)}, q90 ${f(c.skill.q90)}.`,
+    "",
     "| λ | Held-out R² | Held-out RMSE |",
     "|---|---|---|",
     ...result.lambdas.map((l) => `| ${l.lambda} | ${f(l.r2)} | ${f(l.rmse)} |`),
@@ -458,9 +475,9 @@ export function surrogateMarkdown(result: Surrogate, worst = 10): string {
     "",
     `The ${Math.min(worst, result.cellErrors.length)} cells with the largest held-out RMSE:`,
     "",
-    "| Cell | Rows | RMSE | Floor | Ratio |",
-    "|---|---|---|---|---|",
-    ...result.cellErrors.slice(0, worst).map((e) => `| ${Object.values(e.levels).join(" · ")} | ${e.rows} | ${f(e.rmse)} | ${f(e.floor)} | ${f(e.ratio)} |`),
+    "| Cell | Rows | RMSE | Floor | Ratio | Skill |",
+    "|---|---|---|---|---|---|",
+    ...result.cellErrors.slice(0, worst).map((e) => `| ${Object.values(e.levels).join(" · ")} | ${e.rows} | ${f(e.rmse)} | ${f(e.floor)} | ${f(e.ratio)} | ${f(e.skill)} |`),
     "",
   ].join("\n");
 }

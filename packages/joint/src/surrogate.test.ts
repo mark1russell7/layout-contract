@@ -56,6 +56,9 @@ describe("fitSurrogate", () => {
     expect(r.lambda).toBe(0.01);
     expect(r.cells).toMatchObject({ total: 24, withRows: 24, eligible: 24, covered: 24, empty: 0, share: 1, floorRatio: 1.25, minRows: 3, minFloor: 0.01 });
     expect(r.cells.medianRatio).toBeLessThan(1);
+    expect(r.cells.skill.median).toBeGreaterThan(0);
+    expect(r.cells.skill.q10).toBeLessThanOrEqual(r.cells.skill.median);
+    expect(r.cells.skill.median).toBeLessThanOrEqual(r.cells.skill.q90);
     expect(r.cellErrors).toHaveLength(24);
     expect(Object.keys(r.cellErrors[0]!.levels)).toEqual(["a", "b", "c", KIND_FACTOR]);
     expect(surrogateMarkdown(r)).toContain("Space coverage: 24 of the 24 cells with rows (100.0%)");
@@ -68,6 +71,8 @@ describe("fitSurrogate", () => {
     // No model predicts noise better than the mean of the cell, so the ratio stays near 1.
     expect(r.cells.medianRatio).toBeGreaterThan(0.9);
     expect(r.cells.medianRatio).toBeLessThan(1.5);
+    // A fit that knows only the mean of each cell has a skill near 0 or below.
+    expect(r.cells.skill.median).toBeLessThan(0.2);
   });
 
   it("gives each cell the RMSE of its rows around their mean as its floor", () => {
@@ -78,6 +83,7 @@ describe("fitSurrogate", () => {
       expect(e.floor).toBeGreaterThanOrEqual(0);
       expect(e.ratio).toBeCloseTo(e.rmse / Math.max(e.floor, 0.01), 12);
       expect(e.covered).toBe(e.rows >= 3 && e.ratio <= 1.25);
+      expect(e.skill).toBeCloseTo(1 - e.ratio ** 2, 12);
     }
   });
 
@@ -87,6 +93,7 @@ describe("fitSurrogate", () => {
     expect(r.cells.covered).toBe(0);
     expect(r.cells.share).toBe(0);
     expect(r.cells.medianRatio).toBeNaN();
+    expect(r.cells.skill).toEqual({ q10: Number.NaN, median: Number.NaN, q90: Number.NaN });
   });
 
   it("refuses a floorRatio or a minFloor of 0", () => {

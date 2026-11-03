@@ -308,6 +308,7 @@ The first numbers come from `epochs/joint-v2_packing-0.4.1_highways-0.10.0_space
 | Cells with 20 rows or more | 156 |
 | Covered cells | 150 of the 336 cells with rows (44.6%) |
 | Median ratio of RMSE to floor | 1.010, over the 156 cells with 20 rows or more |
+| Skill inside the cells | median -0.020, q10 -0.176, q90 -0.000, over the same 156 cells |
 
 The cells are 15 routers × 18 pack entries × 4 lane modes × 6 board kinds. The quantiles 0.1, 0.5 and 0.9 of the ratio are 1.000, 1.010 and 1.083. 150 of the 156 cells with 20 rows or more are covered. Thus the count of rows limits the share, not the fit.
 
@@ -325,11 +326,7 @@ The cells are 15 routers × 18 pack entries × 4 lane modes × 6 board kinds. Th
 - A ratio near 1 means that the fit gives the mean of the cell, and no more. A finer cell, with input features in place of the board kind, makes the floor smaller.
 - 41% of the rows have the score 0.
 
-The weekly trend has three lines:
-
-- the covered share of the cells with rows.
-- the count of the cells with rows.
-- the median ratio of RMSE to floor.
+The main line of the weekly trend is the skill inside the cells: `1 - (RMSE / floor)²` over the cells with 20 rows or more, as the median, q10 and q90. A fit that gives only the mean of each cell has the skill 0, so input features make it rise. The guard lines are the covered share of the cells with rows, and the count of the cells with rows.
 
 ## The cost model
 
