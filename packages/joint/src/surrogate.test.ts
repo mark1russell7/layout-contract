@@ -4,7 +4,19 @@ import { describe, expect, it } from "vitest";
 import type { SweepState } from "./night.ts";
 import { stageGroup } from "./sensitivity.ts";
 import type { JointEntry } from "./corpus.ts";
-import { fitSurrogate, INPUT_FACTOR, KIND_FACTOR, manifestFeatures, surrogateFold, surrogateMarkdown, type SurrogateOptions } from "./surrogate.ts";
+import {
+  fitSurrogate,
+  INPUT_FACTOR,
+  KIND_FACTOR,
+  manifestFeatures,
+  SURROGATE_TREND_SCHEMA,
+  surrogateFold,
+  surrogateMarkdown,
+  surrogateTrendOptions,
+  surrogateTrendRecord,
+  type SurrogateOptions,
+  type SurrogateVariant,
+} from "./surrogate.ts";
 
 /** A small space: the stage `a.x` with 3 options, `b.y` with 2 options, and the optional stage `c.z` with one option and an int param. */
 const SPACE: StrategySpace = {
@@ -242,5 +254,55 @@ describe("fitSurrogate", () => {
       expect(Math.abs(by[name]!.first)).toBeLessThan(0.05);
       expect(by[name]!.total).toBeLessThan(0.05);
     }
+  });
+});
+
+describe("surrogateTrendRecord", () => {
+  /** A manifest of the inputs of the small space, with one dimension `size`. */
+  const manifest = { inputs: INPUTS.map((id) => ({ id, hash: "h", cell: { size: id.endsWith("/s1") ? "small" : "big" } as unknown as JointEntry["cell"] })) };
+  const META = { epoch: "e", night: "2026-11-02", variant: "blocks" as const };
+
+  it("gives the feature blocks and folds by input, and the pairs only for the variant pairs", () => {
+    const blocks = surrogateTrendOptions("blocks", manifest);
+    const pairs = surrogateTrendOptions("pairs", manifest);
+    expect(blocks).toMatchObject({ foldBy: "input", featurePairs: false });
+    expect(pairs).toMatchObject({ foldBy: "input", featurePairs: true });
+    expect(blocks.features?.("toy/alpha.x/s1")).toEqual({ size: "small" });
+    expect(() => surrogateTrendOptions("kinds" as SurrogateVariant, manifest)).toThrow(RangeError);
+  });
+
+  it("keeps the skills, the guard lines and the penalty of the fit", () => {
+    const r = fitSurrogate(state(additive), { ...OPTIONS, ...surrogateTrendOptions("blocks", manifest) });
+    const record = surrogateTrendRecord(r, { ...META, run: "42" });
+    expect(record).toEqual({
+      schema: SURROGATE_TREND_SCHEMA,
+      epoch: "e",
+      night: "2026-11-02",
+      variant: "blocks",
+      run: "42",
+      foldBy: "input",
+      rows: r.rows,
+      configs: r.configs,
+      skill: r.cells.skill,
+      inSampleSkill: r.cells.inSampleSkill,
+      covered: r.cells.covered,
+      share: r.cells.share,
+      withRows: r.cells.withRows,
+      eligible: r.cells.eligible,
+      lambda: r.lambda,
+      lambdaAtEdge: r.lambdaAtEdge,
+    });
+    expect(record.schema).toBe("surrogate-trend/1");
+    expect(JSON.parse(JSON.stringify(record))).toEqual(record);
+  });
+
+  it("gives null for a skill with no cells of minRows rows, and leaves out an empty run", () => {
+    const r = fitSurrogate(state(additive), { ...OPTIONS, minRows: 1000 });
+    expect(r.cells.eligible).toBe(0);
+    const record = surrogateTrendRecord(r, { ...META, run: "" });
+    expect(record.skill).toEqual({ q10: null, median: null, q90: null });
+    expect(record.inSampleSkill).toEqual({ q10: null, median: null, q90: null });
+    expect(record.foldBy).toBe("config");
+    expect("run" in record).toBe(false);
   });
 });

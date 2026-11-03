@@ -72,6 +72,23 @@ jobs:
       - name: Check that the night is the next night of the branch
         working-directory: packages/joint
         run: node scripts/next-night.ts "$RUNNER_TEMP/out" "$RUNNER_TEMP/data"
+      # The same step as in sweep.yml: the trend of the coverage surrogate (L52). A failure of the fit does not stop the job.
+      - name: Fit the coverage surrogate
+        working-directory: packages/joint
+        continue-on-error: true
+        run: |
+          dir="$RUNNER_TEMP/surrogate"
+          mkdir -p "$dir"
+          index="$RUNNER_TEMP/out/index.json"
+          epoch="$(node -p 'require(process.argv[1]).latest' "$index")"
+          corpus="$(node -p 'const i = require(process.argv[1]); i.epochs[i.latest].corpus' "$index")"
+          if node scripts/surrogate.ts "$RUNNER_TEMP/out/epochs/$epoch/state.json" "corpus/$corpus/corpus.json" blocks "$dir" 2> "$dir/error.txt"; then
+            cat "$dir/surrogate.json" >> "$RUNNER_TEMP/out/epochs/$epoch/surrogate-trend.jsonl"
+            { echo; echo "## The coverage surrogate"; echo; cat "$dir/surrogate.md"; } >> "$GITHUB_STEP_SUMMARY"
+          else
+            cat "$dir/error.txt"
+            { echo; echo "## The coverage surrogate"; echo; echo "The fit failed, so the trend has no record of this night:"; echo; tail -n 20 "$dir/error.txt" | sed 's/^/    /'; } >> "$GITHUB_STEP_SUMMARY"
+          fi
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: sweep-data

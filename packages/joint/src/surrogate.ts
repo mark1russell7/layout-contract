@@ -570,3 +570,86 @@ export function manifestFeatures(manifest: Pick<JointManifest, "inputs">): (inpu
   const cells = new Map(manifest.inputs.map((e) => [e.id, Object.fromEntries(Object.entries(e.cell).map(([k, v]) => [k, String(v)]))]));
   return (inputId) => cells.get(inputId);
 }
+
+/** The schema of a record of the trend of the coverage surrogate. */
+export const SURROGATE_TREND_SCHEMA = "surrogate-trend/1";
+
+/**
+ * The variant of the fit of the trend. Both variants have the feature blocks of the manifest and folds by input.
+ * The variant `blocks` is the main line of the nightly trend. The variant `pairs` also has the products of the groups with the features, and a weekly job fits it.
+ */
+export type SurrogateVariant = "blocks" | "pairs";
+
+/** The quantiles of a skill in a trend record. A value is `null` when the fit has no cells with `minRows` rows or more. */
+export interface SurrogateTrendSkill {
+  readonly q10: number | null;
+  readonly median: number | null;
+  readonly q90: number | null;
+}
+
+/** The facts of a trend record that the fit does not give. */
+export interface SurrogateTrendMeta {
+  /** The epoch of the state. */
+  readonly epoch: string;
+  /** The date of the last night of the state. */
+  readonly night: string;
+  readonly variant: SurrogateVariant;
+  /** The id of the CI run of the fit. An empty or missing id gives a record without `run`. */
+  readonly run?: string | undefined;
+}
+
+/** One record of the trend of the coverage surrogate (`docs/SWEEP.md`, "The trend"). The nightly sweep appends one record of the variant `blocks` to `surrogate-trend.jsonl`. */
+export interface SurrogateTrendRecord {
+  readonly schema: typeof SURROGATE_TREND_SCHEMA;
+  readonly epoch: string;
+  readonly night: string;
+  readonly variant: SurrogateVariant;
+  readonly run?: string;
+  readonly foldBy: SurrogateFoldBy;
+  readonly rows: number;
+  readonly configs: number;
+  /** The held-out skill inside the cells: the main line of the trend. */
+  readonly skill: SurrogateTrendSkill;
+  /** The in-sample skill of the same cells. */
+  readonly inSampleSkill: SurrogateTrendSkill;
+  readonly covered: number;
+  readonly share: number;
+  readonly withRows: number;
+  readonly eligible: number;
+  readonly lambda: number;
+  readonly lambdaAtEdge: boolean;
+}
+
+/**
+ * This function gives the options of `fitSurrogate` for a variant of the trend.
+ * Both variants have the feature blocks of the manifest and folds by input. The variant `pairs` also has the pairs.
+ */
+export function surrogateTrendOptions(variant: SurrogateVariant, manifest: Pick<JointManifest, "inputs">): SurrogateOptions {
+  if (variant !== "blocks" && variant !== "pairs") throw new RangeError(`surrogateTrendOptions: the variant is blocks or pairs, not ${String(variant)}.`);
+  return { features: manifestFeatures(manifest), foldBy: "input", featurePairs: variant === "pairs" };
+}
+
+/** This function gives the trend record of a result of `fitSurrogate`. A skill of NaN becomes `null`, so the JSON line keeps the gap explicit. */
+export function surrogateTrendRecord(result: Surrogate, meta: SurrogateTrendMeta): SurrogateTrendRecord {
+  const value = (v: number): number | null => (Number.isFinite(v) ? v : null);
+  const skill = (s: SurrogateSkill): SurrogateTrendSkill => ({ q10: value(s.q10), median: value(s.median), q90: value(s.q90) });
+  const c = result.cells;
+  return {
+    schema: SURROGATE_TREND_SCHEMA,
+    epoch: meta.epoch,
+    night: meta.night,
+    variant: meta.variant,
+    ...(meta.run === undefined || meta.run === "" ? {} : { run: meta.run }),
+    foldBy: result.foldBy,
+    rows: result.rows,
+    configs: result.configs,
+    skill: skill(c.skill),
+    inSampleSkill: skill(c.inSampleSkill),
+    covered: c.covered,
+    share: c.share,
+    withRows: c.withRows,
+    eligible: c.eligible,
+    lambda: result.lambda,
+    lambdaAtEdge: result.lambdaAtEdge,
+  };
+}

@@ -5,6 +5,7 @@
 # The job race adds the records to the state, drops the configs that the paired verdict beats, halves the rest, and plans round 2.
 # Round 2 gives the survivors the rest of the corpus, and the rest of the budget goes to new configs from the least covered strata.
 # The job summarize writes the new tree of the data branch as the artifact sweep-data, and the summary of the night.
+# It also fits the coverage surrogate, and appends its record to the trend of the epoch (L52).
 # The job publish pushes that tree to the branch sweep-data. Only this job can write, and it never writes to main.
 # A manual run with dry-run does not publish. A run from another branch than main does not publish.
 # A second run of a date that the state has already skips the night.
@@ -296,6 +297,25 @@ jobs:
         run: |
           node scripts/sweep.mjs summarize --night night2 --records records --data "$RUNNER_TEMP/data" --out "$RUNNER_TEMP/out" --run "$GITHUB_RUN_ID"
           cat "$RUNNER_TEMP/out/night.md" >> "$GITHUB_STEP_SUMMARY"
+      # The trend of the coverage surrogate (L52, docs/SWEEP.md, "The trend"). The fit of the variant blocks takes approximately 5 s and 300 MB.
+      # The step appends one record to epochs/<epoch>/surrogate-trend.jsonl of the new tree, so the job publish pushes it with the night.
+      # A failure of the fit does not stop the night. The summary gets the error, and the trend gets no record of the night.
+      - name: Fit the coverage surrogate
+        working-directory: packages/joint
+        continue-on-error: true
+        run: |
+          dir="$RUNNER_TEMP/surrogate"
+          mkdir -p "$dir"
+          index="$RUNNER_TEMP/out/index.json"
+          epoch="$(node -p 'require(process.argv[1]).latest' "$index")"
+          corpus="$(node -p 'const i = require(process.argv[1]); i.epochs[i.latest].corpus' "$index")"
+          if node scripts/surrogate.ts "$RUNNER_TEMP/out/epochs/$epoch/state.json" "corpus/$corpus/corpus.json" blocks "$dir" 2> "$dir/error.txt"; then
+            cat "$dir/surrogate.json" >> "$RUNNER_TEMP/out/epochs/$epoch/surrogate-trend.jsonl"
+            { echo; echo "## The coverage surrogate"; echo; cat "$dir/surrogate.md"; } >> "$GITHUB_STEP_SUMMARY"
+          else
+            cat "$dir/error.txt"
+            { echo; echo "## The coverage surrogate"; echo; echo "The fit failed, so the trend has no record of this night:"; echo; tail -n 20 "$dir/error.txt" | sed 's/^/    /'; } >> "$GITHUB_STEP_SUMMARY"
+          fi
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: sweep-data
