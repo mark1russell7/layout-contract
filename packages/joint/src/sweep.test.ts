@@ -17,6 +17,7 @@ import {
   summaryTable,
   sweepValue,
   takeBudget,
+  unitExpected,
   unitsOf,
   type SummaryRow,
 } from "./sweep.ts";
@@ -76,6 +77,22 @@ describe("the coverage of the space", () => {
   it("spreads a sample over the pack entries", () => {
     const a = sampleConfigs({ n: PACK_ENTRIES.length, seed: 7, known: new Set() });
     expect(new Set(a.map((c) => configRun(c).pack)).size).toBeGreaterThanOrEqual(PACK_ENTRIES.length - 1);
+  });
+});
+
+describe("the expected time of the next unit of a shard", () => {
+  const minute = 60000;
+
+  it("uses the scale of the plan before the first unit and while the shard runs at the plan", () => {
+    expect(unitExpected(4 * minute, 1.5, 0, 0)).toBe(6 * minute);
+    expect(unitExpected(4 * minute, 1.5, 10 * minute, 10 * minute)).toBe(6 * minute);
+  });
+
+  it("uses the real ratio of the shard when the shard runs slower than the scale", () => {
+    // Shard 4 of run 41573500756: 77.5 real minutes for approximately 8.2 planned minutes, then a unit of 4.74 planned minutes.
+    const expected = unitExpected(4.74 * minute, 1.504, 77.5 * minute, 8.2 * minute);
+    expect(expected / minute).toBeCloseTo(44.8, 1);
+    expect(77.5 * minute + expected).toBeGreaterThan(90 * minute);
   });
 });
 

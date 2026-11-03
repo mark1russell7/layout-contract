@@ -39,6 +39,7 @@ import {
   statusCounts,
   summaryRows,
   summaryTable,
+  unitExpected,
 } from "../src/index.ts";
 
 const [command, ...rest] = process.argv.slice(2);
@@ -222,19 +223,32 @@ if (command === "plan") {
   const commit = process.env.GITHUB_SHA;
   const start = performance.now();
   // With --deadline-minutes, a unit that the cost model does not see ending before the deadline does not start (L81). The shard then stops cleanly.
+  // The expected time of a unit uses the real time of the units that the shard ran (`unitExpected`), so a shard that runs slow stops in time.
   // The records of each unit are in the file when the unit ends, so a stop keeps the finished work. The next nights plan the rest.
+  // The shard file is written before each unit as a stopped shard. If the step stops at its timeout, the file gives the units that ended.
   const deadline = args["deadline-minutes"] === undefined ? Infinity : numberArg("deadline-minutes", 1) * 60000;
   const scale = plan.scale ?? 1;
   let done = 0;
   let plannedDone = 0;
+  const count = plan.shards[shard].length;
+  const writeShard = (stopped) =>
+    writeJson(join(out, `shard-${plan.round}-${shard}.json`), {
+      round: plan.round,
+      shard,
+      planned: plan.loads[shard] / 60000,
+      real: (performance.now() - start) / 60000,
+      ...(stopped ? { stopped: true, done, units: count, plannedDone: plannedDone / 60000 } : {}),
+    });
   console.log(`round ${plan.round} shard ${shard} of ${plan.shards.length}: ${plan.shards[shard].length} units, ${(plan.loads[shard] / 60000).toFixed(1)} planned minutes`);
   for (const id of plan.shards[shard]) {
     const unit = units.get(id);
     // The first unit always runs, so a unit that is longer than the deadline does not wait for ever.
-    if (done > 0 && performance.now() - start + unit.cost * scale > deadline) {
-      console.log(`The shard stops before ${unit.id}: it is ${((performance.now() - start) / 60000).toFixed(1)} minutes in, and the unit has ${((unit.cost * scale) / 60000).toFixed(1)} expected minutes.`);
+    const expected = unitExpected(unit.cost, scale, performance.now() - start, plannedDone);
+    if (done > 0 && performance.now() - start + expected > deadline) {
+      console.log(`The shard stops before ${unit.id}: it is ${((performance.now() - start) / 60000).toFixed(1)} minutes in, and the unit has ${(expected / 60000).toFixed(1)} expected minutes.`);
       break;
     }
+    writeShard(true);
     const { input, entry } = byInput.get(unit.input);
     const runs = unit.configs.map((c) => ({ id: c, run: plan.runs[c] }));
     const pairs = runs.filter((r) => r.run.lane === undefined && r.run.iter === undefined).map((r) => r.run.pair);
@@ -255,14 +269,7 @@ if (command === "plan") {
     done++;
     plannedDone += unit.cost;
   }
-  const count = plan.shards[shard].length;
-  writeJson(join(out, `shard-${plan.round}-${shard}.json`), {
-    round: plan.round,
-    shard,
-    planned: plan.loads[shard] / 60000,
-    real: (performance.now() - start) / 60000,
-    ...(done < count ? { stopped: true, done, units: count, plannedDone: plannedDone / 60000 } : {}),
-  });
+  writeShard(done < count);
 } else if (command === "race") {
   const dir = args.night ?? "night";
   const state = readJson(join(dir, "state.json"));
