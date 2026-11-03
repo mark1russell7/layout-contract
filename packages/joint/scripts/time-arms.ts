@@ -5,23 +5,21 @@
 //   arm --pair <pair> --input <file>
 //       runs one entry on one input in this process, and prints one JSON line with its time. The command run starts it.
 //   verdict --records <dir> [--out <dir>]
-//       reads each .jsonl file under <dir>, and writes <dir>/verdict.json and <dir>/verdict.md
+//       reads each meta.json under <dir> with the .jsonl files of its folder, and writes <dir>/verdict.json and <dir>/verdict.md
 //
-// Each arm is a fresh child process: node with argv, no shell. The time of an arm is the time of runInput inside the child, not the start of the process.
+// freshRun of rigor-bench runs each arm in a fresh child process: node with argv, no shell. The time of an arm is the time of runInput inside the child.
 // Each case and round runs 4 arms: the default and the candidate (the candidate pair), and two copies of the default (the A/A pair).
+// freshRun gives the order of the arms, the time limit of 10 minutes for each arm, the check of the hashes and the skip records.
 // The defaults of the options are the settings JOINT_TIME and the entry TIME_DEFAULT of src/time-arms.ts.
-import { spawnSync } from "node:child_process";
-import { appendFileSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
-import { join } from "node:path";
+import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
+import { basename, dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import type { LayoutInput } from "@mark1russell7/layout-contract";
-import type { Arm } from "@mark1russell7/rigor-bench";
+import { freshRun, type ChildLine, type FreshSkip } from "@mark1russell7/rigor-bench/fresh";
 import { jointCorpus, plannedCost, runEnv, runInput, SET_V2, SETS, type JointSet } from "../src/index.ts";
-import { JOINT_TIME, jointTimeVerdict, TIME_DEFAULT, TIME_MODE, timeArmOrder, timeCases, timeMarkdown, timeRunOptions, type TimeKind, type TimeRecord } from "../src/time-arms.ts";
+import { JOINT_TIME, jointTimeVerdict, TIME_DEFAULT, TIME_MODE, timeCases, timeFreshOptions, timeMarkdown, timeRecords, timeRunOptions, type TimeJob, type TimeRecord } from "../src/time-arms.ts";
 
 const SELF = fileURLToPath(import.meta.url);
-/** The longest time of one arm. A case of `maxBoxes` boxes takes seconds, so an arm at this limit is a fault. */
-const ARM_TIMEOUT_MS = 10 * 60 * 1000;
 
 const [command, ...rest] = process.argv.slice(2);
 /** The names of the options of the commands. */
@@ -36,13 +34,6 @@ function whole(name: Option, fallback: number, min: number): number {
   return value;
 }
 
-/** The output of the command arm: the time of the entry, the output hash of its record, and the reason of a skip. */
-interface ArmOutput {
-  readonly ms: number;
-  readonly hash: string;
-  readonly skipped?: string;
-}
-
 if (command === "arm") {
   const pair = args.pair ?? "";
   const file = args.input ?? "";
@@ -53,7 +44,8 @@ if (command === "arm") {
   const ms = performance.now() - t0;
   const record = records.find((r) => r.strategy === pair);
   if (record === undefined || records.length !== 1) throw new Error(`The entry ${pair} gave ${records.length} records on ${input.id}, not 1 record of the entry.`);
-  const out: ArmOutput = { ms, hash: record.outputHash ?? "", ...(record.skipped === undefined ? {} : { skipped: record.skipped }) };
+  // The JSON line of a child of freshRun: the time, the output hash, and the reason of a skip.
+  const out: ChildLine = record.skipped === undefined ? { ms, hash: record.outputHash ?? "" } : { skipped: record.skipped, ms };
   console.log(JSON.stringify(out));
 } else if (command === "run") {
   const set = (args.corpus ?? SET_V2) as JointSet;
@@ -94,83 +86,36 @@ if (command === "arm") {
   const flags = [process.env["NODE_OPTIONS"] ?? "", ...process.execArgv].filter((f) => f !== "").join(" ");
   const context = `${process.env["GITHUB_ACTIONS"] === "true" ? "ci" : "local"} node ${process.version}${flags === "" ? "" : ` ${flags}`}`;
   const env = { ...runEnv(), mode: TIME_MODE, context };
-  const paired = join(out, "paired.jsonl");
-  const aa = join(out, "aa.jsonl");
-  writeFileSync(paired, "");
-  writeFileSync(aa, "");
-  const meta = { candidate, baseline, job, rounds, cases: ids, settings: JOINT_TIME, maxBoxes, corpus: set, env, commit: process.env["GITHUB_SHA"] ?? null };
+  // The label of the job is the index of its CI job. The records of freshRun and meta.json carry it.
+  const meta = { candidate, baseline, job: String(job), rounds, cases: ids, settings: JOINT_TIME, maxBoxes, corpus: set, env, commit: process.env["GITHUB_SHA"] ?? null };
   writeFileSync(join(out, "meta.json"), JSON.stringify(meta, null, 2) + "\n");
   console.log(`time arms: ${candidate} against ${baseline}, job ${job}, ${ids.length} cases, ${rounds} rounds, 4 arms, CPU ${env.cpu}`);
-
-  /** This function runs one entry on one input in a fresh child process, and gives its output. */
-  const arm = (pair: string, file: string): ArmOutput => {
-    const child = spawnSync(process.execPath, [SELF, "arm", "--pair", pair, "--input", file], { encoding: "utf8", timeout: ARM_TIMEOUT_MS, maxBuffer: 1 << 24 });
-    if (child.error !== undefined) throw child.error;
-    if (child.status !== 0) throw new Error(`The arm ${pair} on ${file} stopped with ${child.status ?? child.signal}: ${child.stderr}`);
-    const last = child.stdout.trim().split("\n").at(-1) ?? "";
-    return JSON.parse(last) as ArmOutput;
-  };
-  const skipped = new Map<string, string>();
-  const hashes = new Map<string, string>();
   const t0 = performance.now();
-  for (let r = 0; r < rounds; r++) {
-    // The global round makes the rounds of the jobs different, so the merged records have one record of each case and round.
-    const round = job * rounds + r;
-    for (let i = 0; i < ids.length; i++) {
-      const id = ids[i]!;
-      if (skipped.has(id)) continue;
-      const times: Record<TimeKind, Partial<Record<Arm, number>>> = { candidate: {}, aa: {} };
-      let skip: string | undefined;
-      for (const slot of timeArmOrder(round, i)) {
-        const pair = slot.kind === "candidate" && slot.arm === "b" ? candidate : baseline;
-        const result = arm(pair, files[i]!);
-        if (result.skipped !== undefined) {
-          skip = `${pair}: ${result.skipped}`;
-          break;
-        }
-        // Each run of an entry on an input gives the same output. A change of the hash is a fault of the arm.
-        const key = `${pair} ${id}`;
-        const known = hashes.get(key);
-        if (known !== undefined && known !== result.hash) throw new Error(`The entry ${pair} gave two outputs on ${id}: ${known} and ${result.hash}.`);
-        hashes.set(key, result.hash);
-        times[slot.kind][slot.arm] = result.ms;
-      }
-      if (skip !== undefined) {
-        // A skip depends only on the entry and the input, so it comes in the first round.
-        if (r > 0) throw new Error(`The case ${id} skipped in round ${r}, after a run in round 0: ${skip}`);
-        skipped.set(id, skip);
-        console.log(`  case ${id}: skipped, ${skip}`);
-        continue;
-      }
-      const order = timeArmOrder(round, i);
-      const firstOf = (kind: TimeKind): Arm => order.find((s) => s.kind === kind)!.arm;
-      const recordOf = (kind: TimeKind): TimeRecord => ({
-        case: id,
-        round,
-        first: firstOf(kind),
-        a: times[kind].a!,
-        b: times[kind].b!,
-        kind,
-        job,
-        baseline,
-        candidate: kind === "candidate" ? candidate : baseline,
-        env,
-      });
-      appendFileSync(paired, JSON.stringify(recordOf("candidate")) + "\n");
-      appendFileSync(aa, JSON.stringify(recordOf("aa")) + "\n");
-    }
-    console.log(`round ${r + 1} of ${rounds} (global round ${round}): ${Math.round((performance.now() - t0) / 1000)} s`);
-  }
-  writeFileSync(join(out, "meta.json"), JSON.stringify({ ...meta, skipped: Object.fromEntries(skipped), seconds: Math.round((performance.now() - t0) / 1000) }, null, 2) + "\n");
-  if (skipped.size === ids.length) throw new Error("Each case skipped. The run has no time records.");
+  const run = await freshRun(timeFreshOptions({ baseline, candidate, arm: [process.execPath, SELF], cases: ids, files, rounds, job }));
+  const records = timeRecords(run, baseline, candidate);
+  const lines = (list: readonly TimeRecord[]): string => list.map((r) => JSON.stringify(r) + "\n").join("");
+  writeFileSync(join(out, "paired.jsonl"), lines(records.paired));
+  writeFileSync(join(out, "aa.jsonl"), lines(records.aa));
+  for (const s of run.skipped) console.log(`  case ${s.case}: skipped by ${s.arm}, ${s.reason}`);
+  // The verdict gives the skip list of each job to pooledVerdict, so the skipped cases leave all jobs.
+  writeFileSync(join(out, "meta.json"), JSON.stringify({ ...meta, skipped: run.skipped, seconds: Math.round((performance.now() - t0) / 1000) }, null, 2) + "\n");
+  console.log(`${records.paired.length} records of the candidate pair and ${records.aa.length} records of the A/A pair: ${Math.round((performance.now() - t0) / 1000)} s`);
+  if (run.skipped.length === ids.length) throw new Error("Each case skipped. The run has no time records.");
 } else if (command === "verdict") {
   const dir = args.records ?? "time-out";
   const out = args.out ?? dir;
-  const records: TimeRecord[] = [];
-  // `gh run download` and download-artifact write each artifact into a folder of its name.
-  for (const name of readdirSync(dir, { recursive: true }).map(String).filter((n) => n.endsWith(".jsonl")).sort())
-    for (const line of readFileSync(join(dir, name), "utf8").split("\n")) if (line.trim() !== "") records.push(JSON.parse(line) as TimeRecord);
-  const result = jointTimeVerdict(records, JOINT_TIME);
+  // `gh run download` and download-artifact write each artifact into a folder of its name. Each folder has the meta.json of its job.
+  const metas = readdirSync(dir, { recursive: true }).map(String).filter((n) => basename(n) === "meta.json").sort();
+  if (metas.length === 0) throw new Error(`The folder ${dir} has no meta.json of a job.`);
+  const jobs = metas.map((name): TimeJob => {
+    const folder = join(dir, dirname(name));
+    const meta = JSON.parse(readFileSync(join(dir, name), "utf8")) as { readonly job: string; readonly skipped?: readonly FreshSkip[] };
+    const records: TimeRecord[] = [];
+    for (const file of ["paired.jsonl", "aa.jsonl"].map((f) => join(folder, f)).filter((f) => existsSync(f)))
+      for (const line of readFileSync(file, "utf8").split("\n")) if (line.trim() !== "") records.push(JSON.parse(line) as TimeRecord);
+    return { job: String(meta.job), records, skipped: meta.skipped ?? [] };
+  });
+  const result = jointTimeVerdict(jobs, JOINT_TIME);
   mkdirSync(out, { recursive: true });
   writeFileSync(join(out, "verdict.json"), JSON.stringify(result, null, 2) + "\n");
   const markdown = timeMarkdown(result);

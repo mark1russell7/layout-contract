@@ -1,7 +1,8 @@
 // The paired-time arms of the joint bench (L84): the candidate pair and the A/A pair, each arm in its own fresh process (`docs/JOINT-BENCH.md`, "The Time row").
-// rigor-bench gives the records, the order of the arms and the verdict. This file gives only the parts of the joint bench: the entries, the cases and the settings.
-import type { RunEnv } from "@mark1russell7/layout-contract";
-import { firstArm, timeVerdict, type Arm, type PairedTime, type TimeOutcome, type TimeVerdict } from "@mark1russell7/rigor-bench";
+// rigor-bench gives the fresh runner, the order of the arms, the balance of the orders, the pooled verdict and the guard of the jobs.
+// This file gives only the parts of the joint bench: the settings, the entries, the cases, the run options, the records and the Markdown.
+import { pooledVerdict, type JobRecords, type TimeOutcome, type TimeVerdict } from "@mark1russell7/rigor-bench";
+import type { FreshOptions, FreshRecord, FreshRun, FreshSkip } from "@mark1russell7/rigor-bench/fresh";
 import { BASELINE } from "./analysis.ts";
 import { iterEntries, laneEntries } from "./lanes.ts";
 import { PACK_ENTRIES, PAIR_SEPARATOR, pairId, ROUTERS, type RunOptions } from "./runner.ts";
@@ -29,23 +30,83 @@ export const JOINT_TIME: TimeSettings = Object.freeze({ timeMargin: 0.05, cases:
 /** The default entry of the time arms: the baseline pair of the joint bench, `rows+portfolio` (`BASELINE`). Arm `a` of each pair runs it. */
 export const TIME_DEFAULT: string = BASELINE;
 
-/** The mode of the time records: each arm runs in a fresh process (the mode `fresh` of `paired-time/1`). */
+/** The mode of the time arms: each arm runs in a fresh process (the mode `fresh` of `paired-time/1`). The file `meta.json` of a job writes it. */
 export const TIME_MODE = "fresh";
 
 /** The two pairs of a round: the candidate pair (the default against the candidate) and the A/A pair (the default against a copy of the default). */
 export type TimeKind = "candidate" | "aa";
 
-/** One paired-time record of the joint bench: the record of rigor-bench, with the job, the entries and the facts of the computer. */
-export interface TimeRecord extends PairedTime {
+/**
+ * One paired-time record of the joint bench: the record of `freshRun`, with the kind of its pair and the entries of its arms.
+ * The record of `freshRun` has the label of the job and the computer of the job (`benchEnv`).
+ */
+export interface TimeRecord extends FreshRecord {
   readonly kind: TimeKind;
-  /** The index of the CI job, from 0. */
-  readonly job: number;
   /** The entry of arm `a`: the default. */
   readonly baseline: string;
   /** The entry of arm `b`: the candidate, or the default in the A/A pair. */
   readonly candidate: string;
-  /** The facts of the computer, with the mode `fresh` and the context of the run. */
-  readonly env: RunEnv;
+}
+
+/** The records of one CI job, as its artifact keeps them: the label of the job from `meta.json`, its records and its skipped cases. */
+export interface TimeJob {
+  /** The label of the job. `pooledVerdict` of rigor-bench refuses a record with another label. */
+  readonly job: string;
+  readonly records: readonly TimeRecord[];
+  /** The cases that the job skipped, as `freshRun` gives them. No job keeps a record of these cases in the verdict. */
+  readonly skipped: readonly FreshSkip[];
+}
+
+/** The plan of the time arms of one CI job. */
+export interface TimePlan {
+  /** The default entry: arm `a` of each pair. */
+  readonly baseline: string;
+  /** The candidate entry: arm `b` of the candidate pair. */
+  readonly candidate: string;
+  /** The program and the script of the command `arm`, for example `process.execPath` and the path of `scripts/time-arms.ts`. */
+  readonly arm: readonly string[];
+  /** The input ids of the cases. */
+  readonly cases: readonly string[];
+  /** The input file of each case, in the order of `cases`. */
+  readonly files: readonly string[];
+  /** The count of the rounds of the job. */
+  readonly rounds: number;
+  /** The index of the CI job, from 0. */
+  readonly job: number;
+}
+
+/**
+ * This function gives the options of `freshRun` of rigor-bench for one CI job.
+ * - The base arm is the default, and the one candidate is the candidate entry. `freshRun` adds the A/A pair of the default.
+ * - The child of an arm is the command `arm --pair <entry>` with the arguments `--input <file>` of the case.
+ * - The rounds of job `j` start at the global round `j * rounds`. Thus the merged records have one record for each case and round.
+ */
+export function timeFreshOptions(plan: TimePlan): FreshOptions {
+  if (plan.files.length !== plan.cases.length) throw new RangeError(`The plan has ${plan.cases.length} cases and ${plan.files.length} input files.`);
+  const files = new Map(plan.cases.map((id, i) => [id, plan.files[i]!]));
+  const arm = (id: string): FreshOptions["base"] => ({ id, command: [...plan.arm, "arm", "--pair", id] });
+  return {
+    base: arm(plan.baseline),
+    candidates: [arm(plan.candidate)],
+    cases: plan.cases,
+    rounds: plan.rounds,
+    roundOffset: plan.job * plan.rounds,
+    job: String(plan.job),
+    args: (id) => ["--input", files.get(id)!],
+  };
+}
+
+/**
+ * This function gives the records of a fresh run for the files `paired.jsonl` and `aa.jsonl`.
+ * The pair of the candidate has the id of the candidate. The A/A pair has the id `<baseline>~aa` of `freshRun`.
+ */
+export function timeRecords(run: FreshRun, baseline: string, candidate: string): { readonly paired: TimeRecord[]; readonly aa: TimeRecord[] } {
+  const of = (pair: string, kind: TimeKind, b: string): TimeRecord[] => {
+    const records = run.pairs[pair];
+    if (records === undefined) throw new RangeError(`The fresh run has no pair ${pair}. Its pairs are ${Object.keys(run.pairs).join(", ")}.`);
+    return records.map((r) => ({ ...r, kind, baseline, candidate: b }));
+  };
+  return { paired: of(candidate, "candidate", candidate), aa: of(`${baseline}~aa`, "aa", baseline) };
 }
 
 /**
@@ -86,30 +147,9 @@ export function timeCases(rows: readonly TimeCaseRow[], count: number, maxBoxes:
   return Array.from({ length: count }, (_, i) => pool[Math.round((i * (pool.length - 1)) / (count - 1))]!.id);
 }
 
-/** One timed arm of a round: the pair that it belongs to, and its arm of that pair. */
-export interface ArmSlot {
-  readonly kind: TimeKind;
-  readonly arm: Arm;
-}
-
-/**
- * This function gives the order of the 4 arms of one case in one round. `round` is the global round: the job times the rounds of a job, plus the round of the job.
- * - The candidate pair starts with `firstArm(round, caseIndex)`, and the A/A pair starts with `firstArm(round, caseIndex + 1)`.
- * - The pair that runs first turns each second round, so the 4 orders of the two pairs come in each 4 rounds.
- */
-export function timeArmOrder(round: number, caseIndex: number): ArmSlot[] {
-  const pair = (kind: TimeKind, first: Arm): ArmSlot[] => [
-    { kind, arm: first },
-    { kind, arm: first === "a" ? "b" : "a" },
-  ];
-  const candidate = pair("candidate", firstArm(round, caseIndex));
-  const aa = pair("aa", firstArm(round, caseIndex + 1));
-  return (Math.floor(round / 2) + caseIndex) % 2 === 0 ? [...candidate, ...aa] : [...aa, ...candidate];
-}
-
 /** The verdict of one job alone. The result keeps it for each job, and the outcome of the result uses all jobs together. */
 export interface JobTime {
-  readonly job: number;
+  readonly job: string;
   readonly cpu: string;
   readonly outcome: TimeOutcome;
   readonly cases: number;
@@ -120,8 +160,8 @@ export interface JobTime {
 
 /** The result of the Time row of the joint bench. */
 export interface JointTimeResult {
-  readonly schema: "joint-time/1";
-  /** The outcome of the rule `difference` of rigor-bench over the records of all jobs. */
+  readonly schema: "joint-time/2";
+  /** The outcome of `pooledVerdict` of rigor-bench over the records of all jobs, with the rule `difference`. */
   readonly outcome: TimeOutcome;
   /** This field is `false` for `cannot decide`. A candidate without a decision does not promote. */
   readonly decided: boolean;
@@ -136,119 +176,101 @@ export interface JointTimeResult {
   readonly aaCases: number;
   /** The least and the largest count of the rounds of a case, over the jobs. */
   readonly rounds: { readonly min: number; readonly max: number };
-  /** The jobs of the records. */
-  readonly jobs: readonly number[];
-  /** The CPU models and the modes of the records. */
+  /** The labels of the jobs. */
+  readonly jobs: readonly string[];
+  /** The CPU models of the records. */
   readonly cpus: readonly string[];
-  readonly modes: readonly string[];
   /** The interval of the candidate median ratio over the A/A median ratio, or `null` without one. */
   readonly interval: { readonly estimate: number; readonly low: number; readonly high: number; readonly level: number; readonly runs: number } | null;
   /** The median ratio of the A/A cases, or `null` without an A/A band. A value far from 1 shows a bias of the order or of the arm slots. */
   readonly aaMedian: number | null;
-  /** The count of the records that `balanceOrders` removed, so that the order of each merged case turns. It is 0 when each job ran each round. */
-  readonly removed: number;
+  /** The count of the records that `balanceOrders` of rigor-bench removed, so that the order of each merged case turns. It is 0 when each job ran each round. */
+  readonly trimmed: number;
+  /** The cases that a job skipped, in sorted order. `pooledVerdict` removes them from all jobs. */
+  readonly dropped: readonly string[];
   readonly perJob: readonly JobTime[];
   /** The outcome of the pooled records before the guard of the jobs. It differs from `outcome` only when a job decides the opposite direction. */
   readonly pooledOutcome: TimeOutcome;
   /** The jobs whose own outcome is the opposite direction of the pooled outcome: `slower` against `faster`, or `faster` against `slower`. */
-  readonly opposed: readonly number[];
+  readonly opposed: readonly string[];
   /** The steps of the verdict, in words, with the values. */
   readonly derivation: readonly string[];
 }
 
 const r4 = (x: number): number => Math.round(x * 1e4) / 1e4;
 
-/**
- * This function gives the records of each case with a turned order over the merged jobs, and the count of the records that it removes.
- * A job with an odd count of rounds starts one more round with one arm. Thus a missing job or a job that stopped early can leave a case with 2 more rounds of one order.
- * `caseRatios` of rigor-bench refuses such a case. This function removes the records of the larger order with the highest rounds, until the two counts differ by 1 or less.
- */
-export function balanceOrders<T extends PairedTime>(records: readonly T[]): { readonly records: T[]; readonly removed: number } {
-  const byCase = new Map<string, T[]>();
-  for (const r of records) byCase.set(r.case, [...(byCase.get(r.case) ?? []), r]);
-  const drop = new Set<T>();
-  for (const list of byCase.values()) {
-    const a = list.filter((r) => r.first === "a").sort((x, y) => y.round - x.round);
-    const b = list.filter((r) => r.first === "b").sort((x, y) => y.round - x.round);
-    const [more, fewer] = a.length > b.length ? [a, b] : [b, a];
-    for (const r of more.slice(0, Math.max(0, more.length - fewer.length - 1))) drop.add(r);
-  }
-  return { records: records.filter((r) => !drop.has(r)), removed: drop.size };
-}
+/** This function orders the labels of the jobs by their numbers: "2" comes before "10". */
+const byLabel = (x: string, y: string): number => x.localeCompare(y, "en", { numeric: true });
 
 /**
- * This function gives the Time row of a candidate from the merged records of all jobs. It calls `timeVerdict` of rigor-bench with the rule `difference`.
- * - The records of the kind `candidate` are the candidate pair, and the records of the kind `aa` are the A/A pair.
+ * This function gives the Time row of a candidate from the records of all jobs. It calls `pooledVerdict` of rigor-bench with the rule `difference`.
+ * - Each job gives its label, its records of the kind `candidate`, its records of the kind `aa` and its skipped cases.
+ * - `pooledVerdict` refuses a record with the label of another job. It removes each skipped case from all jobs.
+ * - `pooledVerdict` balances the orders, and a job against the pooled direction makes the outcome `cannot decide`.
  * - All records of the candidate pair have one baseline and one candidate. The A/A records have that baseline in their two arms.
  * - `settings.timeMargin` is the margin of the verdict, and the result writes it.
  */
-export function jointTimeVerdict(records: readonly TimeRecord[], settings: Pick<TimeSettings, "timeMargin">): JointTimeResult {
-  const pairsBalanced = balanceOrders(records.filter((r) => r.kind === "candidate"));
-  const aaBalanced = balanceOrders(records.filter((r) => r.kind === "aa"));
-  const pairs = pairsBalanced.records;
-  const aa = aaBalanced.records;
-  const removed = pairsBalanced.removed + aaBalanced.removed;
+export function jointTimeVerdict(jobs: readonly TimeJob[], settings: Pick<TimeSettings, "timeMargin">): JointTimeResult {
+  const sorted = [...jobs].sort((x, y) => byLabel(x.job, y.job));
+  const records = sorted.flatMap((j) => j.records);
   const other = records.find((r) => r.kind !== "candidate" && r.kind !== "aa");
   if (other !== undefined) throw new RangeError(`A time record has the kind "${String(other.kind)}", not candidate or aa.`);
+  const pairs = records.filter((r) => r.kind === "candidate");
   const names = new Set(pairs.map((r) => `${r.baseline} ${r.candidate}`));
   if (names.size > 1) throw new RangeError(`The records have ${names.size} candidate pairs: ${[...names].join(", ")}. A verdict reads one pair.`);
-  const baseline = pairs[0]?.baseline ?? aa[0]?.baseline ?? "";
+  const baseline = pairs[0]?.baseline ?? records[0]?.baseline ?? "";
   const candidate = pairs[0]?.candidate ?? "";
-  const strange = aa.find((r) => r.baseline !== baseline || r.candidate !== baseline);
+  const strange = records.find((r) => r.kind === "aa" && (r.baseline !== baseline || r.candidate !== baseline));
   if (strange !== undefined) throw new RangeError(`An A/A record has the arms ${strange.baseline} and ${strange.candidate}, not two copies of ${baseline}.`);
-  const options = { margin: settings.timeMargin };
-  const verdict = timeVerdict(pairs, aa, options);
-  const jobs = [...new Set(records.map((r) => r.job))].sort((x, y) => x - y);
-  const perJob = jobs.map((job): JobTime => {
-    const v = timeVerdict(
-      records.filter((r) => r.kind === "candidate" && r.job === job),
-      records.filter((r) => r.kind === "aa" && r.job === job),
-      options,
-    );
+  const input = sorted.map(
+    (j): JobRecords => ({ job: j.job, candidate: j.records.filter((r) => r.kind === "candidate"), aa: j.records.filter((r) => r.kind === "aa"), skipped: j.skipped }),
+  );
+  const v = pooledVerdict(input, { margin: settings.timeMargin });
+  const { pooled } = v;
+  const gone = new Set(v.dropped);
+  const aaKept = records.filter((r) => r.kind === "aa" && !gone.has(r.case));
+  const aaCases = new Set(aaKept.map((r) => r.case)).size;
+  const perJob = v.jobs.map(({ job, verdict: jv }): JobTime => {
     const cpu = records.find((r) => r.job === job)?.env.cpu ?? "unknown";
-    return { job, cpu, outcome: v.outcome, cases: v.cases.length, low: v.band === undefined || v.interval === undefined ? null : r4(v.interval.low), high: v.band === undefined || v.interval === undefined ? null : r4(v.interval.high) };
+    const ends = jv.band === undefined || jv.interval === undefined ? null : jv.interval;
+    return { job, cpu, outcome: jv.outcome, cases: jv.cases.length, low: ends === null ? null : r4(ends.low), high: ends === null ? null : r4(ends.high) };
   });
-  // The guard of the jobs: the pooled verdict gates, but a job that decides the opposite direction makes the result "cannot decide".
-  const opposite: Partial<Record<TimeOutcome, TimeOutcome>> = { faster: "slower", slower: "faster" };
-  const against = opposite[verdict.outcome];
-  const opposed = against === undefined ? [] : perJob.filter((j) => j.outcome === against).map((j) => j.job);
-  const outcome: TimeOutcome = opposed.length > 0 ? "cannot decide" : verdict.outcome;
-  const reason = opposed.length > 0 ? `The pooled records give ${verdict.outcome}, but the jobs ${opposed.join(", ")} give ${against}. A job against the pooled direction makes the result cannot decide.` : verdict.reason;
-  const rounds = verdict.cases.map((c) => c.rounds);
-  const aaCases = new Set(aa.map((r) => r.case)).size;
-  const interval = verdict.band === undefined || verdict.interval === undefined ? null : verdict.interval;
+  const labels = sorted.map((j) => j.job);
+  const rounds = pooled.cases.map((c) => c.rounds);
+  const interval = pooled.band === undefined || pooled.interval === undefined ? null : pooled.interval;
   const derivation = [
     `The ratio of each case is exp(median(log(b / a))) over its rounds, with arm a the default ${baseline} and arm b the candidate ${candidate}.`,
-    `The candidate pair has ${verdict.cases.length} cases and ${pairs.length} records. The A/A pair has ${aaCases} cases and ${aa.length} records, from the jobs ${jobs.join(", ")}. The balance of the orders removed ${removed} records.`,
-    `The rule ${verdict.rule} gives the bootstrap interval of the median log ratio of the candidate minus the median log ratio of the A/A pair.`,
+    v.dropped.length === 0 ? "No job skipped a case." : `The jobs skipped the cases ${v.dropped.join(", ")}. Thus the verdict uses no record of these cases from any job.`,
+    `The candidate pair has ${pooled.cases.length} cases. The A/A pair has ${aaCases} cases and ${aaKept.length} records, from the jobs ${labels.join(", ")}. The balance of the orders removed ${v.trimmed} records.`,
+    `The rule ${pooled.rule} gives the bootstrap interval of the median log ratio of the candidate minus the median log ratio of the A/A pair.`,
     interval === null
       ? "The verdict has no interval against the A/A arm."
-      : `The interval of the ratio is ${r4(interval.low)} to ${r4(interval.high)} at the level ${interval.level}, and the A/A median ratio is ${r4(verdict.band!.median)}.`,
+      : `The interval of the ratio is ${r4(interval.low)} to ${r4(interval.high)} at the level ${interval.level}, and the A/A median ratio is ${r4(pooled.band!.median)}.`,
     `The margin timeMargin is ${settings.timeMargin}. Thus same is an interval in [${r4(Math.exp(-settings.timeMargin))}, ${r4(Math.exp(settings.timeMargin))}].`,
-    `The pooled outcome is ${verdict.outcome}. ${verdict.reason}`,
-    opposed.length > 0 ? `The jobs ${opposed.join(", ")} give ${against}, against the pooled outcome. Thus the outcome is cannot decide.` : "No job gives the opposite direction of the pooled outcome.",
+    `The pooled outcome is ${pooled.outcome}. ${pooled.reason}`,
+    v.opposed.length > 0 ? `The jobs ${v.opposed.join(", ")} give the opposite direction of the pooled outcome. Thus the outcome is cannot decide.` : "No job gives the opposite direction of the pooled outcome.",
   ];
   return {
-    schema: "joint-time/1",
-    outcome,
-    decided: outcome !== "cannot decide",
-    reason,
-    rule: verdict.rule,
+    schema: "joint-time/2",
+    outcome: v.outcome,
+    decided: v.outcome !== "cannot decide",
+    reason: v.reason,
+    rule: pooled.rule,
     timeMargin: settings.timeMargin,
     baseline,
     candidate,
-    cases: verdict.cases.length,
+    cases: pooled.cases.length,
     aaCases,
     rounds: { min: rounds.length === 0 ? 0 : Math.min(...rounds), max: rounds.length === 0 ? 0 : Math.max(...rounds) },
-    jobs,
+    jobs: labels,
     cpus: [...new Set(records.map((r) => r.env.cpu))].sort(),
-    modes: [...new Set(records.map((r) => r.env.mode ?? "none"))].sort(),
     interval: interval === null ? null : { estimate: r4(interval.estimate), low: r4(interval.low), high: r4(interval.high), level: interval.level, runs: interval.runs },
-    aaMedian: verdict.band === undefined ? null : r4(verdict.band.median),
-    removed,
+    aaMedian: pooled.band === undefined ? null : r4(pooled.band.median),
+    trimmed: v.trimmed,
+    dropped: v.dropped,
     perJob,
-    pooledOutcome: verdict.outcome,
-    opposed,
+    pooledOutcome: pooled.outcome,
+    opposed: v.opposed,
     derivation,
   };
 }
@@ -260,7 +282,9 @@ export function timeMarkdown(result: JointTimeResult): string {
     "",
     `**${result.outcome}**${result.decided ? "" : " (no promotion)"}. ${result.reason}`,
     "",
-    `The margin is timeMargin = ${result.timeMargin}. The run has ${result.cases} cases, ${result.aaCases} A/A cases, ${result.rounds.min} to ${result.rounds.max} rounds for each case, the jobs ${result.jobs.join(", ")} and the modes ${result.modes.join(", ")}.`,
+    `The margin is timeMargin = ${result.timeMargin}. The run has ${result.cases} cases, ${result.aaCases} A/A cases, ${result.rounds.min} to ${result.rounds.max} rounds for each case and the jobs ${result.jobs.join(", ")}.`,
+    "",
+    `The skipped cases (dropped from all jobs): ${result.dropped.length === 0 ? "none" : result.dropped.join(", ")}. The balance of the orders removed ${result.trimmed} records.`,
     "",
     "| Job | CPU | Outcome of the job alone | Cases | Interval |",
     "| --- | --- | --- | --- | --- |",
