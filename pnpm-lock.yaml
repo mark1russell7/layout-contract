@@ -217,6 +217,9 @@ importers:
       '@mark1russell7/packing':
         specifier: ^0.4.0
         version: 0.4.1
+      '@mark1russell7/rigor-bench':
+        specifier: ^0.1.0
+        version: 0.1.0
       '@mark1russell7/rigor-generators':
         specifier: ^0.1.0
         version: 0.1.0
@@ -520,12 +523,24 @@ packages:
     resolution: {integrity: sha512-V+2ZVIiJPFeQhTiKCl8ONaHEr5vlaBrPDi/dCuUlUQgy0ffXst+hsb82U0XZaPVfF8bEt/PdzuYwGwGJ5s83WQ==}
     engines: {node: '>=22.12'}
 
+  '@mark1russell7/rigor-bench@0.1.0':
+    resolution: {integrity: sha512-HWLgPMON9zLz9zBUY1bEVw/0d2Tg6JABpGJOR6QW5pPkGhclBIg4MzR4ERPVNJQLJtQu4PILb82n4SdLZq4ORQ==}
+    engines: {node: '>=22'}
+
   '@mark1russell7/rigor-generators@0.1.0':
     resolution: {integrity: sha512-xhXvLzZQlDH6ysAbqEjbha6fs1GbvO9RflSXwYbA3QMryxu4zEikbxahEDQCIxVSis+2pfX/18PHU3+X+jJmPw==}
     engines: {node: '>=22'}
 
+  '@mark1russell7/rigor-generators@0.1.1':
+    resolution: {integrity: sha512-N5o3II0AClHgsWCWtzuBzckQdReydJnLUS8Kdt9hWXVpTzb0dxucrN1bWdDN+75YompOR1rAmsIX8zuHqoQdqA==}
+    engines: {node: '>=22'}
+
   '@mark1russell7/rigor-statistics@0.1.0':
     resolution: {integrity: sha512-2sqsFf6BLwN3NVxLcu+QpOUE7o4HFUeNE0O5if+62rBITRpgGpRaMs6DwjkTzRYzxt7dOqBnMr56GaNMHXb6PA==}
+    engines: {node: '>=22'}
+
+  '@mark1russell7/rigor-statistics@0.1.4':
+    resolution: {integrity: sha512-j0Z3GrgMyIvDNnxWIf1+nYTvtvUmN60ToMYzuJrR9XBEWfuuk6gcO7kjb9JdxBO5zIHEl60t7c0qWUGfRgCK3Q==}
     engines: {node: '>=22'}
 
   '@mark1russell7/ste-lint@0.1.1':
@@ -1700,11 +1715,21 @@ snapshots:
     dependencies:
       '@mark1russell7/layout-contract': 0.2.21
 
+  '@mark1russell7/rigor-bench@0.1.0':
+    dependencies:
+      '@mark1russell7/rigor-statistics': 0.1.4
+
   '@mark1russell7/rigor-generators@0.1.0': {}
+
+  '@mark1russell7/rigor-generators@0.1.1': {}
 
   '@mark1russell7/rigor-statistics@0.1.0':
     dependencies:
       '@mark1russell7/rigor-generators': 0.1.0
+
+  '@mark1russell7/rigor-statistics@0.1.4':
+    dependencies:
+      '@mark1russell7/rigor-generators': 0.1.1
 
   '@mark1russell7/ste-lint@0.1.1':
     dependencies:
