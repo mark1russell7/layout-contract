@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.3.5
+
+- PATCH before 1.0.0: new exports and an optional method, with no break. `layoutText` does not change.
+- `createTextLayoutCache({ maxEntries })` in `./text` gives a bounded cache of `layoutText` results. The key holds the text, the options and the measurer.
+- A cached result is frozen, and callers share it. Use `structuredClone` for a copy that you can change.
+- `TextMeasurer` gets an optional `generation()`. The measurer of `createMeasurer` gives it, so a `reset` of the measurer does not give old widths. A different measurer calls `reset` of the cache after a change of its advances.
+- The gain is large on repeated labels with one set of options. It is small when the options change on each call.
+
 ## 0.3.4
 
 - PATCH before 1.0.0: a new type and two new functions, with no break.
