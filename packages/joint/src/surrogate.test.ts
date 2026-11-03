@@ -207,6 +207,21 @@ describe("fitSurrogate", () => {
     expect(paired.cells.skill.median).toBeGreaterThan(main.cells.skill.median);
   });
 
+  it("finds an effect of a feature that changes with the board kind only with the option featureKindPairs", () => {
+    const size = (input: string): string => (input.endsWith("/s1") ? "small" : "big");
+    // A big input adds 0.4 to the scores of the kind alpha, and takes 0.4 from the kind beta.
+    const s = state((a, b, k, kind, i) => additive(a, b, k, kind) + (size(INPUTS[i]!) === "big" ? (kind === "alpha" ? 0.4 : -0.4) : 0));
+    const features = (input: string): Record<string, string> => ({ size: size(input) });
+    const main = fitSurrogate(s, { ...OPTIONS, features });
+    const paired = fitSurrogate(s, { ...OPTIONS, features, featureKindPairs: true });
+    expect(main.featureKindPairs).toBe(false);
+    expect(paired.featureKindPairs).toBe(true);
+    expect(paired.features).toBeGreaterThan(main.features);
+    expect(paired.cells.skill.median).toBeGreaterThan(0.9);
+    expect(paired.cells.skill.median).toBeGreaterThan(main.cells.skill.median);
+    expect(surrogateMarkdown(paired)).toContain("It also has their products with the board kind.");
+  });
+
   it("gives the features of an input from the cells of a manifest", () => {
     const of = manifestFeatures({ inputs: [{ id: "x/s1", hash: "h", cell: { containerSize: "fixed", count: "10", spacing: "gap" } as unknown as JointEntry["cell"] }] });
     expect(of("x/s1")).toEqual({ containerSize: "fixed", count: "10", spacing: "gap" });

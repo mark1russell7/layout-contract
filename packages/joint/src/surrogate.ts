@@ -55,6 +55,8 @@ export interface SurrogateOptions {
   readonly features?: (inputId: string) => Readonly<Record<string, string>> | undefined;
   /** With `true`, the fit also has the product of each group block with each feature block. The default is `false`. */
   readonly featurePairs?: boolean;
+  /** With `true`, the fit also has the product of the kind block with each feature block. Then a feature has its own effect on each board kind. The default is `false`. */
+  readonly featureKindPairs?: boolean;
 }
 
 /** The held-out error of one candidate of the ridge penalty. */
@@ -140,6 +142,8 @@ export interface Surrogate {
   readonly inputFeatures: readonly string[];
   /** This value is `true` when the fit has the products of the group blocks with the feature blocks. */
   readonly featurePairs: boolean;
+  /** This value is `true` when the fit has the products of the kind block with the feature blocks. */
+  readonly featureKindPairs: boolean;
   readonly folds: number;
   readonly foldBy: SurrogateFoldBy;
   readonly seed: number;
@@ -272,6 +276,7 @@ export function fitSurrogate(state: SweepState, options: SurrogateOptions = {}):
   const groups = options.groups ?? JOINT_GROUPS;
   const kindOfInput = options.kindOf ?? kindOf;
   const featurePairs = options.featurePairs ?? false;
+  const featureKindPairs = options.featureKindPairs ?? false;
   if (!(Number.isInteger(folds) && folds >= 2)) throw new RangeError(`fitSurrogate: folds is an integer of 2 or more, not ${folds}.`);
   if (lambdas.length === 0 || !lambdas.every((l) => l > 0)) throw new RangeError(`fitSurrogate: lambdas is a list of numbers above 0, not [${lambdas.join(", ")}].`);
   if (!(Number.isInteger(draws) && draws >= 2)) throw new RangeError(`fitSurrogate: draws is an integer of 2 or more, not ${draws}.`);
@@ -319,6 +324,8 @@ export function fitSurrogate(state: SweepState, options: SurrogateOptions = {}):
   };
   for (let a = 0; a < cellBlocks; a++) for (let b = a + 1; b < cellBlocks; b++) addPair(a, b);
   if (featurePairs) for (let a = 0; a < groups.length; a++) for (let b = cellBlocks; b < blocks.length; b++) addPair(a, b);
+  // The kind block is the last block of the cells.
+  if (featureKindPairs) for (let b = cellBlocks; b < blocks.length; b++) addPair(cellBlocks - 1, b);
   const params: Param[] = [];
   for (const stage of space.stages) {
     for (const option of stage.options) {
@@ -491,6 +498,7 @@ export function fitSurrogate(state: SweepState, options: SurrogateOptions = {}):
     features: width,
     inputFeatures,
     featurePairs,
+    featureKindPairs,
     folds,
     foldBy,
     seed,
@@ -528,7 +536,7 @@ export function surrogateMarkdown(result: Surrogate, worst = 10): string {
     "",
     result.inputFeatures.length === 0
       ? "The fit has no input features."
-      : `The fit has ${result.inputFeatures.length} input features: ${result.inputFeatures.join(", ")}. ${result.featurePairs ? "It also has their products with the groups." : "It has no products of them with the groups."}`,
+      : `The fit has ${result.inputFeatures.length} input features: ${result.inputFeatures.join(", ")}. ${result.featurePairs ? "It also has their products with the groups." : "It has no products of them with the groups."}${result.featureKindPairs ? " It also has their products with the board kind." : ""}`,
     "",
     `The penalty λ = ${result.lambda}. The held-out R² is ${f(result.r2)}, and the held-out RMSE is ${f(result.rmse)}.${result.lambdaAtEdge ? " λ is at an edge of the list, so a value out of the list can give a smaller error." : ""}`,
     "",
