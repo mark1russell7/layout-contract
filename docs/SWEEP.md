@@ -204,6 +204,8 @@ The job `race` races the screened configs against the incumbent (`raceNight`):
 5. Successive halving keeps 1 of each 3 of the other configs (`SWEEP_ETA`), by the mean of the stratified difference. It halves the rest.
 6. The alive configs with the full corpus race again without the halving. The race drops a config that becomes "worse".
 
+Each outcome has the gain under both weightings (L37). `mean` is the mean of the family means, and `pooled` is the mean of the inputs. The label "better" or "worse" needs both means on one side of 0 (`agree`). Means with opposite signs give the label "depends on the mix": then the mix of the families in the corpus decides the sign. `signs` has the counts of the families where the config wins, loses or ties, with the p of the two-sided sign test. The state keeps these fields for each raced config, and `night.md` shows them for the alive configs.
+
 The dropped and halved configs lose their values in the state. Their rows stay in the summary. Round 2 gives the alive configs the other seeds, so the next race has more pairs for them.
 
 ## The records

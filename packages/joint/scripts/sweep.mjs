@@ -365,7 +365,10 @@ function nightMarkdown(state, night, counts, facts) {
     .filter(([, c]) => c.status === "alive")
     .sort(([, a], [, b]) => (b.mean ?? 0) - (a.mean ?? 0))
     .slice(0, 10);
-  lines.push("", "| Alive config | Label | Mean against the incumbent |", "|---|---|---|");
-  for (const [id, c] of best) lines.push(`| \`${id}\` \`${configLabel(c.config)}\` | ${c.label ?? ""} | ${(c.mean ?? 0).toFixed(4)} |`);
+  // Both weightings of the gain (L37): the mean of the family means and the mean of the inputs, with the family signs and their sign test.
+  const num = (x) => (x === undefined ? "" : x.toFixed(4));
+  const signs = (s) => (s === undefined ? "" : `${s.wins} / ${s.losses} / ${s.ties}`);
+  lines.push("", "| Alive config | Label | Mean of the family means | Mean of the inputs | Families +/-/0 | Sign test p |", "|---|---|---|---|---|---|");
+  for (const [id, c] of best) lines.push(`| \`${id}\` \`${configLabel(c.config)}\` | ${c.label ?? ""} | ${(c.mean ?? 0).toFixed(4)} | ${num(c.pooled)} | ${signs(c.signs)} | ${num(c.signs?.p)} |`);
   return lines.join("\n") + "\n";
 }
