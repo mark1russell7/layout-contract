@@ -254,7 +254,7 @@ turnRegion: build/index.d.ts#turnRegion
 turnSide: build/index.d.ts#turnSide
 verdict: build/index.d.ts#verdict
 
-## ./text (build/text.d.ts): 16 names
+## ./text (build/text.d.ts): 20 names
 
 AdvanceFn: build/text.d.ts#AdvanceFn
 CanvasTextContext: build/text.d.ts#CanvasTextContext
@@ -263,11 +263,15 @@ MeasurerStats: build/text.d.ts#MeasurerStats
 TEXT_MEASURES: build/text.d.ts#TEXT_MEASURES
 TEXT_UNITS: build/text.d.ts#TEXT_UNITS
 TextLayout: build/text.d.ts#TextLayout
+TextLayoutCache: build/text.d.ts#TextLayoutCache
+TextLayoutCacheOptions: build/text.d.ts#TextLayoutCacheOptions
+TextLayoutCacheStats: build/text.d.ts#TextLayoutCacheStats
 TextLayoutOptions: build/text.d.ts#TextLayoutOptions
 TextMeasureId: build/text.d.ts#TextMeasureId
 TextMeasurer: build/text.d.ts#TextMeasurer
 canvasAdvance: build/text.d.ts#canvasAdvance
 createMeasurer: build/text.d.ts#createMeasurer
+createTextLayoutCache: build/text.d.ts#createTextLayoutCache
 fontKey: build/text.d.ts#fontKey
 graphemesOf: build/text.d.ts#graphemesOf
 layoutText: build/text.d.ts#layoutText
@@ -1599,6 +1603,23 @@ export interface TextLayout {
   readonly truncated: boolean;
 }
 
+### build/text.d.ts#TextLayoutCache
+export interface TextLayoutCache {
+  layout(text: string, options: TextLayoutOptions): TextLayout;
+  stats(): TextLayoutCacheStats;
+  reset(): void;
+}
+
+### build/text.d.ts#TextLayoutCacheOptions
+export interface TextLayoutCacheOptions {
+  readonly maxEntries?: number;
+}
+
+### build/text.d.ts#TextLayoutCacheStats
+export interface TextLayoutCacheStats extends MeasurerStats {
+  readonly size: number;
+}
+
 ### build/text.d.ts#TextLayoutOptions
 export interface TextLayoutOptions {
   readonly font: string;
@@ -1623,6 +1644,7 @@ export interface TextMeasurer {
   advance(segment: string, font: string): number;
   stats(): MeasurerStats;
   reset(): void;
+  generation?(): number;
 }
 
 ### build/text.d.ts#canvasAdvance
@@ -1630,6 +1652,9 @@ export declare function canvasAdvance(context: CanvasTextContext): AdvanceFn;
 
 ### build/text.d.ts#createMeasurer
 export declare function createMeasurer(measure: AdvanceFn, options?: MeasurerOptions): TextMeasurer;
+
+### build/text.d.ts#createTextLayoutCache
+export declare function createTextLayoutCache(options?: TextLayoutCacheOptions): TextLayoutCache;
 
 ### build/text.d.ts#fontKey
 export declare function fontKey(font: string): string;
