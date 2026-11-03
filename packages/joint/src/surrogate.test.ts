@@ -124,6 +124,35 @@ describe("fitSurrogate", () => {
     expect(other.foldOf).not.toEqual(r.foldOf);
   });
 
+  it("keeps all rows of one input in one fold with the option foldBy input", () => {
+    const s = state(additive);
+    const r = fitSurrogate(s, { ...OPTIONS, seed: 5, foldBy: "input" });
+    expect(r.foldBy).toBe("input");
+    expect(fitSurrogate(s, OPTIONS).foldBy).toBe("config");
+    expect(Object.keys(r.foldOf).sort()).toEqual([...INPUTS].sort());
+    for (const [id, fold] of Object.entries(r.foldOf)) expect(fold).toBe(surrogateFold(id, 5, 5));
+    expect(surrogateMarkdown(r)).toContain("5 folds by input");
+    expect(() => fitSurrogate(s, { ...OPTIONS, foldBy: "row" as never })).toThrow(RangeError);
+  });
+
+  it("tells when the chosen λ is at an edge of the list", () => {
+    const s = state(additive);
+    const edge = fitSurrogate(s, { ...OPTIONS, lambdas: [1e-6, 1e6] });
+    expect(edge.lambdaAtEdge).toBe(true);
+    expect(surrogateMarkdown(edge)).toContain("λ is at an edge of the list");
+    const one = fitSurrogate(s, { ...OPTIONS, lambdas: [1] });
+    expect(one.lambdaAtEdge).toBe(false);
+  });
+
+  it("gives an in-sample skill of each cell that is at least the held-out skill", () => {
+    const size = (input: string): string => (input.endsWith("/s1") ? "small" : "big");
+    const s = state((a, b, k, kind, i) => additive(a, b, k, kind) + (size(INPUTS[i]!) === "big" ? 0.3 : 0));
+    const r = fitSurrogate(s, { ...OPTIONS, features: (input) => ({ size: size(input) }), foldBy: "input" });
+    expect(r.cells.inSampleSkill.median).toBeGreaterThan(0.9);
+    expect(r.cells.inSampleSkill.median).toBeGreaterThanOrEqual(r.cells.skill.median);
+    expect(surrogateMarkdown(r)).toContain("in-sample skill");
+  });
+
   it("gives the same result for the same seed", () => {
     const draw = random(3);
     const s = state((a, b, k, kind) => additive(a, b, k, kind) + 0.05 * draw.next());
