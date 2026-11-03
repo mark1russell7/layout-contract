@@ -4,12 +4,19 @@ import type { StrategyConfig, StrategySpace } from "@mark1russell7/layout-contra
 import { deriveSeed, random } from "@mark1russell7/rigor-generators";
 import { mean, median, quantile, sd } from "@mark1russell7/rigor-statistics";
 import { kindOf } from "./check.ts";
+import type { JointManifest } from "./corpus.ts";
 import type { SweepState } from "./night.ts";
 import { JOINT_GROUPS, saltelliDesign, saltelliIndices, type SensitivityGroup } from "./sensitivity.ts";
 import { JOINT_SPACE } from "./space.ts";
 
 /** The name of the factor of the board kind in the cells and in the Sobol indices. */
 export const KIND_FACTOR = "kind";
+
+/** The name of the Sobol factor of the input when the fit has input features. The factor draws one input, with its kind and its features. */
+export const INPUT_FACTOR = "input";
+
+/** The prefix of the name of the block of an input feature. */
+export const FEATURE_PREFIX = "input.";
 
 /** The options of `fitSurrogate`. */
 export interface SurrogateOptions {
@@ -33,6 +40,13 @@ export interface SurrogateOptions {
   readonly groups?: readonly SensitivityGroup[];
   /** This function gives the board kind of an input id. The default is `kindOf`. */
   readonly kindOf?: (inputId: string) => string;
+  /**
+   * This function gives the features of an input id: the dimensions of its cell, by name. The default gives no features.
+   * The fit adds a block for each dimension with 2 values or more. The cells of the coverage stay the groups and the kind.
+   */
+  readonly features?: (inputId: string) => Readonly<Record<string, string>> | undefined;
+  /** With `true`, the fit also has the product of each group block with each feature block. The default is `false`. */
+  readonly featurePairs?: boolean;
 }
 
 /** The held-out error of one candidate of the ridge penalty. */
@@ -112,6 +126,10 @@ export interface Surrogate {
   readonly configs: number;
   /** The count of the features, with the intercept. */
   readonly features: number;
+  /** The dimensions of the input features that the fit uses, in their order. It is empty without the option `features`. */
+  readonly inputFeatures: readonly string[];
+  /** This value is `true` when the fit has the products of the group blocks with the feature blocks. */
+  readonly featurePairs: boolean;
   readonly folds: number;
   readonly seed: number;
   /** The ridge penalty with the smallest held-out error. */
@@ -238,19 +256,21 @@ export function fitSurrogate(state: SweepState, options: SurrogateOptions = {}):
   const space = options.space ?? JOINT_SPACE;
   const groups = options.groups ?? JOINT_GROUPS;
   const kindOfInput = options.kindOf ?? kindOf;
+  const featurePairs = options.featurePairs ?? false;
   if (!(Number.isInteger(folds) && folds >= 2)) throw new RangeError(`fitSurrogate: folds is an integer of 2 or more, not ${folds}.`);
   if (lambdas.length === 0 || !lambdas.every((l) => l > 0)) throw new RangeError(`fitSurrogate: lambdas is a list of numbers above 0, not [${lambdas.join(", ")}].`);
   if (!(Number.isInteger(draws) && draws >= 2)) throw new RangeError(`fitSurrogate: draws is an integer of 2 or more, not ${draws}.`);
 
   // The measured values: one row for each config and input with a score.
   const kinds = state.inputs.map(kindOfInput);
-  const measured: { config: string; levels: string[]; kind: string; y: number }[] = [];
+  const featureRows = state.inputs.map((id) => options.features?.(id) ?? {});
+  const measured: { config: string; levels: string[]; kind: string; input: number; y: number }[] = [];
   for (const [id, values] of Object.entries(state.values)) {
     const entry = state.configs[id];
     if (entry === undefined) continue;
     const levels = groups.map((g) => g.of(entry.config));
     values.forEach((y, i) => {
-      if (y !== null && Number.isFinite(y)) measured.push({ config: id, levels, kind: kinds[i]!, y });
+      if (y !== null && Number.isFinite(y)) measured.push({ config: id, levels, kind: kinds[i]!, input: i, y });
     });
   }
   const configIds = [...new Set(measured.map((r) => r.config))];
@@ -266,13 +286,21 @@ export function fitSurrogate(state: SweepState, options: SurrogateOptions = {}):
   };
   groups.forEach((g, k) => addBlock(g.name, groupLevels(g, space, new Set(measured.map((r) => r.levels[k]!)))));
   addBlock(KIND_FACTOR, [...new Set(kinds)].sort());
+  // The cells of the coverage are the blocks of the groups and the kind. The blocks of the input features come after them.
+  const cellBlocks = blocks.length;
+  const measuredInputs = [...new Set(measured.map((r) => r.input))].sort((a, b) => a - b);
+  const featureOf = (input: number, dim: string): string => featureRows[input]![dim] ?? "-";
+  const inputFeatures = [...new Set(measuredInputs.flatMap((i) => Object.keys(featureRows[i]!)))]
+    .sort()
+    .filter((dim) => new Set(measuredInputs.map((i) => featureOf(i, dim))).size >= 2);
+  for (const dim of inputFeatures) addBlock(FEATURE_PREFIX + dim, [...new Set(measuredInputs.map((i) => featureOf(i, dim)))].sort());
   const pairs: { a: number; b: number; offset: number }[] = [];
-  for (let a = 0; a < blocks.length; a++) {
-    for (let b = a + 1; b < blocks.length; b++) {
-      pairs.push({ a, b, offset: width });
-      width += blocks[a]!.levels.length * blocks[b]!.levels.length;
-    }
-  }
+  const addPair = (a: number, b: number): void => {
+    pairs.push({ a, b, offset: width });
+    width += blocks[a]!.levels.length * blocks[b]!.levels.length;
+  };
+  for (let a = 0; a < cellBlocks; a++) for (let b = a + 1; b < cellBlocks; b++) addPair(a, b);
+  if (featurePairs) for (let a = 0; a < groups.length; a++) for (let b = cellBlocks; b < blocks.length; b++) addPair(a, b);
   const params: Param[] = [];
   for (const stage of space.stages) {
     for (const option of stage.options) {
@@ -290,9 +318,10 @@ export function fitSurrogate(state: SweepState, options: SurrogateOptions = {}):
     }
   }
 
-  /** This function gives the sparse features of a config with its group levels on a board kind. A level out of a block gives no feature of it. */
-  const encode = (config: StrategyConfig, levels: readonly string[], kind: string): { idx: number[]; val: number[] } => {
-    const at = [...levels, kind].map((l, k) => blocks[k]!.index.get(l));
+  /** This function gives the sparse features of a config with its group levels on an input of a board kind. A level out of a block gives no feature of it. */
+  const encode = (config: StrategyConfig, levels: readonly string[], kind: string, input: number | undefined): { idx: number[]; val: number[] } => {
+    const features = input === undefined ? inputFeatures.map(() => "") : inputFeatures.map((dim) => featureOf(input, dim));
+    const at = [...levels, kind, ...features].map((l, k) => blocks[k]!.index.get(l));
     const idx = [0];
     const val = [1];
     at.forEach((l, k) => {
@@ -316,7 +345,7 @@ export function fitSurrogate(state: SweepState, options: SurrogateOptions = {}):
     }
     return { idx, val };
   };
-  const rows: Row[] = measured.map((r) => ({ config: r.config, cell: JSON.stringify([...r.levels, r.kind]), y: r.y, ...encode(state.configs[r.config]!.config, r.levels, r.kind) }));
+  const rows: Row[] = measured.map((r) => ({ config: r.config, cell: JSON.stringify([...r.levels, r.kind]), y: r.y, ...encode(state.configs[r.config]!.config, r.levels, r.kind, r.input) }));
 
   // The normal equations of each fold. The fit without fold `f` uses the sums of all rows minus the sums of fold `f`.
   const foldOf: Record<string, number> = {};
@@ -386,10 +415,10 @@ export function fitSurrogate(state: SweepState, options: SurrogateOptions = {}):
     const m = mean(c.ys);
     const floor = Math.sqrt(c.ys.reduce((s, y) => s + (y - m) ** 2, 0) / c.n);
     const ratio = rmse / Math.max(floor, minFloor);
-    return { levels: Object.fromEntries(blocks.map((b, k) => [b.name, levels[k]!])), rows: c.n, rmse, floor, ratio, skill: 1 - ratio ** 2, covered: c.n >= minRows && ratio <= floorRatio };
+    return { levels: Object.fromEntries(blocks.slice(0, cellBlocks).map((b, k) => [b.name, levels[k]!])), rows: c.n, rmse, floor, ratio, skill: 1 - ratio ** 2, covered: c.n >= minRows && ratio <= floorRatio };
   });
   cellErrors.sort((a, b) => b.rmse - a.rmse || JSON.stringify(a.levels).localeCompare(JSON.stringify(b.levels)));
-  const cellCount = blocks.reduce((s, b) => s * b.levels.length, 1);
+  const cellCount = blocks.slice(0, cellBlocks).reduce((s, b) => s * b.levels.length, 1);
   const covered = cellErrors.filter((c) => c.covered).length;
   const eligible = cellErrors.filter((c) => c.rows >= minRows);
   const medianRatio = eligible.length > 0 ? median(eligible.map((c) => c.ratio)) : Number.NaN;
@@ -404,11 +433,15 @@ export function fitSurrogate(state: SweepState, options: SurrogateOptions = {}):
     if (g.stage === undefined || !design.stages.includes(g.stage)) throw new RangeError(`fitSurrogate: the group ${g.name} is not one stage of the space ${space.engine}.`);
     return g.stage;
   });
-  const observed = [...new Set(measured.map((r) => r.kind))].sort();
+  // Without input features, the last factor draws a board kind. With them, it draws one measured input, with its kind and its features.
+  const observed: { kind: string; input: number | undefined }[] =
+    inputFeatures.length === 0
+      ? [...new Set(measured.map((r) => r.kind))].sort().map((kind) => ({ kind, input: undefined }))
+      : measuredInputs.map((input) => ({ kind: kinds[input]!, input }));
   const draw = random(deriveSeed(seed, "kinds"));
-  const f = (id: string, kind: string): number => {
+  const f = (id: string, at: { kind: string; input: number | undefined }): number => {
     const config = configs[id]!;
-    const e = encode(config, groups.map((g) => g.of(config)), kind);
+    const e = encode(config, groups.map((g) => g.of(config)), at.kind, at.input);
     return predict(beta, e.idx, e.val);
   };
   const responses = design.rows.map((row) => {
@@ -416,13 +449,15 @@ export function fitSurrogate(state: SweepState, options: SurrogateOptions = {}):
     const kb = draw.pick(observed);
     return { a: f(row.a, ka), b: f(row.b, kb), ab: [...stages.map((s) => f(row.ab[s]!, ka)), f(row.a, kb)] };
   });
-  const names = [...groups.map((g) => g.name), KIND_FACTOR];
+  const names = [...groups.map((g) => g.name), inputFeatures.length === 0 ? KIND_FACTOR : INPUT_FACTOR];
   const factors = saltelliIndices(responses).map((x, k) => ({ name: names[k]!, first: x.first, total: x.total }));
 
   return {
     rows: rows.length,
     configs: configIds.length,
     features: width,
+    inputFeatures,
+    featurePairs,
     folds,
     seed,
     lambda: best.lambda,
@@ -455,6 +490,10 @@ export function surrogateMarkdown(result: Surrogate, worst = 10): string {
   return [
     `The surrogate: ${result.rows} rows of ${result.configs} configs, ${result.features} features, ${result.folds} folds by config, seed ${result.seed}.`,
     "",
+    result.inputFeatures.length === 0
+      ? "The fit has no input features."
+      : `The fit has ${result.inputFeatures.length} input features: ${result.inputFeatures.join(", ")}. ${result.featurePairs ? "It also has their products with the groups." : "It has no products of them with the groups."}`,
+    "",
     `The penalty λ = ${result.lambda}. The held-out R² is ${f(result.r2)}, and the held-out RMSE is ${f(result.rmse)}.`,
     "",
     `Space coverage: ${c.covered} of the ${c.withRows} cells with rows (${(100 * c.share).toFixed(1)}%). ${c.eligible} cells have ${c.minRows} rows or more. The space has ${c.total} cells, and ${c.empty} have no rows.`,
@@ -480,4 +519,10 @@ export function surrogateMarkdown(result: Surrogate, worst = 10): string {
     ...result.cellErrors.slice(0, worst).map((e) => `| ${Object.values(e.levels).join(" · ")} | ${e.rows} | ${f(e.rmse)} | ${f(e.floor)} | ${f(e.ratio)} | ${f(e.skill)} |`),
     "",
   ].join("\n");
+}
+
+/** This function gives the option `features` of `fitSurrogate` from a manifest: the cell of each input, with each value as a string. */
+export function manifestFeatures(manifest: Pick<JointManifest, "inputs">): (inputId: string) => Readonly<Record<string, string>> | undefined {
+  const cells = new Map(manifest.inputs.map((e) => [e.id, Object.fromEntries(Object.entries(e.cell).map(([k, v]) => [k, String(v)]))]));
+  return (inputId) => cells.get(inputId);
 }
