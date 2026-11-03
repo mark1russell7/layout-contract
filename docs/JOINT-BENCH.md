@@ -7,10 +7,12 @@ The times in this file come from one process that runs many pairs in order. Earl
 - The corpus is `joint-v2` by default (`docs/JOINT-CORPUS.md`). The first run used `joint-v1`.
 - The pack entries are the 12 entries of the benchmark of `packing` 0.2.10 without `push`, and the entry `select` (L32). The strategy `push` supports only the mode `incremental`, and each joint input is `offline`.
 - The entry `select` is the composite strategy `select` of `packing` 0.2.15, the `DEFAULT_STRATEGY` of `packDefault`. Refer to "The prediction for the select packer (L32)".
+- The entries `rows-graph-bfs` and `maxrects-bl-graph-bfs` of L47 use the order `graph-bfs` of `packing` 0.5.0. Refer to "The graph-bfs entries (L47)".
 - The routers are the 9 router strategies of `highways` 0.6.0, and the portfolio router `portfolio` of `highways` 0.6.0.
 - The joint-v2 run of 2026-10-28 used `packing` 0.2.6 and `highways` 0.5.1. Version 0.6.0 changes the default members of `portfolio`.
 - Since `highways` 0.9.1, the routers also hold the 5 highway strategies of wave 3 (`HIGHWAY_ROUTERS`): `steiner`, `gaps`, `streets`, `search` and `interchanges`. Each makes a plan of highways, then `follow` routes it.
-- Thus the benchmark has 195 pairs. The runs before the space `bench-3` had 130 pairs, and the runs before L32 had 120 pairs. `joint-v2` has 303 inputs, and `joint-v1` has 285 inputs.
+- Thus the benchmark has 300 pairs: 20 pack entries and 15 routers. bench-4 had 270 pairs, and the space `bench-3` had 195 pairs.
+- The runs before `bench-3` had 130 pairs, and the runs before L32 had 120 pairs. `joint-v2` has 303 inputs, and `joint-v1` has 285 inputs.
 - The cost model of the shard plan gives each new pair the mean time of the 130 pairs of the fit. The first full run of 195 pairs gives the data for a new fit.
 - The option `--lanes on` adds the 18 lane pairs of L13. Refer to "The lane pairs".
 - The option `--iterate on` adds the 18 iteration pairs of L11. Refer to "The iteration pairs".
@@ -1669,3 +1671,64 @@ The cost of the 3 jobs comes from the times of the run 41408115284. It is not sm
 | The added time of the run, with 3 jobs at once | approximately 100 minutes |
 
 A nightly gate stops at its start when the last nightly gate examined the same commit. Thus the full cost comes only on a night after a change of `main`.
+
+## The graph-bfs entries (L47)
+
+`packing` 0.5.0 adds the sort order `graph-bfs`. It reads the links of the items, and walks them breadth-first from the hub of each component. The hub is the item with the largest sum of link weights. Without links, the order is `area-desc`.
+
+- The joint package has 2 new pack entries: `rows-graph-bfs` (`rows` with the order `graph-bfs`) and `maxrects-bl-graph-bfs` (`maxrects` with the rule `bl` and the order `graph-bfs`).
+- The order is an option of the pack entry, not a router. Thus the pair ids are `rows-graph-bfs+<router>` and `maxrects-bl-graph-bfs+<router>`.
+- A pack id has no `+`, because `PAIR_SEPARATOR` is `+`. The functions `packOf` and `routerOfPair` cut a pair id at its first `+`.
+- The 2 entries come after `pack`. Thus each pair of bench-4 keeps its place, and the benchmark has 300 pairs.
+
+### The links of the pack input
+
+A joint input has edges, and the pack input of `packInputOf` has no edges. The option `links` of `toPackInput` of `layout-contract` gives the links of the edges.
+
+- `readsLinks(entry)` tells if the order of a pack entry is a graph order of `packing` (`GRAPH_ORDERS`). Only these entries get a pack input with `links`.
+- Thus the pack input of each other entry does not change, and its records keep their output hashes.
+- The measures and the hard rules of each pack read the pack input without links. The links have no effect on them.
+- Each edge between 2 boxes of the input gives one link. The edges of one pair of boxes give one link with their count as its weight.
+
+### The comparisons
+
+`pnpm bench analyze` adds the comparisons of `GRAPH_COMPARE` to its default, when the records have their pairs:
+
+- `rows-graph-bfs+portfolio` against `rows+portfolio` (`BASELINE`). This is the effect of the order on `rows`.
+- `maxrects-bl-graph-bfs+portfolio` against `rows+portfolio`.
+- `maxrects-bl-graph-bfs+portfolio` against `maxrects-bl+portfolio`. This is the effect of the order on `maxrects-bl`.
+
+### The prediction
+
+The prediction `layout-stack-L47-graph-bfs-joint` of the fleet has the claims. The base rates of the fleet give each p. The claims came before the first push.
+
+- The slice `pr` of `joint-v2` has 30 inputs: 24 headline inputs and 6 stress inputs. The cell `all` with the cap 1.25 has 24 inputs.
+- 6 of the 13 comparison cells of each pair are the stress cells, with 6 inputs. They are below the `minRows` of 20 of `surrogate.ts`.
+- In run `41577624136`, `rows+portfolio` scores 0.510 in the cell `all` 1.25. The standard deviation of its score over the 24 inputs is 0.269.
+- In the same run, `shelf-first-input+portfolio` has the gain -0.128 against `rows+portfolio` in that cell. Its order has no sort by height.
+
+| Outcome | p | Claim |
+|---|---|---|
+| `benchRowsGraphBfsLosesAll125` | 0.721 | `rows-graph-bfs+portfolio` loses to `rows+portfolio` in the cell `all` 1.25: the interval of the gain is below 0. |
+| `benchMaxrectsBlGraphBfsTiesAll125` | 0.721 | `maxrects-bl-graph-bfs+portfolio` ties `rows+portfolio` in the cell `all` 1.25: the interval of the gain holds 0. |
+| `benchGraphBfsNoPackHardBreak` | 0.721 | No record of the 2 entries has a skip or a break of a hard rule of the pack. |
+| `noExpectationChangeOldPairHashes` | 0.903 | Each record of the 270 pairs of bench-4 has the output hash of run `41577624136`. |
+| `headGreenFirstPush` | 0.561 | The 4 checks `CI OK`, `Text bench OK`, `Joint bench OK` and `Security OK` pass on the first push. |
+
+### The result
+
+The Joint bench of pull request 157 (run `41581804139`) gives these results. The first 2 rows are the cell `all` with the cap 1.25.
+
+| Comparison | Gain | Result |
+|---|---|---|
+| `rows-graph-bfs+portfolio` against `rows+portfolio` | -0.069 [-0.184, 0.040] | Tie. The claim "loses" is a miss. |
+| `maxrects-bl-graph-bfs+portfolio` against `rows+portfolio` | 0.051 [-0.035, 0.135] | Tie. The claim is a hit. |
+| `maxrects-bl-graph-bfs+portfolio` against `rows+portfolio`, cap 1.1 | 0.150 [0.018, 0.275] | Win. |
+| `rows-graph-bfs+portfolio` against `rows+portfolio`, cap 1.5 | -0.074 [-0.144, -0.024] | Loss. |
+| `maxrects-bl-graph-bfs+portfolio` against `maxrects-bl+portfolio`, cap 1.25 | 0.080 [-0.016, 0.190] | Tie. |
+
+- The 900 records of the 2 entries have no skip and no break of a hard rule of the pack. The claim is a hit.
+- The 8100 records of the 270 pairs of bench-4 have the output hashes of run `41577624136`. The claim is a hit.
+- The first push failed `CI OK`. The range of `sortOrder` of the site did not hold `graph-bfs`. The claim is a miss.
+- The Brier score of the 5 claims is 0.200.
+- No default changes. A tie or a win in one cell is not sufficient for a new default.

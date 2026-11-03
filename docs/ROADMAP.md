@@ -29,12 +29,6 @@ This file lists the items of the roadmap of this repository. The status page of 
 | L72 | next | P1 | Neat is a family of objectives, not one |
 | L73 | next | P1 | Clarity of structure: macro and micro measures |
 
-## Waiting
-
-| ID | Status | Priority | Title |
-| --- | --- | --- | --- |
-| L47 | waiting | P1 | Graph-aware item order |
-
 ## Later
 
 | ID | Status | Priority | Title |
@@ -95,6 +89,7 @@ This file lists the items of the roadmap of this repository. The status page of 
 | L43 | done | P1 | Joint compare page and playground with every strategy |
 | L45 | done | P1 | One shared corpus generator in layout-contract |
 | L46 | done | P1 | Shape kind as a contract dimension |
+| L47 | done | P1 | Graph-aware item order: the joint entries rows-graph-bfs and maxrects-bl-graph-bfs |
 | L49 | done | P1 | Spacing per channel |
 | L51 | done | P2 | Close the 3 corpus API gaps that packing found in k73 |
 | L54 | done | P1 | Grow the joint input families every week |

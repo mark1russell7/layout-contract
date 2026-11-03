@@ -19,6 +19,7 @@
 // analyze gives the gains over each baseline pair of `--baseline`. The default is `BASELINE` (rows+portfolio), and select+portfolio and pack+portfolio when the records have them.
 // `--compare a:b` gives the misses and the scores of the pairs a and b, and the gain of a over b.
 // The default compares select+portfolio and pack+portfolio with rows+portfolio, when the records have the two pairs. The entry `pack` is the choice of `pack()` of `packing`.
+// The default also compares the graph-bfs pairs of L47 (`GRAPH_COMPARE`): each with rows+portfolio, and maxrects-bl-graph-bfs+portfolio with maxrects-bl+portfolio.
 // `--exclude-pack` removes the records of the pack entries before the analysis. `--oracle-without` gives a second oracle without their pairs. Its default is select.
 // When the records have the pack entry select, the report checks each of its records against the record of the member that its table picks.
 // `--times` gives the route times of the specs. The default is `DENSE_HUBS`. `--jobs` reads the output of `gh run view <id> --json jobs` and gives the shard times.
@@ -42,6 +43,7 @@ import {
   expectedProbes,
   familyProbeGroups,
   gateJobs,
+  GRAPH_COMPARE,
   gateMarkdown,
   idList,
   isLanePack,
@@ -417,7 +419,8 @@ if (command === "check") {
     const start = parts === undefined ? undefined : pairId([ITER_VARIANTS[0].name, parts.pack, parts.router].join("."), parts.router);
     return rounds !== undefined && rounds > 1 && start !== undefined && hasPair(start) ? [...own, `${p}:${start}`] : own;
   });
-  const defaultCompare = [...(hasPair(BASELINE) ? [selectPortfolio, packPortfolio].filter(hasPair).map((p) => `${p}:${BASELINE}`) : []), ...laneCompare];
+  const graphCompare = GRAPH_COMPARE.filter(([a, b]) => hasPair(a) && hasPair(b)).map(([a, b]) => `${a}:${b}`);
+  const defaultCompare = [...(hasPair(BASELINE) ? [selectPortfolio, packPortfolio].filter(hasPair).map((p) => `${p}:${BASELINE}`) : []), ...graphCompare, ...laneCompare];
   const compare = (list(args.compare) ?? defaultCompare).map((c) => {
     const pair = c.split(":");
     if (pair.length !== 2) throw new RangeError(`A comparison is two pairs with a colon, for example ${selectPortfolio}:${BASELINE}, not "${c}".`);
