@@ -148,6 +148,10 @@ export interface JointTimeResult {
   /** The count of the records that `balanceOrders` removed, so that the order of each merged case turns. It is 0 when each job ran each round. */
   readonly removed: number;
   readonly perJob: readonly JobTime[];
+  /** The outcome of the pooled records before the guard of the jobs. It differs from `outcome` only when a job decides the opposite direction. */
+  readonly pooledOutcome: TimeOutcome;
+  /** The jobs whose own outcome is the opposite direction of the pooled outcome: `slower` against `faster`, or `faster` against `slower`. */
+  readonly opposed: readonly number[];
   /** The steps of the verdict, in words, with the values. */
   readonly derivation: readonly string[];
 }
@@ -204,6 +208,12 @@ export function jointTimeVerdict(records: readonly TimeRecord[], settings: Pick<
     const cpu = records.find((r) => r.job === job)?.env.cpu ?? "unknown";
     return { job, cpu, outcome: v.outcome, cases: v.cases.length, low: v.band === undefined || v.interval === undefined ? null : r4(v.interval.low), high: v.band === undefined || v.interval === undefined ? null : r4(v.interval.high) };
   });
+  // The guard of the jobs: the pooled verdict gates, but a job that decides the opposite direction makes the result "cannot decide".
+  const opposite: Partial<Record<TimeOutcome, TimeOutcome>> = { faster: "slower", slower: "faster" };
+  const against = opposite[verdict.outcome];
+  const opposed = against === undefined ? [] : perJob.filter((j) => j.outcome === against).map((j) => j.job);
+  const outcome: TimeOutcome = opposed.length > 0 ? "cannot decide" : verdict.outcome;
+  const reason = opposed.length > 0 ? `The pooled records give ${verdict.outcome}, but the jobs ${opposed.join(", ")} give ${against}. A job against the pooled direction makes the result cannot decide.` : verdict.reason;
   const rounds = verdict.cases.map((c) => c.rounds);
   const aaCases = new Set(aa.map((r) => r.case)).size;
   const interval = verdict.band === undefined || verdict.interval === undefined ? null : verdict.interval;
@@ -215,13 +225,14 @@ export function jointTimeVerdict(records: readonly TimeRecord[], settings: Pick<
       ? "The verdict has no interval against the A/A arm."
       : `The interval of the ratio is ${r4(interval.low)} to ${r4(interval.high)} at the level ${interval.level}, and the A/A median ratio is ${r4(verdict.band!.median)}.`,
     `The margin timeMargin is ${settings.timeMargin}. Thus same is an interval in [${r4(Math.exp(-settings.timeMargin))}, ${r4(Math.exp(settings.timeMargin))}].`,
-    `The outcome is ${verdict.outcome}. ${verdict.reason}`,
+    `The pooled outcome is ${verdict.outcome}. ${verdict.reason}`,
+    opposed.length > 0 ? `The jobs ${opposed.join(", ")} give ${against}, against the pooled outcome. Thus the outcome is cannot decide.` : "No job gives the opposite direction of the pooled outcome.",
   ];
   return {
     schema: "joint-time/1",
-    outcome: verdict.outcome,
-    decided: verdict.outcome !== "cannot decide",
-    reason: verdict.reason,
+    outcome,
+    decided: outcome !== "cannot decide",
+    reason,
     rule: verdict.rule,
     timeMargin: settings.timeMargin,
     baseline,
@@ -236,6 +247,8 @@ export function jointTimeVerdict(records: readonly TimeRecord[], settings: Pick<
     aaMedian: verdict.band === undefined ? null : r4(verdict.band.median),
     removed,
     perJob,
+    pooledOutcome: verdict.outcome,
+    opposed,
     derivation,
   };
 }
