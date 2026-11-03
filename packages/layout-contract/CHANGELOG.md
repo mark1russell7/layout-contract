@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.3.2
+
+- PATCH before 1.0.0: a new optional option, with no break. The breakers of `/text` come from `@mark1russell7/typeset` 0.1.0 (T3 phase B).
+- `layoutText` has the new option `breaker`: `greedy` (the default), `total-fit` or `balanced`. An unknown name gives a `RangeError`.
+- With the default, each result is the result of 0.2.21. A test compares 1859 cases with the npm build of 0.2.21, with all fields and the measurer counts.
+- On 480 corpus cases, `balanced` keeps the greedy line count on each case. The raggedness of `total-fit` is not more than greedy on 479 cases.
+- A forced break ends each line of a word that `wordBreak: "anywhere"` breaks, so each breaker keeps these lines.
+
 ## 0.3.1
 
 - PATCH before 1.0.0: a new optional field and a new function, with no break. A pack output without `links` does not change.

@@ -1595,6 +1595,7 @@ export interface TextLayoutOptions {
   readonly minWidth?: number;
   readonly maxWidth?: number;
   readonly wordBreak?: "keep" | "anywhere";
+  readonly breaker?: "greedy" | "total-fit" | "balanced";
 }
 
 ### build/text.d.ts#TextMeasureId
