@@ -35,7 +35,7 @@ export type BalanceMeasureSuffix =
   | "stability.seed";
 
 /** The suffixes of the balance and stability measures, in the order of `docs/BALANCE.md`. */
-export const BALANCE_MEASURE_SUFFIXES: readonly BalanceMeasureSuffix[] = Object.freeze([
+export const BALANCE_MEASURE_SUFFIXES: readonly BalanceMeasureSuffix[] = /* @__PURE__ */ Object.freeze([
   "balance.gapCv",
   "balance.centroidOffset",
   "balance.side.top",

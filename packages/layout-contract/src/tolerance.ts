@@ -28,4 +28,4 @@ export interface Tolerance {
  * The default tolerance of each rule. The packer is exact, so `overlap` is one unit of the rounding.
  * Routes are sampled curves that follow the margin line, so `through` is larger.
  */
-export const DEFAULT_TOLERANCE: Tolerance = Object.freeze({ overlap: 0.001, through: 0.5 });
+export const DEFAULT_TOLERANCE: Tolerance = /* @__PURE__ */ Object.freeze({ overlap: 0.001, through: 0.5 });

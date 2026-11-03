@@ -35,7 +35,7 @@ export interface ShapeKindSpec {
  * The declared shape kinds, in their order. Only `rect` has all of its geometry.
  * `polygon` and `circle` have their bounding box and their exact area. `free` has its bounding box only.
  */
-export const SHAPE_KINDS: readonly ShapeKindSpec[] = Object.freeze([
+export const SHAPE_KINDS: readonly ShapeKindSpec[] = /* @__PURE__ */ Object.freeze([
   { id: "rect", fields: ["w", "h"], regions: ["rect"], geometry: { bounds: true, area: true, contains: true, overlap: true } },
   { id: "polygon", fields: ["points", "holes?"], regions: ["polygon"], geometry: { bounds: true, area: true, contains: false, overlap: false } },
   { id: "circle", fields: ["cx", "cy", "r"], regions: ["circle"], geometry: { bounds: true, area: true, contains: false, overlap: false } },
@@ -43,10 +43,10 @@ export const SHAPE_KINDS: readonly ShapeKindSpec[] = Object.freeze([
 ] as const);
 
 /** The ids of `SHAPE_KINDS`, in their order. */
-export const SHAPE_KIND_IDS: readonly ShapeKind[] = Object.freeze(SHAPE_KINDS.map((k) => k.id));
+export const SHAPE_KIND_IDS: readonly ShapeKind[] = /* @__PURE__ */ Object.freeze(/* @__PURE__ */ SHAPE_KINDS.map((k) => k.id));
 
 /** The shape kinds of a measure or a rule without `shapes`. The contract measured only rectangles before L46. */
-export const DEFAULT_SHAPES: readonly ShapeKind[] = Object.freeze(["rect"] as const);
+export const DEFAULT_SHAPES: readonly ShapeKind[] = /* @__PURE__ */ Object.freeze(["rect"] as const);
 
 /** A measure or a rule, with the shape kinds that it supports. Without `shapes`, it supports `DEFAULT_SHAPES`. */
 export interface ShapeSupport<Id extends string = string> {
