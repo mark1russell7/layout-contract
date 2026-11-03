@@ -3,7 +3,7 @@
 This note holds the shared rule of `layout-contract`, `packing` and `highways`. The contract is the home of the rule.
 
 - The text between the markers `<!-- shared:<id> -->` and `<!-- /shared:<id> -->` is the same in the three copies, byte for byte.
-- `docs/shared.lock.json` pins the SHA-256 of each block. In CI, the script `scripts/check-shared.mjs` compares the blocks with the lock.
+- `docs/shared.lock.json` pins the SHA-256 of each block. The rule `shared-docs` of `@mark1russell7/conventions` compares the blocks with the lock. `pnpm check:conventions` starts the rule.
 - A change of a shared block changes the three copies and the three locks in one round. The three projects agree on the change first.
 - The text outside the markers is local. The measures, the floors and the minimum effects of each project are in its own copy.
 
@@ -62,7 +62,7 @@ The win test has one home: [docs/WIN-TEST.md of rigor](https://github.com/mark1r
 
 - The link names one commit. Thus the text at the link does not change.
 - `docs/shared.lock.json` pins the commit and the SHA-256 of the block in the field `linked`.
-- `node scripts/check-shared.mjs --remote` downloads the block and compares its hash with the lock.
+- In CI, the rule `shared-docs` of `@mark1russell7/conventions` downloads the block and compares its hash with the lock.
 - A new version of the win test changes the commit and the hash of the lock, in a pull request of each repository.
 <!-- /linked:win-test -->
 
