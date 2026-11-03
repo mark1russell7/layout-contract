@@ -189,7 +189,22 @@ describe("the race", () => {
   it("drops a config that the paired verdict beats, and keeps a better config", () => {
     const out = race(values, ["worse", "better"], options);
     expect(out.find((o) => o.config === "worse")).toMatchObject({ label: "worse", status: "dropped" });
-    expect(out.find((o) => o.config === "better")).toMatchObject({ label: "better", status: "alive" });
+    expect(out.find((o) => o.config === "better")).toMatchObject({ label: "better", status: "alive", agree: true, signs: { wins: 30, losses: 0, ties: 0 } });
+    expect(out.find((o) => o.config === "better")!.pooled).toBeCloseTo(0.3, 6);
+  });
+
+  it("labels a gain whose sign depends on the weighting of the families", () => {
+    // Family a has 20 inputs with a gain of 0.02, and the families b and c have 1 input each with a loss of 0.05.
+    // The mean of the inputs is approximately +0.0136, and the mean of the family means is approximately -0.0267.
+    const names = [...Array.from({ length: 20 }, (_, i) => `a${i}/s1`), "b0/s1", "c0/s1"];
+    const mix = new Map<string, Map<string, number>>([
+      ["inc", new Map(names.map((x) => [x, 0.5]))],
+      ["mix", new Map(names.map((x) => [x, x.startsWith("a") ? 0.52 : 0.45]))],
+    ]);
+    const [o] = race(mix, ["mix"], { ...options, family: (i: string) => i[0]! });
+    expect(o).toMatchObject({ label: "depends on the mix", agree: false, signs: { wins: 1, losses: 2, ties: 0 } });
+    expect(o!.pooled).toBeCloseTo(0.3 / 22, 6);
+    expect(o!.mean).toBeCloseTo(-0.08 / 3, 6);
   });
 
   it("keeps 1 of each 3 of the other configs by their mean", () => {

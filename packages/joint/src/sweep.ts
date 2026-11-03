@@ -431,7 +431,21 @@ export interface RaceOutcome {
   readonly hi: number;
   /** The count of the paired inputs. */
   readonly n: number;
+  /** The mean of the inputs of the difference: the second weighting (SCREEN-WEIGHT, L37). A family with more inputs has more weight. */
+  readonly pooled: number;
+  /** `true` only when the verdict holds under both weightings. Means with opposite signs give the label "depends on the mix". */
+  readonly agree: boolean;
+  /** The sign test of the family signs: the families where the config wins, loses or ties, and the two-sided p. */
+  readonly signs: RaceSigns;
   readonly status: "alive" | "dropped" | "halved";
+}
+
+/** The sign test of the family signs of a race outcome, from `verdict`. */
+export interface RaceSigns {
+  readonly wins: number;
+  readonly losses: number;
+  readonly ties: number;
+  readonly p: number;
 }
 
 /** The options of `race`. */
@@ -472,7 +486,7 @@ export function race(values: ReadonlyMap<string, ReadonlyMap<string, number>>, c
       const seed = options.seed(input);
       records.push({ strategy: "a", input, seed, measures: { [SWEEP_SCORE]: b } }, { strategy: "b", input, seed, measures: { [SWEEP_SCORE]: v } });
     }
-    if (records.length === 0) return { config, label: "no verdict", mean: 0, lo: 0, hi: 0, n: 0 };
+    if (records.length === 0) return { config, label: "no verdict", mean: 0, lo: 0, hi: 0, n: 0, pooled: 0, agree: false, signs: { wins: 0, losses: 0, ties: 0, p: 1 } };
     const v = verdict(records, {
       by: "family",
       family: (r) => options.family(r.input),
@@ -484,7 +498,7 @@ export function race(values: ReadonlyMap<string, ReadonlyMap<string, number>>, c
       runs: options.runs ?? 2000,
       draws: options.draws ?? 4000,
     });
-    return { config, label: v.label, mean: v.stratified.mean, lo: v.stratified.lo, hi: v.stratified.hi, n: v.n };
+    return { config, label: v.label, mean: v.stratified.mean, lo: v.stratified.lo, hi: v.stratified.hi, n: v.n, pooled: v.pooled.mean, agree: v.agree, signs: v.signTest };
   });
   const rest = first.filter((r) => r.label !== "worse").sort((a, b) => b.mean - a.mean || (a.config < b.config ? -1 : 1));
   const keep = new Set(rest.slice(0, Number.isFinite(eta) ? Math.ceil(rest.length / eta) : rest.length).map((r) => r.config));

@@ -25,6 +25,7 @@ import {
   unitsOf,
   type ConfigStatus,
   type RaceOutcome,
+  type RaceSigns,
   type Reference,
   type RoundPlan,
   type SummaryRow,
@@ -42,6 +43,10 @@ export interface ConfigEntry {
   decided?: string;
   label?: string;
   mean?: number;
+  /** The mean of the inputs, `agree` and the sign test of the family signs of the last race (L37). A state before L37 has none. */
+  pooled?: number;
+  agree?: boolean;
+  signs?: RaceSigns;
   /**
    * The date of the last night that gave a record of the config. The plans rotate: the config with the oldest date comes first.
    * A config that a stopped shard did not run keeps its old date, so it comes first on the next night. The atlas shows the age of each result.
@@ -407,6 +412,9 @@ export function raceNight(state: SweepState, inputs: readonly SweepInput[], opti
     c.decided = options.date;
     c.label = o.label;
     c.mean = Number(o.mean.toFixed(6));
+    c.pooled = Number(o.pooled.toFixed(6));
+    c.agree = o.agree;
+    c.signs = { ...o.signs, p: Number(o.signs.p.toFixed(6)) };
     if (o.status !== "alive" && !designed.has(o.config)) delete state.values[o.config];
   }
   nightOf(state, options.date).race = {
