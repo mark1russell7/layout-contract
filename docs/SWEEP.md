@@ -411,8 +411,8 @@ With `featureKindPairs: true`, the fit also has the product of the kind block wi
 | Board kind | Covered cells, feature blocks | Covered cells, kind pairs |
 |---|---|---|
 | word-cloud | 15 of 25 | 22 of 25 |
-| dashboard | 23 | 19 |
-| cards | 25 | 23 |
+| dashboard | 23 of 25 | 19 of 25 |
+| cards | 25 of 25 | 23 of 25 |
 
 - The kind pairs raise the held-out median skill from 0.141 to 0.250. The overfit grows from approximately 0.07 to approximately 0.13.
 - The word-cloud cells come back, but the dashboard and cards cells drop. Thus the count of covered cells stays at 142, against 154 without features.
