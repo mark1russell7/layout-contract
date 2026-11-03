@@ -4,7 +4,7 @@
 # and private members. The command `api-report check` compares this file with the built .d.ts files.
 # To accept a change of the API, start the build, then `api-report update`, and review the diff.
 
-## . (build/index.d.ts): 244 names
+## . (build/index.d.ts): 247 names
 
 BALANCE_MEASURE_SUFFIXES: build/index.d.ts#BALANCE_MEASURE_SUFFIXES
 BALANCE_SIDE_DEPTH: build/index.d.ts#BALANCE_SIDE_DEPTH
@@ -12,23 +12,23 @@ Balance: build/index.d.ts#Balance
 BalanceMeasureSuffix: build/index.d.ts#BalanceMeasureSuffix
 CORPUS_DIMENSIONS: build/index.d.ts#CORPUS_DIMENSIONS
 CellsOptions: build/index.d.ts#CellsOptions
-ClaimBreak: build/measures-BLoTbQwB.d.ts#ClaimBreak
+ClaimBreak: build/measures-WwacWhot.d.ts#ClaimBreak
 ComposeOptions: build/index.d.ts#ComposeOptions
 ContainerTest: build/index.d.ts#ContainerTest
 CorpusDimension: build/index.d.ts#CorpusDimension
-CorpusEntry: build/measures-BLoTbQwB.d.ts#CorpusEntry
+CorpusEntry: build/measures-WwacWhot.d.ts#CorpusEntry
 CorpusFamily: build/index.d.ts#CorpusFamily
-CorpusSplit: build/measures-BLoTbQwB.d.ts#CorpusSplit
+CorpusSplit: build/measures-WwacWhot.d.ts#CorpusSplit
 CorpusStep: build/index.d.ts#CorpusStep
 CrossEngine: build/index.d.ts#CrossEngine
 DEFAULT_FAMILY_BY: build/index.d.ts#DEFAULT_FAMILY_BY
 DEFAULT_RNG: build/index.d.ts#DEFAULT_RNG
-DEFAULT_SHAPES: build/measures-BLoTbQwB.d.ts#DEFAULT_SHAPES
+DEFAULT_SHAPES: build/measures-WwacWhot.d.ts#DEFAULT_SHAPES
 DEFAULT_TOLERANCE: build/index.d.ts#DEFAULT_TOLERANCE
-DeclaredClaim: build/measures-BLoTbQwB.d.ts#DeclaredClaim
-Declares: build/measures-BLoTbQwB.d.ts#Declares
+DeclaredClaim: build/measures-WwacWhot.d.ts#DeclaredClaim
+Declares: build/measures-WwacWhot.d.ts#Declares
 DimensionValues: build/index.d.ts#DimensionValues
-Direction: build/measures-BLoTbQwB.d.ts#Direction
+Direction: build/measures-WwacWhot.d.ts#Direction
 EDGES_STEP: build/index.d.ts#EDGES_STEP
 EDGE_DENSITY: build/index.d.ts#EDGE_DENSITY
 EDGE_STEP_VERSION: build/index.d.ts#EDGE_STEP_VERSION
@@ -37,9 +37,9 @@ EdgeShape: build/index.d.ts#EdgeShape
 EdgeStepParams: build/index.d.ts#EdgeStepParams
 EnumerateOptions: build/index.d.ts#EnumerateOptions
 ExerciseEvidence: build/index.d.ts#ExerciseEvidence
-FAMILY_ANY_KIND: build/measures-BLoTbQwB.d.ts#FAMILY_ANY_KIND
-FamilyBy: build/measures-BLoTbQwB.d.ts#FamilyBy
-FamilyCell: build/measures-BLoTbQwB.d.ts#FamilyCell
+FAMILY_ANY_KIND: build/measures-WwacWhot.d.ts#FAMILY_ANY_KIND
+FamilyBy: build/measures-WwacWhot.d.ts#FamilyBy
+FamilyCell: build/measures-WwacWhot.d.ts#FamilyCell
 FamilyRegistry: build/index.d.ts#FamilyRegistry
 FamilyVerdict: build/index.d.ts#FamilyVerdict
 GenerateContext: build/index.d.ts#GenerateContext
@@ -47,43 +47,43 @@ GenerateOptions: build/index.d.ts#GenerateOptions
 GridOptions: build/index.d.ts#GridOptions
 HashOptions: build/index.d.ts#HashOptions
 INVALIDATED_FIELD: build/index.d.ts#INVALIDATED_FIELD
-Item: build/measures-BLoTbQwB.d.ts#Item
-JOINT_MEASURES: build/measures-BLoTbQwB.d.ts#JOINT_MEASURES
-JOINT_MOVED_MIN: build/measures-BLoTbQwB.d.ts#JOINT_MOVED_MIN
-JointMeasureId: build/measures-BLoTbQwB.d.ts#JointMeasureId
-LayoutBox: build/measures-BLoTbQwB.d.ts#LayoutBox
-LayoutCell: build/measures-BLoTbQwB.d.ts#LayoutCell
-LayoutContainer: build/measures-BLoTbQwB.d.ts#LayoutContainer
-LayoutEdge: build/measures-BLoTbQwB.d.ts#LayoutEdge
-LayoutGenerator: build/measures-BLoTbQwB.d.ts#LayoutGenerator
-LayoutInput: build/measures-BLoTbQwB.d.ts#LayoutInput
+Item: build/measures-WwacWhot.d.ts#Item
+JOINT_MEASURES: build/measures-WwacWhot.d.ts#JOINT_MEASURES
+JOINT_MOVED_MIN: build/measures-WwacWhot.d.ts#JOINT_MOVED_MIN
+JointMeasureId: build/measures-WwacWhot.d.ts#JointMeasureId
+LayoutBox: build/measures-WwacWhot.d.ts#LayoutBox
+LayoutCell: build/measures-WwacWhot.d.ts#LayoutCell
+LayoutContainer: build/measures-WwacWhot.d.ts#LayoutContainer
+LayoutEdge: build/measures-WwacWhot.d.ts#LayoutEdge
+LayoutGenerator: build/measures-WwacWhot.d.ts#LayoutGenerator
+LayoutInput: build/measures-WwacWhot.d.ts#LayoutInput
 LayoutRecord: build/index.d.ts#LayoutRecord
-Margin: build/measures-BLoTbQwB.d.ts#Margin
-MeasureSpec: build/measures-BLoTbQwB.d.ts#MeasureSpec
+Margin: build/measures-WwacWhot.d.ts#Margin
+MeasureSpec: build/measures-WwacWhot.d.ts#MeasureSpec
 Member: build/index.d.ts#Member
 MemberRule: build/index.d.ts#MemberRule
 MemberStatus: build/index.d.ts#MemberStatus
 MemberTrace: build/index.d.ts#MemberTrace
-Obstacle: build/measures-BLoTbQwB.d.ts#Obstacle
+Obstacle: build/measures-WwacWhot.d.ts#Obstacle
 OptionRef: build/index.d.ts#OptionRef
 OptionSupports: build/index.d.ts#OptionSupports
 OutputGroup: build/index.d.ts#OutputGroup
 OwnerDimensionSpec: build/index.d.ts#OwnerDimensionSpec
 PACK_HARD_RULES: build/index.d.ts#PACK_HARD_RULES
 PackHard: build/index.d.ts#PackHard
-PackInput: build/measures-BLoTbQwB.d.ts#PackInput
-PackInputOptions: build/measures-BLoTbQwB.d.ts#PackInputOptions
-PackLink: build/measures-BLoTbQwB.d.ts#PackLink
+PackInput: build/measures-WwacWhot.d.ts#PackInput
+PackInputOptions: build/measures-WwacWhot.d.ts#PackInputOptions
+PackLink: build/measures-WwacWhot.d.ts#PackLink
 PackOutput: build/index.d.ts#PackOutput
-PairGap: build/measures-BLoTbQwB.d.ts#PairGap
+PairGap: build/measures-WwacWhot.d.ts#PairGap
 ParamKind: build/index.d.ts#ParamKind
 ParamValue: build/index.d.ts#ParamValue
 ParamWhen: build/index.d.ts#ParamWhen
 PickSpec: build/index.d.ts#PickSpec
 PlacedBox: build/index.d.ts#PlacedBox
 Placement: build/index.d.ts#Placement
-Point: build/measures-BLoTbQwB.d.ts#Point
-Port: build/measures-BLoTbQwB.d.ts#Port
+Point: build/measures-WwacWhot.d.ts#Point
+Port: build/measures-WwacWhot.d.ts#Port
 Portfolio: build/index.d.ts#Portfolio
 PortfolioKey: build/index.d.ts#PortfolioKey
 PortfolioLevel: build/index.d.ts#PortfolioLevel
@@ -94,39 +94,40 @@ ProcrustesOptions: build/index.d.ts#ProcrustesOptions
 RECORD_EPS: build/index.d.ts#RECORD_EPS
 RECORD_SCALE: build/index.d.ts#RECORD_SCALE
 RECT_SCATTERED: build/index.d.ts#RECT_SCATTERED
-Rect: build/measures-BLoTbQwB.d.ts#Rect
-Region: build/measures-BLoTbQwB.d.ts#Region
+Rect: build/measures-WwacWhot.d.ts#Rect
+Region: build/measures-WwacWhot.d.ts#Region
 RegistryCell: build/index.d.ts#RegistryCell
 RngFactory: build/index.d.ts#RngFactory
-RuleLevel: build/measures-BLoTbQwB.d.ts#RuleLevel
+RuleLevel: build/measures-WwacWhot.d.ts#RuleLevel
 RunEnv: build/index.d.ts#RunEnv
 RunFacts: build/index.d.ts#RunFacts
-SHAPE_KINDS: build/measures-BLoTbQwB.d.ts#SHAPE_KINDS
-SHAPE_KIND_IDS: build/measures-BLoTbQwB.d.ts#SHAPE_KIND_IDS
-SIDES: build/measures-BLoTbQwB.d.ts#SIDES
-SPLIT_SCHEMA: build/measures-BLoTbQwB.d.ts#SPLIT_SCHEMA
+SHAPE_KINDS: build/measures-WwacWhot.d.ts#SHAPE_KINDS
+SHAPE_KIND_IDS: build/measures-WwacWhot.d.ts#SHAPE_KIND_IDS
+SIDES: build/measures-WwacWhot.d.ts#SIDES
+SPLIT_SCHEMA: build/measures-WwacWhot.d.ts#SPLIT_SCHEMA
 STRATEGY_SPACE_SCHEMA: build/index.d.ts#STRATEGY_SPACE_SCHEMA
 SampleOptions: build/index.d.ts#SampleOptions
 SelectCandidate: build/index.d.ts#SelectCandidate
 SelectLevel: build/index.d.ts#SelectLevel
 Selection: build/index.d.ts#Selection
-ShapeBound: build/measures-BLoTbQwB.d.ts#ShapeBound
-ShapeCheck: build/measures-BLoTbQwB.d.ts#ShapeCheck
+ShapeBound: build/measures-WwacWhot.d.ts#ShapeBound
+ShapeCheck: build/measures-WwacWhot.d.ts#ShapeCheck
 ShapeFilter: build/index.d.ts#ShapeFilter
-ShapeGeometry: build/measures-BLoTbQwB.d.ts#ShapeGeometry
-ShapeKind: build/measures-BLoTbQwB.d.ts#ShapeKind
-ShapeKindSpec: build/measures-BLoTbQwB.d.ts#ShapeKindSpec
-ShapeLevel: build/measures-BLoTbQwB.d.ts#ShapeLevel
-ShapeSupport: build/measures-BLoTbQwB.d.ts#ShapeSupport
-Side: build/measures-BLoTbQwB.d.ts#Side
-Sides: build/measures-BLoTbQwB.d.ts#Sides
+ShapeGeometry: build/measures-WwacWhot.d.ts#ShapeGeometry
+ShapeKind: build/measures-WwacWhot.d.ts#ShapeKind
+ShapeKindSpec: build/measures-WwacWhot.d.ts#ShapeKindSpec
+ShapeLevel: build/measures-WwacWhot.d.ts#ShapeLevel
+ShapeSupport: build/measures-WwacWhot.d.ts#ShapeSupport
+Side: build/measures-WwacWhot.d.ts#Side
+Sides: build/measures-WwacWhot.d.ts#Sides
+SizedRect: build/measures-WwacWhot.d.ts#SizedRect
 SpaceConstraint: build/index.d.ts#SpaceConstraint
 SpaceParam: build/index.d.ts#SpaceParam
 SpaceSize: build/index.d.ts#SpaceSize
 SpaceSizeOptions: build/index.d.ts#SpaceSizeOptions
 SpaceStage: build/index.d.ts#SpaceStage
-SplitCorpus: build/measures-BLoTbQwB.d.ts#SplitCorpus
-SplitFold: build/measures-BLoTbQwB.d.ts#SplitFold
+SplitCorpus: build/measures-WwacWhot.d.ts#SplitCorpus
+SplitFold: build/measures-WwacWhot.d.ts#SplitFold
 Stage: build/index.d.ts#Stage
 StageChoice: build/index.d.ts#StageChoice
 StageOption: build/index.d.ts#StageOption
@@ -143,7 +144,7 @@ VERDICT_EXACT_CAP: build/index.d.ts#VERDICT_EXACT_CAP
 VERDICT_EXACT_MAX: build/index.d.ts#VERDICT_EXACT_MAX
 VERDICT_RUNS: build/index.d.ts#VERDICT_RUNS
 VERDICT_SEED: build/index.d.ts#VERDICT_SEED
-Verdict: build/measures-BLoTbQwB.d.ts#Verdict
+Verdict: build/measures-WwacWhot.d.ts#Verdict
 VerdictBreadth: build/index.d.ts#VerdictBreadth
 VerdictInterval: build/index.d.ts#VerdictInterval
 VerdictLabel: build/index.d.ts#VerdictLabel
@@ -158,29 +159,29 @@ applyPack: build/index.d.ts#applyPack
 balanceMeasureSpecs: build/index.d.ts#balanceMeasureSpecs
 balanceMeasures: build/index.d.ts#balanceMeasures
 balanceOf: build/index.d.ts#balanceOf
-boundsOf: build/measures-BLoTbQwB.d.ts#boundsOf
-boxArea: build/measures-BLoTbQwB.d.ts#boxArea
+boundsOf: build/measures-WwacWhot.d.ts#boundsOf
+boxArea: build/measures-WwacWhot.d.ts#boxArea
 canonicalConfig: build/index.d.ts#canonicalConfig
-canonicalInput: build/measures-BLoTbQwB.d.ts#canonicalInput
+canonicalInput: build/measures-WwacWhot.d.ts#canonicalInput
 canonicalJson: build/index.d.ts#canonicalJson
 checkConfig: build/index.d.ts#checkConfig
-checkDeclared: build/measures-BLoTbQwB.d.ts#checkDeclared
+checkDeclared: build/measures-WwacWhot.d.ts#checkDeclared
 checkInput: build/index.d.ts#checkInput
 checkLayoutRecord: build/index.d.ts#checkLayoutRecord
-checkShapes: build/measures-BLoTbQwB.d.ts#checkShapes
+checkShapes: build/measures-WwacWhot.d.ts#checkShapes
 checkSpace: build/index.d.ts#checkSpace
-checkSplit: build/measures-BLoTbQwB.d.ts#checkSplit
-compareMeasure: build/measures-BLoTbQwB.d.ts#compareMeasure
+checkSplit: build/measures-WwacWhot.d.ts#checkSplit
+compareMeasure: build/measures-WwacWhot.d.ts#compareMeasure
 composeFamily: build/index.d.ts#composeFamily
 configId: build/index.d.ts#configId
-corpusHashOf: build/measures-BLoTbQwB.d.ts#corpusHashOf
+corpusHashOf: build/measures-WwacWhot.d.ts#corpusHashOf
 countObstacleHits: build/index.d.ts#countObstacleHits
 countOutside: build/index.d.ts#countOutside
 countOverlaps: build/index.d.ts#countOverlaps
 countPortsOffBorder: build/index.d.ts#countPortsOffBorder
 createFamilyRegistry: build/index.d.ts#createFamilyRegistry
-declaredClaimOf: build/measures-BLoTbQwB.d.ts#declaredClaimOf
-declaredCounts: build/measures-BLoTbQwB.d.ts#declaredCounts
+declaredClaimOf: build/measures-WwacWhot.d.ts#declaredClaimOf
+declaredCounts: build/measures-WwacWhot.d.ts#declaredCounts
 dimensionAt: build/index.d.ts#dimensionAt
 dimensionSupports: build/index.d.ts#dimensionSupports
 dimensionUnit: build/index.d.ts#dimensionUnit
@@ -189,24 +190,24 @@ edgeStep: build/index.d.ts#edgeStep
 enumerateSpace: build/index.d.ts#enumerateSpace
 exercised: build/index.d.ts#exercised
 familyKind: build/index.d.ts#familyKind
-familyOf: build/measures-BLoTbQwB.d.ts#familyOf
+familyOf: build/measures-WwacWhot.d.ts#familyOf
 fnv1a32: build/index.d.ts#fnv1a32
-grow: build/measures-BLoTbQwB.d.ts#grow
-isShapeKind: build/measures-BLoTbQwB.d.ts#isShapeKind
-itemShapeOf: build/measures-BLoTbQwB.d.ts#itemShapeOf
+grow: build/measures-WwacWhot.d.ts#grow
+isShapeKind: build/measures-WwacWhot.d.ts#isShapeKind
+itemShapeOf: build/measures-WwacWhot.d.ts#itemShapeOf
 joinConfigs: build/index.d.ts#joinConfigs
-leaveOneSeedOut: build/measures-BLoTbQwB.d.ts#leaveOneSeedOut
+leaveOneSeedOut: build/measures-WwacWhot.d.ts#leaveOneSeedOut
 levelsOf: build/index.d.ts#levelsOf
-marginSides: build/measures-BLoTbQwB.d.ts#marginSides
-minEffectOf: build/measures-BLoTbQwB.d.ts#minEffectOf
+marginSides: build/measures-WwacWhot.d.ts#marginSides
+minEffectOf: build/measures-WwacWhot.d.ts#minEffectOf
 mulberry32: build/index.d.ts#mulberry32
 nearestGaps: build/index.d.ts#nearestGaps
 outputGroups: build/index.d.ts#outputGroups
 outputHash: build/index.d.ts#outputHash
-overlapOf: build/measures-BLoTbQwB.d.ts#overlapOf
+overlapOf: build/measures-WwacWhot.d.ts#overlapOf
 ownerDimension: build/index.d.ts#ownerDimension
 packHard: build/index.d.ts#packHard
-packLinks: build/measures-BLoTbQwB.d.ts#packLinks
+packLinks: build/measures-WwacWhot.d.ts#packLinks
 paramActive: build/index.d.ts#paramActive
 paramLevels: build/index.d.ts#paramLevels
 paramProblem: build/index.d.ts#paramProblem
@@ -215,34 +216,36 @@ parseLayoutRecord: build/index.d.ts#parseLayoutRecord
 perChange: build/index.d.ts#perChange
 pickMoves: build/index.d.ts#pickMoves
 placedRect: build/index.d.ts#placedRect
-portPoint: build/measures-BLoTbQwB.d.ts#portPoint
+portPoint: build/measures-WwacWhot.d.ts#portPoint
 portfolio: build/index.d.ts#portfolio
 procrustesOf: build/index.d.ts#procrustesOf
 productSpace: build/index.d.ts#productSpace
 randomInt: build/index.d.ts#randomInt
 rectInRegion: build/index.d.ts#rectInRegion
-regionArea: build/measures-BLoTbQwB.d.ts#regionArea
+regionArea: build/measures-WwacWhot.d.ts#regionArea
 regionHitsRect: build/index.d.ts#regionHitsRect
 resolveDimensions: build/index.d.ts#resolveDimensions
-ruleLevel: build/measures-BLoTbQwB.d.ts#ruleLevel
+ruleLevel: build/measures-WwacWhot.d.ts#ruleLevel
 selectBest: build/index.d.ts#selectBest
 sha256Hex: build/index.d.ts#sha256Hex
-shapeKindOf: build/measures-BLoTbQwB.d.ts#shapeKindOf
-shapeKindProblem: build/measures-BLoTbQwB.d.ts#shapeKindProblem
-shapeKindsOf: build/measures-BLoTbQwB.d.ts#shapeKindsOf
-shapeLevel: build/measures-BLoTbQwB.d.ts#shapeLevel
-shapeSupportProblems: build/measures-BLoTbQwB.d.ts#shapeSupportProblems
-shapesOf: build/measures-BLoTbQwB.d.ts#shapesOf
+shapeKindOf: build/measures-WwacWhot.d.ts#shapeKindOf
+shapeKindProblem: build/measures-WwacWhot.d.ts#shapeKindProblem
+shapeKindsOf: build/measures-WwacWhot.d.ts#shapeKindsOf
+shapeLevel: build/measures-WwacWhot.d.ts#shapeLevel
+shapeSupportProblems: build/measures-WwacWhot.d.ts#shapeSupportProblems
+shapesOf: build/measures-WwacWhot.d.ts#shapesOf
 sharedDimension: build/index.d.ts#sharedDimension
 spaceShapeKinds: build/index.d.ts#spaceShapeKinds
 spaceSize: build/index.d.ts#spaceSize
 splitConfig: build/index.d.ts#splitConfig
-splitFileName: build/measures-BLoTbQwB.d.ts#splitFileName
-splitFolds: build/measures-BLoTbQwB.d.ts#splitFolds
+splitFileName: build/measures-WwacWhot.d.ts#splitFileName
+splitFolds: build/measures-WwacWhot.d.ts#splitFolds
 stepRandom: build/index.d.ts#stepRandom
 toLayoutRecord: build/index.d.ts#toLayoutRecord
-toPackInput: build/measures-BLoTbQwB.d.ts#toPackInput
-translate: build/measures-BLoTbQwB.d.ts#translate
+toPackInput: build/measures-WwacWhot.d.ts#toPackInput
+toRect: build/measures-WwacWhot.d.ts#toRect
+toSizedRect: build/measures-WwacWhot.d.ts#toSizedRect
+translate: build/measures-WwacWhot.d.ts#translate
 turnBox: build/index.d.ts#turnBox
 turnMargin: build/index.d.ts#turnMargin
 turnPoint: build/index.d.ts#turnPoint
@@ -1100,20 +1103,20 @@ export declare function turnSide(side: Side): Side;
 ### build/index.d.ts#verdict
 export declare function verdict<R extends VerdictRecord>(records: Iterable<R>, options: VerdictOptions<R>): VerdictResult;
 
-### build/measures-BLoTbQwB.d.ts#ClaimBreak
+### build/measures-WwacWhot.d.ts#ClaimBreak
 interface ClaimBreak {
   readonly claim: string;
   readonly detail: string;
   readonly inputs: readonly string[];
 }
 
-### build/measures-BLoTbQwB.d.ts#CorpusEntry
+### build/measures-WwacWhot.d.ts#CorpusEntry
 interface CorpusEntry {
   readonly id: string;
   readonly hash: string;
 }
 
-### build/measures-BLoTbQwB.d.ts#CorpusSplit
+### build/measures-WwacWhot.d.ts#CorpusSplit
 interface CorpusSplit {
   readonly schema: typeof SPLIT_SCHEMA;
   readonly corpus: string;
@@ -1123,10 +1126,10 @@ interface CorpusSplit {
   }>>;
 }
 
-### build/measures-BLoTbQwB.d.ts#DEFAULT_SHAPES
+### build/measures-WwacWhot.d.ts#DEFAULT_SHAPES
 declare const DEFAULT_SHAPES: readonly ShapeKind[];
 
-### build/measures-BLoTbQwB.d.ts#DeclaredClaim
+### build/measures-WwacWhot.d.ts#DeclaredClaim
 interface DeclaredClaim {
   readonly minCount: number;
   readonly thin: readonly string[];
@@ -1135,36 +1138,36 @@ interface DeclaredClaim {
   readonly familyMin?: number;
 }
 
-### build/measures-BLoTbQwB.d.ts#Declares
+### build/measures-WwacWhot.d.ts#Declares
 type Declares<I> = (input: I) => readonly string[];
 
-### build/measures-BLoTbQwB.d.ts#Direction
+### build/measures-WwacWhot.d.ts#Direction
 type Direction = "lower" | "higher";
 
-### build/measures-BLoTbQwB.d.ts#FAMILY_ANY_KIND
+### build/measures-WwacWhot.d.ts#FAMILY_ANY_KIND
 declare const FAMILY_ANY_KIND = "*";
 
-### build/measures-BLoTbQwB.d.ts#FamilyBy
+### build/measures-WwacWhot.d.ts#FamilyBy
 type FamilyBy = readonly string[] | {
   readonly [kind: string]: readonly string[];
 };
 
-### build/measures-BLoTbQwB.d.ts#FamilyCell
+### build/measures-WwacWhot.d.ts#FamilyCell
 type FamilyCell = Readonly<Record<string, unknown>>;
 
-### build/measures-BLoTbQwB.d.ts#Item
+### build/measures-WwacWhot.d.ts#Item
 type Item = LayoutBox;
 
-### build/measures-BLoTbQwB.d.ts#JOINT_MEASURES
+### build/measures-WwacWhot.d.ts#JOINT_MEASURES
 declare const JOINT_MEASURES: readonly MeasureSpec<JointMeasureId>[];
 
-### build/measures-BLoTbQwB.d.ts#JOINT_MOVED_MIN
+### build/measures-WwacWhot.d.ts#JOINT_MOVED_MIN
 declare const JOINT_MOVED_MIN = .01;
 
-### build/measures-BLoTbQwB.d.ts#JointMeasureId
+### build/measures-WwacWhot.d.ts#JointMeasureId
 type JointMeasureId = "joint.fill" | "joint.aspectError" | "joint.spill" | "joint.straight.crossings" | "joint.straight.length" | "joint.stability.mean" | "joint.stability.moved" | "joint.proxy.rank" | "joint.ms";
 
-### build/measures-BLoTbQwB.d.ts#LayoutBox
+### build/measures-WwacWhot.d.ts#LayoutBox
 interface LayoutBox {
   readonly id: string;
   readonly w: number;
@@ -1183,7 +1186,7 @@ interface LayoutBox {
   readonly data?: Readonly<Record<string, unknown>>;
 }
 
-### build/measures-BLoTbQwB.d.ts#LayoutCell
+### build/measures-WwacWhot.d.ts#LayoutCell
 interface LayoutCell {
   readonly containerSize?: "fixed" | "freeHeight" | "freeWidth" | "freeAspect" | "freeArea";
   readonly containerShape?: "rect" | "convex" | "polygon" | "circle" | "ellipse" | "holes";
@@ -1198,7 +1201,7 @@ interface LayoutCell {
   readonly itemShape?: ShapeKind | "mixed";
 }
 
-### build/measures-BLoTbQwB.d.ts#LayoutContainer
+### build/measures-WwacWhot.d.ts#LayoutContainer
 interface LayoutContainer {
   readonly w?: number;
   readonly h?: number;
@@ -1209,7 +1212,7 @@ interface LayoutContainer {
   readonly inset?: number;
 }
 
-### build/measures-BLoTbQwB.d.ts#LayoutEdge
+### build/measures-WwacWhot.d.ts#LayoutEdge
 interface LayoutEdge {
   readonly id: string;
   readonly source: string;
@@ -1219,7 +1222,7 @@ interface LayoutEdge {
   readonly data?: Readonly<Record<string, unknown>>;
 }
 
-### build/measures-BLoTbQwB.d.ts#LayoutGenerator
+### build/measures-WwacWhot.d.ts#LayoutGenerator
 interface LayoutGenerator {
   readonly name: string;
   readonly version: number;
@@ -1227,7 +1230,7 @@ interface LayoutGenerator {
   readonly seed: number;
 }
 
-### build/measures-BLoTbQwB.d.ts#LayoutInput
+### build/measures-WwacWhot.d.ts#LayoutInput
 interface LayoutInput {
   readonly schema: "layout-input/1";
   readonly id: string;
@@ -1251,10 +1254,10 @@ interface LayoutInput {
   readonly invalidated?: readonly string[];
 }
 
-### build/measures-BLoTbQwB.d.ts#Margin
+### build/measures-WwacWhot.d.ts#Margin
 type Margin = number | Sides;
 
-### build/measures-BLoTbQwB.d.ts#MeasureSpec
+### build/measures-WwacWhot.d.ts#MeasureSpec
 interface MeasureSpec<Id extends string = string> {
   readonly id: Id;
   readonly unit: string;
@@ -1272,7 +1275,7 @@ interface MeasureSpec<Id extends string = string> {
   readonly bound?: ShapeBound;
 }
 
-### build/measures-BLoTbQwB.d.ts#Obstacle
+### build/measures-WwacWhot.d.ts#Obstacle
 interface Obstacle {
   readonly id: string;
   readonly region: Region;
@@ -1281,7 +1284,7 @@ interface Obstacle {
   };
 }
 
-### build/measures-BLoTbQwB.d.ts#PackInput
+### build/measures-WwacWhot.d.ts#PackInput
 interface PackInput {
   readonly container: LayoutContainer;
   readonly items: readonly Item[];
@@ -1291,19 +1294,19 @@ interface PackInput {
   readonly links?: readonly PackLink[];
 }
 
-### build/measures-BLoTbQwB.d.ts#PackInputOptions
+### build/measures-WwacWhot.d.ts#PackInputOptions
 interface PackInputOptions {
   readonly links?: boolean;
 }
 
-### build/measures-BLoTbQwB.d.ts#PackLink
+### build/measures-WwacWhot.d.ts#PackLink
 interface PackLink {
   readonly a: number;
   readonly b: number;
   readonly weight?: number;
 }
 
-### build/measures-BLoTbQwB.d.ts#PairGap
+### build/measures-WwacWhot.d.ts#PairGap
 interface PairGap {
   readonly a: string;
   readonly b: string;
@@ -1311,13 +1314,13 @@ interface PairGap {
   readonly lanes?: number;
 }
 
-### build/measures-BLoTbQwB.d.ts#Point
+### build/measures-WwacWhot.d.ts#Point
 interface Point {
   readonly x: number;
   readonly y: number;
 }
 
-### build/measures-BLoTbQwB.d.ts#Port
+### build/measures-WwacWhot.d.ts#Port
 interface Port {
   readonly id: string;
   readonly side?: Side;
@@ -1326,7 +1329,7 @@ interface Port {
   readonly along?: number;
 }
 
-### build/measures-BLoTbQwB.d.ts#Rect
+### build/measures-WwacWhot.d.ts#Rect
 interface Rect {
   readonly x: number;
   readonly y: number;
@@ -1334,7 +1337,7 @@ interface Rect {
   readonly h: number;
 }
 
-### build/measures-BLoTbQwB.d.ts#Region
+### build/measures-WwacWhot.d.ts#Region
 type Region = {
   readonly kind: "rect";
   readonly x: number;
@@ -1358,33 +1361,33 @@ type Region = {
   readonly ry: number;
 };
 
-### build/measures-BLoTbQwB.d.ts#RuleLevel
+### build/measures-WwacWhot.d.ts#RuleLevel
 type RuleLevel = "exact" | "safe" | "none";
 
-### build/measures-BLoTbQwB.d.ts#SHAPE_KINDS
+### build/measures-WwacWhot.d.ts#SHAPE_KINDS
 declare const SHAPE_KINDS: readonly ShapeKindSpec[];
 
-### build/measures-BLoTbQwB.d.ts#SHAPE_KIND_IDS
+### build/measures-WwacWhot.d.ts#SHAPE_KIND_IDS
 declare const SHAPE_KIND_IDS: readonly ShapeKind[];
 
-### build/measures-BLoTbQwB.d.ts#SIDES
+### build/measures-WwacWhot.d.ts#SIDES
 declare const SIDES: readonly Side[];
 
-### build/measures-BLoTbQwB.d.ts#SPLIT_SCHEMA
+### build/measures-WwacWhot.d.ts#SPLIT_SCHEMA
 declare const SPLIT_SCHEMA = "corpus-split/1";
 
-### build/measures-BLoTbQwB.d.ts#ShapeBound
+### build/measures-WwacWhot.d.ts#ShapeBound
 interface ShapeBound {
   readonly shapes: readonly ShapeKind[];
   readonly side: "upper" | "lower";
 }
 
-### build/measures-BLoTbQwB.d.ts#ShapeCheck
+### build/measures-WwacWhot.d.ts#ShapeCheck
 interface ShapeCheck {
   readonly level?: "exact" | "safe" | "bound";
 }
 
-### build/measures-BLoTbQwB.d.ts#ShapeGeometry
+### build/measures-WwacWhot.d.ts#ShapeGeometry
 interface ShapeGeometry {
   readonly bounds: boolean;
   readonly area: boolean;
@@ -1392,10 +1395,10 @@ interface ShapeGeometry {
   readonly overlap: boolean;
 }
 
-### build/measures-BLoTbQwB.d.ts#ShapeKind
+### build/measures-WwacWhot.d.ts#ShapeKind
 type ShapeKind = "rect" | "polygon" | "circle" | "free";
 
-### build/measures-BLoTbQwB.d.ts#ShapeKindSpec
+### build/measures-WwacWhot.d.ts#ShapeKindSpec
 interface ShapeKindSpec {
   readonly id: ShapeKind;
   readonly fields: readonly string[];
@@ -1403,10 +1406,10 @@ interface ShapeKindSpec {
   readonly geometry: ShapeGeometry;
 }
 
-### build/measures-BLoTbQwB.d.ts#ShapeLevel
+### build/measures-WwacWhot.d.ts#ShapeLevel
 type ShapeLevel = RuleLevel | "bound";
 
-### build/measures-BLoTbQwB.d.ts#ShapeSupport
+### build/measures-WwacWhot.d.ts#ShapeSupport
 interface ShapeSupport<Id extends string = string> {
   readonly id: Id;
   readonly shapes?: readonly ShapeKind[];
@@ -1414,10 +1417,10 @@ interface ShapeSupport<Id extends string = string> {
   readonly bound?: ShapeBound;
 }
 
-### build/measures-BLoTbQwB.d.ts#Side
+### build/measures-WwacWhot.d.ts#Side
 type Side = "top" | "right" | "bottom" | "left";
 
-### build/measures-BLoTbQwB.d.ts#Sides
+### build/measures-WwacWhot.d.ts#Sides
 interface Sides {
   readonly top: number;
   readonly right: number;
@@ -1425,7 +1428,15 @@ interface Sides {
   readonly left: number;
 }
 
-### build/measures-BLoTbQwB.d.ts#SplitCorpus
+### build/measures-WwacWhot.d.ts#SizedRect
+interface SizedRect {
+  readonly x: number;
+  readonly y: number;
+  readonly width: number;
+  readonly height: number;
+}
+
+### build/measures-WwacWhot.d.ts#SplitCorpus
 interface SplitCorpus {
   readonly corpus: string;
   readonly specs: readonly {
@@ -1434,112 +1445,118 @@ interface SplitCorpus {
   readonly inputs: readonly CorpusEntry[];
 }
 
-### build/measures-BLoTbQwB.d.ts#SplitFold
+### build/measures-WwacWhot.d.ts#SplitFold
 interface SplitFold {
   readonly train: readonly number[];
   readonly heldOut: readonly number[];
 }
 
-### build/measures-BLoTbQwB.d.ts#Verdict
+### build/measures-WwacWhot.d.ts#Verdict
 type Verdict = "better" | "worse" | "tie";
 
-### build/measures-BLoTbQwB.d.ts#boundsOf
+### build/measures-WwacWhot.d.ts#boundsOf
 declare function boundsOf(region: Region): Rect;
 
-### build/measures-BLoTbQwB.d.ts#boxArea
+### build/measures-WwacWhot.d.ts#boxArea
 declare function boxArea(box: LayoutBox): number | undefined;
 
-### build/measures-BLoTbQwB.d.ts#canonicalInput
+### build/measures-WwacWhot.d.ts#canonicalInput
 declare function canonicalInput<T extends LayoutInput>(input: T): T;
 
-### build/measures-BLoTbQwB.d.ts#checkDeclared
+### build/measures-WwacWhot.d.ts#checkDeclared
 declare function checkDeclared<I>(inputs: Iterable<I>, declares: Declares<I>, claim: DeclaredClaim, ids?: readonly string[], cellOf?: (input: I) => FamilyCell | undefined): ClaimBreak[];
 
-### build/measures-BLoTbQwB.d.ts#checkShapes
+### build/measures-WwacWhot.d.ts#checkShapes
 declare function checkShapes(input: Pick<LayoutInput, "id" | "boxes">, uses: readonly ShapeSupport[], options?: ShapeCheck): ClaimBreak[];
 
-### build/measures-BLoTbQwB.d.ts#checkSplit
+### build/measures-WwacWhot.d.ts#checkSplit
 declare function checkSplit(split: unknown, corpus: SplitCorpus, name?: string): ClaimBreak[];
 
-### build/measures-BLoTbQwB.d.ts#compareMeasure
+### build/measures-WwacWhot.d.ts#compareMeasure
 declare function compareMeasure(candidate: number, baseline: number, spec: Pick<MeasureSpec, "direction" | "minEffect">): Verdict;
 
-### build/measures-BLoTbQwB.d.ts#corpusHashOf
+### build/measures-WwacWhot.d.ts#corpusHashOf
 declare function corpusHashOf(corpus: string, inputs: readonly CorpusEntry[]): string;
 
-### build/measures-BLoTbQwB.d.ts#declaredClaimOf
+### build/measures-WwacWhot.d.ts#declaredClaimOf
 declare function declaredClaimOf(manifest: object): DeclaredClaim | undefined;
 
-### build/measures-BLoTbQwB.d.ts#declaredCounts
+### build/measures-WwacWhot.d.ts#declaredCounts
 declare function declaredCounts<I>(inputs: Iterable<I>, declares: Declares<I>, ids?: readonly string[]): Record<string, number>;
 
-### build/measures-BLoTbQwB.d.ts#familyOf
+### build/measures-WwacWhot.d.ts#familyOf
 declare function familyOf(cell: FamilyCell, familyBy: FamilyBy): string;
 
-### build/measures-BLoTbQwB.d.ts#grow
+### build/measures-WwacWhot.d.ts#grow
 declare function grow(rect: Rect, margin: Margin | undefined): Rect;
 
-### build/measures-BLoTbQwB.d.ts#isShapeKind
+### build/measures-WwacWhot.d.ts#isShapeKind
 declare function isShapeKind(value: unknown): value is ShapeKind;
 
-### build/measures-BLoTbQwB.d.ts#itemShapeOf
+### build/measures-WwacWhot.d.ts#itemShapeOf
 declare function itemShapeOf(input: Pick<LayoutInput, "boxes">): ShapeKind | "mixed";
 
-### build/measures-BLoTbQwB.d.ts#leaveOneSeedOut
+### build/measures-WwacWhot.d.ts#leaveOneSeedOut
 declare function leaveOneSeedOut(seeds: readonly number[]): SplitFold[];
 
-### build/measures-BLoTbQwB.d.ts#marginSides
+### build/measures-WwacWhot.d.ts#marginSides
 declare function marginSides(margin: Margin | undefined): Sides;
 
-### build/measures-BLoTbQwB.d.ts#minEffectOf
+### build/measures-WwacWhot.d.ts#minEffectOf
 declare function minEffectOf(spec: Pick<MeasureSpec, "minEffect">, a?: number, b?: number): number;
 
-### build/measures-BLoTbQwB.d.ts#overlapOf
+### build/measures-WwacWhot.d.ts#overlapOf
 declare function overlapOf(a: Rect, b: Rect): {
   readonly x: number;
   readonly y: number;
 };
 
-### build/measures-BLoTbQwB.d.ts#packLinks
+### build/measures-WwacWhot.d.ts#packLinks
 declare function packLinks(input: LayoutInput): PackLink[];
 
-### build/measures-BLoTbQwB.d.ts#portPoint
+### build/measures-WwacWhot.d.ts#portPoint
 declare function portPoint(box: Pick<LayoutBox, "w" | "h">, port: Port): Point | undefined;
 
-### build/measures-BLoTbQwB.d.ts#regionArea
+### build/measures-WwacWhot.d.ts#regionArea
 declare function regionArea(region: Region): number;
 
-### build/measures-BLoTbQwB.d.ts#ruleLevel
+### build/measures-WwacWhot.d.ts#ruleLevel
 declare function ruleLevel(rule: Pick<ShapeSupport, "shapes" | "safe">, kind: ShapeKind): RuleLevel;
 
-### build/measures-BLoTbQwB.d.ts#shapeKindOf
+### build/measures-WwacWhot.d.ts#shapeKindOf
 declare function shapeKindOf(box: LayoutBox): ShapeKind;
 
-### build/measures-BLoTbQwB.d.ts#shapeKindProblem
+### build/measures-WwacWhot.d.ts#shapeKindProblem
 declare function shapeKindProblem(box: LayoutBox): string | undefined;
 
-### build/measures-BLoTbQwB.d.ts#shapeKindsOf
+### build/measures-WwacWhot.d.ts#shapeKindsOf
 declare function shapeKindsOf(input: Pick<LayoutInput, "boxes">): ShapeKind[];
 
-### build/measures-BLoTbQwB.d.ts#shapeLevel
+### build/measures-WwacWhot.d.ts#shapeLevel
 declare function shapeLevel(use: Pick<ShapeSupport, "shapes" | "safe" | "bound">, kind: ShapeKind): ShapeLevel;
 
-### build/measures-BLoTbQwB.d.ts#shapeSupportProblems
+### build/measures-WwacWhot.d.ts#shapeSupportProblems
 declare function shapeSupportProblems(uses: readonly ShapeSupport[]): string[];
 
-### build/measures-BLoTbQwB.d.ts#shapesOf
+### build/measures-WwacWhot.d.ts#shapesOf
 declare function shapesOf(use: Pick<ShapeSupport, "shapes">): readonly ShapeKind[];
 
-### build/measures-BLoTbQwB.d.ts#splitFileName
+### build/measures-WwacWhot.d.ts#splitFileName
 declare function splitFileName(corpus: string, hash: string): string;
 
-### build/measures-BLoTbQwB.d.ts#splitFolds
+### build/measures-WwacWhot.d.ts#splitFolds
 declare function splitFolds(split: unknown, corpus: SplitCorpus, name: string, where?: string): SplitFold[];
 
-### build/measures-BLoTbQwB.d.ts#toPackInput
+### build/measures-WwacWhot.d.ts#toPackInput
 declare function toPackInput(input: LayoutInput, options?: PackInputOptions): PackInput;
 
-### build/measures-BLoTbQwB.d.ts#translate
+### build/measures-WwacWhot.d.ts#toRect
+declare function toRect(rect: SizedRect): Rect;
+
+### build/measures-WwacWhot.d.ts#toSizedRect
+declare function toSizedRect(rect: Rect): SizedRect;
+
+### build/measures-WwacWhot.d.ts#translate
 declare function translate(region: Region, dx: number, dy: number): Region;
 
 ### build/text.d.ts#AdvanceFn

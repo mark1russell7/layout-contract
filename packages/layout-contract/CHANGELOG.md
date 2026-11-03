@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.3.4
+
+- PATCH before 1.0.0: a new type and two new functions, with no break.
+- `SizedRect` is a rectangle with `width` and `height` in place of `w` and `h`. Some layout engines use this shape.
+- `toRect(rect)` and `toSizedRect(rect)` convert between `SizedRect` and `Rect`. They copy each number and do not round.
+- A seeded property test shows the round trip in the two directions, also for negative, fractional, zero and extreme values.
+
 ## 0.3.3
 
 - PATCH before 1.0.0: no change of the API or of a value. A bundler removes the constants that a consumer does not import.
