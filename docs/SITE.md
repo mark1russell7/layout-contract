@@ -4,7 +4,7 @@ The project site is at <https://mark1russell7.github.io/layout-contract/>. It ha
 
 1. **Joint benchmark:** the headline cell of the latest result, the misses by router and by packer, the ranked pairs, the baselines and the stress cell.
 2. **Strategy space:** the schema `strategy-space/1`, and an interactive view of a space. Until an engine publishes its space, the view shows an example space.
-3. **Sweep coverage and efficacy maps:** a placeholder. The roadmap items L35 and L36 fill it.
+3. **Sweep coverage and efficacy maps:** the trend of the space coverage, from the branch `sweep-data`. The efficacy maps of L35 and L36 come later.
 4. **What's new:** a dated list of the work items, with their releases and pull requests.
 
 Each section with data shows the date and the source of its data.
@@ -25,7 +25,8 @@ The navigation of each page links to the sites of [highways](https://mark1russel
 - The repository has no `docs/ROADMAP.md`, so the input `roadmap` is empty. The Status page shows the open pull requests and the open issues.
 - After the deployment, the job `served` of `pages.yml` reads the 4 paths from the public site. A missing path fails the job.
 - The home page links to the Releases page and to the Status page. A local build does not have them.
-- The site reads only the files in `packages/site/data`, at build time. The build does not download a CI artifact.
+- The build reads only the files in `packages/site/data`. The build does not download a CI artifact.
+- The sweep section is the one exception. The page reads the branch `sweep-data` when it opens. The section "The sweep maps" tells how.
 - The prose of the site is in `packages/site/content/*.md`. `pnpm lint:ste` examines it.
 
 The data folder has these files:
@@ -76,7 +77,24 @@ Add the item at the top of `items` in `packages/site/data/news.json`. Take the d
 
 ### The sweep maps
 
-The items L35 and L36 add a data folder for the sweep results, its check in `src/data.ts`, and the section. Until then, the section shows no data.
+The section shows the trend of the space coverage (`docs/SWEEP.md`, "The trend"). The nightly sweep writes the data, so the site needs no commit for a new night.
+
+- The page reads `index.json` of the branch `sweep-data` from `raw.githubusercontent.com`. This host sends `Access-Control-Allow-Origin: *`.
+- Then it reads `epochs/<latest>/surrogate-trend.jsonl`. It keeps the records of the latest epoch with the variant `blocks`, one for each night, in night order.
+- A night with two records keeps the later line. A line with bad JSON or a bad record does not stop the page. The page counts and skips it.
+- `src/coverage.ts` holds the checks and the week view, with no DOM. `src/sweep.ts` reads the files and draws the section. `src/coverage.test.ts` examines both.
+- The page shows a loading state first. A failed read shows the reason and a link to the branch.
+
+The section shows these parts:
+
+- The tiles of the latest night: the held-out median skill, the overfit gap, the covered share, λ, the rows and the configs. A λ at the edge of its list gets a mark.
+- A chart of the held-out median skill of each night, with its band from q10 to q90, and the in-sample median as a second line.
+- A chart of the guard lines: the covered cells, the cells with 20 rows or more and the cells with rows.
+- A table of the numbers of each night, and the links to the file and to the CI run of the latest record.
+
+The week view compares the latest record with the newest record of at least `WEEK_DAYS` (7) days before it. A change of the held-out median skill below `FLAT_WEEK` (0.01) in absolute value is a flat week. The page labels it "flat week: a finding to explain". With one record, the page tells that the trend starts with the next night.
+
+The items L35 and L36 add the efficacy maps below the trend. Until then, that part shows no data.
 
 ## The joint pages
 
