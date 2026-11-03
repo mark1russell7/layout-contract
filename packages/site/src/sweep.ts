@@ -310,12 +310,12 @@ export function sweepHtml(state: SweepState, width: number = START_WIDTH): strin
     ${tiles(latest)}
     <div class="two trend-charts">
       <figure class="chart"><figcaption>Skill inside the cells, each night</figcaption>
-        <div class="legend"><span class="key s1"></span>Held-out median <span class="key band"></span>q10 to q90 <span class="key s2"></span>In-sample median</div>
+        <div class="legend"><span class="item"><span class="key s1"></span>Held-out median</span><span class="item"><span class="key band"></span>q10 to q90</span><span class="item"><span class="key s2"></span>In-sample median</span></div>
         <div class="trend-plot" data-chart="skill">${skillChart(line, width)}</div>
         <p class="hint">Higher is better. On the line 0, the model is as good as the mean of each cell. The gap between the two lines is the overfit.</p>
       </figure>
       <figure class="chart"><figcaption>The guard lines: the cells, each night</figcaption>
-        <div class="legend"><span class="key s1"></span>Covered <span class="key s2"></span>20 rows or more <span class="key s0"></span>With rows</div>
+        <div class="legend"><span class="item"><span class="key s1"></span>Covered</span><span class="item"><span class="key s2"></span>20 rows or more</span><span class="item"><span class="key s0"></span>With rows</span></div>
         <div class="trend-plot" data-chart="guard">${guardChart(line, width)}</div>
         <p class="hint">A rise of the skill with a drop of the covered cells is no gain. The guard lines show such a drop.</p>
       </figure>

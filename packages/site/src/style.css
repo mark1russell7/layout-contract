@@ -306,9 +306,9 @@ button { cursor: pointer; }
 .trend-svg .dot.s0 { fill: var(--ink-3); }
 .trend-svg .hit { fill: transparent; }
 .trend-svg .hit:hover { fill: var(--ink); fill-opacity: 0.05; }
-.legend { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 6px; font-size: 0.82rem; color: var(--ink-2); margin-bottom: 6px; }
-.legend .key { display: inline-block; width: 18px; height: 0; border-top: 2px solid var(--ink-3); margin-left: 8px; vertical-align: middle; }
-.legend .key:first-child { margin-left: 0; }
+.legend { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 14px; font-size: 0.82rem; color: var(--ink-2); margin-bottom: 6px; }
+.legend .item { display: inline-flex; align-items: center; gap: 6px; white-space: nowrap; }
+.legend .key { display: inline-block; width: 18px; height: 0; border-top: 2px solid var(--ink-3); }
 .legend .key.s1 { border-top-color: var(--series-1); }
 .legend .key.s2 { border-top: 2px dashed var(--series-2); }
 .legend .key.s0 { border-top: 2px dotted var(--ink-3); }
