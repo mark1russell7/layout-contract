@@ -182,6 +182,16 @@ export interface LayoutInput {
   readonly invalidated?: readonly string[];
 }
 
+/**
+ * A link between two items of a packer input. A graph order of the packer reads the links.
+ * `a` and `b` are indexes into `PackInput.items`. The weight is 1 when it has no value.
+ */
+export interface PackLink {
+  readonly a: number;
+  readonly b: number;
+  readonly weight?: number;
+}
+
 /** The input of a packer: a `layout-input/1` file without the edges. */
 export interface PackInput {
   readonly container: LayoutContainer;
@@ -189,17 +199,55 @@ export interface PackInput {
   readonly obstacles?: readonly Obstacle[];
   readonly gap?: number;
   readonly pairGaps?: readonly PairGap[];
+  /** The links between the items. An input without `links` has no graph, and the links have no effect on an order that does not read them. */
+  readonly links?: readonly PackLink[];
 }
 
-/** This function gives the packer input of a file. An input without a container gets `{ fixed: "none" }`, so the packer picks the size. */
-export function toPackInput(input: LayoutInput): PackInput {
+/** The options of `toPackInput`. */
+export interface PackInputOptions {
+  /** With `true`, the packer input gets the links of `packLinks`. The default is `false`, so the input has no `links`. */
+  readonly links?: boolean;
+}
+
+/**
+ * This function gives the packer input of a file. An input without a container gets `{ fixed: "none" }`, so the packer picks the size.
+ * The edges are not in the packer input. With the option `links`, their links are in it.
+ */
+export function toPackInput(input: LayoutInput, options: PackInputOptions = {}): PackInput {
   return {
     container: input.container ?? { fixed: "none" },
     items: input.boxes,
     ...(input.obstacles === undefined ? {} : { obstacles: input.obstacles }),
     ...(input.gap === undefined ? {} : { gap: input.gap }),
     ...(input.pairGaps === undefined ? {} : { pairGaps: input.pairGaps }),
+    ...(options.links === true ? { links: packLinks(input) } : {}),
   };
+}
+
+/**
+ * This function gives the links of the edges of a file, with indexes into `input.boxes`.
+ * - Each link has `a` below `b`. The list is sorted by `a` and then by `b`.
+ * - The edges of one pair of boxes make one link. Its weight is the count of the edges, and a link of one edge has no weight.
+ * - The function does not use an edge to a box that is not in `input.boxes`, or an edge from a box to the same box.
+ */
+export function packLinks(input: LayoutInput): PackLink[] {
+  const index = new Map<string, number>();
+  input.boxes.forEach((box, i) => {
+    if (!index.has(box.id)) index.set(box.id, i);
+  });
+  const count = new Map<string, { a: number; b: number; n: number }>();
+  for (const edge of input.edges ?? []) {
+    const s = index.get(edge.source);
+    const t = index.get(edge.target);
+    if (s === undefined || t === undefined || s === t) continue;
+    const a = Math.min(s, t);
+    const b = Math.max(s, t);
+    const key = `${a} ${b}`;
+    const c = count.get(key);
+    if (c === undefined) count.set(key, { a, b, n: 1 });
+    else c.n += 1;
+  }
+  return [...count.values()].sort((x, y) => x.a - y.a || x.b - y.b).map(({ a, b, n }) => (n === 1 ? { a, b } : { a, b, weight: n }));
 }
 
 /** This function compares two strings by their UTF-16 code units, as `Array.prototype.sort` does without a compare function. */

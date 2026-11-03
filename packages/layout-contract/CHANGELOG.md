@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.3.1
+
+- PATCH before 1.0.0: a new optional field and a new function, with no break. A pack output without `links` does not change.
+- `PackInput.links` gives the links between the items, for the graph orders of a packer (L47). `a` and `b` are indexes into `items`, and the weight is 1 when it has no value.
+- `packLinks(input)` gives the links of the edges of a file. The edges of one pair make one link, with the count of the edges as its weight.
+- `toPackInput(input, { links: true })` puts these links in the packer input. Without the option, the packer input has no `links`, as before.
+
 ## 0.3.0
 
 - MINOR before 1.0.0, a break: `LayoutRecord.deterministic` widens to `boolean | null`. A reader that expects a boolean breaks.

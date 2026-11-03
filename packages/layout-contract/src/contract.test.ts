@@ -13,6 +13,7 @@ import {
   portPoint,
   regionHitsRect,
   toLayoutRecord,
+  packLinks,
   toPackInput,
   turnBox,
   turnMargin,
@@ -208,6 +209,26 @@ describe("applyPack", () => {
   it("gives the packer input without the edges", () => {
     const i = toPackInput(input([{ id: "a", w: 1, h: 1 }], { gap: 4, edges: [{ id: "e", source: "a", target: "a" }] }));
     expect(i).toEqual({ container: { w: 100, h: 100, fixed: "size" }, items: [{ id: "a", w: 1, h: 1 }], gap: 4 });
+    expect("links" in i).toBe(false);
+  });
+
+  it("gives the links of the edges, with indexes into the boxes", () => {
+    const boxes = ["a", "b", "c", "d"].map((id) => ({ id, w: 1, h: 1 }));
+    const edges = [
+      { id: "e1", source: "c", target: "a" },
+      { id: "e2", source: "a", target: "c" },
+      { id: "e3", source: "b", target: "d" },
+      { id: "e4", source: "a", target: "b" },
+      { id: "self", source: "b", target: "b" },
+      { id: "out", source: "a", target: "x" },
+    ];
+    const file = input(boxes, { edges });
+    const links = [{ a: 0, b: 1 }, { a: 0, b: 2, weight: 2 }, { a: 1, b: 3 }];
+    expect(packLinks(file)).toEqual(links);
+    expect(toPackInput(file, { links: true }).links).toEqual(links);
+    expect("links" in toPackInput(file, { links: false })).toBe(false);
+    expect(packLinks(input(boxes))).toEqual([]);
+    expect(toPackInput(input(boxes), { links: true }).links).toEqual([]);
   });
 });
 
