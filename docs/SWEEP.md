@@ -326,7 +326,7 @@ The cells are 15 routers × 18 pack entries × 4 lane modes × 6 board kinds. Th
 - A ratio near 1 means that the fit gives the mean of the cell, and no more. A finer cell, with input features in place of the board kind, makes the floor smaller.
 - 41% of the rows have the score 0.
 
-The main line of the weekly trend is the skill inside the cells: `1 - (RMSE / floor)²` over the cells with 20 rows or more, as the median, q10 and q90. A fit that gives only the mean of each cell has the skill 0, so input features make it rise. The guard lines are the covered share of the cells with rows, and the count of the cells with rows.
+The main line of the weekly trend is the skill inside the cells: `1 - (RMSE / floor)²`. It covers the cells with 20 rows or more, as the median, q10 and q90. A fit that gives only the mean of each cell has the skill 0, so input features make it rise. The guard lines are the covered share of the cells with rows, and the count of the cells with rows.
 
 ## The cost model
 
