@@ -144,6 +144,10 @@ Each engine maps its named strategies into `named`. Examples are `rows`, `maxrec
 
 The output of a named config is equal to the output of the old named strategy. The engine checks this equality with `outputHash` on its corpus.
 
+### The joint pack entries in `packSpace`
+
+The 20 pack entries of the joint runner are points of `packSpace` of `packing` 0.5.0, with 3 exceptions. `packPointOf` of `packages/joint` starts at the named config of the strategy of an entry, and places each option with `PACK_SPACE_OPTIONS`. The test `pack-points.test.ts` checks each point with `checkConfig`, and compares the `outputHash` of `packConfig` with the hash of the entry on 17 inputs of `joint-v1`. The entry `pack` has no point, because the param `table` of `select` holds only `k66`. The entries `rows-graph-bfs` and `maxrects-bl-graph-bfs` have no point, because the stage `order` has no graph order. The joint space switches to `packSpace` later, together with the route space of `highways`, in one change of the sweep epoch.
+
 ## An example space
 
 The example has a packer and a router. The stage names are examples. Each engine gives its own names.
