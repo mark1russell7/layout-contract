@@ -411,7 +411,7 @@ A split file of `corpus-split/1` is beside each manifest, in `packages/joint/cor
 
 ## The Time row
 
-The time arms give the Time row of a candidate pair against the default pair (L84). The script is `scripts/time-arms.ts`, and the workflow is `time-arms.yml`. The package `@mark1russell7/rigor-bench` gives the records, the order of the arms and the verdict.
+The time arms give the Time row of a candidate pair against the default pair (L84). The script is `scripts/time-arms.ts`, and the workflow is `time-arms.yml`. The package `@mark1russell7/rigor-bench` gives the fresh runner `freshRun`, the records, the order of the arms and the pooled verdict.
 
 - The default entry is `TIME_DEFAULT`: the baseline pair `rows+portfolio`. Arm `a` of each pair runs it.
 - The candidate is a pair id, for example `select+portfolio`. A lane pair and an iteration pair are also candidates, for example `lanes-iter3.maxrects-cp.corners+corners`.
@@ -424,15 +424,18 @@ Each case and each round runs 4 arms:
 1. The default and the candidate. They make the candidate pair.
 2. The default and a copy of the default. They make the A/A pair.
 
-- Each arm is a fresh child process: `node` with argv and no shell. Thus the earlier cases do not change the heap or the decisions of V8 for a later case.
+- `freshRun` of rigor-bench starts each arm in a fresh child process: `node` with argv and no shell. Thus the earlier cases do not change the heap or the decisions of V8 for a later case.
 - The script does not run one arm after the other in one process. An A/A check cannot see the effect of earlier cases in one process.
+- `timeFreshOptions` gives the options of `freshRun`. The child of an arm is the command `arm` of the script, with the input file of the case.
 - The time of an arm is the time of `runInput` inside the child process, from `performance.now()`. The start of the process does not count.
-- `firstArm(round, caseIndex)` of rigor-bench gives the first arm of the candidate pair. The A/A pair uses `firstArm(round, caseIndex + 1)`. Thus the order turns each round.
-- The pair that runs first turns each second round (`timeArmOrder`). The 4 orders of the two pairs come in each 4 rounds.
+- `pairOrder` of rigor-bench gives the order. The candidate pair starts with `firstArm(round, caseIndex)`, and the A/A pair starts with `firstArm(round, caseIndex + 1)`.
+- The pair that runs first turns each second round. The 4 orders of the two pairs come in each 4 rounds.
 - The A/A pair has its own 2 runs of the default. The script does not use one time of the default in the two pairs.
-- The rounds of job `j` are the global rounds `j * rounds` to `j * rounds + rounds - 1`. Thus the merged records have one record for each case and round.
+- The rounds of job `j` are the global rounds `j * rounds` to `j * rounds + rounds - 1` (`roundOffset`). Thus the merged records have one record for each case and round.
 - Each arm of an entry on an input gives the same output hash. A different hash stops the run.
-- A case that an entry skips leaves the run. `meta.json` names it with the reason.
+- An arm that takes more than 10 minutes stops the run. `freshRun` stops the process group of the child.
+- A case that an entry skips in the first round leaves the run. A skip in a later round stops the run. The field `skipped` of `meta.json` keeps the skip records of `freshRun`.
+- The script writes the records of a job when all its arms are done. A job that stops with an error keeps only its `meta.json`.
 
 ### The cases
 
@@ -445,23 +448,28 @@ Each case and each round runs 4 arms:
 Each job writes `paired.jsonl` and `aa.jsonl`. Each line is one `PairedTime` record of rigor-bench, with these fields:
 
 - `case`, `round`, `first`, `a` and `b`, the times in milliseconds.
-- `kind`: `candidate` or `aa`. `job`: the index of the CI job. `baseline` and `candidate`: the entries of arm `a` and arm `b`.
-- `env`: the facts of `runEnv`, with the CPU model, the mode `fresh` and the context of the run.
+- `kind`: `candidate` or `aa`. `job`: the label of the job, the index of the CI job as a string. `baseline` and `candidate`: the entries of arm `a` and arm `b`.
+- `env`: the computer of the job from `benchEnv` of rigor-bench, with the CPU model.
+- The file `meta.json` of the job has the label of the job, the skip records, the mode `fresh` and the context of the run.
 
 ### The verdict
 
-`jointTimeVerdict(records, JOINT_TIME)` merges the records of all jobs and calls `timeVerdict` of rigor-bench. The rule is `difference`.
+`jointTimeVerdict(jobs, JOINT_TIME)` gives the records of each job to `pooledVerdict` of rigor-bench. The rule is `difference`.
 
+- The command `verdict` reads each `meta.json` with the `.jsonl` files of its folder. Each folder gives one job: its label, its records and its skip records.
+- `pooledVerdict` refuses a record with the label of another job.
+- A case that a job skipped leaves all jobs. The field `dropped` of the result lists these cases, and the Markdown names them.
 - The ratio of a case is `exp(median(log(b / a)))` over its rounds of all jobs.
 - The rule gives the bootstrap interval of the candidate median ratio over the A/A median ratio. The A/A arm of the same runs gives the resolution. The rule has no fixed floor in milliseconds.
-- The outcome is `faster` when the whole interval is below 1, and `slower` when it is above 1.
-- The outcome is `same` when the interval is in `[exp(-timeMargin), exp(timeMargin)]`.
+- The outcome is `same` when the interval is in `[exp(-timeMargin), exp(timeMargin)]`. The rule examines this outcome first.
+- Out of the margin, the outcome is `faster` when the whole interval is below 1, and `slower` when it is above 1.
 - Each other interval gives `cannot decide`. An A/A arm with fewer than 5 cases also gives `cannot decide`.
 - A candidate with the outcome `cannot decide` does not promote. The result then has `decided: false`.
 - `timeMargin` is a named setting. The result writes its value, and a change of the value is a measured decision.
-- A missing job leaves a case with 2 more rounds of one order. `balanceOrders` then removes the extra rounds with the highest numbers, and the result counts them.
+- A missing job leaves a case with 2 more rounds of one order. `balanceOrders` of rigor-bench then removes the extra rounds with the highest numbers. The field `trimmed` counts them.
 - The result also keeps the verdict of each job alone, with its CPU model. The outcome of the row uses all jobs together.
-- The guard of the jobs: when a job alone gives the opposite direction of the pooled outcome, the outcome is `cannot decide`. An example is a job with `slower` against a pooled `faster`. The field `pooledOutcome` keeps the outcome before the guard, and `opposed` lists these jobs.
+- The guard of the jobs in `pooledVerdict`: when a job alone gives the opposite direction of the pooled outcome, the outcome is `cannot decide`. An example is a job with `slower` against a pooled `faster`.
+- The field `pooledOutcome` keeps the outcome before the guard, and `opposed` lists these jobs.
 - The result has the counts of the cases and the rounds, the interval, the A/A median and the steps of the derivation.
 
 ### Start the time arms

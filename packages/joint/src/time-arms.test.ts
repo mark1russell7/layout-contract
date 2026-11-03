@@ -1,36 +1,50 @@
-import type { RunEnv } from "@mark1russell7/layout-contract";
+import { pooledVerdict } from "@mark1russell7/rigor-bench";
+import { freshRun, pairOrder, type BenchEnv, type StartChild } from "@mark1russell7/rigor-bench/fresh";
 import { random } from "@mark1russell7/rigor-generators";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { BASELINE } from "./analysis.ts";
-import { JOINT_TIME, jointTimeVerdict, TIME_DEFAULT, TIME_MODE, timeArmOrder, timeCases, timeMarkdown, timeRunOptions, type TimeKind, type TimeRecord } from "./time-arms.ts";
+import { JOINT_TIME, jointTimeVerdict, TIME_DEFAULT, timeCases, timeFreshOptions, timeMarkdown, timeRecords, timeRunOptions, type TimeJob, type TimeRecord } from "./time-arms.ts";
 
-const ENV: RunEnv = { node: "v26.0.0", os: "linux", arch: "x64", runner: "test", cpu: "test cpu", cpus: 4, mode: TIME_MODE, context: "ci" };
+// The mock keeps the code of pooledVerdict, and records its calls. Thus a test sees the input of the joint verdict.
+vi.mock("@mark1russell7/rigor-bench", async (importOriginal) => {
+  const original = await importOriginal<typeof import("@mark1russell7/rigor-bench")>();
+  return { ...original, pooledVerdict: vi.fn(original.pooledVerdict) };
+});
+
+const ENV: BenchEnv = { node: "v26.0.0", os: "linux", arch: "x64", runner: "test", cpu: "test cpu", cores: 4 };
 const CANDIDATE = "select+portfolio";
 
 /**
- * This function gives the seeded records of a bench: `jobs` jobs of `cases` cases and `rounds` rounds, in the order of `timeArmOrder`.
+ * This function gives the seeded records of a bench: `jobs` jobs of `cases` cases and `rounds` rounds, in the order of `pairOrder` of rigor-bench.
+ * Pair 0 is the candidate pair, and pair 1 is the A/A pair, as in `freshRun`.
  * Each case has its own log scale, and each arm of each round adds a normal noise of `sigma` to the log time.
  * The candidate time is the default time times `ratio`. The A/A pair has two arms of the default.
  */
-function bench(seed: string, ratio: number, cases = 20, rounds = 5, jobs = 5, sigma = 0.1): TimeRecord[] {
+function bench(seed: string, ratio: number, cases = 20, rounds = 5, jobs = 5, sigma = 0.1): TimeJob[] {
   const rng = random(seed);
   const scales = Array.from({ length: cases }, () => rng.range(Math.log(5), Math.log(500)));
-  const out: TimeRecord[] = [];
-  for (let job = 0; job < jobs; job++) {
+  const out: TimeJob[] = [];
+  for (let j = 0; j < jobs; j++) {
+    const job = String(j);
+    const records: TimeRecord[] = [];
     for (let r = 0; r < rounds; r++) {
-      const round = job * rounds + r;
+      const round = j * rounds + r;
       for (let i = 0; i < cases; i++) {
         const time = (factor: number): number => Math.exp(scales[i]! + Math.log(factor) + rng.normal(0, sigma));
-        const order = timeArmOrder(round, i);
-        const first = (kind: TimeKind) => order.find((s) => s.kind === kind)!.arm;
-        const env = { ...ENV, cpu: `cpu of job ${job}` };
-        out.push({ case: `c${i}`, round, first: first("candidate"), a: time(1), b: time(ratio), kind: "candidate", job, baseline: TIME_DEFAULT, candidate: CANDIDATE, env });
-        out.push({ case: `c${i}`, round, first: first("aa"), a: time(1), b: time(1), kind: "aa", job, baseline: TIME_DEFAULT, candidate: TIME_DEFAULT, env });
+        const order = pairOrder(2, round, i);
+        const first = (pair: number) => order.find((s) => s.pair === pair)!.first;
+        const env = { ...ENV, cpu: `cpu of job ${j}` };
+        records.push({ case: `c${i}`, round, first: first(0), a: time(1), b: time(ratio), kind: "candidate", job, baseline: TIME_DEFAULT, candidate: CANDIDATE, env });
+        records.push({ case: `c${i}`, round, first: first(1), a: time(1), b: time(1), kind: "aa", job, baseline: TIME_DEFAULT, candidate: TIME_DEFAULT, env });
       }
     }
+    out.push({ job, records, skipped: [] });
   }
   return out;
 }
+
+/** This function changes the records of each job with `f`. */
+const mapRecords = (jobs: readonly TimeJob[], f: (r: TimeRecord) => TimeRecord): TimeJob[] => jobs.map((j) => ({ ...j, records: j.records.map(f) }));
 
 describe("the time verdict of the joint bench (L84)", () => {
   it("gives same or cannot decide on equal arms, never faster or slower", () => {
@@ -55,15 +69,15 @@ describe("the time verdict of the joint bench (L84)", () => {
 
   it("gives cannot decide when a job decides the opposite direction of the pooled records", () => {
     // Jobs 0 to 3 have a 20% speedup. Job 4 has a 50% slowdown, so the pooled records give faster and job 4 gives slower.
-    const fast = bench("guard", 0.8).filter((r) => r.job !== 4);
-    const slow = bench("guard-slow", 1.5).filter((r) => r.job === 4);
+    const fast = bench("guard", 0.8).filter((j) => j.job !== "4");
+    const slow = bench("guard-slow", 1.5).filter((j) => j.job === "4");
     const result = jointTimeVerdict([...fast, ...slow], JOINT_TIME);
     expect(result.pooledOutcome).toBe("faster");
-    expect(result.perJob.find((j) => j.job === 4)!.outcome).toBe("slower");
-    expect(result.opposed).toEqual([4]);
+    expect(result.perJob.find((j) => j.job === "4")!.outcome).toBe("slower");
+    expect(result.opposed).toEqual(["4"]);
     expect(result.outcome).toBe("cannot decide");
     expect(result.decided).toBe(false);
-    expect(result.reason).toContain("the jobs 4 give slower");
+    expect(result.reason).toContain('the jobs "4" give "slower"');
     expect(result.derivation.join(" ")).toContain("Thus the outcome is cannot decide.");
   });
 
@@ -77,21 +91,60 @@ describe("the time verdict of the joint bench (L84)", () => {
   it("merges the rounds of 5 jobs into one record for each case and round, and keeps a verdict for each job", () => {
     const result = jointTimeVerdict(bench("merge", 0.7), JOINT_TIME);
     expect(result.rounds).toEqual({ min: 25, max: 25 });
-    expect(result.jobs).toEqual([0, 1, 2, 3, 4]);
+    expect(result.jobs).toEqual(["0", "1", "2", "3", "4"]);
     expect(result.perJob.map((j) => j.cases)).toEqual([20, 20, 20, 20, 20]);
     expect(result.perJob.map((j) => j.cpu)).toEqual([0, 1, 2, 3, 4].map((j) => `cpu of job ${j}`));
-    expect(result.modes).toEqual([TIME_MODE]);
+    expect(result.dropped).toEqual([]);
+  });
+
+  it("orders the jobs by the numbers of their labels", () => {
+    const jobs = bench("labels", 0.7, 6, 5, 11);
+    expect(jointTimeVerdict([...jobs].reverse(), JOINT_TIME).jobs).toEqual(jobs.map((j) => j.job));
   });
 
   it("balances the orders of a merged case when a job is missing", () => {
-    const records = bench("missing", 0.7).filter((r) => r.job !== 1);
-    // Without job 1, each case starts 11 rounds with arm a and 9 with arm b. caseRatios of rigor-bench refuses that order.
-    const result = jointTimeVerdict(records, JOINT_TIME);
-    expect(result.removed).toBe(2 * 20);
+    const jobs = bench("missing", 0.7).filter((j) => j.job !== "1");
+    // Without job 1, each case starts 11 rounds with arm a and 9 with arm b. balanceOrders of rigor-bench trims the extra rounds.
+    const result = jointTimeVerdict(jobs, JOINT_TIME);
+    expect(result.trimmed).toBe(2 * 20);
     expect(result.rounds).toEqual({ min: 19, max: 19 });
-    expect(result.jobs).toEqual([0, 2, 3, 4]);
+    expect(result.jobs).toEqual(["0", "2", "3", "4"]);
     expect(result.outcome).toBe("faster");
-    expect(jointTimeVerdict(bench("complete", 0.7), JOINT_TIME).removed).toBe(0);
+    expect(jointTimeVerdict(bench("complete", 0.7), JOINT_TIME).trimmed).toBe(0);
+  });
+
+  it("gives pooledVerdict the records of each job, its skipped cases and the margin", () => {
+    const jobs = bench("glue", 0.7, 6, 2, 2);
+    const skip = { arm: CANDIDATE, case: "c5", round: 2, reason: "too large" };
+    const input = [jobs[0]!, { ...jobs[1]!, records: jobs[1]!.records.filter((r) => r.case !== "c5"), skipped: [skip] }];
+    const calls = vi.mocked(pooledVerdict).mock.calls.length;
+    jointTimeVerdict([...input].reverse(), { timeMargin: 0.07 });
+    expect(vi.mocked(pooledVerdict).mock.calls).toHaveLength(calls + 1);
+    const [given, options] = vi.mocked(pooledVerdict).mock.calls.at(-1)!;
+    expect(options).toEqual({ margin: 0.07 });
+    expect(given).toEqual(
+      input.map((j) => ({ job: j.job, candidate: j.records.filter((r) => r.kind === "candidate"), aa: j.records.filter((r) => r.kind === "aa"), skipped: j.skipped })),
+    );
+  });
+
+  it("drops a case that one job skipped from all jobs, and the Markdown names it", () => {
+    const jobs = bench("skipped", 0.7);
+    const skip = { arm: TIME_DEFAULT, case: "c3", round: 10, reason: "no route" };
+    const input = jobs.map((j) => (j.job === "2" ? { ...j, records: j.records.filter((r) => r.case !== "c3"), skipped: [skip] } : j));
+    const result = jointTimeVerdict(input, JOINT_TIME);
+    expect(result.dropped).toEqual(["c3"]);
+    expect(result.cases).toBe(19);
+    expect(result.aaCases).toBe(19);
+    expect(result.perJob.map((j) => j.cases)).toEqual([19, 19, 19, 19, 19]);
+    expect(result.derivation.join(" ")).toContain("The jobs skipped the cases c3.");
+    expect(timeMarkdown(result)).toContain("The skipped cases (dropped from all jobs): c3.");
+    expect(timeMarkdown(jointTimeVerdict(jobs, JOINT_TIME))).toContain("The skipped cases (dropped from all jobs): none.");
+  });
+
+  it("refuses a record with the label of another job, by the guard of pooledVerdict", () => {
+    const jobs = bench("label", 1, 5, 2, 2);
+    const wrong = jobs.map((j) => (j.job === "1" ? { ...j, records: j.records.map((r) => ({ ...r, job: "0" })) } : j));
+    expect(() => jointTimeVerdict(wrong, JOINT_TIME)).toThrow(/has the job "0"/);
   });
 
   it("writes the margin that it used, and the margin changes the zone of same", () => {
@@ -116,10 +169,10 @@ describe("the time verdict of the joint bench (L84)", () => {
   });
 
   it("refuses two candidate pairs and an A/A record with another entry", () => {
-    const records = bench("refuse", 1, 5, 2, 1);
-    const other = records.map((r) => (r.kind === "candidate" && r.case === "c0" ? { ...r, candidate: "shelf+portfolio" } : r));
+    const jobs = bench("refuse", 1, 5, 2, 1);
+    const other = mapRecords(jobs, (r) => (r.kind === "candidate" && r.case === "c0" ? { ...r, candidate: "shelf+portfolio" } : r));
     expect(() => jointTimeVerdict(other, JOINT_TIME)).toThrow(/2 candidate pairs/);
-    const bad = records.map((r) => (r.kind === "aa" && r.case === "c0" ? { ...r, candidate: CANDIDATE } : r));
+    const bad = mapRecords(jobs, (r) => (r.kind === "aa" && r.case === "c0" ? { ...r, candidate: CANDIDATE } : r));
     expect(() => jointTimeVerdict(bad, JOINT_TIME)).toThrow(/not two copies/);
   });
 
@@ -133,21 +186,45 @@ describe("the time verdict of the joint bench (L84)", () => {
   });
 });
 
-describe("the order of the 4 arms", () => {
-  it("runs 2 arms of each pair, turns the first arm of each pair each round, and turns the first pair each second round", () => {
-    const blocks = new Set<string>();
-    for (let round = 0; round < 8; round++) {
-      for (let i = 0; i < 3; i++) {
-        const order = timeArmOrder(round, i);
-        expect(order).toHaveLength(4);
-        for (const kind of ["candidate", "aa"] as const) expect(order.filter((s) => s.kind === kind).map((s) => s.arm).sort()).toEqual(["a", "b"]);
-        const next = timeArmOrder(round + 1, i);
-        expect(next.find((s) => s.kind === "candidate")!.arm).not.toBe(order.find((s) => s.kind === "candidate")!.arm);
-        expect(next.find((s) => s.kind === "aa")!.arm).not.toBe(order.find((s) => s.kind === "aa")!.arm);
-        if (i === 0) blocks.add(`${order[0]!.kind} ${order[0]!.arm}`);
-      }
-    }
-    expect(blocks.size).toBe(4);
+describe("the fresh run of one job", () => {
+  const plan = { baseline: TIME_DEFAULT, candidate: CANDIDATE, arm: ["node", "time-arms.ts"], cases: ["in/a", "in/b", "in/c"], files: ["0.json", "1.json", "2.json"], rounds: 4, job: 2 };
+
+  it("gives freshRun the arms, the input file of each case, the global rounds and the label of the job", () => {
+    const options = timeFreshOptions(plan);
+    expect(options.base).toEqual({ id: TIME_DEFAULT, command: ["node", "time-arms.ts", "arm", "--pair", TIME_DEFAULT] });
+    expect(options.candidates).toEqual([{ id: CANDIDATE, command: ["node", "time-arms.ts", "arm", "--pair", CANDIDATE] }]);
+    expect(options.args!("in/b")).toEqual(["--input", "1.json"]);
+    expect(options.roundOffset).toBe(8);
+    expect(options.job).toBe("2");
+    expect(options.aa).toBeUndefined();
+    expect(() => timeFreshOptions({ ...plan, files: ["0.json"] })).toThrow(/3 cases and 1 input files/);
+  });
+
+  it("writes the records of the two pairs with their kinds and entries, and keeps the skip list of freshRun", async () => {
+    const argvs: string[][] = [];
+    // A fake child: each arm takes 10 ms, and the candidate skips the case in/c.
+    const start: StartChild = async (argv) => {
+      argvs.push([...argv]);
+      const skip = argv.includes(CANDIDATE) && argv.includes("2.json");
+      return { stdout: JSON.stringify(skip ? { skipped: "too large" } : { ms: 10, hash: "h" }) + "\n", stderr: "", code: 0 };
+    };
+    const run = await freshRun({ ...timeFreshOptions(plan), env: ENV, start });
+    const { paired, aa } = timeRecords(run, TIME_DEFAULT, CANDIDATE);
+    expect(run.skipped).toEqual([expect.objectContaining({ arm: CANDIDATE, case: "in/c", round: 8, reason: "too large" })]);
+    expect(paired).toHaveLength(2 * 4);
+    expect(aa).toHaveLength(2 * 4);
+    expect(new Set(paired.map((r) => r.round))).toEqual(new Set([8, 9, 10, 11]));
+    for (const r of paired) expect(r).toMatchObject({ kind: "candidate", job: "2", baseline: TIME_DEFAULT, candidate: CANDIDATE, a: 10, b: 10 });
+    for (const r of aa) expect(r).toMatchObject({ kind: "aa", job: "2", baseline: TIME_DEFAULT, candidate: TIME_DEFAULT });
+    expect(argvs[0]!.slice(0, 3)).toEqual(["node", "time-arms.ts", "arm"]);
+    expect(argvs.every((a) => a.at(-2) === "--input")).toBe(true);
+    // The job verdict takes the skip list from meta.json, and pooledVerdict removes the case from all jobs.
+    const result = jointTimeVerdict([{ job: run.job, records: [...paired, ...aa], skipped: run.skipped }], JOINT_TIME);
+    expect(result.dropped).toEqual(["in/c"]);
+  });
+
+  it("refuses a run without the pair of the candidate", () => {
+    expect(() => timeRecords({ env: ENV, job: "0", pairs: {}, skipped: [] }, TIME_DEFAULT, CANDIDATE)).toThrow(/no pair select\+portfolio/);
   });
 });
 
