@@ -1,0 +1,483 @@
+// The coverage surrogate of the sweep (roadmap item L52, `docs/SWEEP.md`, "Space coverage").
+// A ridge regression over the configs and the board kinds predicts the score. Its held-out error in each cell tells which part of the space the sweep measures.
+import type { StrategyConfig, StrategySpace } from "@mark1russell7/layout-contract";
+import { deriveSeed, random } from "@mark1russell7/rigor-generators";
+import { mean, median, quantile, sd } from "@mark1russell7/rigor-statistics";
+import { kindOf } from "./check.ts";
+import type { SweepState } from "./night.ts";
+import { JOINT_GROUPS, saltelliDesign, saltelliIndices, type SensitivityGroup } from "./sensitivity.ts";
+import { JOINT_SPACE } from "./space.ts";
+
+/** The name of the factor of the board kind in the cells and in the Sobol indices. */
+export const KIND_FACTOR = "kind";
+
+/** The options of `fitSurrogate`. */
+export interface SurrogateOptions {
+  /** The seed of the folds and of the Sobol draw. The default is 1. */
+  readonly seed?: number;
+  /** The count of the folds of the held-out error. The default is 5. */
+  readonly folds?: number;
+  /** The candidates of the ridge penalty. The fit uses the candidate with the smallest held-out error. The default is 0.01, 0.1, 1 and 10. */
+  readonly lambdas?: readonly number[];
+  /** The largest ratio of the held-out RMSE of a covered cell to its floor. The default is 1.25. */
+  readonly floorRatio?: number;
+  /** The smallest count of rows of a covered cell. The default is 20. */
+  readonly minRows?: number;
+  /** The smallest floor of a cell. A cell with a constant score has the floor 0, so the ratio uses this value. The default is 0.01. */
+  readonly minFloor?: number;
+  /** The count `N` of the rows of the Sobol design. The default is 4096. */
+  readonly draws?: number;
+  /** The space of the configs. The default is `JOINT_SPACE`. */
+  readonly space?: StrategySpace;
+  /** The groups of the cells and of the Sobol indices. Each group is one stage of the space. The default is `JOINT_GROUPS`. */
+  readonly groups?: readonly SensitivityGroup[];
+  /** This function gives the board kind of an input id. The default is `kindOf`. */
+  readonly kindOf?: (inputId: string) => string;
+}
+
+/** The held-out error of one candidate of the ridge penalty. */
+export interface SurrogateLambda {
+  readonly lambda: number;
+  readonly r2: number;
+  readonly rmse: number;
+}
+
+/** The held-out error of one cell with rows. A cell is one level of each group and one board kind. */
+export interface SurrogateCell {
+  /** The level of each group and of `kind`, by name. */
+  readonly levels: Readonly<Record<string, string>>;
+  readonly rows: number;
+  /** The RMSE of the out-of-fold predictions of the rows of the cell. */
+  readonly rmse: number;
+  /** The floor of the cell: the RMSE of its rows around their own mean. No model on the features of the cell has a smaller error. */
+  readonly floor: number;
+  /** `rmse` divided by the larger of `floor` and `minFloor`. */
+  readonly ratio: number;
+  /** The skill of the fit inside the cell: `1 - ratio²`. It is 0 for a fit that gives only the mean of the cell, and 1 for a fit with no error. */
+  readonly skill: number;
+  readonly covered: boolean;
+}
+
+/** The quantiles 0.1, 0.5 and 0.9 of the skill of the cells with `minRows` rows or more. Each value is NaN when there are no such cells. */
+export interface SurrogateSkill {
+  readonly q10: number;
+  readonly median: number;
+  readonly q90: number;
+}
+
+/**
+ * The coverage of the cells of the space. A covered cell has `minRows` rows or more, and a held-out RMSE of at most `floorRatio` times its floor.
+ * The main line of the weekly trend is `skill`. The guard lines are `share` and `withRows`.
+ */
+export interface SurrogateCells {
+  /** The count of all cells, with the cells that have no rows. */
+  readonly total: number;
+  /** The count of the cells with rows. */
+  readonly withRows: number;
+  /** The count of the cells with `minRows` rows or more. */
+  readonly eligible: number;
+  readonly covered: number;
+  /** The count of the cells with no rows. */
+  readonly empty: number;
+  /** `covered` divided by `withRows`, or 0 when no cell has rows. */
+  readonly share: number;
+  /** The median of `ratio` over the cells with `minRows` rows or more, or NaN when there are none. */
+  readonly medianRatio: number;
+  /** The skill inside the cells with `minRows` rows or more. */
+  readonly skill: SurrogateSkill;
+  readonly floorRatio: number;
+  readonly minRows: number;
+  readonly minFloor: number;
+}
+
+/** The first and total Sobol index of one factor of the surrogate. */
+export interface SurrogateIndex {
+  /** The name of a group, or `kind` for the board kind. */
+  readonly name: string;
+  readonly first: number;
+  readonly total: number;
+}
+
+/** The Sobol indices of the surrogate that the fit on all rows gives. */
+export interface SurrogateSobol {
+  /** The count `N` of the rows of the design. */
+  readonly draws: number;
+  readonly factors: readonly SurrogateIndex[];
+}
+
+/** The result of `fitSurrogate`. */
+export interface Surrogate {
+  /** The count of the measured values: one row for each config and input with a score. */
+  readonly rows: number;
+  readonly configs: number;
+  /** The count of the features, with the intercept. */
+  readonly features: number;
+  readonly folds: number;
+  readonly seed: number;
+  /** The ridge penalty with the smallest held-out error. */
+  readonly lambda: number;
+  readonly lambdas: readonly SurrogateLambda[];
+  /** The held-out R² of `lambda` over all rows: 1 minus the sum of the squared errors divided by the total sum of squares. */
+  readonly r2: number;
+  /** The held-out RMSE of `lambda` over all rows. */
+  readonly rmse: number;
+  readonly cells: SurrogateCells;
+  /** The cells with rows, from the largest RMSE to the smallest. */
+  readonly cellErrors: readonly SurrogateCell[];
+  readonly sobol: SurrogateSobol;
+  /** The fold of each config, by config id. All rows of a config are in its fold. */
+  readonly foldOf: Readonly<Record<string, number>>;
+}
+
+/** One categorical block of the features: a group or the board kind, with its levels. */
+interface Block {
+  readonly name: string;
+  readonly levels: readonly string[];
+  readonly index: ReadonlyMap<string, number>;
+  readonly offset: number;
+}
+
+/** One numeric param of the features, with its mean and SD over the rows. */
+interface Param {
+  readonly stage: string;
+  readonly option: string;
+  readonly name: string;
+  readonly mean: number;
+  readonly sd: number;
+  /** The default of the param, for a config that does not set it. */
+  readonly fallback: unknown;
+  readonly feature: number;
+}
+
+/** One row of the fit: a sparse feature vector and its score. */
+interface Row {
+  readonly config: string;
+  readonly cell: string;
+  readonly idx: readonly number[];
+  readonly val: readonly number[];
+  readonly y: number;
+}
+
+/** This function gives the fold of a config: a seeded hash of its id, modulo the count of the folds. */
+export function surrogateFold(configId: string, seed: number, folds: number): number {
+  return deriveSeed(seed, configId) % folds;
+}
+
+/** This function gives the numeric value of a param of a choice, or the default of the param. */
+function paramValue(params: Readonly<Record<string, unknown>> | undefined, name: string, fallback: unknown): number | undefined {
+  const v = params?.[name] ?? fallback;
+  return typeof v === "number" && Number.isFinite(v) ? v : undefined;
+}
+
+/** This function gives the levels of a group: the options of its stage, `none` for an optional stage, and each level of the rows. */
+function groupLevels(group: SensitivityGroup, space: StrategySpace, seen: Iterable<string>): string[] {
+  const stage = space.stages.find((s) => s.name === group.stage);
+  const levels = stage === undefined ? [] : stage.options.map((o) => o.id);
+  if (stage?.optional === true) levels.push("none");
+  for (const l of [...seen].sort()) if (!levels.includes(l)) levels.push(l);
+  return levels;
+}
+
+/**
+ * This function solves `A x = b` for a symmetric positive definite matrix `A` of size `n` by a Cholesky factorization.
+ * The matrix is in row order. The function reads the lower triangle and writes the factor into it.
+ */
+function solvePositive(a: Float64Array, b: Float64Array, n: number): Float64Array {
+  for (let j = 0; j < n; j++) {
+    let d = a[j * n + j]!;
+    for (let k = 0; k < j; k++) d -= a[j * n + k]! ** 2;
+    if (!(d > 0)) throw new RangeError(`fitSurrogate: the matrix of the fit is not positive definite at row ${j}.`);
+    const l = Math.sqrt(d);
+    a[j * n + j] = l;
+    for (let i = j + 1; i < n; i++) {
+      let s = a[i * n + j]!;
+      for (let k = 0; k < j; k++) s -= a[i * n + k]! * a[j * n + k]!;
+      a[i * n + j] = s / l;
+    }
+  }
+  const x = Float64Array.from(b);
+  for (let i = 0; i < n; i++) {
+    let s = x[i]!;
+    for (let k = 0; k < i; k++) s -= a[i * n + k]! * x[k]!;
+    x[i] = s / a[i * n + i]!;
+  }
+  for (let i = n - 1; i >= 0; i--) {
+    let s = x[i]!;
+    for (let k = i + 1; k < n; k++) s -= a[k * n + i]! * x[k]!;
+    x[i] = s / a[i * n + i]!;
+  }
+  return x;
+}
+
+/** This function gives the value of a sparse row with the coefficients `beta`. */
+function predict(beta: Float64Array, idx: readonly number[], val: readonly number[]): number {
+  let s = 0;
+  for (let k = 0; k < idx.length; k++) s += beta[idx[k]!]! * val[k]!;
+  return s;
+}
+
+/**
+ * This function fits a ridge surrogate of the sweep score, and gives its held-out error, the coverage of the cells and its Sobol indices.
+ * - The features are a one-hot of each group and of the board kind, and the product of each pair of these.
+ * - Each numeric param gives one more feature: its z value over the rows.
+ * - The penalty is on each feature but the intercept. The folds keep all rows of one config together.
+ * - A cell is one level of each group and one board kind. A covered cell has `minRows` rows or more and a held-out RMSE of at most `floorRatio` times its floor.
+ * - The floor of a cell is the RMSE of its rows around their mean, and at least `minFloor`.
+ * - The Sobol design of `saltelliDesign` draws the configs, and a seeded draw gives the board kinds of the rows.
+ * The function throws a `RangeError` when the state has no rows, or fewer than 2 configs with rows.
+ */
+export function fitSurrogate(state: SweepState, options: SurrogateOptions = {}): Surrogate {
+  const seed = options.seed ?? 1;
+  const folds = options.folds ?? 5;
+  const lambdas = options.lambdas ?? [0.01, 0.1, 1, 10];
+  const floorRatio = options.floorRatio ?? 1.25;
+  const minRows = options.minRows ?? 20;
+  const minFloor = options.minFloor ?? 0.01;
+  if (!(floorRatio > 0) || !(minFloor > 0)) throw new RangeError(`fitSurrogate: floorRatio and minFloor are numbers above 0, not ${floorRatio} and ${minFloor}.`);
+  const draws = options.draws ?? 4096;
+  const space = options.space ?? JOINT_SPACE;
+  const groups = options.groups ?? JOINT_GROUPS;
+  const kindOfInput = options.kindOf ?? kindOf;
+  if (!(Number.isInteger(folds) && folds >= 2)) throw new RangeError(`fitSurrogate: folds is an integer of 2 or more, not ${folds}.`);
+  if (lambdas.length === 0 || !lambdas.every((l) => l > 0)) throw new RangeError(`fitSurrogate: lambdas is a list of numbers above 0, not [${lambdas.join(", ")}].`);
+  if (!(Number.isInteger(draws) && draws >= 2)) throw new RangeError(`fitSurrogate: draws is an integer of 2 or more, not ${draws}.`);
+
+  // The measured values: one row for each config and input with a score.
+  const kinds = state.inputs.map(kindOfInput);
+  const measured: { config: string; levels: string[]; kind: string; y: number }[] = [];
+  for (const [id, values] of Object.entries(state.values)) {
+    const entry = state.configs[id];
+    if (entry === undefined) continue;
+    const levels = groups.map((g) => g.of(entry.config));
+    values.forEach((y, i) => {
+      if (y !== null && Number.isFinite(y)) measured.push({ config: id, levels, kind: kinds[i]!, y });
+    });
+  }
+  const configIds = [...new Set(measured.map((r) => r.config))];
+  if (measured.length === 0) throw new RangeError("fitSurrogate: the state has no rows. The fit needs a score of 2 configs or more.");
+  if (configIds.length < 2) throw new RangeError(`fitSurrogate: the state has rows of ${configIds.length} config. The folds need 2 configs or more.`);
+
+  // The categorical blocks, the pairs of blocks and the numeric params, in this order after the intercept.
+  const blocks: Block[] = [];
+  let width = 1;
+  const addBlock = (name: string, levels: readonly string[]): void => {
+    blocks.push({ name, levels, index: new Map(levels.map((l, k) => [l, k])), offset: width });
+    width += levels.length;
+  };
+  groups.forEach((g, k) => addBlock(g.name, groupLevels(g, space, new Set(measured.map((r) => r.levels[k]!)))));
+  addBlock(KIND_FACTOR, [...new Set(kinds)].sort());
+  const pairs: { a: number; b: number; offset: number }[] = [];
+  for (let a = 0; a < blocks.length; a++) {
+    for (let b = a + 1; b < blocks.length; b++) {
+      pairs.push({ a, b, offset: width });
+      width += blocks[a]!.levels.length * blocks[b]!.levels.length;
+    }
+  }
+  const params: Param[] = [];
+  for (const stage of space.stages) {
+    for (const option of stage.options) {
+      for (const p of option.params ?? []) {
+        if (p.kind !== "int" && p.kind !== "real") continue;
+        const xs: number[] = [];
+        for (const r of measured) {
+          const c = state.configs[r.config]!.config.stages[stage.name];
+          const v = c?.option === option.id ? paramValue(c.params, p.name, p.default) : undefined;
+          if (v !== undefined) xs.push(v);
+        }
+        const s = xs.length >= 2 ? sd(xs) : 0;
+        if (s > 0) params.push({ stage: stage.name, option: option.id, name: p.name, mean: mean(xs), sd: s, fallback: p.default, feature: width++ });
+      }
+    }
+  }
+
+  /** This function gives the sparse features of a config with its group levels on a board kind. A level out of a block gives no feature of it. */
+  const encode = (config: StrategyConfig, levels: readonly string[], kind: string): { idx: number[]; val: number[] } => {
+    const at = [...levels, kind].map((l, k) => blocks[k]!.index.get(l));
+    const idx = [0];
+    const val = [1];
+    at.forEach((l, k) => {
+      if (l === undefined) return;
+      idx.push(blocks[k]!.offset + l);
+      val.push(1);
+    });
+    for (const p of pairs) {
+      const la = at[p.a];
+      const lb = at[p.b];
+      if (la === undefined || lb === undefined) continue;
+      idx.push(p.offset + la * blocks[p.b]!.levels.length + lb);
+      val.push(1);
+    }
+    for (const p of params) {
+      const c = config.stages[p.stage];
+      const v = c?.option === p.option ? paramValue(c.params, p.name, p.fallback) : undefined;
+      if (v === undefined) continue;
+      idx.push(p.feature);
+      val.push((v - p.mean) / p.sd);
+    }
+    return { idx, val };
+  };
+  const rows: Row[] = measured.map((r) => ({ config: r.config, cell: JSON.stringify([...r.levels, r.kind]), y: r.y, ...encode(state.configs[r.config]!.config, r.levels, r.kind) }));
+
+  // The normal equations of each fold. The fit without fold `f` uses the sums of all rows minus the sums of fold `f`.
+  const foldOf: Record<string, number> = {};
+  for (const id of configIds) foldOf[id] = surrogateFold(id, seed, folds);
+  const gram = Array.from({ length: folds }, () => new Float64Array(width * width));
+  const moment = Array.from({ length: folds }, () => new Float64Array(width));
+  const counts = new Array<number>(folds).fill(0);
+  const total = new Float64Array(width * width);
+  const totalMoment = new Float64Array(width);
+  for (const r of rows) {
+    const f = foldOf[r.config]!;
+    counts[f]!++;
+    const g = gram[f]!;
+    const m = moment[f]!;
+    for (let a = 0; a < r.idx.length; a++) {
+      m[r.idx[a]!]! += r.val[a]! * r.y;
+      for (let b = 0; b < r.idx.length; b++) g[r.idx[a]! * width + r.idx[b]!]! += r.val[a]! * r.val[b]!;
+    }
+  }
+  for (let f = 0; f < folds; f++) {
+    for (let k = 0; k < total.length; k++) total[k]! += gram[f]![k]!;
+    for (let k = 0; k < width; k++) totalMoment[k]! += moment[f]![k]!;
+  }
+  const solve = (lambda: number, without: number | null): Float64Array => {
+    const a = Float64Array.from(total);
+    const b = Float64Array.from(totalMoment);
+    if (without !== null) {
+      for (let k = 0; k < a.length; k++) a[k]! -= gram[without]![k]!;
+      for (let k = 0; k < width; k++) b[k]! -= moment[without]![k]!;
+    }
+    for (let k = 1; k < width; k++) a[k * width + k]! += lambda;
+    return solvePositive(a, b, width);
+  };
+
+  const ys = rows.map((r) => r.y);
+  const yMean = mean(ys);
+  const sst = ys.reduce((s, y) => s + (y - yMean) ** 2, 0);
+  const heldOut = lambdas.map((lambda) => {
+    const out = new Float64Array(rows.length);
+    for (let f = 0; f < folds; f++) {
+      if (counts[f] === 0) continue;
+      if (counts[f] === rows.length) throw new RangeError(`fitSurrogate: fold ${f} holds all ${configIds.length} configs. Use another seed or more configs.`);
+      const beta = solve(lambda, f);
+      rows.forEach((r, k) => {
+        if (foldOf[r.config] === f) out[k] = predict(beta, r.idx, r.val);
+      });
+    }
+    const sse = rows.reduce((s, r, k) => s + (r.y - out[k]!) ** 2, 0);
+    return { lambda, sse, out };
+  });
+  const best = heldOut.reduce((a, b) => (b.sse < a.sse ? b : a));
+  const r2Of = (sse: number): number => (sst > 0 ? 1 - sse / sst : 0);
+  const rmseOf = (sse: number): number => Math.sqrt(sse / rows.length);
+
+  // The held-out error of each cell with rows. The other cells count as not covered.
+  const byCell = new Map<string, { n: number; sse: number; ys: number[] }>();
+  rows.forEach((r, k) => {
+    const c = byCell.get(r.cell) ?? { n: 0, sse: 0, ys: [] };
+    c.n++;
+    c.sse += (r.y - best.out[k]!) ** 2;
+    c.ys.push(r.y);
+    byCell.set(r.cell, c);
+  });
+  const cellErrors: SurrogateCell[] = [...byCell.entries()].map(([key, c]) => {
+    const levels = JSON.parse(key) as string[];
+    const rmse = Math.sqrt(c.sse / c.n);
+    const m = mean(c.ys);
+    const floor = Math.sqrt(c.ys.reduce((s, y) => s + (y - m) ** 2, 0) / c.n);
+    const ratio = rmse / Math.max(floor, minFloor);
+    return { levels: Object.fromEntries(blocks.map((b, k) => [b.name, levels[k]!])), rows: c.n, rmse, floor, ratio, skill: 1 - ratio ** 2, covered: c.n >= minRows && ratio <= floorRatio };
+  });
+  cellErrors.sort((a, b) => b.rmse - a.rmse || JSON.stringify(a.levels).localeCompare(JSON.stringify(b.levels)));
+  const cellCount = blocks.reduce((s, b) => s * b.levels.length, 1);
+  const covered = cellErrors.filter((c) => c.covered).length;
+  const eligible = cellErrors.filter((c) => c.rows >= minRows);
+  const medianRatio = eligible.length > 0 ? median(eligible.map((c) => c.ratio)) : Number.NaN;
+  const skills = eligible.map((c) => c.skill);
+  const skillAt = (p: number): number => (skills.length > 0 ? quantile(skills, p) : Number.NaN);
+  const skill: SurrogateSkill = { q10: skillAt(0.1), median: skillAt(0.5), q90: skillAt(0.9) };
+
+  // The Sobol indices of the fit on all rows. Each group is the stage of the space that it reads, with the params of the stage.
+  const beta = solve(best.lambda, null);
+  const { design, configs } = saltelliDesign(space, draws, deriveSeed(seed, "sobol"), "1970-01-01");
+  const stages = groups.map((g) => {
+    if (g.stage === undefined || !design.stages.includes(g.stage)) throw new RangeError(`fitSurrogate: the group ${g.name} is not one stage of the space ${space.engine}.`);
+    return g.stage;
+  });
+  const observed = [...new Set(measured.map((r) => r.kind))].sort();
+  const draw = random(deriveSeed(seed, "kinds"));
+  const f = (id: string, kind: string): number => {
+    const config = configs[id]!;
+    const e = encode(config, groups.map((g) => g.of(config)), kind);
+    return predict(beta, e.idx, e.val);
+  };
+  const responses = design.rows.map((row) => {
+    const ka = draw.pick(observed);
+    const kb = draw.pick(observed);
+    return { a: f(row.a, ka), b: f(row.b, kb), ab: [...stages.map((s) => f(row.ab[s]!, ka)), f(row.a, kb)] };
+  });
+  const names = [...groups.map((g) => g.name), KIND_FACTOR];
+  const factors = saltelliIndices(responses).map((x, k) => ({ name: names[k]!, first: x.first, total: x.total }));
+
+  return {
+    rows: rows.length,
+    configs: configIds.length,
+    features: width,
+    folds,
+    seed,
+    lambda: best.lambda,
+    lambdas: heldOut.map((h) => ({ lambda: h.lambda, r2: r2Of(h.sse), rmse: rmseOf(h.sse) })),
+    r2: r2Of(best.sse),
+    rmse: rmseOf(best.sse),
+    cells: {
+      total: cellCount,
+      withRows: byCell.size,
+      eligible: eligible.length,
+      covered,
+      empty: cellCount - byCell.size,
+      share: byCell.size > 0 ? covered / byCell.size : 0,
+      medianRatio,
+      skill,
+      floorRatio,
+      minRows,
+      minFloor,
+    },
+    cellErrors,
+    sobol: { draws: design.rows.length, factors },
+    foldOf,
+  };
+}
+
+/** This function gives the Markdown report of a result of `fitSurrogate`, with the `worst` cells of the largest RMSE. */
+export function surrogateMarkdown(result: Surrogate, worst = 10): string {
+  const f = (v: number): string => v.toFixed(3);
+  const c = result.cells;
+  return [
+    `The surrogate: ${result.rows} rows of ${result.configs} configs, ${result.features} features, ${result.folds} folds by config, seed ${result.seed}.`,
+    "",
+    `The penalty λ = ${result.lambda}. The held-out R² is ${f(result.r2)}, and the held-out RMSE is ${f(result.rmse)}.`,
+    "",
+    `Space coverage: ${c.covered} of the ${c.withRows} cells with rows (${(100 * c.share).toFixed(1)}%). ${c.eligible} cells have ${c.minRows} rows or more. The space has ${c.total} cells, and ${c.empty} have no rows.`,
+    "",
+    `A covered cell has ${c.minRows} rows or more and a held-out RMSE of at most ${c.floorRatio} times its floor (at least ${c.minFloor}). The median ratio of RMSE to floor is ${f(c.medianRatio)}.`,
+    "",
+    `The skill inside the cells, 1 - (RMSE / floor)², over the ${c.eligible} cells with ${c.minRows} rows or more: median ${f(c.skill.median)}, q10 ${f(c.skill.q10)}, q90 ${f(c.skill.q90)}.`,
+    "",
+    "| λ | Held-out R² | Held-out RMSE |",
+    "|---|---|---|",
+    ...result.lambdas.map((l) => `| ${l.lambda} | ${f(l.r2)} | ${f(l.rmse)} |`),
+    "",
+    `The Sobol indices of the surrogate, from ${result.sobol.draws} rows of a Saltelli design:`,
+    "",
+    "| Factor | First | Total |",
+    "|---|---|---|",
+    ...result.sobol.factors.map((x) => `| ${x.name} | ${f(x.first)} | ${f(x.total)} |`),
+    "",
+    `The ${Math.min(worst, result.cellErrors.length)} cells with the largest held-out RMSE:`,
+    "",
+    "| Cell | Rows | RMSE | Floor | Ratio | Skill |",
+    "|---|---|---|---|---|---|",
+    ...result.cellErrors.slice(0, worst).map((e) => `| ${Object.values(e.levels).join(" · ")} | ${e.rows} | ${f(e.rmse)} | ${f(e.floor)} | ${f(e.ratio)} | ${f(e.skill)} |`),
+    "",
+  ].join("\n");
+}

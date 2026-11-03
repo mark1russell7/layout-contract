@@ -9,8 +9,9 @@ This file lists the items of the roadmap of this repository. The status page of 
 | L5 | in progress | P1 | highways reads the contract |
 | L34 | in progress | P1 | The strategy space as data |
 | L52 | in progress | P1 | Measure joint space coverage, with a weekly trend that rises |
-| L60 | in progress | P1 | Text measuring and line breaking as a layout step |
 | L81 | in progress | P1 | Memory gate over each family of the bench, then the dense-hubs peak (3.4-4.3 GB) |
+| L82 | in progress | P2 | The bench scripts in TypeScript (rule typed-scripts of conventions 0.5.0) |
+| L84 | in progress | P1 | A paired-time A/A arm in the joint bench, for the new Time row |
 
 ## Next
 
@@ -18,9 +19,7 @@ This file lists the items of the roadmap of this repository. The status page of 
 | --- | --- | --- | --- |
 | L36 | next | P1 | Efficacy maps |
 | L40 | next | P1 | Confirm the first joint default |
-| L41 | next | P2 | A pack() default entry in the joint bench |
 | L44 | next | P1 | The atlas of the joint space |
-| L47 | next | P1 | Graph-aware item order |
 | L61 | next | P2 | Promotion test of the 9 night-1 configs against the default lanes-sides |
 | L62 | next | P1 | Node layout by physics as a joint step |
 | L65 | next | P1 | One measure registry in layout-contract |
@@ -29,6 +28,12 @@ This file lists the items of the roadmap of this repository. The status page of 
 | L71 | next | P2 | A bound-first fast path for labels from a declared character set |
 | L72 | next | P1 | Neat is a family of objectives, not one |
 | L73 | next | P1 | Clarity of structure: macro and micro measures |
+
+## Waiting
+
+| ID | Status | Priority | Title |
+| --- | --- | --- | --- |
+| L47 | waiting | P1 | Graph-aware item order |
 
 ## Later
 
@@ -52,10 +57,6 @@ This file lists the items of the roadmap of this repository. The status page of 
 | L75 | later | P2 | Objectives under an interaction |
 | L76 | later | P2 | The orbit of a node: a soft keep-out margin |
 | L80 | later | P3 | Site forms for packSpace of packing, then drop PACK_EXTRAS |
-| L82 | later | P2 | The bench scripts in TypeScript (rule typed-scripts of conventions 0.5.0) |
-| L83 | later | P2 | Record fields for highways: env.mode and env.context, and no deterministic claim on a skipped record |
-| L84 | later | P3 | A paired-time A/A arm in the joint bench, for the new Time row |
-| L86 | later | P3 | Move the random generators and the joint statistics to the rigor packages |
 
 ## Done
 
@@ -89,6 +90,7 @@ This file lists the items of the roadmap of this repository. The status page of 
 | L33 | done | P2 | Move the joint bench to highways 0.8.1 (ROUTE-SCALE) |
 | L35 | done | P1 | A nightly sweep over the strategy space in CI |
 | L39 | done | P1 | A pool of fixed member sets in strategy-space |
+| L41 | done | P2 | A pack() default entry in the joint bench |
 | L42 | done | P1 | The layout-contract site on GitHub Pages |
 | L43 | done | P1 | Joint compare page and playground with every strategy |
 | L45 | done | P1 | One shared corpus generator in layout-contract |
@@ -99,9 +101,12 @@ This file lists the items of the roadmap of this repository. The status page of 
 | L56 | done | P2 | A port position relative to its side (Port.along) |
 | L57 | done | P2 | Close the 3 shape gaps that packing found in k91 |
 | L59 | done | P1 | Measure the 5 wave-3 highway routers in the joint bench |
+| L60 | done | P1 | Text measuring and line breaking as a layout step |
 | L63 | done | P1 | Bound the memory of the joint runner before bench-4 |
 | L64 | done | P1 | Balance and stability measures in the contract (0.2.19) |
 | L77 | done | P1 | Find and bound what fills 6 GB on the 1000-box inputs |
 | L78 | done | P2 | An open playground |
 | L79 | done | P2 | bench-4: the next version of the joint space |
+| L83 | done | P2 | Record fields for highways: env.mode and env.context, and no deterministic claim on a skipped record |
 | L85 | done | P2 | CI runs each command of the sweep script on a small fixture |
+| L86 | done | P3 | Move the random generators and the joint statistics to the rigor packages |

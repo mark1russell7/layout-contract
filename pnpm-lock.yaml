@@ -217,6 +217,9 @@ importers:
       '@mark1russell7/packing':
         specifier: ^0.4.0
         version: 0.4.1
+      '@mark1russell7/rigor-generators':
+        specifier: ^0.1.0
+        version: 0.1.0
       '@mark1russell7/rigor-statistics':
         specifier: ^0.1.0
         version: 0.1.0
