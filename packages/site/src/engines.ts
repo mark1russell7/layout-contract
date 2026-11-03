@@ -95,6 +95,13 @@ const PACK_EXTRAS: Readonly<Record<string, readonly OptionSpec[]>> = {
   ],
 };
 
+/**
+ * The strategies of `packing` 0.5.0 with the option type `ItemOrder` for `sortOrder`: a sort order or a graph order (roadmap item L47).
+ * The strategy `push` takes only a sort order. `packing` exports no list of each item order, so the site joins `SORT_ORDERS` and `GRAPH_ORDERS`.
+ */
+const ITEM_ORDER_STRATEGIES: ReadonlySet<string> = new Set(["rows", "skyline", "shelf", "maxrects", "guillotine"]);
+const ITEM_ORDERS: readonly string[] = [...packing.SORT_ORDERS, ...packing.GRAPH_ORDERS];
+
 /** The options of a strategy of `packing` that hold the strategy that it wraps. */
 const PACK_WRAPS: Readonly<Record<string, { readonly keys: readonly string[]; readonly describe: string }>> = {
   "aspect-fit": { keys: ["strategy", "options"], describe: "The strategy that aspect-fit wraps, and its options." },
@@ -117,7 +124,7 @@ function packFacts(): StrategyFacts[] {
   const all = stringLists(packing as unknown as Record<string, unknown>);
   return [...packing.strategies, ...packing.composites].map((s) => {
     const defaults = (s.defaults ?? {}) as Readonly<Record<string, unknown>>;
-    const lists = listsOf(all, s.id);
+    const lists = ITEM_ORDER_STRATEGIES.has(s.id) ? [ITEM_ORDERS, ...listsOf(all, s.id)] : listsOf(all, s.id);
     const options: OptionSpec[] = Object.entries(defaults).map(([key, value]) => ({ key, schema: schemaOfDefault(value, lists), value, derived: true }));
     for (const extra of PACK_EXTRAS[s.id] ?? []) if (!options.some((o) => o.key === extra.key)) options.push(extra);
     const wraps = PACK_WRAPS[s.id];
