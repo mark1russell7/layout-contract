@@ -53,6 +53,27 @@ describe("the time verdict of the joint bench (L84)", () => {
     expect(jointTimeVerdict(bench("slowdown-30", 1.3), JOINT_TIME).outcome).toBe("slower");
   });
 
+  it("gives cannot decide when a job decides the opposite direction of the pooled records", () => {
+    // Jobs 0 to 3 have a 20% speedup. Job 4 has a 50% slowdown, so the pooled records give faster and job 4 gives slower.
+    const fast = bench("guard", 0.8).filter((r) => r.job !== 4);
+    const slow = bench("guard-slow", 1.5).filter((r) => r.job === 4);
+    const result = jointTimeVerdict([...fast, ...slow], JOINT_TIME);
+    expect(result.pooledOutcome).toBe("faster");
+    expect(result.perJob.find((j) => j.job === 4)!.outcome).toBe("slower");
+    expect(result.opposed).toEqual([4]);
+    expect(result.outcome).toBe("cannot decide");
+    expect(result.decided).toBe(false);
+    expect(result.reason).toContain("the jobs 4 give slower");
+    expect(result.derivation.join(" ")).toContain("Thus the outcome is cannot decide.");
+  });
+
+  it("keeps the pooled outcome when no job decides the opposite direction", () => {
+    const result = jointTimeVerdict(bench("guard-none", 0.7), JOINT_TIME);
+    expect(result.opposed).toEqual([]);
+    expect(result.outcome).toBe(result.pooledOutcome);
+    expect(result.derivation.join(" ")).toContain("No job gives the opposite direction");
+  });
+
   it("merges the rounds of 5 jobs into one record for each case and round, and keeps a verdict for each job", () => {
     const result = jointTimeVerdict(bench("merge", 0.7), JOINT_TIME);
     expect(result.rounds).toEqual({ min: 25, max: 25 });
@@ -107,7 +128,7 @@ describe("the time verdict of the joint bench (L84)", () => {
     const text = result.derivation.join("\n");
     expect(text).toContain(`timeMargin is ${JOINT_TIME.timeMargin}`);
     expect(text).toContain("20 cases");
-    expect(text).toContain(`The outcome is ${result.outcome}.`);
+    expect(text).toContain(`The pooled outcome is ${result.pooledOutcome}.`);
     expect(timeMarkdown(result)).toContain(`| 4 | cpu of job 4 |`);
   });
 });

@@ -461,6 +461,7 @@ Each job writes `paired.jsonl` and `aa.jsonl`. Each line is one `PairedTime` rec
 - `timeMargin` is a named setting. The result writes its value, and a change of the value is a measured decision.
 - A missing job leaves a case with 2 more rounds of one order. `balanceOrders` then removes the extra rounds with the highest numbers, and the result counts them.
 - The result also keeps the verdict of each job alone, with its CPU model. The outcome of the row uses all jobs together.
+- The guard of the jobs: when a job alone gives the opposite direction of the pooled outcome, the outcome is `cannot decide`. An example is a job with `slower` against a pooled `faster`. The field `pooledOutcome` keeps the outcome before the guard, and `opposed` lists these jobs.
 - The result has the counts of the cases and the rounds, the interval, the A/A median and the steps of the derivation.
 
 ### Start the time arms
