@@ -418,6 +418,36 @@ With `featureKindPairs: true`, the fit also has the product of the kind block wi
 - The word-cloud cells come back, but the dashboard and cards cells drop. Thus the count of covered cells stays at 142, against 154 without features.
 - The accept rule has 2 conditions: the held-out skill rises, and the coverage comes back. The kind pairs meet only the first, so the trend does not use them.
 
+### A larger penalty on the products
+
+The option `productPenalties` gives the candidates of a factor of the penalty on the product columns of the input features. Each product column has the penalty `productPenalty * λ`, and each other column keeps λ. The folds choose λ and `productPenalty` together. The default `[1]` gives the fit of before.
+
+The fit does not use a new solver. The values of each product column are multiplied by `1 / sqrt(productPenalty)`. This scale gives the same fit as the larger penalty on the coefficients of the column. The prediction `layout-stack-L52-product-penalty` came before this run.
+
+| Variant, folds by input | Held-out skill: median, q10, q90 | In-sample median | Covered cells |
+|---|---|---|---|
+| No features | -0.038, -0.132, -0.012 | -0.004 | 154 |
+| Feature blocks | 0.141, -0.502, 0.432 | 0.213 | 141 |
+| Feature blocks and kind pairs | 0.250, -0.412, 0.596 | 0.375 | 142 |
+| Kind pairs, `productPenalties` 1, 10, 100, 1000 | 0.250, -0.412, 0.596 | 0.375 | 142 |
+
+| Board kind | No features | Feature blocks | Kind pairs | Kind pairs, chosen product penalty |
+|---|---|---|---|---|
+| word-cloud | 23 of 25 | 15 of 25 | 22 of 25 | 22 of 25 |
+| dashboard | 25 of 25 | 23 of 25 | 19 of 25 | 19 of 25 |
+| cards | 25 of 25 | 25 of 25 | 23 of 25 | 23 of 25 |
+| rect-grid | 56 of 56 | 53 of 56 | 53 of 56 | 53 of 56 |
+| gallery | 25 of 25 | 25 of 25 | 25 of 25 | 25 of 25 |
+
+- The folds choose `productPenalty` 1 and λ 10. Thus the fit is the fit of the kind pairs. `lambdaAtEdge` is `false`, and `productPenaltyAtEdge` is `true`.
+- 1 is the smallest candidate. A fit with the factor 0.1 gives a larger held-out RMSE (0.21731 against 0.21697), so 1 is the best value near the edge.
+- The best λ of each factor: 10 for 1 and 10, 0.1 for 100, and 0.01 for 1000. Thus the penalty on the products stays near 10, and the penalty on the other columns becomes smaller.
+- Each fixed factor gives 142 to 144 covered cells. The factor 10 gives 144, with a held-out median skill of 0.286, and dashboard 20 of 25.
+- No factor brings the dashboard and cards cells back. The feature blocks without products also lose 13 cells. Thus a larger penalty on the products alone does not give the coverage back.
+- The grid of 4 factors takes approximately 27 s and 222 MB locally.
+
+The accept rule: the held-out median skill is above 0.141, and the count of covered cells is 154 or more. The candidate meets only the first condition, with 142 covered cells. Thus the candidate is not adopted. The option stays, with the default `[1]`, and the trend does not use it.
+
 ### The trend
 
 The trend has one record `surrogate-trend/1` for each fit. `surrogateTrendRecord(result, meta)` gives the record, and `scripts/surrogate.ts` writes it.

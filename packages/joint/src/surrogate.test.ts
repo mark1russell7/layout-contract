@@ -234,6 +234,61 @@ describe("fitSurrogate", () => {
     expect(surrogateMarkdown(paired)).toContain("It also has their products with the board kind.");
   });
 
+  it("gives the fit of before with the default productPenalties", () => {
+    const size = (input: string): string => (input.endsWith("/s1") ? "small" : "big");
+    const draw = random(4);
+    const s = state((a, b, k, kind, i) => additive(a, b, k, kind) + (size(INPUTS[i]!) === "big" ? (kind === "alpha" ? 0.4 : -0.4) : 0) + 0.05 * draw.next());
+    const features = (input: string): Record<string, string> => ({ size: size(input) });
+    const before = fitSurrogate(s, { ...OPTIONS, features, featureKindPairs: true, foldBy: "input" });
+    const one = fitSurrogate(s, { ...OPTIONS, features, featureKindPairs: true, foldBy: "input", productPenalties: [1] });
+    expect(one).toEqual(before);
+    expect(before.productPenalty).toBe(1);
+    expect(before.productPenaltyAtEdge).toBe(false);
+    expect(before.productPenalties).toEqual([{ productPenalty: 1, lambda: before.lambda, r2: before.r2, rmse: before.rmse }]);
+    expect(surrogateMarkdown(before)).not.toContain("The penalty on the products");
+  });
+
+  it("pulls the products toward 0 with a larger productPenalty, and gives the fit without the products at a very large one", () => {
+    const size = (input: string): string => (input.endsWith("/s1") ? "small" : "big");
+    const s = state((a, b, k, kind, i) => additive(a, b, k, kind) + (size(INPUTS[i]!) === "big" ? (kind === "alpha" ? 0.4 : -0.4) : 0));
+    const features = (input: string): Record<string, string> => ({ size: size(input) });
+    const opts = { ...OPTIONS, features, lambdas: [0.1] };
+    const main = fitSurrogate(s, opts);
+    const paired = fitSurrogate(s, { ...opts, featureKindPairs: true });
+    const middle = fitSurrogate(s, { ...opts, featureKindPairs: true, productPenalties: [100] });
+    const large = fitSurrogate(s, { ...opts, featureKindPairs: true, productPenalties: [1e9] });
+    // A larger penalty gives smaller products, so the fit loses more of the effect that changes with the kind.
+    expect(paired.rmse).toBeLessThan(middle.rmse);
+    expect(middle.rmse).toBeLessThan(large.rmse);
+    // At a very large penalty, the products are near 0, and the fit is the fit without them.
+    expect(large.rmse).toBeCloseTo(main.rmse, 6);
+    expect(large.cells.skill.median).toBeCloseTo(main.cells.skill.median, 4);
+    expect(large.productPenalty).toBe(1e9);
+    expect(surrogateMarkdown(large)).toContain("The penalty on the products is 1000000000 times λ.");
+  });
+
+  it("chooses productPenalty on the folds with λ, and tells when it is at an edge", () => {
+    const size = (input: string): string => (input.endsWith("/s1") ? "small" : "big");
+    const s = state((a, b, k, kind, i) => additive(a, b, k, kind) + (size(INPUTS[i]!) === "big" ? (kind === "alpha" ? 0.4 : -0.4) : 0));
+    const features = (input: string): Record<string, string> => ({ size: size(input) });
+    const r = fitSurrogate(s, { ...OPTIONS, features, featureKindPairs: true, productPenalties: [1, 10, 100, 1000] });
+    expect(r.productPenalties.map((x) => x.productPenalty)).toEqual([1, 10, 100, 1000]);
+    // The score has a strong product of the kind with the feature, so the smallest penalty on the products gives the smallest error.
+    expect(r.productPenalty).toBe(1);
+    expect(r.productPenaltyAtEdge).toBe(true);
+    const chosen = r.productPenalties.find((x) => x.productPenalty === r.productPenalty)!;
+    expect(chosen).toEqual({ productPenalty: 1, lambda: r.lambda, r2: r.r2, rmse: r.rmse });
+    for (const x of r.productPenalties) expect(x.rmse).toBeGreaterThanOrEqual(r.rmse);
+    // Without product columns, the fit uses only the first candidate.
+    const none = fitSurrogate(s, { ...OPTIONS, features, productPenalties: [10, 100] });
+    expect(none.productPenalty).toBe(10);
+    expect(none.productPenalties).toHaveLength(1);
+    expect(none.productPenaltyAtEdge).toBe(false);
+    expect(none.rmse).toBeCloseTo(fitSurrogate(s, { ...OPTIONS, features }).rmse, 12);
+    expect(() => fitSurrogate(s, { ...OPTIONS, productPenalties: [] })).toThrow(RangeError);
+    expect(() => fitSurrogate(s, { ...OPTIONS, productPenalties: [0] })).toThrow(RangeError);
+  });
+
   it("gives the features of an input from the cells of a manifest", () => {
     const of = manifestFeatures({ inputs: [{ id: "x/s1", hash: "h", cell: { containerSize: "fixed", count: "10", spacing: "gap" } as unknown as JointEntry["cell"] }] });
     expect(of("x/s1")).toEqual({ containerSize: "fixed", count: "10", spacing: "gap" });
