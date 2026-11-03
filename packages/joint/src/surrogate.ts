@@ -57,10 +57,24 @@ export interface SurrogateOptions {
   readonly featurePairs?: boolean;
   /** With `true`, the fit also has the product of the kind block with each feature block. Then a feature has its own effect on each board kind. The default is `false`. */
   readonly featureKindPairs?: boolean;
+  /**
+   * The candidates of the factor of the penalty on the product columns of the input features. The default is `[1]`, the fit of before.
+   * The product columns come from `featurePairs` and `featureKindPairs`. Each product column has the penalty `productPenalty * lambda`, and each other column keeps `lambda`.
+   * The fit chooses the pair of `lambda` and `productPenalty` with the smallest held-out error. Without product columns, the fit uses only the first candidate.
+   */
+  readonly productPenalties?: readonly number[];
 }
 
 /** The held-out error of one candidate of the ridge penalty. */
 export interface SurrogateLambda {
+  readonly lambda: number;
+  readonly r2: number;
+  readonly rmse: number;
+}
+
+/** The best held-out error of one candidate of the factor of the penalty on the product columns, with its best `lambda`. */
+export interface SurrogateProductPenalty {
+  readonly productPenalty: number;
   readonly lambda: number;
   readonly r2: number;
   readonly rmse: number;
@@ -151,7 +165,14 @@ export interface Surrogate {
   readonly lambda: number;
   /** This value is `true` when `lambda` is the smallest or the largest candidate of a list of 2 or more. Then a value out of the list can give a smaller error. */
   readonly lambdaAtEdge: boolean;
+  /** The held-out error of each candidate of the ridge penalty, with the chosen `productPenalty`. */
   readonly lambdas: readonly SurrogateLambda[];
+  /** The factor of the penalty on the product columns of the input features, with the smallest held-out error. It is the first candidate when the fit has no product columns. */
+  readonly productPenalty: number;
+  /** This value is `true` when `productPenalty` is the smallest or the largest candidate of a list of 2 or more. */
+  readonly productPenaltyAtEdge: boolean;
+  /** The best held-out error of each candidate of `productPenalties` that the fit measured. */
+  readonly productPenalties: readonly SurrogateProductPenalty[];
   /** The held-out R² of `lambda` over all rows: 1 minus the sum of the squared errors divided by the total sum of squares. */
   readonly r2: number;
   /** The held-out RMSE of `lambda` over all rows. */
@@ -225,6 +246,7 @@ function predict(beta: Float64Array, idx: readonly number[], val: readonly numbe
  * - The features are a one-hot of each group and of the board kind, and the product of each pair of these.
  * - Each numeric param gives one more feature: its z value over the rows.
  * - The penalty is on each feature but the intercept. The folds keep all rows of one config, or of one input, together.
+ * - The product columns of the input features have the penalty `productPenalty` times λ. The folds choose λ and `productPenalty` together.
  * - A cell is one level of each group and one board kind. A covered cell has `minRows` rows or more and a held-out RMSE of at most `floorRatio` times its floor.
  * - The floor of a cell is the RMSE of its rows around their mean, and at least `minFloor`.
  * - The Sobol design of `saltelliDesign` draws the configs, and a seeded draw gives the board kinds of the rows.
@@ -246,6 +268,10 @@ export function fitSurrogate(state: SweepState, options: SurrogateOptions = {}):
   const kindOfInput = options.kindOf ?? kindOf;
   const featurePairs = options.featurePairs ?? false;
   const featureKindPairs = options.featureKindPairs ?? false;
+  const productPenalties = options.productPenalties ?? [1];
+  if (productPenalties.length === 0 || !productPenalties.every((p) => p > 0 && Number.isFinite(p))) {
+    throw new RangeError(`fitSurrogate: productPenalties is a list of finite numbers above 0, not [${productPenalties.join(", ")}].`);
+  }
   if (!(Number.isInteger(folds) && folds >= 2)) throw new RangeError(`fitSurrogate: folds is an integer of 2 or more, not ${folds}.`);
   if (lambdas.length === 0 || !lambdas.every((l) => l > 0)) throw new RangeError(`fitSurrogate: lambdas is a list of numbers above 0, not [${lambdas.join(", ")}].`);
   if (!(Number.isInteger(draws) && draws >= 2)) throw new RangeError(`fitSurrogate: draws is an integer of 2 or more, not ${draws}.`);
@@ -292,9 +318,12 @@ export function fitSurrogate(state: SweepState, options: SurrogateOptions = {}):
     width += blocks[a]!.levels.length * blocks[b]!.levels.length;
   };
   for (let a = 0; a < cellBlocks; a++) for (let b = a + 1; b < cellBlocks; b++) addPair(a, b);
+  // The product columns of the input features are the columns from `productStart` to `productEnd`.
+  const productStart = width;
   if (featurePairs) for (let a = 0; a < groups.length; a++) for (let b = cellBlocks; b < blocks.length; b++) addPair(a, b);
   // The kind block is the last block of the cells.
   if (featureKindPairs) for (let b = cellBlocks; b < blocks.length; b++) addPair(cellBlocks - 1, b);
+  const productEnd = width;
   const params: Param[] = [];
   for (const stage of space.stages) {
     for (const option of stage.options) {
@@ -365,38 +394,62 @@ export function fitSurrogate(state: SweepState, options: SurrogateOptions = {}):
     for (let k = 0; k < width; k++) totalMoment[k]! += moment[f]![k]!;
   }
   // The ridge solve of rigor-statistics. Coefficient 0 is the intercept, so it has no penalty.
-  const solve = (lambda: number, without: number | null): Float64Array => {
+  // A product column with its values times `s = 1 / sqrt(productPenalty)` gives the same fit as the penalty `productPenalty * lambda` on its coefficient.
+  // The scale of a column multiplies its row and its column of the gram by `s`, and its value of the moment by `s`.
+  // The coefficient of the column of the data is `s` times the coefficient of the solve. Thus the solve of rigor-statistics stays as it is.
+  const solve = (lambda: number, without: number | null, productPenalty = 1): Float64Array => {
     let a: Float64Array = total;
     let b: Float64Array = totalMoment;
-    if (without !== null) {
+    const scaled = productPenalty !== 1 && productEnd > productStart;
+    if (without !== null || scaled) {
       a = Float64Array.from(total);
       b = Float64Array.from(totalMoment);
+    }
+    if (without !== null) {
       for (let k = 0; k < a.length; k++) a[k]! -= gram[without]![k]!;
       for (let k = 0; k < width; k++) b[k]! -= moment[without]![k]!;
     }
-    const beta = ridgeSolve(a, b, lambda, { free: [0] });
+    const s = 1 / Math.sqrt(productPenalty);
+    if (scaled) {
+      for (let i = productStart; i < productEnd; i++) {
+        b[i]! *= s;
+        for (let j = 0; j < width; j++) {
+          a[i * width + j]! *= s;
+          a[j * width + i]! *= s;
+        }
+      }
+    }
+    const beta = Float64Array.from(ridgeSolve(a, b, lambda, { free: [0] }));
     if (beta.some((v) => Number.isNaN(v))) throw new RangeError(`fitSurrogate: the matrix of the fit is not positive definite at lambda ${lambda}.`);
-    return Float64Array.from(beta);
+    if (scaled) for (let i = productStart; i < productEnd; i++) beta[i]! *= s;
+    return beta;
   };
 
   const ys = rows.map((r) => r.y);
   const yMean = mean(ys);
   const sst = ys.reduce((s, y) => s + (y - yMean) ** 2, 0);
-  const heldOut = lambdas.map((lambda) => {
-    const out = new Float64Array(rows.length);
-    for (let f = 0; f < folds; f++) {
-      if (counts[f] === 0) continue;
-      if (counts[f] === rows.length) throw new RangeError(`fitSurrogate: fold ${f} holds all rows. Use another seed, more folds or more keys.`);
-      const beta = solve(lambda, f);
-      rows.forEach((r, k) => {
-        if (rowFold[k] === f) out[k] = predict(beta, r.idx, r.val);
-      });
-    }
-    const sse = rows.reduce((s, r, k) => s + (r.y - out[k]!) ** 2, 0);
-    return { lambda, sse, out };
-  });
-  const best = heldOut.reduce((a, b) => (b.sse < a.sse ? b : a));
+  // Each pair of a candidate of `productPenalties` and a candidate of `lambdas` gives its held-out error. Without product columns, the other candidates of `productPenalties` give the same fit as the first.
+  const penaltyGrid = productEnd > productStart ? productPenalties : productPenalties.slice(0, 1);
+  const grid = penaltyGrid.map((productPenalty) =>
+    lambdas.map((lambda) => {
+      const out = new Float64Array(rows.length);
+      for (let f = 0; f < folds; f++) {
+        if (counts[f] === 0) continue;
+        if (counts[f] === rows.length) throw new RangeError(`fitSurrogate: fold ${f} holds all rows. Use another seed, more folds or more keys.`);
+        const beta = solve(lambda, f, productPenalty);
+        rows.forEach((r, k) => {
+          if (rowFold[k] === f) out[k] = predict(beta, r.idx, r.val);
+        });
+      }
+      const sse = rows.reduce((s, r, k) => s + (r.y - out[k]!) ** 2, 0);
+      return { productPenalty, lambda, sse, out };
+    }),
+  );
+  const bestOf = <T extends { sse: number }>(xs: readonly T[]): T => xs.reduce((a, b) => (b.sse < a.sse ? b : a));
+  const best = bestOf(grid.map(bestOf));
+  const heldOut = grid[penaltyGrid.indexOf(best.productPenalty)]!;
   const lambdaAtEdge = lambdas.length >= 2 && (best.lambda === Math.min(...lambdas) || best.lambda === Math.max(...lambdas));
+  const productPenaltyAtEdge = penaltyGrid.length >= 2 && (best.productPenalty === Math.min(...penaltyGrid) || best.productPenalty === Math.max(...penaltyGrid));
   const r2Of = (sse: number): number => (sst > 0 ? 1 - sse / sst : 0);
   const rmseOf = (sse: number): number => Math.sqrt(sse / rows.length);
 
@@ -427,7 +480,7 @@ export function fitSurrogate(state: SweepState, options: SurrogateOptions = {}):
   const skill: SurrogateSkill = { q10: skillAt(0.1), median: skillAt(0.5), q90: skillAt(0.9) };
 
   // The fit on all rows gives the in-sample skill of the same cells and the Sobol indices.
-  const beta = solve(best.lambda, null);
+  const beta = solve(best.lambda, null, best.productPenalty);
   const inSse = new Map<string, number>();
   for (const r of rows) inSse.set(r.cell, (inSse.get(r.cell) ?? 0) + (r.y - predict(beta, r.idx, r.val)) ** 2);
   const inSkills = [...byCell.entries()]
@@ -478,6 +531,9 @@ export function fitSurrogate(state: SweepState, options: SurrogateOptions = {}):
     lambda: best.lambda,
     lambdaAtEdge,
     lambdas: heldOut.map((h) => ({ lambda: h.lambda, r2: r2Of(h.sse), rmse: rmseOf(h.sse) })),
+    productPenalty: best.productPenalty,
+    productPenaltyAtEdge,
+    productPenalties: grid.map(bestOf).map((h) => ({ productPenalty: h.productPenalty, lambda: h.lambda, r2: r2Of(h.sse), rmse: rmseOf(h.sse) })),
     r2: r2Of(best.sse),
     rmse: rmseOf(best.sse),
     cells: {
@@ -509,7 +565,7 @@ export function surrogateMarkdown(result: Surrogate, worst = 10): string {
     "",
     result.inputFeatures.length === 0
       ? "The fit has no input features."
-      : `The fit has ${result.inputFeatures.length} input features: ${result.inputFeatures.join(", ")}. ${result.featurePairs ? "It also has their products with the groups." : "It has no products of them with the groups."}${result.featureKindPairs ? " It also has their products with the board kind." : ""}`,
+      : `The fit has ${result.inputFeatures.length} input features: ${result.inputFeatures.join(", ")}. ${result.featurePairs ? "It also has their products with the groups." : "It has no products of them with the groups."}${result.featureKindPairs ? " It also has their products with the board kind." : ""}${result.productPenalty === 1 ? "" : ` The penalty on the products is ${result.productPenalty} times λ.${result.productPenaltyAtEdge ? " This factor is at an edge of its list." : ""}`}`,
     "",
     `The penalty λ = ${result.lambda}. The held-out R² is ${f(result.r2)}, and the held-out RMSE is ${f(result.rmse)}.${result.lambdaAtEdge ? " λ is at an edge of the list, so a value out of the list can give a smaller error." : ""}`,
     "",
