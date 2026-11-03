@@ -1,5 +1,6 @@
 // The joint measures of `docs/JOINT-MEASURES.md`. They score a pack and a route of one input together.
 import { marginSides, type LayoutBox, type LayoutEdge } from "@mark1russell7/layout-contract";
+import { spearman as rankCorrelation } from "@mark1russell7/rigor-statistics";
 
 /** A point of a route. */
 export interface JointPoint {
@@ -210,36 +211,14 @@ export function insideLength(a: JointPoint, b: JointPoint, r: JointRect): number
   return (hi - lo) * Math.hypot(dx, dy);
 }
 
-/** This function gives the ranks of values, from 1. Equal values get the mean of their ranks. */
-function ranks(values: readonly number[]): number[] {
-  const order = values.map((v, i) => ({ v, i })).sort((p, q) => p.v - q.v);
-  const out: number[] = Array.from({ length: values.length }, () => 0);
-  for (let s = 0; s < order.length; ) {
-    let e = s;
-    while (e + 1 < order.length && order[e + 1]!.v === order[s]!.v) e += 1;
-    const rank = (s + e) / 2 + 1;
-    for (let k = s; k <= e; k++) out[order[k]!.i] = rank;
-    s = e + 1;
-  }
-  return out;
-}
-
-/** This function gives the Spearman rank correlation of two lists of one length. It gives `undefined` when a list has no spread or fewer than 2 values. */
+/**
+ * This function gives the Spearman rank correlation of two lists of one length. It gives `undefined` when a list has no spread or fewer than 2 values.
+ * The correlation is `spearman` of `@mark1russell7/rigor-statistics`. That function gives 0 for a list with no spread, thus this function examines the spread first.
+ */
 export function spearman(xs: readonly number[], ys: readonly number[]): number | undefined {
   if (xs.length !== ys.length || xs.length < 2) return undefined;
-  const rx = ranks(xs);
-  const ry = ranks(ys);
-  const mean = (xs.length + 1) / 2;
-  let sxy = 0;
-  let sxx = 0;
-  let syy = 0;
-  for (let i = 0; i < rx.length; i++) {
-    sxy += (rx[i]! - mean) * (ry[i]! - mean);
-    sxx += (rx[i]! - mean) ** 2;
-    syy += (ry[i]! - mean) ** 2;
-  }
-  if (sxx === 0 || syy === 0) return undefined;
-  return sxy / Math.sqrt(sxx * syy);
+  if (xs.every((v) => v === xs[0]) || ys.every((v) => v === ys[0])) return undefined;
+  return rankCorrelation(xs, ys);
 }
 
 /**

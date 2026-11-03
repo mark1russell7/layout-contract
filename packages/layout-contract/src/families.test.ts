@@ -1,4 +1,6 @@
 import { readFileSync } from "node:fs";
+import { createRequire } from "node:module";
+import { pathToFileURL } from "node:url";
 import { describe, expect, it } from "vitest";
 import { familyOf } from "./corpus.ts";
 import { edgeStep } from "./edges.ts";
@@ -269,6 +271,8 @@ describe("composeFamily", () => {
 /** The modules that a browser does not have, and the globals of Node. */
 const NODE_IMPORT = /^(node:|fs$|path$|os$|crypto$|worker_threads$|child_process$|module$|url$)/;
 const NODE_GLOBAL = /\b(process\.|Buffer\.|require\(|__dirname|__filename)/;
+/** The runtime dependencies of the package. Each one is the home of an area in the map of homes. The test examines its build too. */
+const RUNTIME_DEPENDENCIES = ["@mark1russell7/rigor-generators"];
 
 /** This function gives the local files of the import closure of a module, and the external imports. */
 function closure(entry: URL): { files: string[]; external: string[] } {
@@ -295,11 +299,25 @@ describe("browser safety", () => {
       const { files, external } = closure(new URL(entry, import.meta.url));
       expect(files.length).toBeGreaterThan(3);
       expect(external.filter((s) => NODE_IMPORT.test(s)), entry).toEqual([]);
-      expect(external, entry).toEqual([]);
+      expect(external.filter((s) => !RUNTIME_DEPENDENCIES.includes(s)), entry).toEqual([]);
       for (const f of files) {
         const code = readFileSync(new URL(f), "utf8").replace(/\/\/.*|\/\*[\s\S]*?\*\//g, "");
         expect(NODE_GLOBAL.test(code), f).toBe(false);
       }
+    }
+  });
+
+  it("has only the runtime dependencies of the list, and no API of Node in their builds", () => {
+    const pkg = JSON.parse(readFileSync(new URL("../package.json", import.meta.url), "utf8")) as { dependencies?: Record<string, string> };
+    expect(Object.keys(pkg.dependencies ?? {})).toEqual(RUNTIME_DEPENDENCIES);
+    const require = createRequire(import.meta.url);
+    for (const dep of RUNTIME_DEPENDENCIES) {
+      const manifest = require.resolve(`${dep}/package.json`);
+      const main = (JSON.parse(readFileSync(manifest, "utf8")) as { main: string }).main;
+      const code = readFileSync(new URL(main, pathToFileURL(manifest)), "utf8").replace(/\/\/.*|\/\*[\s\S]*?\*\//g, "");
+      const imports = [...code.matchAll(/(?:^|\n)\s*(?:import|export)\s[^;]*?from\s+"([^"]+)"/g)].map((m) => m[1]!);
+      expect(imports, dep).toEqual([]);
+      expect(NODE_GLOBAL.test(code), dep).toBe(false);
     }
   });
 });

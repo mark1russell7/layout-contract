@@ -2,7 +2,6 @@
 import {
   compareMeasure,
   leaveOneSeedOut,
-  mulberry32,
   outputGroups,
   selectBest,
   type LayoutRecord,
@@ -10,6 +9,7 @@ import {
   type SelectLevel,
   type SplitFold,
 } from "@mark1russell7/layout-contract";
+import { bootstrapClusters, quantileSorted } from "@mark1russell7/rigor-statistics";
 import { recordCount, type RecordCount } from "./record-count.ts";
 import { CAPS, ITER_STOPS, PAIR_SEPARATOR, pairId, ROUTERS } from "./runner.ts";
 import { isIterPack, isLanePack, laneParts } from "./lanes.ts";
@@ -619,18 +619,11 @@ function mean(values: readonly number[]): number {
   return values.length === 0 ? 0 : values.reduce((s, v) => s + v, 0) / values.length;
 }
 
-/** This function gives the `q` quantile of sorted values, with linear interpolation. */
-function quantileOf(sorted: readonly number[], q: number): number {
-  if (sorted.length === 0) return 0;
-  const at = (sorted.length - 1) * q;
-  const lo = Math.floor(at);
-  const hi = Math.ceil(at);
-  return sorted[lo]! + (sorted[hi]! - sorted[lo]!) * (at - lo);
-}
-
 /**
  * This function gives a statistic with a 95% interval of a cluster bootstrap. Each sample draws the clusters with replacement.
  * The statistic reads the sum of the numerators and the sum of the denominators of the drawn rows. Without denominators, it is the mean.
+ * The draws and the interval come from `bootstrapClusters` of `@mark1russell7/rigor-statistics`, with the ends 0.025 and 0.975.
+ * With no rows or no samples, the interval is the statistic of all the rows.
  */
 export function bootstrap(rows: readonly { readonly cluster: string; readonly value: number; readonly weight?: number }[], resamples: number, seed: number): Interval {
   const ratio = rows.some((r) => r.weight !== undefined);
@@ -640,24 +633,11 @@ export function bootstrap(rows: readonly { readonly cluster: string; readonly va
     return den === 0 ? Number.NaN : num / den;
   };
   const point = stat(rows);
-  const clusters = new Map<string, { value: number; weight?: number }[]>();
-  for (const r of rows) {
-    const list = clusters.get(r.cluster) ?? [];
-    list.push(r);
-    clusters.set(r.cluster, list);
-  }
-  const keys = [...clusters.keys()];
-  const random = mulberry32(seed);
-  const samples: number[] = [];
-  for (let i = 0; i < resamples && keys.length > 0; i++) {
-    const drawn: { value: number; weight?: number }[] = [];
-    for (let j = 0; j < keys.length; j++) drawn.push(...clusters.get(keys[Math.floor(random() * keys.length)]!)!);
-    const v = stat(drawn);
-    if (Number.isFinite(v)) samples.push(v);
-  }
-  samples.sort((a, b) => a - b);
-  const lo = samples.length === 0 ? point : quantileOf(samples, 0.025);
-  const hi = samples.length === 0 ? point : quantileOf(samples, 0.975);
+  const runs = Math.ceil(resamples);
+  const { low: lo, high: hi } =
+    rows.length === 0 || !(runs >= 1)
+      ? { low: point, high: point }
+      : bootstrapClusters(rows, (r) => r.cluster, stat, { runs, seed: seed >>> 0, ends: [0.025, 0.975] });
   return { mean: point, lo, hi, open: !Number.isFinite(point) || (lo <= 0 && hi >= 0), n: rows.length };
 }
 
@@ -1049,11 +1029,6 @@ function dropPacks(index: RecordIndex, packs: ReadonlySet<string>): RecordIndex 
   return { pairs: index.pairs.filter((p) => !packs.has(packOf(p))), packs: index.packs.filter((p) => !packs.has(p)), at, pack };
 }
 
-/** This function gives the median of sorted values, or 0 for an empty list. */
-function medianOf(sorted: readonly number[]): number {
-  return quantileOf(sorted, 0.5);
-}
-
 /**
  * This function checks the records of a composite pack entry against the records of the member that it picks on each input.
  * A record matches when the record of the member with the same router has the same output hash.
@@ -1143,7 +1118,8 @@ export function routeTimes(records: readonly LayoutRecord[], inputs: readonly An
           seed: input.seed,
           routers: routerOrder(byRouter.keys()).map((router) => {
             const list = byRouter.get(router)!.sort((a, b) => a - b);
-            return { router, records: list.length, median: medianOf(list), max: list.at(-1)! };
+            // The linear 0.5 quantile is `a + 0.5 * (b - a)`. The `median` of rigor-statistics is `(a + b) / 2`, which can differ in the last bit.
+            return { router, records: list.length, median: quantileSorted(list, 0.5), max: list.at(-1)! };
           }),
         };
       }),
