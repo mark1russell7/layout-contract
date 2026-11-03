@@ -1714,3 +1714,21 @@ The prediction `layout-stack-L47-graph-bfs-joint` of the fleet has the claims. T
 | `benchGraphBfsNoPackHardBreak` | 0.721 | No record of the 2 entries has a skip or a break of a hard rule of the pack. |
 | `noExpectationChangeOldPairHashes` | 0.903 | Each record of the 270 pairs of bench-4 has the output hash of run `41577624136`. |
 | `headGreenFirstPush` | 0.561 | The 4 checks `CI OK`, `Text bench OK`, `Joint bench OK` and `Security OK` pass on the first push. |
+
+### The result
+
+The Joint bench of pull request 157 (run `41581804139`) gives these results. The first 2 rows are the cell `all` with the cap 1.25.
+
+| Comparison | Gain | Result |
+|---|---|---|
+| `rows-graph-bfs+portfolio` against `rows+portfolio` | -0.069 [-0.184, 0.040] | Tie. The claim "loses" is a miss. |
+| `maxrects-bl-graph-bfs+portfolio` against `rows+portfolio` | 0.051 [-0.035, 0.135] | Tie. The claim is a hit. |
+| `maxrects-bl-graph-bfs+portfolio` against `rows+portfolio`, cap 1.1 | 0.150 [0.018, 0.275] | Win. |
+| `rows-graph-bfs+portfolio` against `rows+portfolio`, cap 1.5 | -0.074 [-0.144, -0.024] | Loss. |
+| `maxrects-bl-graph-bfs+portfolio` against `maxrects-bl+portfolio`, cap 1.25 | 0.080 [-0.016, 0.190] | Tie. |
+
+- The 900 records of the 2 entries have no skip and no break of a hard rule of the pack. The claim is a hit.
+- The 8100 records of the 270 pairs of bench-4 have the output hashes of run `41577624136`. The claim is a hit.
+- The first push failed `CI OK`. The range of `sortOrder` of the site did not hold `graph-bfs`. The claim is a miss.
+- The Brier score of the 5 claims is 0.200.
+- No default changes. A tie or a win in one cell is not sufficient for a new default.

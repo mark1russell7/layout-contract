@@ -8,7 +8,6 @@ This file lists the items of the roadmap of this repository. The status page of 
 | --- | --- | --- | --- |
 | L5 | in progress | P1 | highways reads the contract |
 | L34 | in progress | P1 | The strategy space as data |
-| L47 | in progress | P1 | Graph-aware item order: the joint entries rows-graph-bfs and maxrects-bl-graph-bfs |
 | L52 | in progress | P1 | Measure joint space coverage, with a weekly trend that rises |
 | L81 | in progress | P1 | Memory gate over each family of the bench, then the dense-hubs peak (3.4-4.3 GB) |
 | L82 | in progress | P2 | The bench scripts in TypeScript (rule typed-scripts of conventions 0.5.0) |
@@ -90,6 +89,7 @@ This file lists the items of the roadmap of this repository. The status page of 
 | L43 | done | P1 | Joint compare page and playground with every strategy |
 | L45 | done | P1 | One shared corpus generator in layout-contract |
 | L46 | done | P1 | Shape kind as a contract dimension |
+| L47 | done | P1 | Graph-aware item order: the joint entries rows-graph-bfs and maxrects-bl-graph-bfs |
 | L49 | done | P1 | Spacing per channel |
 | L51 | done | P2 | Close the 3 corpus API gaps that packing found in k73 |
 | L54 | done | P1 | Grow the joint input families every week |
