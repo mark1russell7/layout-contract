@@ -17,6 +17,27 @@ export interface Rect {
   readonly h: number;
 }
 
+/**
+ * A rectangle with the size in long names: its top-left corner, its `width` and its `height`.
+ * Some layout engines use this shape. `toRect` and `toSizedRect` convert between it and `Rect`.
+ */
+export interface SizedRect {
+  readonly x: number;
+  readonly y: number;
+  readonly width: number;
+  readonly height: number;
+}
+
+/** This function gives the `Rect` of a `SizedRect`. It copies each number, and it does not round. */
+export function toRect(rect: SizedRect): Rect {
+  return { x: rect.x, y: rect.y, w: rect.width, h: rect.height };
+}
+
+/** This function gives the `SizedRect` of a `Rect`. It copies each number, and it does not round. */
+export function toSizedRect(rect: Rect): SizedRect {
+  return { x: rect.x, y: rect.y, width: rect.w, height: rect.h };
+}
+
 /** A value for each side of a box. */
 export interface Sides {
   readonly top: number;
