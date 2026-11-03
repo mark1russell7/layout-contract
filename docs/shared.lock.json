@@ -17,7 +17,14 @@
     "parameters": "b5c6f3d155c4dc46a55c96a558609cac7ad9203aad16a32fd29b5f25e906125d",
     "profiles": "464af4c9f53576c1cf4cf92adb3ad23dcd858aef9eceda2dda9a939f85cf2baa",
     "selector": "e02471b951bcf3dd3f64ed627c9e0c1e3938830bb2c3ca64bde9f0f5fb15f28c",
-    "verdict-family": "ca097ac543e6681fb0baecfb64a634b500d4cc7dca530affccd71beb7e7a86f1",
-    "win-test": "918b86e089bf917cfbce54ca24291707cb56255f2ab18294212ace292f18dd7f"
+    "verdict-family": "ca097ac543e6681fb0baecfb64a634b500d4cc7dca530affccd71beb7e7a86f1"
+  },
+  "linked": {
+    "win-test": {
+      "repo": "mark1russell7/rigor",
+      "path": "docs/WIN-TEST.md",
+      "commit": "9ea14d175f3a7479c57199a4f71aa4944e956c20",
+      "sha256": "2c1e0357876fb7f865dd285c5f498cd6a125bda3e4e275ff9fa9fb8b0fbd60b4"
+    }
   }
 }
