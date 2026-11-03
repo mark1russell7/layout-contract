@@ -172,6 +172,16 @@ export function jobCost(run: Pick<ConfigRun, "passes"> & Partial<Pick<ConfigRun,
   return plannedCost(input.spec, input.boxes, input.edges, pairs, run.passes) * configFactor(run);
 }
 
+/**
+ * This function gives the expected milliseconds of the next unit of a shard, for the deadline of the shard (L81).
+ * The scale of the plan can be too low for one shard. On 2026-11-03 (run 41573500756), one unit of a shard took 67 minutes against 3.4 expected.
+ * When the shard ran units, the ratio of their real milliseconds over their planned cost replaces the scale if the ratio is larger.
+ */
+export function unitExpected(cost: number, scale: number, elapsed: number, plannedDone: number): number {
+  const seen = plannedDone > 0 ? elapsed / plannedDone : 0;
+  return cost * Math.max(scale, seen);
+}
+
 /** One job of a round: one config on one input. */
 export interface SweepJob {
   readonly config: string;
