@@ -287,8 +287,10 @@ The space coverage is the share of the cells of the joint space with a measured 
 - The count of the cells comes from `JOINT_SPACE` and the board kinds of the inputs. It includes the cells with no rows.
 - The surrogate is a ridge regression. Its features are a one-hot of each group and of the board kind, and the product of each pair of these.
 - Each numeric param gives one more feature: its z value.
-- The penalty is on each feature but the intercept. The fit chooses λ from 0.01, 0.1, 1 and 10 by the held-out error.
+- The penalty is on each feature but the intercept. The fit chooses λ from 0.01, 0.1, 1, 10, 100, 1000 and 10000 by the held-out error. The field `lambdaAtEdge` tells when the choice is the smallest or the largest value.
 - The held-out error uses 5 folds by config. A seeded hash of the config id gives its fold, so all rows of a config are in one fold.
+- With `foldBy: "input"`, the folds are by input. Then the error is on inputs that the fit did not see. The trend uses these folds.
+- The field `cells.inSampleSkill` gives the skill of the same cells from the fit on all rows. The gap to `cells.skill` is the overfit.
 - The floor of a cell is the RMSE of its rows around their own mean, and at least 0.01. No model on the features of the cell has a smaller error.
 - A cell is covered when it has 20 rows or more, and the RMSE of its out-of-fold predictions is at most 1.25 times its floor. These values are options.
 - A cell with a constant score has the floor 0. Thus the floor has the smallest value 0.01.
@@ -323,10 +325,77 @@ The cells are 15 routers × 18 pack entries × 4 lane modes × 6 board kinds. Th
 - The fit chose the largest λ of the list. A larger λ can give a smaller error.
 - The fit error is near its floor. The RMSE of each cell around its own mean is 0.272, so most of the error is in the cells.
 - An absolute bound of 0.05 is below the floor of 319 of the 336 cells with rows. Thus the bound is relative to the floor.
-- A ratio near 1 means that the fit gives the mean of the cell, and no more. A finer cell, with input features in place of the board kind, makes the floor smaller.
+- A ratio near 1 means that the fit gives the mean of the cell, and no more. Input features let the fit tell the rows of a cell apart. The next section has their numbers.
 - 41% of the rows have the score 0.
 
 The main line of the weekly trend is the skill inside the cells: `1 - (RMSE / floor)²`. It covers the cells with 20 rows or more, as the median, q10 and q90. A fit that gives only the mean of each cell has the skill 0, so input features make it rise. The guard lines are the covered share of the cells with rows, and the count of the cells with rows.
+
+### Input features
+
+Each cell has one row for each input of its kind. Thus all the spread inside a cell is the spread between its inputs. The option `features` gives the fit the dimensions of each input.
+
+- `manifestFeatures(manifest)` gives the cell of each input of `corpus.json`: its container, its obstacles, its sizes, its count, its edges and its spacing.
+- The fit adds a block for each dimension with 2 values or more. The bench-3 state has 11 such dimensions.
+- With `featurePairs: true`, the fit also has the product of each group block with each feature block. The default is `false`.
+- The cells of the coverage stay the groups and the board kind. Thus the floors and the trend do not change.
+- With features, the last Sobol factor is `input`. A seeded draw gives one measured input, with its kind and its features.
+
+Before the run, the mean score of each input over all configs explained a median of 0.539 of the variance inside a cell. That value is in-sample, with one value for each input, so it is a ceiling. The prediction `layout-stack-L52-input-features` came before the run.
+
+| Variant | Features | Held-out R² | Skill: median, q10, q90 | Covered cells | Time |
+|---|---|---|---|---|---|
+| No features | 677 | 0.243 | -0.020, -0.176, -0.000 | 150 (44.6%) | 1.8 s |
+| Feature blocks | 727 | 0.485 | 0.189, -0.504, 0.480 | 143 (42.6%) | 2.4 s |
+| Feature blocks and pairs | 2577 | 0.531 | 0.274, -0.449, 0.525 | 144 (42.9%) | 369 s |
+
+| Factor | First, feature blocks | Total, feature blocks | First, with pairs | Total, with pairs |
+|---|---|---|---|---|
+| router | 0.048 | 0.082 | 0.066 | 0.185 |
+| lane mode | 0.030 | 0.039 | 0.024 | 0.089 |
+| pack entry | 0.022 | 0.026 | 0.022 | 0.082 |
+| input | 0.875 | 0.885 | 0.647 | 0.872 |
+
+- The feature blocks raise the median skill from -0.020 to 0.189. The pairs raise it to 0.274.
+- The q10 of the skill drops to approximately -0.5. In these cells, the fit is worse than the mean of the cell. The features move the predictions, and a part of these moves is wrong for the cell.
+- The share of covered cells drops by approximately 2 points. It is a guard line. The next section names the 7 cells that left it.
+- With pairs, the fit has 3.5 times the features, and it takes 150 times as long. Its peak memory is approximately 550 MB, against 236 MB for the feature blocks.
+- In this first run, each variant chose λ = 10, the largest value of the old list. The next section has the run on the wider list.
+
+### Folds by input and the wider λ list
+
+The strategist set 3 conditions before the trend starts. The prediction `layout-stack-L52-input-folds` came before this run.
+
+1. The chosen λ is inside the list.
+2. The skill of the trend is out of sample, with folds by input. The record gives the in-sample skill beside it.
+3. The record names the cells that left the coverage.
+
+| Variant | Folds | λ | Held-out R² | Held-out skill: median, q10, q90 | In-sample skill: median, q10, q90 | Covered cells |
+|---|---|---|---|---|---|---|
+| No features | config | 10 | 0.243 | -0.020, -0.176, -0.000 | -0.001, -0.019, 0.000 | 150 (44.6%) |
+| Feature blocks | config | 10 | 0.485 | 0.189, -0.504, 0.480 | 0.213, -0.344, 0.509 | 143 (42.6%) |
+| No features | input | 100 | 0.238 | -0.038, -0.132, -0.012 | -0.004, -0.065, 0.000 | 154 (45.8%) |
+| Feature blocks | input | 10 | 0.462 | 0.141, -0.502, 0.432 | 0.213, -0.344, 0.509 | 141 (42.0%) |
+
+- The chosen λ is inside the list for each variant. The held-out R² drops for each λ above 100.
+- With folds by input, the median skill of the feature blocks is 0.141. The in-sample median is 0.213, so the overfit is approximately 0.07. The gain is real, and it is smaller than in the first run.
+- The ceiling of 0.539 is the in-sample fit of one mean for each input. The feature blocks reach 0.213 in sample. Thus the blocks explain less than half of the spread between the inputs.
+- The fit with pairs takes approximately 6 minutes and 550 MB. It runs in CI only, with folds by input.
+
+7 cells left the coverage from no features to the feature blocks, with folds by config. No cell joined it.
+
+| Cell: router · lane mode · pack entry · kind | Rows | Floor | Ratio before | Ratio after |
+|---|---|---|---|---|
+| search · iter · shelf-first-input · cards | 30 | 0.314 | 1.058 | 1.261 |
+| corners · none · pack · word-cloud | 24 | 0.230 | 1.033 | 1.252 |
+| corners · sides · shelf-first · word-cloud | 24 | 0.211 | 1.033 | 1.307 |
+| search · sides · shelf · word-cloud | 24 | 0.161 | 1.071 | 1.330 |
+| search · sides · select · word-cloud | 24 | 0.148 | 1.004 | 1.313 |
+| corners · iter · rows · word-cloud | 24 | 0.144 | 1.016 | 1.312 |
+| corners · sides · maxrects-cp · word-cloud | 24 | 0.079 | 1.097 | 1.420 |
+
+- The floor of a cell comes from its rows only. The features do not change it, so the fit causes each loss.
+- 6 of the 7 cells are word-cloud cells. Each was near the bound before, with a ratio from 1.004 to 1.097.
+- The feature blocks are additive. A feature has one effect for all kinds, so the effect on the word-cloud inputs can be wrong. A product of the kind block with each feature block is a candidate fix.
 
 ## The cost model
 

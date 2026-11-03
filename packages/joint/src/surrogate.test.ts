@@ -3,7 +3,8 @@ import { random } from "@mark1russell7/rigor-generators";
 import { describe, expect, it } from "vitest";
 import type { SweepState } from "./night.ts";
 import { stageGroup } from "./sensitivity.ts";
-import { fitSurrogate, KIND_FACTOR, surrogateFold, surrogateMarkdown, type SurrogateOptions } from "./surrogate.ts";
+import type { JointEntry } from "./corpus.ts";
+import { fitSurrogate, INPUT_FACTOR, KIND_FACTOR, manifestFeatures, surrogateFold, surrogateMarkdown, type SurrogateOptions } from "./surrogate.ts";
 
 /** A small space: the stage `a.x` with 3 options, `b.y` with 2 options, and the optional stage `c.z` with one option and an int param. */
 const SPACE: StrategySpace = {
@@ -123,6 +124,35 @@ describe("fitSurrogate", () => {
     expect(other.foldOf).not.toEqual(r.foldOf);
   });
 
+  it("keeps all rows of one input in one fold with the option foldBy input", () => {
+    const s = state(additive);
+    const r = fitSurrogate(s, { ...OPTIONS, seed: 5, foldBy: "input" });
+    expect(r.foldBy).toBe("input");
+    expect(fitSurrogate(s, OPTIONS).foldBy).toBe("config");
+    expect(Object.keys(r.foldOf).sort()).toEqual([...INPUTS].sort());
+    for (const [id, fold] of Object.entries(r.foldOf)) expect(fold).toBe(surrogateFold(id, 5, 5));
+    expect(surrogateMarkdown(r)).toContain("5 folds by input");
+    expect(() => fitSurrogate(s, { ...OPTIONS, foldBy: "row" as never })).toThrow(RangeError);
+  });
+
+  it("tells when the chosen λ is at an edge of the list", () => {
+    const s = state(additive);
+    const edge = fitSurrogate(s, { ...OPTIONS, lambdas: [1e-6, 1e6] });
+    expect(edge.lambdaAtEdge).toBe(true);
+    expect(surrogateMarkdown(edge)).toContain("λ is at an edge of the list");
+    const one = fitSurrogate(s, { ...OPTIONS, lambdas: [1] });
+    expect(one.lambdaAtEdge).toBe(false);
+  });
+
+  it("gives an in-sample skill of each cell that is at least the held-out skill", () => {
+    const size = (input: string): string => (input.endsWith("/s1") ? "small" : "big");
+    const s = state((a, b, k, kind, i) => additive(a, b, k, kind) + (size(INPUTS[i]!) === "big" ? 0.3 : 0));
+    const r = fitSurrogate(s, { ...OPTIONS, features: (input) => ({ size: size(input) }), foldBy: "input" });
+    expect(r.cells.inSampleSkill.median).toBeGreaterThan(0.9);
+    expect(r.cells.inSampleSkill.median).toBeGreaterThanOrEqual(r.cells.skill.median);
+    expect(surrogateMarkdown(r)).toContain("in-sample skill");
+  });
+
   it("gives the same result for the same seed", () => {
     const draw = random(3);
     const s = state((a, b, k, kind) => additive(a, b, k, kind) + 0.05 * draw.next());
@@ -137,6 +167,50 @@ describe("fitSurrogate", () => {
     expect(() => fitSurrogate(state(additive), { ...OPTIONS, folds: 1 })).toThrow(RangeError);
     expect(() => fitSurrogate(state(additive), { ...OPTIONS, lambdas: [] })).toThrow(RangeError);
     expect(() => fitSurrogate(state(additive), { ...OPTIONS, groups: [{ name: "free", of: () => "x" }] })).toThrow(RangeError);
+  });
+
+  it("has no input features by default", () => {
+    const r = fitSurrogate(state(additive), OPTIONS);
+    expect(r.inputFeatures).toEqual([]);
+    expect(r.featurePairs).toBe(false);
+    expect(surrogateMarkdown(r)).toContain("The fit has no input features.");
+  });
+
+  it("finds the spread inside a cell from an input feature, and keeps the cells of the groups and the kind", () => {
+    // The seed 1 of each kind is small, and the others are big. A big input adds 0.3 to each score.
+    const size = (input: string): string => (input.endsWith("/s1") ? "small" : "big");
+    const s = state((a, b, k, kind, i) => additive(a, b, k, kind) + (size(INPUTS[i]!) === "big" ? 0.3 : 0));
+    const features = (input: string): Record<string, string> => ({ size: size(input), constant: "one" });
+    const without = fitSurrogate(s, OPTIONS);
+    const withFeatures = fitSurrogate(s, { ...OPTIONS, features });
+    expect(without.cells.skill.median).toBeLessThan(0.2);
+    expect(withFeatures.cells.skill.median).toBeGreaterThan(0.9);
+    // The dimension with one value gives no block.
+    expect(withFeatures.inputFeatures).toEqual(["size"]);
+    expect(withFeatures.cells.total).toBe(without.cells.total);
+    expect(withFeatures.cells.withRows).toBe(without.cells.withRows);
+    expect(Object.keys(withFeatures.cellErrors[0]!.levels)).toEqual(["a", "b", "c", KIND_FACTOR]);
+    expect(withFeatures.sobol.factors.map((x) => x.name)).toEqual(["a", "b", "c", INPUT_FACTOR]);
+    expect(surrogateMarkdown(withFeatures)).toContain("The fit has 1 input features: size. It has no products of them with the groups.");
+  });
+
+  it("finds an effect of a feature that changes with a group only with the option featurePairs", () => {
+    const size = (input: string): string => (input.endsWith("/s1") ? "small" : "big");
+    // A big input adds 0.4 to the scores of the option p of a.x, and takes 0.4 from the others.
+    const s = state((a, b, k, kind, i) => additive(a, b, k, kind) + (size(INPUTS[i]!) === "big" ? (a === "p" ? 0.4 : -0.4) : 0));
+    const features = (input: string): Record<string, string> => ({ size: size(input) });
+    const main = fitSurrogate(s, { ...OPTIONS, features });
+    const paired = fitSurrogate(s, { ...OPTIONS, features, featurePairs: true });
+    expect(paired.featurePairs).toBe(true);
+    expect(paired.features).toBeGreaterThan(main.features);
+    expect(paired.cells.skill.median).toBeGreaterThan(0.9);
+    expect(paired.cells.skill.median).toBeGreaterThan(main.cells.skill.median);
+  });
+
+  it("gives the features of an input from the cells of a manifest", () => {
+    const of = manifestFeatures({ inputs: [{ id: "x/s1", hash: "h", cell: { containerSize: "fixed", count: "10", spacing: "gap" } as unknown as JointEntry["cell"] }] });
+    expect(of("x/s1")).toEqual({ containerSize: "fixed", count: "10", spacing: "gap" });
+    expect(of("y/s1")).toBeUndefined();
   });
 
   it("gives a Sobol index near 1 to the one group that the score reads, and near 0 to the others", () => {
