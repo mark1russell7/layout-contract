@@ -272,7 +272,7 @@ describe("composeFamily", () => {
 const NODE_IMPORT = /^(node:|fs$|path$|os$|crypto$|worker_threads$|child_process$|module$|url$)/;
 const NODE_GLOBAL = /\b(process\.|Buffer\.|require\(|__dirname|__filename)/;
 /** The runtime dependencies of the package. Each one is the home of an area in the map of homes. The test examines its build too. */
-const RUNTIME_DEPENDENCIES = ["@mark1russell7/rigor-generators"];
+const RUNTIME_DEPENDENCIES = ["@mark1russell7/rigor-generators", "@mark1russell7/typeset"];
 
 /** This function gives the local files of the import closure of a module, and the external imports. */
 function closure(entry: URL): { files: string[]; external: string[] } {
@@ -314,10 +314,13 @@ describe("browser safety", () => {
     for (const dep of RUNTIME_DEPENDENCIES) {
       const manifest = require.resolve(`${dep}/package.json`);
       const main = (JSON.parse(readFileSync(manifest, "utf8")) as { main: string }).main;
-      const code = readFileSync(new URL(main, pathToFileURL(manifest)), "utf8").replace(/\/\/.*|\/\*[\s\S]*?\*\//g, "");
-      const imports = [...code.matchAll(/(?:^|\n)\s*(?:import|export)\s[^;]*?from\s+"([^"]+)"/g)].map((m) => m[1]!);
-      expect(imports, dep).toEqual([]);
-      expect(NODE_GLOBAL.test(code), dep).toBe(false);
+      // A build can have chunks: the closure of its local imports imports no other package.
+      const { files, external } = closure(new URL(main, pathToFileURL(manifest)));
+      expect(external, dep).toEqual([]);
+      for (const f of files) {
+        const code = readFileSync(new URL(f), "utf8").replace(/\/\/.*|\/\*[\s\S]*?\*\//g, "");
+        expect(NODE_GLOBAL.test(code), f).toBe(false);
+      }
     }
   });
 });

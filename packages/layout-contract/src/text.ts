@@ -1,3 +1,4 @@
+import { breakers, linesOf, type Box, type Item, type Penalty } from "@mark1russell7/typeset/breaking";
 import type { MeasureSpec } from "./measures.ts";
 
 /**
@@ -187,6 +188,11 @@ export interface TextLayoutOptions {
    * `anywhere` breaks it between two grapheme clusters, as the CSS `overflow-wrap: anywhere`.
    */
   readonly wordBreak?: "keep" | "anywhere";
+  /**
+   * The line breaker of `@mark1russell7/typeset`. `greedy` (the default) fills each line, as a browser. `total-fit` (Knuth and Plass)
+   * makes the lines more equal. `balanced` keeps the greedy line count with the least width.
+   */
+  readonly breaker?: "greedy" | "total-fit" | "balanced";
 }
 
 /** The layout of a text: its lines and its box. */
@@ -204,6 +210,14 @@ export interface TextLayout {
   readonly truncated: boolean;
 }
 
+/** A forced break: a penalty with no text, no width and the cost `-Infinity`. */
+const FORCED: Penalty = { type: "penalty", text: "", width: 0, cost: -Infinity, flagged: false };
+
+/** This function gives the box of a part of a word. */
+function boxOf(part: { readonly text: string; readonly width: number }): Box {
+  return { type: "box", text: part.text, width: part.width };
+}
+
 /** A line of a layout, with its width in units. */
 interface Line {
   text: string;
@@ -213,7 +227,8 @@ interface Line {
 /**
  * This function lays out a text. It cuts the text to `maxChars`. It keeps the text on one line when it fits in `maxWidth`. Else it breaks the text into lines of `wrapWidth`.
  *
- * The breaker is greedy, as a browser with `white-space: normal`. It collapses each run of white space to one space, and a line does not count its last space.
+ * The breaker comes from `@mark1russell7/typeset`. The default is greedy, as a browser with `white-space: normal`.
+ * It collapses each run of white space to one space, and a line does not count its last space.
  * The width of a word is the sum of the advances of its segments. `docs/TEXT.md` gives the rules and the error of this sum.
  */
 export function layoutText(text: string, options: TextLayoutOptions): TextLayout {
@@ -222,6 +237,9 @@ export function layoutText(text: string, options: TextLayoutOptions): TextLayout
   const ellipsis = options.ellipsis ?? "…";
   const padding = options.padding ?? 0;
   const keep = (options.wordBreak ?? "keep") === "keep";
+  const name = options.breaker ?? "greedy";
+  if (!Object.hasOwn(breakers, name)) throw new RangeError(`layoutText: breaker is "greedy", "total-fit" or "balanced", not ${String(name)}.`);
+  const breaker = breakers[name];
   let truncated = false;
 
   let source = text;
@@ -254,36 +272,36 @@ export function layoutText(text: string, options: TextLayoutOptions): TextLayout
   }
 
   const limit = Math.round(options.wrapWidth * TEXT_UNITS);
-  const lines: Line[] = [];
-  let cur: Line | undefined;
-  const push = (): void => {
-    if (cur !== undefined) lines.push(cur);
-    cur = undefined;
-  };
-  /** This function puts a word that is wider than a line on new lines, with a break between grapheme clusters. */
+  // The items of the breaker: a box for each word, and glue of one space between two words.
+  const items: Item[] = [];
+  /** This function puts a word that is wider than a line on new lines, with a break between grapheme clusters. Each forced penalty ends a line. */
   const split = (word: Word): void => {
+    if (items.length > 0) items.push(FORCED);
+    let cur: { text: string; width: number } | undefined;
     for (const g of graphemesOf(word.text)) {
       const w = measurer.advance(g, font);
-      if (cur !== undefined && cur.units + w > limit) push();
-      if (cur === undefined) cur = { text: g, units: w };
+      if (cur !== undefined && cur.width + w > limit) {
+        items.push(boxOf(cur), FORCED);
+        cur = undefined;
+      }
+      if (cur === undefined) cur = { text: g, width: w };
       else {
         cur.text += g;
-        cur.units += w;
+        cur.width += w;
       }
     }
+    if (cur !== undefined) items.push(boxOf(cur));
   };
   words.forEach((word, i) => {
     const w = widths[i]!;
-    if (cur !== undefined && cur.units + space + w <= limit) {
-      cur.text += ` ${word.text}`;
-      cur.units += space + w;
-      return;
-    }
-    push();
     if (w > limit && !keep) split(word);
-    else cur = { text: word.text, units: w };
+    else {
+      if (items.length > 0) items.push({ type: "glue", text: " ", width: space });
+      items.push({ type: "box", text: word.text, width: w });
+    }
   });
-  push();
+  const paragraph = { items };
+  const lines: Line[] = linesOf(paragraph, breaker.breaks(paragraph, limit)).map((l) => ({ text: l.text, units: l.width }));
   if (lines.length === 0) lines.push({ text: "", units: 0 });
 
   const maxLines = options.maxLines ?? Infinity;

@@ -1,6 +1,6 @@
 # Text layout
 
-The subpath `@mark1russell7/layout-contract/text` lays out the text of a label: it measures the text, breaks it into lines and gives the box. A layout that knows the size of each label before it places the nodes uses it. This is phase A: the measurer, the cache, the greedy breaker and the measures. Phase B adds more breakers as strategies, a text corpus and a bench.
+The subpath `@mark1russell7/layout-contract/text` lays out the text of a label: it measures the text, breaks it into lines and gives the box. A layout that knows the size of each label before it places the nodes uses it. Phase A gave the measurer, the cache, the greedy breaker and the measures. In phase B, the breakers come from `@mark1russell7/typeset`, and the option `breaker` selects one of them.
 
 ## The parts
 
@@ -21,8 +21,11 @@ The subpath `@mark1russell7/layout-contract/text` lays out the text of a label: 
 2. The breaker splits the text into words at white space. It collapses each run of white space to one space, as `white-space: normal` in CSS.
 3. The width of a word is the sum of the advances of its word segments (`Intl.Segmenter`). Labels that share words thus share cache entries.
 4. When the line fits in `maxWidth`, the text stays on one line. The box is the text plus `padding`, clamped to `minWidth` and `maxWidth`.
-5. Else the breaker is greedy. It adds each word to the current line while the line stays in `wrapWidth`. The box has the width `wrapWidth` plus `padding`.
-6. A word that is wider than `wrapWidth` stays whole with `wordBreak: "keep"`. With `wordBreak: "anywhere"`, it breaks between grapheme clusters, as `overflow-wrap: anywhere` in CSS.
+5. Else the breaker breaks the text into lines of `wrapWidth`. The box has the width `wrapWidth` plus `padding`. The option `breaker` selects the breaker:
+   - `greedy` (the default) adds each word to the current line while the line stays in `wrapWidth`. Its lines are the lines of 0.2.21.
+   - `total-fit` is the total fit breaker of Knuth and Plass. It makes the sum of the demerits of all lines as small as possible, so the lines have more equal widths.
+   - `balanced` keeps the line count of `greedy`. It finds the smallest width with that count, as `text-wrap: balance` in CSS.
+6. A word that is wider than `wrapWidth` stays whole with `wordBreak: "keep"`. With `wordBreak: "anywhere"`, it breaks between grapheme clusters, as `overflow-wrap: anywhere` in CSS. Each breaker keeps these forced breaks.
 7. With `maxLines`, a longer text keeps `maxLines` lines. The last line drops clusters until the line and the ellipsis fit in `wrapWidth`.
 
 ## The units and the error

@@ -242,6 +242,9 @@ importers:
       '@mark1russell7/rigor-generators':
         specifier: ^0.1.0
         version: 0.1.0
+      '@mark1russell7/typeset':
+        specifier: ^0.1.0
+        version: 0.1.0
     devDependencies:
       '@mark1russell7/cue':
         specifier: ^1.0.2
@@ -249,6 +252,9 @@ importers:
       '@types/node':
         specifier: ^26.6.4
         version: 26.6.6
+      layout-contract-0221:
+        specifier: npm:@mark1russell7/layout-contract@0.2.21
+        version: '@mark1russell7/layout-contract@0.2.21'
       tsdown:
         specifier: ^0.23.1
         version: 0.23.4(@arethetypeswrong/core@0.18.5)(publint@0.3.25)(tsx@4.23.15)(typescript@7.0.2)
@@ -537,6 +543,10 @@ packages:
     resolution: {integrity: sha512-wXhE7Kqjm8O0jGkxHBgFRn+d1qe8rffcrfbURPor1knmO6Sf/eQ3uKCqgCsP+PSlSVidaQu8GnUWo1jD3Fdm7A==}
     engines: {node: '>=22.12'}
     hasBin: true
+
+  '@mark1russell7/typeset@0.1.0':
+    resolution: {integrity: sha512-abRnQC3n5+ipPSKrXB8dHgleXN4Y+PiNYqMNh7S6OASzArE5fvHrX5Jfgs/jZrolFXaKb7Zz8hOTmwP+cBrPkw==}
+    engines: {node: '>=22.12'}
 
   '@oxc-project/types@0.155.0':
     resolution: {integrity: sha512-SeE8JPwW1xs1tHeNycjUtUBdhorRa8o4jlvjwk49R7/Z291i+4DQa7JJIgOm/TaYQZx+QrPQbVJ/9c8dMIZN8Q==}
@@ -1713,6 +1723,8 @@ snapshots:
   '@mark1russell7/template-cli@0.1.4':
     dependencies:
       '@clack/prompts': 1.8.1
+
+  '@mark1russell7/typeset@0.1.0': {}
 
   '@oxc-project/types@0.155.0': {}
 
