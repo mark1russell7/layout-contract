@@ -1,0 +1,122 @@
+# The time arms of the joint bench (L84, docs/JOINT-BENCH.md, "The Time row"): the Time row of a candidate against the default.
+# Each of the 5 jobs runs each case and each round with 4 arms: the candidate pair (the default and the candidate) and the A/A pair (two defaults).
+# Each arm is a fresh process. The jobs keep their raw records as the artifacts time-arms-<job>, in paired.jsonl and aa.jsonl.
+# The job verdict merges the records of all jobs, gives the verdict of rigor-bench and writes it to the job summary and the artifact time-verdict.
+# Only a manual run starts this workflow. Only the times of CI count. The time arms do not run on a local computer.
+name: Time arms
+
+on:
+  workflow_dispatch:
+    inputs:
+      candidate:
+        description: "The candidate pair, for example lanes-iter3.maxrects-cp.corners+corners."
+        type: string
+        required: true
+      default:
+        description: "The default pair: arm a of each pair. The default is the baseline of the joint bench."
+        type: string
+        default: "rows+portfolio"
+      cases:
+        description: "The count of the cases of each job. The script takes them at equal steps over the planned cost. The input inputs replaces them."
+        type: string
+        default: "20"
+      rounds:
+        description: "The count of the rounds of each case in each job."
+        type: string
+        default: "5"
+      inputs:
+        description: "Empty, or the input ids of joint-v2 with commas between them. These inputs replace the cases of the input cases."
+        type: string
+        default: ""
+
+# A new run on the same ref waits for the run before it. Two runs at once share the runners, so their times do not compare.
+concurrency:
+  group: time-arms-${{ github.ref }}
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    # The smoke run gave approximately 1 to 2.5 seconds for each arm. 20 cases, 5 rounds and 4 arms are 400 arms, approximately 7 to 17 minutes.
+    timeout-minutes: 60
+    strategy:
+      fail-fast: false
+      # The fleet rule of 2026-10-30 (STRATEGY.md) gives a heavy workflow 3 jobs at once, so gates and releases get runners.
+      max-parallel: 3
+      matrix:
+        job: [0, 1, 2, 3, 4]
+    steps:
+      - name: Check the inputs
+        env:
+          CASES: ${{ inputs.cases }}
+          ROUNDS: ${{ inputs.rounds }}
+        run: |
+          case "$CASES" in ''|*[!0-9]*) echo "The input cases is a number, not $CASES."; exit 1;; esac
+          case "$ROUNDS" in ''|*[!0-9]*) echo "The input rounds is a number, not $ROUNDS."; exit 1;; esac
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 26
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Run the time arms
+        working-directory: packages/joint
+        env:
+          JOB: ${{ matrix.job }}
+          CANDIDATE: ${{ inputs.candidate }}
+          DEFAULT: ${{ inputs.default }}
+          CASES: ${{ inputs.cases }}
+          ROUNDS: ${{ inputs.rounds }}
+          INPUTS: ${{ inputs.inputs }}
+        run: node scripts/time-arms.ts run --candidate "$CANDIDATE" --default "$DEFAULT" --cases "$CASES" --rounds "$ROUNDS" --job "$JOB" --out time ${INPUTS:+--inputs "$INPUTS"}
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        if: ${{ !cancelled() }}
+        with:
+          name: time-arms-${{ matrix.job }}
+          path: |
+            packages/joint/time/*.jsonl
+            packages/joint/time/meta.json
+          if-no-files-found: error
+
+  verdict:
+    needs: run
+    if: ${{ !cancelled() }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 26
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      # Each artifact goes into a folder of its name, because the files of each job have the same names.
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          pattern: time-arms-*
+          path: packages/joint/time
+      - name: Give the verdict
+        working-directory: packages/joint
+        env:
+          RUN_RESULT: ${{ needs.run.result }}
+        run: |
+          echo "The records of $(ls time | wc -l) jobs. The result of the jobs: $RUN_RESULT."
+          status=0
+          node scripts/time-arms.ts verdict --records time --out verdict || status=$?
+          if [ -f verdict/verdict.md ]; then { cat verdict/verdict.md; echo; echo "The result of the run jobs: $RUN_RESULT."; } >> "$GITHUB_STEP_SUMMARY"; fi
+          exit "$status"
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        if: ${{ !cancelled() }}
+        with:
+          name: time-verdict
+          path: packages/joint/verdict/
+          if-no-files-found: error

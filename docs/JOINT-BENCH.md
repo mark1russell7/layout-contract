@@ -2,7 +2,7 @@
 
 The joint benchmark packs each input of a joint corpus, and then routes the packed input. It runs each pair of a pack entry and a router. The package `packages/joint` holds the runner and the analysis. The workflow `joint-bench.yml` runs them in CI.
 
-The times in this file come from one process that runs many pairs in order. Earlier cases change the heap and the decisions of V8 for a later case, in both directions. Thus a time in this file is not the cost of a pair alone (the fleet bench rule of 2026-11-02). Use these times only to plan the shards and to compare pairs of one run.
+The times in this file come from one process that runs many pairs in order. Earlier cases change the heap and the decisions of V8 for a later case, in both directions. Thus a time in this file is not the cost of a pair alone (the fleet bench rule of 2026-11-02). Use these times only to plan the shards and to compare pairs of one run. The Time row of a candidate uses the time arms, with a fresh process for each arm (refer to "The Time row").
 
 - The corpus is `joint-v2` by default (`docs/JOINT-CORPUS.md`). The first run used `joint-v1`.
 - The pack entries are the 12 entries of the benchmark of `packing` 0.2.10 without `push`, and the entry `select` (L32). The strategy `push` supports only the mode `incremental`, and each joint input is `offline`.
@@ -408,6 +408,67 @@ A split file of `corpus-split/1` is beside each manifest, in `packages/joint/cor
 - `pnpm bench analyze` gives the folds of the split `default` to `analyze`. These folds are the folds of leave-one-seed-out, so the report does not change.
 - On the slice `pr`, a fold without held-out inputs gives no row. A training seed without inputs adds no input.
 - The pinned corpus hashes are `277ffd12181e74ef` for `joint-v1` and `1d0909caec40631e` for `joint-v2`. A change of an input needs a new split file.
+
+## The Time row
+
+The time arms give the Time row of a candidate pair against the default pair (L84). The script is `scripts/time-arms.ts`, and the workflow is `time-arms.yml`. The package `@mark1russell7/rigor-bench` gives the records, the order of the arms and the verdict.
+
+- The default entry is `TIME_DEFAULT`: the baseline pair `rows+portfolio`. Arm `a` of each pair runs it.
+- The candidate is a pair id, for example `select+portfolio`. A lane pair and an iteration pair are also candidates, for example `lanes-iter3.maxrects-cp.corners+corners`.
+- The settings are `JOINT_TIME` in `src/time-arms.ts`: `timeMargin` 0.05, 20 cases, 5 rounds, 5 jobs and at most 100 boxes in a case.
+
+### The 4 arms
+
+Each case and each round runs 4 arms:
+
+1. The default and the candidate. They make the candidate pair.
+2. The default and a copy of the default. They make the A/A pair.
+
+- Each arm is a fresh child process: `node` with argv and no shell. Thus the earlier cases do not change the heap or the decisions of V8 for a later case.
+- The script does not run one arm after the other in one process. An A/A check cannot see the effect of earlier cases in one process.
+- The time of an arm is the time of `runInput` inside the child process, from `performance.now()`. The start of the process does not count.
+- `firstArm(round, caseIndex)` of rigor-bench gives the first arm of the candidate pair. The A/A pair uses `firstArm(round, caseIndex + 1)`. Thus the order turns each round.
+- The pair that runs first turns each second round (`timeArmOrder`). The 4 orders of the two pairs come in each 4 rounds.
+- The A/A pair has its own 2 runs of the default. The script does not use one time of the default in the two pairs.
+- The rounds of job `j` are the global rounds `j * rounds` to `j * rounds + rounds - 1`. Thus the merged records have one record for each case and round.
+- Each arm of an entry on an input gives the same output hash. A different hash stops the run.
+- A case that an entry skips leaves the run. `meta.json` names it with the reason.
+
+### The cases
+
+- `timeCases` takes the inputs of `joint-v2` with edges and with 2 to `maxBoxes` boxes. It sorts them by the planned cost.
+- It takes 20 inputs at equal steps from the least cost to the most. Nobody picks the cases by hand.
+- An input of 1000 boxes takes seconds to minutes for each arm. Thus the default cases do not include them. The input `inputs` of the workflow gives other cases.
+
+### The records
+
+Each job writes `paired.jsonl` and `aa.jsonl`. Each line is one `PairedTime` record of rigor-bench, with these fields:
+
+- `case`, `round`, `first`, `a` and `b`, the times in milliseconds.
+- `kind`: `candidate` or `aa`. `job`: the index of the CI job. `baseline` and `candidate`: the entries of arm `a` and arm `b`.
+- `env`: the facts of `runEnv`, with the CPU model, the mode `fresh` and the context of the run.
+
+### The verdict
+
+`jointTimeVerdict(records, JOINT_TIME)` merges the records of all jobs and calls `timeVerdict` of rigor-bench. The rule is `difference`.
+
+- The ratio of a case is `exp(median(log(b / a)))` over its rounds of all jobs.
+- The rule gives the bootstrap interval of the candidate median ratio over the A/A median ratio. The A/A arm of the same runs gives the resolution. The rule has no fixed floor in milliseconds.
+- The outcome is `faster` when the whole interval is below 1, and `slower` when it is above 1.
+- The outcome is `same` when the interval is in `[exp(-timeMargin), exp(timeMargin)]`.
+- Each other interval gives `cannot decide`. An A/A arm with fewer than 5 cases also gives `cannot decide`.
+- A candidate with the outcome `cannot decide` does not promote. The result then has `decided: false`.
+- `timeMargin` is a named setting. The result writes its value, and a change of the value is a measured decision.
+- A missing job leaves a case with 2 more rounds of one order. `balanceOrders` then removes the extra rounds with the highest numbers, and the result counts them.
+- The result also keeps the verdict of each job alone, with its CPU model. The outcome of the row uses all jobs together.
+- The result has the counts of the cases and the rounds, the interval, the A/A median and the steps of the derivation.
+
+### Start the time arms
+
+- The workflow `time-arms.yml` starts only by hand. It has the inputs `candidate`, `default`, `cases`, `rounds` and `inputs`.
+- The 5 jobs of its matrix run at most 3 at a time. Each job keeps the artifact `time-arms-<job>`.
+- The job `verdict` writes `verdict.md` to the summary of the job, and keeps `verdict.json` in the artifact `time-verdict`.
+- The time arms do not run on a local computer. Other jobs on a local computer change the times.
 
 ## Start a run
 

@@ -48,4 +48,11 @@ node scripts/bench.mjs analyze --records records --out report --subset data/join
 node scripts/fit-cost.mjs --logs <dir> --run <run id> --commit <sha>
 ```
 
+The script `scripts/time-arms.ts` gives the Time row of a candidate pair against the default pair (`docs/JOINT-BENCH.md`, "The Time row"). The workflow `time-arms.yml` starts it in CI:
+
+```sh
+node scripts/time-arms.ts run --candidate select+portfolio --job 0 --out time
+node scripts/time-arms.ts verdict --records time --out verdict
+```
+
 The package is not on npm.
