@@ -479,7 +479,7 @@ export function* pairRuns(input: LayoutInput, cell: Readonly<Record<string, unkn
     ...(options.commit === undefined ? {} : { commit: options.commit }),
   });
   const skippedRecord = (entry: PackEntry, router: string, reason: string, id?: string, extra?: Readonly<Record<string, unknown>>): LayoutRecord =>
-    toLayoutRecord(input, { ...factsOf(entry, router, id, extra), measures: {}, hard: {}, deterministic: true, ms: 0, skipped: reason });
+    toLayoutRecord(input, { ...factsOf(entry, router, id, extra), measures: {}, hard: {}, deterministic: null, ms: 0, skipped: reason });
 
   /** This function gives the shared group of a pack output: the packed input, its graph and its routes. Pack outputs with the same hash share one group. */
   const groupOf = (run: Extract<PackRun, { ok: true }>, packId: string): PackGroup => {

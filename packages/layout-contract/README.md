@@ -12,7 +12,7 @@ The package has no runtime dependencies.
 | The shape kinds | `ShapeKind`, `SHAPE_KINDS`, `SHAPE_KIND_IDS`, `ShapeKindSpec`, `ShapeGeometry`, `DEFAULT_SHAPES`, `ShapeSupport`, `ShapeBound`, `RuleLevel`, `ShapeLevel`, `ShapeCheck`, `isShapeKind`, `shapeKindOf`, `shapeKindsOf`, `itemShapeOf`, `shapeKindProblem`, `shapesOf`, `ruleLevel`, `shapeLevel`, `shapeSupportProblems`, `boxArea`, `checkShapes` |
 | The input `layout-input/1` | `LayoutInput`, `LayoutBox` (`Item` for the packer), `Port`, `portPoint`, `LayoutEdge`, `LayoutContainer`, `Obstacle`, `LayoutCell`, `LayoutGenerator`, `PairGap`, `canonicalInput` |
 | The packer | `PackInput`, `toPackInput`, `Placement`, `PackOutput`, `StageTrace`, `applyPack` |
-| The record `layout-record/1` | `LayoutRecord`, `Stage`, `Supports`, `RunFacts`, `RunEnv`, `toLayoutRecord` |
+| The record `layout-record/1` | `LayoutRecord`, `Stage`, `Supports`, `RunFacts`, `RunEnv`, `toLayoutRecord`, `checkLayoutRecord`, `parseLayoutRecord` |
 | The strategies | `StrategyInfo` |
 | The measures | `MeasureSpec`, `Direction`, `JointMeasureId`, `JOINT_MEASURES`, `JOINT_MOVED_MIN`, `Verdict`, `compareMeasure`, `minEffectOf` |
 | The balance and stability measures | `balanceOf`, `Balance`, `nearestGaps`, `procrustesOf`, `ProcrustesOptions`, `perChange`, `balanceMeasures`, `balanceMeasureSpecs`, `BALANCE_MEASURE_SUFFIXES`, `BalanceMeasureSuffix`, `BALANCE_SIDE_DEPTH`, `PlacedBox` |
@@ -69,6 +69,13 @@ The package has no runtime dependencies.
 - **The output hash.** `outputHash` gives the first 16 hex characters of the SHA-256 of the canonical JSON of an output. Each number goes to the grid of `RECORD_EPS` first.
 - **The corpus checks.** `checkDeclared` and `checkSplit` give a list of `ClaimBreak`. An empty list tells that each claim is true. `corpusHashOf` gives the corpus hash of `packing`.
 - **The verdict.** `verdict` compares two strategies on one measure, with the family as the unit. A verdict counts only when it holds for the mean of the family means and for the mean of the inputs.
+- **The record.** A run writes one `layout-record/1` line of JSON Lines. The formats of the engines tell the fields. These rules are new in 0.3.0:
+  - `deterministic` is `true` when two runs with the same seed give the same output. A skipped record has `null`, because no run made a claim.
+  - A record without `skipped` has a boolean `deterministic`. `checkLayoutRecord` refuses `null` on it.
+  - An old skipped record has `deterministic: true`. `checkLayoutRecord` accepts it, and `parseLayoutRecord` gives `null` in its place.
+  - `env` gives the computer of the run: `node`, `os`, `arch`, `runner`, `cpu` and `cpus`. A timing record also gives `mode`, and it can give `context`.
+  - `env.mode` is the mode of the timing, for example `process` or `fresh` of `paired-time/1`. `env.context` is `ci` or `local`, with the Node flags.
+  - `checkLayoutRecord(value)` gives the problems of one record. `parseLayoutRecord(value)` throws a `TypeError` with them. Both accept fields that the format does not know.
 - **The tolerances.** `EPS` (`1e-6`) is for the float compares in an engine. `RECORD_EPS` (`1e-3`) is for the compares on a written file. A record writes the tolerance of each hard rule in its field `tolerance`. The defaults are `overlap` `0.001` and `through` `0.5`.
 
 ## An example

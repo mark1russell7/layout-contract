@@ -21,7 +21,7 @@ function rec(input: string, strategy: string, measures: Record<string, number>, 
     edges: 2,
     measures: { "pack.overflow": 0, "pack.overflow.excessArea": 0, "pack.fill": 0.5, "route.mixed": 0, "route.cap.1.1": 0, "route.cap.1.25": 0, "route.cap.1.5": 0, ...measures },
     hard: { "pack.no-overlap": 0, "route.violations": 0, ...options.hard },
-    deterministic: true,
+    deterministic: options.skipped === undefined ? true : null,
     ms: 1,
     ...(options.skipped === undefined ? { outputHash: options.hash ?? `${strategy}:${input}` } : { skipped: options.skipped }),
   };

@@ -4,7 +4,7 @@
 # and private members. The command `api-report check` compares this file with the built .d.ts files.
 # To accept a change of the API, start the build, then `api-report update`, and review the diff.
 
-## . (build/index.d.ts): 239 names
+## . (build/index.d.ts): 241 names
 
 BALANCE_MEASURE_SUFFIXES: build/index.d.ts#BALANCE_MEASURE_SUFFIXES
 BALANCE_SIDE_DEPTH: build/index.d.ts#BALANCE_SIDE_DEPTH
@@ -164,6 +164,7 @@ canonicalJson: build/index.d.ts#canonicalJson
 checkConfig: build/index.d.ts#checkConfig
 checkDeclared: build/measures-CQAuu3T5.d.ts#checkDeclared
 checkInput: build/index.d.ts#checkInput
+checkLayoutRecord: build/index.d.ts#checkLayoutRecord
 checkShapes: build/measures-CQAuu3T5.d.ts#checkShapes
 checkSpace: build/index.d.ts#checkSpace
 checkSplit: build/measures-CQAuu3T5.d.ts#checkSplit
@@ -207,6 +208,7 @@ paramActive: build/index.d.ts#paramActive
 paramLevels: build/index.d.ts#paramLevels
 paramProblem: build/index.d.ts#paramProblem
 paramValue: build/index.d.ts#paramValue
+parseLayoutRecord: build/index.d.ts#parseLayoutRecord
 perChange: build/index.d.ts#perChange
 pickMoves: build/index.d.ts#pickMoves
 placedRect: build/index.d.ts#placedRect
@@ -464,7 +466,7 @@ export interface LayoutRecord {
   readonly measures: Readonly<Record<string, number>>;
   readonly hard: Readonly<Record<string, number>>;
   readonly tolerance?: Readonly<Partial<Tolerance>>;
-  readonly deterministic: boolean;
+  readonly deterministic: boolean | null;
   readonly prediction?: string;
   readonly ms: number;
   readonly msRuns?: readonly number[];
@@ -656,6 +658,8 @@ export interface RunEnv {
   readonly runner: string;
   readonly cpu: string;
   readonly cpus: number;
+  readonly mode?: string;
+  readonly context?: string;
 }
 
 ### build/index.d.ts#RunFacts
@@ -923,6 +927,9 @@ export declare function checkConfig(space: StrategySpace, config: StrategyConfig
 ### build/index.d.ts#checkInput
 export declare function checkInput(input: LayoutInput): readonly string[];
 
+### build/index.d.ts#checkLayoutRecord
+export declare function checkLayoutRecord(value: unknown): string[];
+
 ### build/index.d.ts#checkSpace
 export declare function checkSpace(space: StrategySpace): ClaimBreak[];
 
@@ -1009,6 +1016,9 @@ export declare function paramProblem(param: SpaceParam, value: unknown): string 
 
 ### build/index.d.ts#paramValue
 export declare function paramValue(param: SpaceParam, value: ParamValue): ParamValue;
+
+### build/index.d.ts#parseLayoutRecord
+export declare function parseLayoutRecord(value: unknown): LayoutRecord;
 
 ### build/index.d.ts#perChange
 export declare function perChange(move: number, changed: number, count: number): number;
