@@ -227,6 +227,7 @@ index.json                         the epochs, with the latest epoch, its nights
 epochs/<epoch>/state.json          the configs, their status and the values of each input
 epochs/<epoch>/summary.json        the cumulative summary as a table
 epochs/<epoch>/nights/<date>.json  the facts of each night: the rounds, the race, the shards and the drift
+epochs/<epoch>/surrogate-trend.jsonl  the trend of the coverage surrogate: one record of each night
 ```
 
 The epoch is `<corpus>_packing-<version>_highways-<version>_space-<version>`, for example `joint-v2_packing-0.2.17_highways-0.9.1_space-bench-3`. A new version of an engine or of the space starts a new epoch. The data of the old epochs stays.
@@ -396,6 +397,59 @@ The strategist set 3 conditions before the trend starts. The prediction `layout-
 - The floor of a cell comes from its rows only. The features do not change it, so the fit causes each loss.
 - 6 of the 7 cells are word-cloud cells. Each was near the bound before, with a ratio from 1.004 to 1.097.
 - The feature blocks are additive. A feature has one effect for all kinds, so the effect on the word-cloud inputs can be wrong. A product of the kind block with each feature block is a candidate fix.
+
+### The products of the kind with the features
+
+With `featureKindPairs: true`, the fit also has the product of the kind block with each feature block. Then a feature has its own effect on each board kind. The option is measured, and the trend does not use it.
+
+| Variant, folds by input | Held-out skill: median, q10, q90 | In-sample median | Covered cells |
+|---|---|---|---|
+| No features | -0.038, -0.132, -0.012 | -0.004 | 154 |
+| Feature blocks | 0.141, -0.502, 0.432 | 0.213 | 141 |
+| Feature blocks and kind pairs | 0.250, -0.412, 0.596 | 0.375 | 142 |
+
+| Board kind | Covered cells, feature blocks | Covered cells, kind pairs |
+|---|---|---|
+| word-cloud | 15 of 25 | 22 of 25 |
+| dashboard | 23 of 25 | 19 of 25 |
+| cards | 25 of 25 | 23 of 25 |
+
+- The kind pairs raise the held-out median skill from 0.141 to 0.250. The overfit grows from approximately 0.07 to approximately 0.13.
+- The word-cloud cells come back, but the dashboard and cards cells drop. Thus the count of covered cells stays at 142, against 154 without features.
+- The accept rule has 2 conditions: the held-out skill rises, and the coverage comes back. The kind pairs meet only the first, so the trend does not use them.
+
+### The trend
+
+The trend has one record `surrogate-trend/1` for each fit. `surrogateTrendRecord(result, meta)` gives the record, and `scripts/surrogate.ts` writes it.
+
+```text
+node scripts/surrogate.ts <state.json> <corpus.json> <blocks|pairs> <out dir>
+```
+
+The script writes `surrogate.json`, the record on one line, and `surrogate.md`, the report of `surrogateMarkdown`. `surrogateTrendOptions(variant, manifest)` gives the options of the fit.
+
+| Field | Value |
+|---|---|
+| `schema`, `epoch`, `night`, `run` | The schema, the epoch of the state, the date of its last night and the id of the CI run |
+| `variant`, `foldBy` | `blocks` or `pairs`, and `input` |
+| `rows`, `configs` | The count of the rows and of their configs |
+| `skill` | The main line: the held-out skill inside the cells, as q10, median and q90 |
+| `inSampleSkill` | The in-sample skill of the same cells. The gap to `skill` is the overfit. |
+| `covered`, `share`, `withRows`, `eligible` | The guard lines: the covered cells, their share of the cells with rows, the cells with rows and the cells with 20 rows or more |
+| `lambda`, `lambdaAtEdge` | The chosen penalty, and `true` when it is the smallest or the largest value of the list |
+
+A skill is `null` when no cell has 20 rows or more.
+
+- The variant `blocks` has the feature blocks of the manifest and folds by input, with no pairs. It gives the main line.
+- The job summarize of `sweep.yml` fits the variant `blocks` after the night writes its state. The fit takes approximately 5 s and 300 MB.
+- The job appends the record to `epochs/<epoch>/surrogate-trend.jsonl` of the new tree. The job publish pushes the file to the branch `sweep-data` with the night.
+- A failure of the fit does not stop the night. The night summary gets the error, and the trend gets no record of that night.
+- `sweep-summarize.yml` has the same step. Thus a night that it summarizes again also gets its record.
+- The variant `pairs` also has the products of the groups with the input features. Its fit takes approximately 6 to 10 minutes and 550 MB.
+- The workflow `surrogate-pairs.yml` fits the variant `pairs` each Sunday at 15:20 UTC, and on a manual dispatch. It reads the latest epoch of `sweep-data`.
+- That workflow uploads `surrogate.json` and `surrogate.md` as the artifact `surrogate-pairs`, and writes the report to the job summary. It writes nothing to the repository.
+
+The record of the variant `blocks` on the state after the night 2026-11-02 has the held-out skill 0.141 (q10 -0.502, q90 0.432) and 141 covered cells. These are the values of the section "Folds by input and the wider λ list".
 
 ## The cost model
 

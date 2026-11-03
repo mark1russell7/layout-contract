@@ -55,6 +55,8 @@ export interface SurrogateOptions {
   readonly features?: (inputId: string) => Readonly<Record<string, string>> | undefined;
   /** With `true`, the fit also has the product of each group block with each feature block. The default is `false`. */
   readonly featurePairs?: boolean;
+  /** With `true`, the fit also has the product of the kind block with each feature block. Then a feature has its own effect on each board kind. The default is `false`. */
+  readonly featureKindPairs?: boolean;
 }
 
 /** The held-out error of one candidate of the ridge penalty. */
@@ -140,6 +142,8 @@ export interface Surrogate {
   readonly inputFeatures: readonly string[];
   /** This value is `true` when the fit has the products of the group blocks with the feature blocks. */
   readonly featurePairs: boolean;
+  /** This value is `true` when the fit has the products of the kind block with the feature blocks. */
+  readonly featureKindPairs: boolean;
   readonly folds: number;
   readonly foldBy: SurrogateFoldBy;
   readonly seed: number;
@@ -272,6 +276,7 @@ export function fitSurrogate(state: SweepState, options: SurrogateOptions = {}):
   const groups = options.groups ?? JOINT_GROUPS;
   const kindOfInput = options.kindOf ?? kindOf;
   const featurePairs = options.featurePairs ?? false;
+  const featureKindPairs = options.featureKindPairs ?? false;
   if (!(Number.isInteger(folds) && folds >= 2)) throw new RangeError(`fitSurrogate: folds is an integer of 2 or more, not ${folds}.`);
   if (lambdas.length === 0 || !lambdas.every((l) => l > 0)) throw new RangeError(`fitSurrogate: lambdas is a list of numbers above 0, not [${lambdas.join(", ")}].`);
   if (!(Number.isInteger(draws) && draws >= 2)) throw new RangeError(`fitSurrogate: draws is an integer of 2 or more, not ${draws}.`);
@@ -319,6 +324,8 @@ export function fitSurrogate(state: SweepState, options: SurrogateOptions = {}):
   };
   for (let a = 0; a < cellBlocks; a++) for (let b = a + 1; b < cellBlocks; b++) addPair(a, b);
   if (featurePairs) for (let a = 0; a < groups.length; a++) for (let b = cellBlocks; b < blocks.length; b++) addPair(a, b);
+  // The kind block is the last block of the cells.
+  if (featureKindPairs) for (let b = cellBlocks; b < blocks.length; b++) addPair(cellBlocks - 1, b);
   const params: Param[] = [];
   for (const stage of space.stages) {
     for (const option of stage.options) {
@@ -491,6 +498,7 @@ export function fitSurrogate(state: SweepState, options: SurrogateOptions = {}):
     features: width,
     inputFeatures,
     featurePairs,
+    featureKindPairs,
     folds,
     foldBy,
     seed,
@@ -528,7 +536,7 @@ export function surrogateMarkdown(result: Surrogate, worst = 10): string {
     "",
     result.inputFeatures.length === 0
       ? "The fit has no input features."
-      : `The fit has ${result.inputFeatures.length} input features: ${result.inputFeatures.join(", ")}. ${result.featurePairs ? "It also has their products with the groups." : "It has no products of them with the groups."}`,
+      : `The fit has ${result.inputFeatures.length} input features: ${result.inputFeatures.join(", ")}. ${result.featurePairs ? "It also has their products with the groups." : "It has no products of them with the groups."}${result.featureKindPairs ? " It also has their products with the board kind." : ""}`,
     "",
     `The penalty λ = ${result.lambda}. The held-out R² is ${f(result.r2)}, and the held-out RMSE is ${f(result.rmse)}.${result.lambdaAtEdge ? " λ is at an edge of the list, so a value out of the list can give a smaller error." : ""}`,
     "",
@@ -561,4 +569,87 @@ export function surrogateMarkdown(result: Surrogate, worst = 10): string {
 export function manifestFeatures(manifest: Pick<JointManifest, "inputs">): (inputId: string) => Readonly<Record<string, string>> | undefined {
   const cells = new Map(manifest.inputs.map((e) => [e.id, Object.fromEntries(Object.entries(e.cell).map(([k, v]) => [k, String(v)]))]));
   return (inputId) => cells.get(inputId);
+}
+
+/** The schema of a record of the trend of the coverage surrogate. */
+export const SURROGATE_TREND_SCHEMA = "surrogate-trend/1";
+
+/**
+ * The variant of the fit of the trend. Both variants have the feature blocks of the manifest and folds by input.
+ * The variant `blocks` is the main line of the nightly trend. The variant `pairs` also has the products of the groups with the features, and a weekly job fits it.
+ */
+export type SurrogateVariant = "blocks" | "pairs";
+
+/** The quantiles of a skill in a trend record. A value is `null` when the fit has no cells with `minRows` rows or more. */
+export interface SurrogateTrendSkill {
+  readonly q10: number | null;
+  readonly median: number | null;
+  readonly q90: number | null;
+}
+
+/** The facts of a trend record that the fit does not give. */
+export interface SurrogateTrendMeta {
+  /** The epoch of the state. */
+  readonly epoch: string;
+  /** The date of the last night of the state. */
+  readonly night: string;
+  readonly variant: SurrogateVariant;
+  /** The id of the CI run of the fit. An empty or missing id gives a record without `run`. */
+  readonly run?: string | undefined;
+}
+
+/** One record of the trend of the coverage surrogate (`docs/SWEEP.md`, "The trend"). The nightly sweep appends one record of the variant `blocks` to `surrogate-trend.jsonl`. */
+export interface SurrogateTrendRecord {
+  readonly schema: typeof SURROGATE_TREND_SCHEMA;
+  readonly epoch: string;
+  readonly night: string;
+  readonly variant: SurrogateVariant;
+  readonly run?: string;
+  readonly foldBy: SurrogateFoldBy;
+  readonly rows: number;
+  readonly configs: number;
+  /** The held-out skill inside the cells: the main line of the trend. */
+  readonly skill: SurrogateTrendSkill;
+  /** The in-sample skill of the same cells. */
+  readonly inSampleSkill: SurrogateTrendSkill;
+  readonly covered: number;
+  readonly share: number;
+  readonly withRows: number;
+  readonly eligible: number;
+  readonly lambda: number;
+  readonly lambdaAtEdge: boolean;
+}
+
+/**
+ * This function gives the options of `fitSurrogate` for a variant of the trend.
+ * Both variants have the feature blocks of the manifest and folds by input. The variant `pairs` also has the pairs.
+ */
+export function surrogateTrendOptions(variant: SurrogateVariant, manifest: Pick<JointManifest, "inputs">): SurrogateOptions {
+  if (variant !== "blocks" && variant !== "pairs") throw new RangeError(`surrogateTrendOptions: the variant is blocks or pairs, not ${String(variant)}.`);
+  return { features: manifestFeatures(manifest), foldBy: "input", featurePairs: variant === "pairs" };
+}
+
+/** This function gives the trend record of a result of `fitSurrogate`. A skill of NaN becomes `null`, so the JSON line keeps the gap explicit. */
+export function surrogateTrendRecord(result: Surrogate, meta: SurrogateTrendMeta): SurrogateTrendRecord {
+  const value = (v: number): number | null => (Number.isFinite(v) ? v : null);
+  const skill = (s: SurrogateSkill): SurrogateTrendSkill => ({ q10: value(s.q10), median: value(s.median), q90: value(s.q90) });
+  const c = result.cells;
+  return {
+    schema: SURROGATE_TREND_SCHEMA,
+    epoch: meta.epoch,
+    night: meta.night,
+    variant: meta.variant,
+    ...(meta.run === undefined || meta.run === "" ? {} : { run: meta.run }),
+    foldBy: result.foldBy,
+    rows: result.rows,
+    configs: result.configs,
+    skill: skill(c.skill),
+    inSampleSkill: skill(c.inSampleSkill),
+    covered: c.covered,
+    share: c.share,
+    withRows: c.withRows,
+    eligible: c.eligible,
+    lambda: result.lambda,
+    lambdaAtEdge: result.lambdaAtEdge,
+  };
 }

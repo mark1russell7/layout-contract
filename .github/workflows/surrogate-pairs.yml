@@ -1,0 +1,52 @@
+# The weekly fit of the coverage surrogate with the products of the groups and the input features (L52, docs/SWEEP.md, "The trend").
+# It reads the state of the latest epoch from the branch sweep-data, and fits the variant pairs with folds by input.
+# The fit takes approximately 6 to 10 minutes and 550 MB, so it runs in CI only, once each week.
+# It uploads surrogate.json and surrogate.md as the artifact surrogate-pairs, and writes the report to the job summary. It writes nothing to the repository.
+name: Surrogate pairs
+
+on:
+  schedule:
+    # Sunday, after the window of the nightly sweep ends at 14:00 UTC. Each scheduled heavy run of the fleet has its own minute (the rule of 2026-10-30, the check runner-budget).
+    - cron: "20 15 * * 0"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: surrogate-pairs-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  fit:
+    runs-on: ubuntu-latest
+    # The fit takes approximately 6 to 10 minutes. The limit leaves a margin of 3 times that.
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 26
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Read the branch sweep-data
+        run: |
+          mkdir -p "$RUNNER_TEMP/data"
+          git fetch --depth 1 origin sweep-data
+          git archive FETCH_HEAD | tar -x -C "$RUNNER_TEMP/data"
+      - name: Fit the variant pairs
+        working-directory: packages/joint
+        run: |
+          index="$RUNNER_TEMP/data/index.json"
+          epoch="$(node -p 'require(process.argv[1]).latest' "$index")"
+          corpus="$(node -p 'const i = require(process.argv[1]); i.epochs[i.latest].corpus' "$index")"
+          node scripts/surrogate.ts "$RUNNER_TEMP/data/epochs/$epoch/state.json" "corpus/$corpus/corpus.json" pairs "$RUNNER_TEMP/surrogate"
+          { echo "# The coverage surrogate with pairs"; echo; echo "Epoch \`$epoch\`."; echo; cat "$RUNNER_TEMP/surrogate/surrogate.md"; } >> "$GITHUB_STEP_SUMMARY"
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: surrogate-pairs
+          path: ${{ runner.temp }}/surrogate/
+          if-no-files-found: error
