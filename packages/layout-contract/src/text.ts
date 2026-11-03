@@ -105,7 +105,7 @@ interface Word {
 const SPACE = /^\s+$/u;
 
 /** The segmenters of the module. A new `Intl.Segmenter` loads the data of the locale, so the module makes each granularity only once. */
-const segmenters = new Map<"word" | "grapheme", Intl.Segmenter | null>();
+const segmenters = /* @__PURE__ */ new Map<"word" | "grapheme", Intl.Segmenter | null>();
 
 /** This function gives the segmenter of a granularity, or `null` without `Intl.Segmenter`. */
 function segmenterOf(granularity: "word" | "grapheme"): Intl.Segmenter | null {
@@ -119,7 +119,7 @@ function segmenterOf(granularity: "word" | "grapheme"): Intl.Segmenter | null {
 
 /** The largest count of texts in the memo of `wordsOf`. A page often asks for the same labels many times. */
 const WORDS_MEMO = 4096;
-const wordsMemo = new Map<string, readonly Word[]>();
+const wordsMemo = /* @__PURE__ */ new Map<string, readonly Word[]>();
 
 /** This function splits the text into words at white space. Each word holds its word segments (`Intl.Segmenter`), so words that share segments share the cache. */
 function wordsOf(text: string): readonly Word[] {
@@ -332,7 +332,7 @@ export function layoutText(text: string, options: TextLayoutOptions): TextLayout
 export type TextMeasureId = "text.lines" | "text.raggedness" | "text.overflow" | "text.cacheHit" | "text.ms";
 
 /** The specs of the text measures. */
-export const TEXT_MEASURES: readonly MeasureSpec<TextMeasureId>[] = Object.freeze([
+export const TEXT_MEASURES: readonly MeasureSpec<TextMeasureId>[] = /* @__PURE__ */ Object.freeze([
   { id: "text.lines", unit: "count", direction: "lower", min: 1, max: Infinity, minEffect: 0, family: "text" },
   { id: "text.raggedness", unit: "0 to 1", direction: "lower", min: 0, max: 1, minEffect: 0.005, family: "text" },
   { id: "text.overflow", unit: "share of the wrap width", direction: "lower", min: 0, max: Infinity, floor: 0, tol: 0, minEffect: 0, family: "text", role: "guard" },

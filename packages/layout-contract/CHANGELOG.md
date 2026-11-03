@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.3.3
+
+- PATCH before 1.0.0: no change of the API or of a value. A bundler removes the constants that a consumer does not import.
+- Each top-level call of the package has the mark `/* @__PURE__ */`, and `CORPUS_DIMENSIONS.hubBy` has no spread in its literal.
+- Each subpath bundle of packing gets 6.76 to 6.92 kB gzip less (esbuild minified, gzip level 9). `maxrects` goes from 18226 to 11396 bytes.
+- A test bundles an import of one constant and fails when a top-level call has no mark.
+
 ## 0.3.2
 
 - PATCH before 1.0.0: a new optional option, with no break. The breakers of `/text` come from `@mark1russell7/typeset` 0.1.0 (T3 phase B).

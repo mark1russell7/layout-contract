@@ -135,7 +135,7 @@ export interface PackHard {
  * For the other kinds, the count is safe: a shape is inside its bounding box, so the count is an upper bound. A count of 0 tells that the rule has no break.
  * `locked-kept` and `complete` read only the positions and the ids, so they support each kind.
  */
-export const PACK_HARD_RULES: readonly ShapeSupport<keyof PackHard>[] = Object.freeze([
+export const PACK_HARD_RULES: readonly ShapeSupport<keyof PackHard>[] = /* @__PURE__ */ Object.freeze([
   { id: "no-overlap", shapes: ["rect"], safe: ["polygon", "circle", "free"] },
   { id: "in-container", shapes: ["rect"], safe: ["polygon", "circle", "free"] },
   { id: "locked-kept", shapes: SHAPE_KIND_IDS },

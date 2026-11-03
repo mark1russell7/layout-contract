@@ -21,7 +21,7 @@ export interface EdgeStepParams {
 }
 
 /** The mean count of the edges of each box for each value of `edgeDensity`. */
-export const EDGE_DENSITY: Readonly<Record<EdgeStepParams["edgeDensity"], number>> = Object.freeze({ sparse: 0.5, medium: 1.5, dense: 4 });
+export const EDGE_DENSITY: Readonly<Record<EdgeStepParams["edgeDensity"], number>> = /* @__PURE__ */ Object.freeze({ sparse: 0.5, medium: 1.5, dense: 4 });
 
 /** The version of `edgeStep`. A change of its output gives a new version. */
 export const EDGE_STEP_VERSION = 1;

@@ -60,7 +60,7 @@ const AREA: readonly ShapeKind[] = ["rect"];
  * The specs of the joint measures, in the order of `docs/JOINT-MEASURES.md`.
  * `joint.fill` and `joint.straight.length` read the area of each box, so they support only `rect`. `docs/SHAPES.md` tells the reasons.
  */
-export const JOINT_MEASURES: readonly MeasureSpec<JointMeasureId>[] = Object.freeze([
+export const JOINT_MEASURES: readonly MeasureSpec<JointMeasureId>[] = /* @__PURE__ */ Object.freeze([
   { id: "joint.fill", minEffect: 0.001, unit: "0 to 1", direction: "higher", min: 0, max: 1, floor: 1, role: "guard", shapes: AREA },
   { id: "joint.aspectError", minEffect: 0.01, unit: "natural log", direction: "lower", min: 0, max: Infinity, floor: 0, tol: 0.01, role: "guard", shapes: BOUNDS_ONLY },
   { id: "joint.spill", minEffect: 0.001, unit: "0 to 1", direction: "lower", min: 0, max: 1, floor: 0, tol: 0.001, role: "guard", shapes: BOUNDS_ONLY },

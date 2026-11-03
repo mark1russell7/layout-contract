@@ -345,7 +345,7 @@ const supportsShapes = (o: StageOption, shapes: readonly ShapeKind[] | undefined
   shapes === undefined || o.supports?.shape === undefined || shapes.every((k) => o.supports!.shape!.includes(k));
 
 /** The shape kinds that the members of an option with `view: "bounds"` see: a bounding box is a `rect`. */
-const BOUNDS_VIEW: readonly ShapeKind[] = Object.freeze(["rect"] as const);
+const BOUNDS_VIEW: readonly ShapeKind[] = /* @__PURE__ */ Object.freeze(["rect"] as const);
 
 /**
  * This function gives the shape kinds of the members of a meta option. With `view: "bounds"`, a list with a kind becomes `BOUNDS_VIEW`.
@@ -811,7 +811,7 @@ function restrict(space: StrategySpace, shapes: readonly ShapeKind[] | undefined
 }
 
 /** The space of the members of a meta option of a restricted space, when it is not the part of the option. Only `view: "bounds"` makes such a space. */
-const memberSpaces = new WeakMap<StageOption, StrategySpace>();
+const memberSpaces = /* @__PURE__ */ new WeakMap<StageOption, StrategySpace>();
 
 /**
  * This function tells if an option of a restricted space has a member list. A base option and a meta option with a `pool` have one.

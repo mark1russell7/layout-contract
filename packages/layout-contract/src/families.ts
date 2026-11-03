@@ -173,7 +173,7 @@ export interface FamilyRegistry<O = LayoutInput> {
 }
 
 /** The default key of a family in a manifest: the kind of the cell alone. It is the map form of `FamilyBy` with the entry `"*"`. */
-export const DEFAULT_FAMILY_BY: FamilyBy = Object.freeze({ "*": Object.freeze([]) as readonly string[] });
+export const DEFAULT_FAMILY_BY: FamilyBy = /* @__PURE__ */ Object.freeze({ "*": /* @__PURE__ */ Object.freeze([]) as readonly string[] });
 
 /** This function gives an `enum` dimension. */
 const choice = (name: string, values: readonly string[], value: string, meaning: string, engines: readonly string[]): CorpusDimension =>
@@ -199,6 +199,12 @@ const range = (
     engines: Object.freeze([...engines]),
   });
 
+/**
+ * This function gives a dimension with the condition `when`, as a frozen object.
+ * A spread in the literal of `CORPUS_DIMENSIONS` is a side effect for a bundler, so the copy is in this function.
+ */
+const withWhen = (dimension: CorpusDimension, when: NonNullable<CorpusDimension["when"]>): CorpusDimension => Object.freeze({ ...dimension, when });
+
 const P = "packing";
 const H = "highways";
 const J = "joint";
@@ -207,27 +213,27 @@ const J = "joint";
  * The shared dimension table. A family takes a dimension of it with `sharedDimension`, or declares its own dimension.
  * The coverage table of each dimension and each engine is in `docs/CORPUS.md`.
  */
-export const CORPUS_DIMENSIONS: Readonly<Record<string, CorpusDimension>> = Object.freeze({
-  count: range("count", "int", { min: 0, max: 100_000, value: 100, scale: "log", levels: [1, 10, 100, 1000, 10_000] }, "The count of the items (n) of an input.", [P, H, J]),
-  sizes: choice("sizes", ["identical", "nearIdentical", "uniform", "heavyTail", "bimodal", "extremeAspect"], "uniform", "The distribution of the sizes of the items.", [P, J]),
-  aspect: range("aspect", "real", { min: 0.25, max: 4, value: 1, scale: "log" }, "The width over the height of a container with no fixed size.", [P]),
-  density: range("density", "real", { min: 0.05, max: 1, value: 0.4, scale: "linear" }, "The area of the items over the area of the frame of the container.", [P]),
-  obstacles: choice("obstacles", ["none", "center", "scattered", "wall", "corridors", "touching", "edge"], "none", "The layout of the fixed obstacles.", [P, J]),
-  containerSize: choice("containerSize", ["fixed", "freeHeight", "freeWidth", "freeAspect", "freeArea"], "fixed", "The sides of the container that the engine can change.", [P, J]),
-  containerShape: choice("containerShape", ["rect", "convex", "polygon", "circle", "ellipse", "holes"], "rect", "The kind of the shape of the container.", [P, J]),
-  shape: choice("shape", SHAPE_KIND_IDS, "rect", "The shape kind of each item: a `ShapeKind` of `shapes.ts`.", [P]),
-  order: choice("order", ["free", "soft"], "free", "The reading order of the items: no order, or a rank on each item.", [P]),
-  groups: choice("groups", ["none", "flat", "nested"], "none", "The groups of the items: no groups, one level, or groups in groups.", [H, J]),
-  edgeDensity: choice("edgeDensity", ["sparse", "medium", "dense"], "medium", "The mean count of the edges of each item: 0.5, 1.5 or 4.", [H, J]),
-  edgeShape: choice("edgeShape", ["random", "clustered", "hubChain", "hubs", "longRange", "tree", "bundled"], "random", "The topology of the edges.", [H, J]),
-  ports: choice("ports", ["free", "sides", "fixed"], "free", "The ports of the edges: free, a side for each end, or fixed ports.", [H, J]),
-  hubBy: Object.freeze({
-    ...choice("hubBy", ["area", "random"], "area", "The order of the hubs of the shapes hubs and tree: the largest item first, or random.", [J]),
-    when: Object.freeze({ param: "edgeShape", in: Object.freeze(["hubs", "tree"]) }),
-  }),
-  spacing: choice("spacing", ["stress", "gap", "margin", "both"], "both", "The split of the route clearance between the margins and the gap. `stress` has neither.", [J]),
-  margin: range("margin", "real", { min: 0, max: 32, value: 0 }, "The margin of each item, in units.", [P, J]),
-  gap: range("gap", "real", { min: 0, max: 32, value: 0 }, "The free space between two items, in units.", [P, J]),
+export const CORPUS_DIMENSIONS: Readonly<Record<string, CorpusDimension>> = /* @__PURE__ */ Object.freeze({
+  count: /* @__PURE__ */ range("count", "int", { min: 0, max: 100_000, value: 100, scale: "log", levels: [1, 10, 100, 1000, 10_000] }, "The count of the items (n) of an input.", [P, H, J]),
+  sizes: /* @__PURE__ */ choice("sizes", ["identical", "nearIdentical", "uniform", "heavyTail", "bimodal", "extremeAspect"], "uniform", "The distribution of the sizes of the items.", [P, J]),
+  aspect: /* @__PURE__ */ range("aspect", "real", { min: 0.25, max: 4, value: 1, scale: "log" }, "The width over the height of a container with no fixed size.", [P]),
+  density: /* @__PURE__ */ range("density", "real", { min: 0.05, max: 1, value: 0.4, scale: "linear" }, "The area of the items over the area of the frame of the container.", [P]),
+  obstacles: /* @__PURE__ */ choice("obstacles", ["none", "center", "scattered", "wall", "corridors", "touching", "edge"], "none", "The layout of the fixed obstacles.", [P, J]),
+  containerSize: /* @__PURE__ */ choice("containerSize", ["fixed", "freeHeight", "freeWidth", "freeAspect", "freeArea"], "fixed", "The sides of the container that the engine can change.", [P, J]),
+  containerShape: /* @__PURE__ */ choice("containerShape", ["rect", "convex", "polygon", "circle", "ellipse", "holes"], "rect", "The kind of the shape of the container.", [P, J]),
+  shape: /* @__PURE__ */ choice("shape", SHAPE_KIND_IDS, "rect", "The shape kind of each item: a `ShapeKind` of `shapes.ts`.", [P]),
+  order: /* @__PURE__ */ choice("order", ["free", "soft"], "free", "The reading order of the items: no order, or a rank on each item.", [P]),
+  groups: /* @__PURE__ */ choice("groups", ["none", "flat", "nested"], "none", "The groups of the items: no groups, one level, or groups in groups.", [H, J]),
+  edgeDensity: /* @__PURE__ */ choice("edgeDensity", ["sparse", "medium", "dense"], "medium", "The mean count of the edges of each item: 0.5, 1.5 or 4.", [H, J]),
+  edgeShape: /* @__PURE__ */ choice("edgeShape", ["random", "clustered", "hubChain", "hubs", "longRange", "tree", "bundled"], "random", "The topology of the edges.", [H, J]),
+  ports: /* @__PURE__ */ choice("ports", ["free", "sides", "fixed"], "free", "The ports of the edges: free, a side for each end, or fixed ports.", [H, J]),
+  hubBy: /* @__PURE__ */ withWhen(
+    /* @__PURE__ */ choice("hubBy", ["area", "random"], "area", "The order of the hubs of the shapes hubs and tree: the largest item first, or random.", [J]),
+    /* @__PURE__ */ Object.freeze({ param: "edgeShape", in: /* @__PURE__ */ Object.freeze(["hubs", "tree"]) }),
+  ),
+  spacing: /* @__PURE__ */ choice("spacing", ["stress", "gap", "margin", "both"], "both", "The split of the route clearance between the margins and the gap. `stress` has neither.", [J]),
+  margin: /* @__PURE__ */ range("margin", "real", { min: 0, max: 32, value: 0 }, "The margin of each item, in units.", [P, J]),
+  gap: /* @__PURE__ */ range("gap", "real", { min: 0, max: 32, value: 0 }, "The free space between two items, in units.", [P, J]),
 });
 
 /**
@@ -763,7 +769,7 @@ export function composeFamily(base: CorpusFamily<LayoutInput>, steps: readonly C
 }
 
 /** The dimensions of `EDGES_STEP`: the parameters of `edgeStep`, from the shared table. */
-const EDGE_DIMENSIONS: readonly CorpusDimension[] = Object.freeze(["edgeDensity", "edgeShape", "groups", "ports", "hubBy"].map((n) => CORPUS_DIMENSIONS[n]!));
+const EDGE_DIMENSIONS: readonly CorpusDimension[] = /* @__PURE__ */ Object.freeze(/* @__PURE__ */ ["edgeDensity", "edgeShape", "groups", "ports", "hubBy"].map((n) => CORPUS_DIMENSIONS[n]!));
 
 /** This function gives the parameters of `edgeStep` from the values of the dimensions. It throws a `RangeError` for a missing or a bad value. */
 function edgeParams(d: DimensionValues): EdgeStepParams {
@@ -787,7 +793,7 @@ function edgeParams(d: DimensionValues): EdgeStepParams {
  * The step `edges` of `edgeStep` (version 1), as a corpus step. Its family part is `e-<edgeDensity>.<edgeShape>.<groups>.<ports>`.
  * The value `random` of `hubBy` adds the part `.hub-random`.
  */
-export const EDGES_STEP: CorpusStep = Object.freeze({
+export const EDGES_STEP: CorpusStep = /* @__PURE__ */ Object.freeze({
   name: "edges",
   version: 1,
   owner: "layout-contract",
@@ -807,12 +813,12 @@ const XCHECK_SET = "xcheck-v1";
  * It is the one copy of the generator of `docs/FORMAT.md` of `packing`. Its input is the input of `packing`, byte for byte.
  * The steps `container`, `obstacles` and `boxes` each have a stream of `stepRandom`. Each value is a whole number, so the family is `exact`.
  */
-export const RECT_SCATTERED: CorpusFamily<LayoutInput> = Object.freeze({
+export const RECT_SCATTERED: CorpusFamily<LayoutInput> = /* @__PURE__ */ Object.freeze({
   name: "rect-scattered",
   version: 1,
   owner: "layout-contract",
   meaning: "Rectangle obstacles at random places in a fixed rectangle container, and boxes of random sizes.",
-  dimensions: Object.freeze([sharedDimension("count", { default: 40 })]),
+  dimensions: /* @__PURE__ */ Object.freeze([/* @__PURE__ */ sharedDimension("count", { default: 40 })]),
   seeding: "stepRandom(seed, container) gives w and h. stepRandom(seed, obstacles) gives n, then ow, oh, x and y of each obstacle. stepRandom(seed, boxes) gives bw and bh of each box.",
   crossEngine: "exact",
   generate(seed: number, dims: DimensionValues, context: GenerateContext): LayoutInput {
