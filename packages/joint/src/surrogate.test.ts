@@ -17,7 +17,8 @@ const SPACE: StrategySpace = {
   ],
 };
 const GROUPS = [stageGroup("a", "a.x"), stageGroup("b", "b.y"), stageGroup("c", "c.z")];
-const OPTIONS: SurrogateOptions = { space: SPACE, groups: GROUPS, draws: 1024 };
+// The cells of the small space have 3 or 15 rows, so the tests cover a cell from 3 rows.
+const OPTIONS: SurrogateOptions = { space: SPACE, groups: GROUPS, draws: 1024, minRows: 3 };
 const INPUTS = ["alpha", "beta"].flatMap((kind) => [1, 2, 3].map((s) => `toy/${kind}.x/s${s}`));
 
 /** This function gives a config of the small space. A value `k` of `undefined` is a config without the stage `c.z`. */
@@ -53,17 +54,44 @@ describe("fitSurrogate", () => {
     expect(r.r2).toBeGreaterThan(0.99);
     expect(r.rmse).toBeLessThan(0.01);
     expect(r.lambda).toBe(0.01);
-    expect(r.cells).toEqual({ total: 24, covered: 24, empty: 0, share: 1, bound: 0.05, minRows: 3 });
+    expect(r.cells).toMatchObject({ total: 24, withRows: 24, eligible: 24, covered: 24, empty: 0, share: 1, floorRatio: 1.25, minRows: 3, minFloor: 0.01 });
+    expect(r.cells.medianRatio).toBeLessThan(1);
     expect(r.cellErrors).toHaveLength(24);
     expect(Object.keys(r.cellErrors[0]!.levels)).toEqual(["a", "b", "c", KIND_FACTOR]);
-    expect(surrogateMarkdown(r)).toContain("Space coverage: 24 of 24 cells (100.0%)");
+    expect(surrogateMarkdown(r)).toContain("Space coverage: 24 of the 24 cells with rows (100.0%)");
   });
 
-  it("gives an R² near 0 or below, and a low share, on pure noise", () => {
+  it("gives an R² near 0 or below on pure noise, with each RMSE near its floor", () => {
     const draw = random(11);
     const r = fitSurrogate(state(() => draw.next()), OPTIONS);
     expect(r.r2).toBeLessThan(0.1);
-    expect(r.cells.share).toBeLessThan(0.2);
+    // No model predicts noise better than the mean of the cell, so the ratio stays near 1.
+    expect(r.cells.medianRatio).toBeGreaterThan(0.9);
+    expect(r.cells.medianRatio).toBeLessThan(1.5);
+  });
+
+  it("gives each cell the RMSE of its rows around their mean as its floor", () => {
+    const draw = random(12);
+    const s = state(() => draw.next());
+    const r = fitSurrogate(s, OPTIONS);
+    for (const e of r.cellErrors) {
+      expect(e.floor).toBeGreaterThanOrEqual(0);
+      expect(e.ratio).toBeCloseTo(e.rmse / Math.max(e.floor, 0.01), 12);
+      expect(e.covered).toBe(e.rows >= 3 && e.ratio <= 1.25);
+    }
+  });
+
+  it("covers no cell with fewer rows than minRows", () => {
+    const r = fitSurrogate(state(additive), { ...OPTIONS, minRows: 20 });
+    expect(r.cells.eligible).toBe(0);
+    expect(r.cells.covered).toBe(0);
+    expect(r.cells.share).toBe(0);
+    expect(r.cells.medianRatio).toBeNaN();
+  });
+
+  it("refuses a floorRatio or a minFloor of 0", () => {
+    expect(() => fitSurrogate(state(additive), { ...OPTIONS, floorRatio: 0 })).toThrow(RangeError);
+    expect(() => fitSurrogate(state(additive), { ...OPTIONS, minFloor: 0 })).toThrow(RangeError);
   });
 
   it("counts the cells with no rows, and does not cover them", () => {

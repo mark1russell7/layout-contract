@@ -2,7 +2,7 @@
 // A ridge regression over the configs and the board kinds predicts the score. Its held-out error in each cell tells which part of the space the sweep measures.
 import type { StrategyConfig, StrategySpace } from "@mark1russell7/layout-contract";
 import { deriveSeed, random } from "@mark1russell7/rigor-generators";
-import { mean, sd } from "@mark1russell7/rigor-statistics";
+import { mean, median, sd } from "@mark1russell7/rigor-statistics";
 import { kindOf } from "./check.ts";
 import type { SweepState } from "./night.ts";
 import { JOINT_GROUPS, saltelliDesign, saltelliIndices, type SensitivityGroup } from "./sensitivity.ts";
@@ -19,10 +19,12 @@ export interface SurrogateOptions {
   readonly folds?: number;
   /** The candidates of the ridge penalty. The fit uses the candidate with the smallest held-out error. The default is 0.01, 0.1, 1 and 10. */
   readonly lambdas?: readonly number[];
-  /** The largest held-out RMSE of a covered cell. The default is 0.05. */
-  readonly bound?: number;
-  /** The smallest count of rows of a covered cell. The default is 3. */
+  /** The largest ratio of the held-out RMSE of a covered cell to its floor. The default is 1.25. */
+  readonly floorRatio?: number;
+  /** The smallest count of rows of a covered cell. The default is 20. */
   readonly minRows?: number;
+  /** The smallest floor of a cell. A cell with a constant score has the floor 0, so the ratio uses this value. The default is 0.01. */
+  readonly minFloor?: number;
   /** The count `N` of the rows of the Sobol design. The default is 4096. */
   readonly draws?: number;
   /** The space of the configs. The default is `JOINT_SPACE`. */
@@ -47,20 +49,34 @@ export interface SurrogateCell {
   readonly rows: number;
   /** The RMSE of the out-of-fold predictions of the rows of the cell. */
   readonly rmse: number;
+  /** The floor of the cell: the RMSE of its rows around their own mean. No model on the features of the cell has a smaller error. */
+  readonly floor: number;
+  /** `rmse` divided by the larger of `floor` and `minFloor`. */
+  readonly ratio: number;
   readonly covered: boolean;
 }
 
-/** The coverage of the cells of the space. */
+/**
+ * The coverage of the cells of the space. A covered cell has `minRows` rows or more, and a held-out RMSE of at most `floorRatio` times its floor.
+ * The weekly trend reads `share`, `withRows` and `medianRatio`.
+ */
 export interface SurrogateCells {
   /** The count of all cells, with the cells that have no rows. */
   readonly total: number;
+  /** The count of the cells with rows. */
+  readonly withRows: number;
+  /** The count of the cells with `minRows` rows or more. */
+  readonly eligible: number;
   readonly covered: number;
   /** The count of the cells with no rows. */
   readonly empty: number;
-  /** `covered` divided by `total`. */
+  /** `covered` divided by `withRows`, or 0 when no cell has rows. */
   readonly share: number;
-  readonly bound: number;
+  /** The median of `ratio` over the cells with `minRows` rows or more, or NaN when there are none. */
+  readonly medianRatio: number;
+  readonly floorRatio: number;
   readonly minRows: number;
+  readonly minFloor: number;
 }
 
 /** The first and total Sobol index of one factor of the surrogate. */
@@ -194,7 +210,8 @@ function predict(beta: Float64Array, idx: readonly number[], val: readonly numbe
  * - The features are a one-hot of each group and of the board kind, and the product of each pair of these.
  * - Each numeric param gives one more feature: its z value over the rows.
  * - The penalty is on each feature but the intercept. The folds keep all rows of one config together.
- * - A cell is one level of each group and one board kind. A covered cell has `minRows` rows or more and a held-out RMSE of `bound` or less.
+ * - A cell is one level of each group and one board kind. A covered cell has `minRows` rows or more and a held-out RMSE of at most `floorRatio` times its floor.
+ * - The floor of a cell is the RMSE of its rows around their mean, and at least `minFloor`.
  * - The Sobol design of `saltelliDesign` draws the configs, and a seeded draw gives the board kinds of the rows.
  * The function throws a `RangeError` when the state has no rows, or fewer than 2 configs with rows.
  */
@@ -202,8 +219,10 @@ export function fitSurrogate(state: SweepState, options: SurrogateOptions = {}):
   const seed = options.seed ?? 1;
   const folds = options.folds ?? 5;
   const lambdas = options.lambdas ?? [0.01, 0.1, 1, 10];
-  const bound = options.bound ?? 0.05;
-  const minRows = options.minRows ?? 3;
+  const floorRatio = options.floorRatio ?? 1.25;
+  const minRows = options.minRows ?? 20;
+  const minFloor = options.minFloor ?? 0.01;
+  if (!(floorRatio > 0) || !(minFloor > 0)) throw new RangeError(`fitSurrogate: floorRatio and minFloor are numbers above 0, not ${floorRatio} and ${minFloor}.`);
   const draws = options.draws ?? 4096;
   const space = options.space ?? JOINT_SPACE;
   const groups = options.groups ?? JOINT_GROUPS;
@@ -342,21 +361,27 @@ export function fitSurrogate(state: SweepState, options: SurrogateOptions = {}):
   const rmseOf = (sse: number): number => Math.sqrt(sse / rows.length);
 
   // The held-out error of each cell with rows. The other cells count as not covered.
-  const byCell = new Map<string, { n: number; sse: number }>();
+  const byCell = new Map<string, { n: number; sse: number; ys: number[] }>();
   rows.forEach((r, k) => {
-    const c = byCell.get(r.cell) ?? { n: 0, sse: 0 };
+    const c = byCell.get(r.cell) ?? { n: 0, sse: 0, ys: [] };
     c.n++;
     c.sse += (r.y - best.out[k]!) ** 2;
+    c.ys.push(r.y);
     byCell.set(r.cell, c);
   });
   const cellErrors: SurrogateCell[] = [...byCell.entries()].map(([key, c]) => {
     const levels = JSON.parse(key) as string[];
     const rmse = Math.sqrt(c.sse / c.n);
-    return { levels: Object.fromEntries(blocks.map((b, k) => [b.name, levels[k]!])), rows: c.n, rmse, covered: c.n >= minRows && rmse <= bound };
+    const m = mean(c.ys);
+    const floor = Math.sqrt(c.ys.reduce((s, y) => s + (y - m) ** 2, 0) / c.n);
+    const ratio = rmse / Math.max(floor, minFloor);
+    return { levels: Object.fromEntries(blocks.map((b, k) => [b.name, levels[k]!])), rows: c.n, rmse, floor, ratio, covered: c.n >= minRows && ratio <= floorRatio };
   });
   cellErrors.sort((a, b) => b.rmse - a.rmse || JSON.stringify(a.levels).localeCompare(JSON.stringify(b.levels)));
   const cellCount = blocks.reduce((s, b) => s * b.levels.length, 1);
   const covered = cellErrors.filter((c) => c.covered).length;
+  const eligible = cellErrors.filter((c) => c.rows >= minRows);
+  const medianRatio = eligible.length > 0 ? median(eligible.map((c) => c.ratio)) : Number.NaN;
 
   // The Sobol indices of the fit on all rows. Each group is the stage of the space that it reads, with the params of the stage.
   const beta = solve(best.lambda, null);
@@ -390,7 +415,18 @@ export function fitSurrogate(state: SweepState, options: SurrogateOptions = {}):
     lambdas: heldOut.map((h) => ({ lambda: h.lambda, r2: r2Of(h.sse), rmse: rmseOf(h.sse) })),
     r2: r2Of(best.sse),
     rmse: rmseOf(best.sse),
-    cells: { total: cellCount, covered, empty: cellCount - byCell.size, share: covered / cellCount, bound, minRows },
+    cells: {
+      total: cellCount,
+      withRows: byCell.size,
+      eligible: eligible.length,
+      covered,
+      empty: cellCount - byCell.size,
+      share: byCell.size > 0 ? covered / byCell.size : 0,
+      medianRatio,
+      floorRatio,
+      minRows,
+      minFloor,
+    },
     cellErrors,
     sobol: { draws: design.rows.length, factors },
     foldOf,
@@ -406,7 +442,9 @@ export function surrogateMarkdown(result: Surrogate, worst = 10): string {
     "",
     `The penalty λ = ${result.lambda}. The held-out R² is ${f(result.r2)}, and the held-out RMSE is ${f(result.rmse)}.`,
     "",
-    `Space coverage: ${c.covered} of ${c.total} cells (${(100 * c.share).toFixed(1)}%). A covered cell has ${c.minRows} rows or more and an RMSE of ${c.bound} or less. ${c.empty} cells have no rows.`,
+    `Space coverage: ${c.covered} of the ${c.withRows} cells with rows (${(100 * c.share).toFixed(1)}%). ${c.eligible} cells have ${c.minRows} rows or more. The space has ${c.total} cells, and ${c.empty} have no rows.`,
+    "",
+    `A covered cell has ${c.minRows} rows or more and a held-out RMSE of at most ${c.floorRatio} times its floor (at least ${c.minFloor}). The median ratio of RMSE to floor is ${f(c.medianRatio)}.`,
     "",
     "| λ | Held-out R² | Held-out RMSE |",
     "|---|---|---|",
@@ -420,9 +458,9 @@ export function surrogateMarkdown(result: Surrogate, worst = 10): string {
     "",
     `The ${Math.min(worst, result.cellErrors.length)} cells with the largest held-out RMSE:`,
     "",
-    "| Cell | Rows | RMSE |",
-    "|---|---|---|",
-    ...result.cellErrors.slice(0, worst).map((e) => `| ${Object.values(e.levels).join(" · ")} | ${e.rows} | ${f(e.rmse)} |`),
+    "| Cell | Rows | RMSE | Floor | Ratio |",
+    "|---|---|---|---|---|",
+    ...result.cellErrors.slice(0, worst).map((e) => `| ${Object.values(e.levels).join(" · ")} | ${e.rows} | ${f(e.rmse)} | ${f(e.floor)} | ${f(e.ratio)} |`),
     "",
   ].join("\n");
 }

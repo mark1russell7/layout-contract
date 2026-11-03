@@ -289,7 +289,9 @@ The space coverage is the share of the cells of the joint space with a measured 
 - Each numeric param gives one more feature: its z value.
 - The penalty is on each feature but the intercept. The fit chooses λ from 0.01, 0.1, 1 and 10 by the held-out error.
 - The held-out error uses 5 folds by config. A seeded hash of the config id gives its fold, so all rows of a config are in one fold.
-- A cell is covered when it has 3 rows or more and the RMSE of its out-of-fold predictions is 0.05 or less. These values are options.
+- The floor of a cell is the RMSE of its rows around their own mean, and at least 0.01. No model on the features of the cell has a smaller error.
+- A cell is covered when it has 20 rows or more, and the RMSE of its out-of-fold predictions is at most 1.25 times its floor. These values are options.
+- A cell with a constant score has the floor 0. Thus the floor has the smallest value 0.01.
 - The Sobol indices of the surrogate come from a Saltelli design of 4096 rows over the space. A seeded draw gives the board kind of each row.
 - Each group index includes the params of its stage. The factor `kind` is the board kind.
 
@@ -302,10 +304,12 @@ The first numbers come from `epochs/joint-v2_packing-0.4.1_highways-0.10.0_space
 | λ | 10 |
 | Held-out R² | 0.243 |
 | Held-out RMSE | 0.280 |
-| Covered cells | 2 of 6480 (0.03%) |
-| Cells with no rows | 6144 |
+| Cells with rows | 336 of 6480 |
+| Cells with 20 rows or more | 156 |
+| Covered cells | 150 of the 336 cells with rows (44.6%) |
+| Median ratio of RMSE to floor | 1.010, over the 156 cells with 20 rows or more |
 
-The cells are 15 routers × 18 pack entries × 4 lane modes × 6 board kinds. The 2 covered cells are `portfolio`, no lanes, `rows` or `select`, on `word-cloud`.
+The cells are 15 routers × 18 pack entries × 4 lane modes × 6 board kinds. The quantiles 0.1, 0.5 and 0.9 of the ratio are 1.000, 1.010 and 1.083. 150 of the 156 cells with 20 rows or more are covered. Thus the count of rows limits the share, not the fit.
 
 | Factor | First | Total |
 |---|---|---|
@@ -317,8 +321,15 @@ The cells are 15 routers × 18 pack entries × 4 lane modes × 6 board kinds. Th
 - The board kind sets most of the variance of the surrogate. Of the groups, the router sets the most.
 - The fit chose the largest λ of the list. A larger λ can give a smaller error.
 - The fit error is near its floor. The RMSE of each cell around its own mean is 0.272, so most of the error is in the cells.
-- At that floor, only 17 of the 336 cells with rows have an RMSE of 0.05 or less. Thus the bound needs a finer cell than the board kind.
+- An absolute bound of 0.05 is below the floor of 319 of the 336 cells with rows. Thus the bound is relative to the floor.
+- A ratio near 1 means that the fit gives the mean of the cell, and no more. A finer cell, with input features in place of the board kind, makes the floor smaller.
 - 41% of the rows have the score 0.
+
+The weekly trend has three lines:
+
+- the covered share of the cells with rows.
+- the count of the cells with rows.
+- the median ratio of RMSE to floor.
 
 ## The cost model
 
