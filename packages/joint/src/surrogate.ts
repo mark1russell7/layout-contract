@@ -2,7 +2,7 @@
 // A ridge regression over the configs and the board kinds predicts the score. Its held-out error in each cell tells which part of the space the sweep measures.
 import type { StrategyConfig, StrategySpace } from "@mark1russell7/layout-contract";
 import { deriveSeed, random } from "@mark1russell7/rigor-generators";
-import { mean, median, quantile, sd } from "@mark1russell7/rigor-statistics";
+import { mean, median, quantile, ridgeSolve, sd } from "@mark1russell7/rigor-statistics";
 import { kindOf } from "./check.ts";
 import type { JointManifest } from "./corpus.ts";
 import type { SweepState } from "./night.ts";
@@ -213,37 +213,6 @@ function groupLevels(group: SensitivityGroup, space: StrategySpace, seen: Iterab
   return levels;
 }
 
-/**
- * This function solves `A x = b` for a symmetric positive definite matrix `A` of size `n` by a Cholesky factorization.
- * The matrix is in row order. The function reads the lower triangle and writes the factor into it.
- */
-function solvePositive(a: Float64Array, b: Float64Array, n: number): Float64Array {
-  for (let j = 0; j < n; j++) {
-    let d = a[j * n + j]!;
-    for (let k = 0; k < j; k++) d -= a[j * n + k]! ** 2;
-    if (!(d > 0)) throw new RangeError(`fitSurrogate: the matrix of the fit is not positive definite at row ${j}.`);
-    const l = Math.sqrt(d);
-    a[j * n + j] = l;
-    for (let i = j + 1; i < n; i++) {
-      let s = a[i * n + j]!;
-      for (let k = 0; k < j; k++) s -= a[i * n + k]! * a[j * n + k]!;
-      a[i * n + j] = s / l;
-    }
-  }
-  const x = Float64Array.from(b);
-  for (let i = 0; i < n; i++) {
-    let s = x[i]!;
-    for (let k = 0; k < i; k++) s -= a[i * n + k]! * x[k]!;
-    x[i] = s / a[i * n + i]!;
-  }
-  for (let i = n - 1; i >= 0; i--) {
-    let s = x[i]!;
-    for (let k = i + 1; k < n; k++) s -= a[k * n + i]! * x[k]!;
-    x[i] = s / a[i * n + i]!;
-  }
-  return x;
-}
-
 /** This function gives the value of a sparse row with the coefficients `beta`. */
 function predict(beta: Float64Array, idx: readonly number[], val: readonly number[]): number {
   let s = 0;
@@ -395,15 +364,19 @@ export function fitSurrogate(state: SweepState, options: SurrogateOptions = {}):
     for (let k = 0; k < total.length; k++) total[k]! += gram[f]![k]!;
     for (let k = 0; k < width; k++) totalMoment[k]! += moment[f]![k]!;
   }
+  // The ridge solve of rigor-statistics. Coefficient 0 is the intercept, so it has no penalty.
   const solve = (lambda: number, without: number | null): Float64Array => {
-    const a = Float64Array.from(total);
-    const b = Float64Array.from(totalMoment);
+    let a: Float64Array = total;
+    let b: Float64Array = totalMoment;
     if (without !== null) {
+      a = Float64Array.from(total);
+      b = Float64Array.from(totalMoment);
       for (let k = 0; k < a.length; k++) a[k]! -= gram[without]![k]!;
       for (let k = 0; k < width; k++) b[k]! -= moment[without]![k]!;
     }
-    for (let k = 1; k < width; k++) a[k * width + k]! += lambda;
-    return solvePositive(a, b, width);
+    const beta = ridgeSolve(a, b, lambda, { free: [0] });
+    if (beta.some((v) => Number.isNaN(v))) throw new RangeError(`fitSurrogate: the matrix of the fit is not positive definite at lambda ${lambda}.`);
+    return Float64Array.from(beta);
   };
 
   const ys = rows.map((r) => r.y);
