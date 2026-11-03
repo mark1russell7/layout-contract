@@ -1,0 +1,163 @@
+{
+ "date": "2026-11-03",
+ "seed": 20261103,
+ "drift": 265,
+ "values": 3099,
+ "missing": 541,
+ "shards": [
+  {
+   "round": 1,
+   "shard": 0,
+   "planned": 17.949667903546683,
+   "real": 10.15933593075,
+   "costModel": "factors-2026-11-02"
+  },
+  {
+   "round": 1,
+   "shard": 1,
+   "planned": 17.949654113972908,
+   "real": 34.591657800583334,
+   "costModel": "factors-2026-11-02"
+  },
+  {
+   "round": 1,
+   "shard": 2,
+   "planned": 17.949631179576297,
+   "real": 19.772811869783332,
+   "costModel": "factors-2026-11-02"
+  },
+  {
+   "round": 1,
+   "shard": 3,
+   "planned": 17.949654515273505,
+   "real": 57.45829804401667,
+   "costModel": "factors-2026-11-02"
+  },
+  {
+   "round": 1,
+   "shard": 5,
+   "planned": 17.94962960152599,
+   "real": 36.12746085588333,
+   "costModel": "factors-2026-11-02"
+  },
+  {
+   "round": 1,
+   "shard": 6,
+   "planned": 17.949653937130943,
+   "real": 61.15865617520001,
+   "costModel": "factors-2026-11-02"
+  },
+  {
+   "round": 1,
+   "shard": 7,
+   "planned": 17.94965418498619,
+   "real": 86.84135309431667,
+   "costModel": "factors-2026-11-02"
+  },
+  {
+   "round": 1,
+   "shard": 8,
+   "planned": 17.94963090189616,
+   "real": 42.382224444083334,
+   "costModel": "factors-2026-11-02"
+  },
+  {
+   "round": 2,
+   "shard": 0,
+   "planned": 10.726428868481552,
+   "real": 5.45987829055,
+   "costModel": "factors-2026-11-02"
+  }
+ ],
+ "round1": {
+  "configs": 36,
+  "sampled": 33,
+  "jobs": 4242,
+  "units": 326,
+  "shards": 9,
+  "minutes": 161.54680515187104,
+  "longest": 17.949667903546683
+ },
+ "cost": {
+  "1": {
+   "scale": 1.504,
+   "budget": 121,
+   "maxShards": 9
+  },
+  "2": {
+   "scale": 2.361175261804752,
+   "budget": 61,
+   "maxShards": 3
+  }
+ },
+ "race": {
+  "raced": 64,
+  "dropped": 35,
+  "halved": 19,
+  "alive": 10,
+  "full": 22,
+  "fullDropped": 0
+ },
+ "round2": {
+  "configs": 1,
+  "sampled": 0,
+  "jobs": 202,
+  "units": 202,
+  "shards": 1,
+  "minutes": 10.726428868481552,
+  "longest": 10.726428868481552
+ },
+ "run": "41573500756",
+ "counts": {
+  "baseline": 3,
+  "screened": 0,
+  "alive": 32,
+  "dropped": 125,
+  "halved": 59,
+  "design": 0
+ },
+ "facts": {
+  "costModel": {
+   "p": 0.6,
+   "within": 0.25,
+   "shards": 9,
+   "hits": 0,
+   "stopped": 0,
+   "brier": 0.35999999999999993,
+   "cost": {
+    "1": {
+     "scale": 1.504,
+     "budget": 121,
+     "maxShards": 9
+    },
+    "2": {
+     "scale": 2.361175261804752,
+     "budget": 61,
+     "maxShards": 3
+    }
+   }
+  },
+  "longestShard": 86.84135309431667,
+  "newConfigs": 33,
+  "raced": 64,
+  "dropShare": 0.546875,
+  "better": 12,
+  "plannedMinutes": 154.32360520639025,
+  "realMinutes": 353.9516765051667,
+  "misses": {
+   "rows+portfolio": {
+    "misses": 143,
+    "of": 222
+   },
+   "select+portfolio": {
+    "misses": 140,
+    "of": 222
+   },
+   "lanes-sides.maxrects-cp.corners+corners": {
+    "misses": 3,
+    "of": 222
+   }
+  },
+  "incumbent": "lanes-sides.maxrects-cp.corners+corners"
+ }
+}
