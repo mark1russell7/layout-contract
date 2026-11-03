@@ -1,9 +1,10 @@
 import type { LayoutInput } from "@mark1russell7/layout-contract";
 import { describe, expect, it } from "vitest";
+import { BASELINE, GRAPH_COMPARE, packOf, routerOfPair } from "./analysis.ts";
 import { jointCorpus } from "./corpus.ts";
 import { ITER_VARIANTS, iterEntries } from "./lanes.ts";
 import { insideLength, jointMeasures, placementFacts, segmentsCross, spearman } from "./joint-measures.ts";
-import { factMeasures, HIGHWAY_ROUTERS, jointHash, OPEN_ROUTERS, packedInput, packInputOf, PACK_ENTRIES, pairId, PORTFOLIO_ROUTER, ROUTERS, runInput, shardOf } from "./runner.ts";
+import { factMeasures, GRAPH_BFS, HIGHWAY_ROUTERS, jointHash, OPEN_ROUTERS, packedInput, packInputOf, PACK_ENTRIES, pairId, pairRuns, PORTFOLIO_ROUTER, readsLinks, ROUTERS, runInput, shardOf } from "./runner.ts";
 
 const fixed = (w: number, h: number) => ({ fixed: "size" as const, w, h });
 
@@ -170,16 +171,57 @@ describe("runInput", () => {
 });
 
 describe("the parts of the runner", () => {
-  it("lists 18 pack entries and the 15 routers, with the highway routers before portfolio", () => {
-    expect(PACK_ENTRIES).toHaveLength(18);
+  it("lists 20 pack entries and the 15 routers, with the highway routers before portfolio", () => {
+    expect(PACK_ENTRIES).toHaveLength(20);
     // The entries of bench-4 come after select, so the pairs of bench-3 keep their order
     expect(PACK_ENTRIES[12]).toEqual({ id: "select", strategy: "select", options: {} });
-    expect(PACK_ENTRIES.slice(13).map((p) => p.id)).toEqual(["anneal-maxrects-bl-k16", "anneal-skyline-k16", "genetic-maxrects-bl-k16", "tabu-maxrects-bl-k16", "pack"]);
+    expect(PACK_ENTRIES.slice(13).map((p) => p.id)).toEqual(["anneal-maxrects-bl-k16", "anneal-skyline-k16", "genetic-maxrects-bl-k16", "tabu-maxrects-bl-k16", "pack", "rows-graph-bfs", "maxrects-bl-graph-bfs"]);
     expect(ROUTERS).toHaveLength(15);
     expect(ROUTERS.slice(9, 14)).toEqual([...HIGHWAY_ROUTERS]);
     expect(ROUTERS).toContain("corners");
     expect(ROUTERS.at(-1)).toBe(PORTFOLIO_ROUTER);
     expect(pairId("rows", "corners")).toBe("rows+corners");
+  });
+
+  it("gives the links only to the entries of L47, which pack in the order graph-bfs", () => {
+    expect(PACK_ENTRIES.filter(readsLinks).map((p) => p.id)).toEqual(["rows-graph-bfs", "maxrects-bl-graph-bfs"]);
+    for (const p of PACK_ENTRIES.filter(readsLinks)) expect(p.options["sortOrder"]).toBe(GRAPH_BFS);
+    expect(PACK_ENTRIES.find((p) => p.id === "maxrects-bl-graph-bfs")!.options).toEqual({ rule: "bl", sortOrder: GRAPH_BFS });
+    expect("links" in packInputOf(three)).toBe(false);
+    expect(packInputOf(three, { links: true }).links).toEqual([{ a: 0, b: 1 }, { a: 1, b: 2 }]);
+  });
+
+  it("compares the graph-bfs pairs of the default analysis with pairs of the bench", () => {
+    const ids = PACK_ENTRIES.map((p) => p.id);
+    for (const pair of GRAPH_COMPARE.flat()) {
+      expect(ids).toContain(packOf(pair));
+      expect(ROUTERS).toContain(routerOfPair(pair));
+    }
+    expect(GRAPH_COMPARE.filter(([, b]) => b === BASELINE).map(([a]) => a)).toEqual(["rows-graph-bfs+portfolio", "maxrects-bl-graph-bfs+portfolio"]);
+  });
+
+  it("packs the hub of the links first with rows-graph-bfs, and the largest box first with rows", () => {
+    // The box d is the smallest, and it has the 3 links. Thus graph-bfs puts it first, and the area order puts it last.
+    const star: LayoutInput = {
+      schema: "layout-input/1",
+      id: "test/star/s1",
+      seed: 1,
+      container: fixed(200, 200),
+      boxes: [
+        { id: "a", w: 40, h: 10 },
+        { id: "b", w: 30, h: 10 },
+        { id: "c", w: 20, h: 10 },
+        { id: "d", w: 10, h: 10 },
+      ],
+      edges: ["a", "b", "c"].map((t, i) => ({ id: `e${i}`, source: "d", target: t })),
+    };
+    const packs = PACK_ENTRIES.filter((p) => p.id === "rows" || p.id === "rows-graph-bfs");
+    const xOf = (pack: string, id: string): number => {
+      const run = [...pairRuns(star, undefined, { packs, routers: ["corners"] })].find((r) => r.record.strategy === pairId(pack, "corners"))!;
+      return run.pack!.placements.find((p) => p.id === id)!.x;
+    };
+    expect(xOf("rows-graph-bfs", "d")).toBeLessThan(xOf("rows-graph-bfs", "a"));
+    expect(xOf("rows", "d")).toBeGreaterThan(xOf("rows", "a"));
   });
 
   it("removes the groups from the input of the packer", () => {

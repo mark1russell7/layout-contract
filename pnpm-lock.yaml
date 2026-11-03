@@ -215,8 +215,8 @@ importers:
         specifier: workspace:*
         version: link:../layout-contract
       '@mark1russell7/packing':
-        specifier: ^0.4.0
-        version: 0.4.1
+        specifier: ^0.5.0
+        version: 0.5.0
       '@mark1russell7/rigor-bench':
         specifier: ^0.2.2
         version: 0.2.2
@@ -280,8 +280,8 @@ importers:
         specifier: workspace:*
         version: link:../layout-contract
       '@mark1russell7/packing':
-        specifier: ^0.4.0
-        version: 0.4.1
+        specifier: ^0.5.0
+        version: 0.5.0
       marked:
         specifier: ^18.1.2
         version: 18.1.2
@@ -525,8 +525,12 @@ packages:
     resolution: {integrity: sha512-Mls2V7uo5zGS6o5apBCJAKN3T4oZ3A2yuxUJUBzICDzIWT+YiIP+yOcBfVpjf22cPG5GMr+/abC7UJ4u4bXTlA==}
     engines: {node: '>=22.12'}
 
-  '@mark1russell7/packing@0.4.1':
-    resolution: {integrity: sha512-V+2ZVIiJPFeQhTiKCl8ONaHEr5vlaBrPDi/dCuUlUQgy0ffXst+hsb82U0XZaPVfF8bEt/PdzuYwGwGJ5s83WQ==}
+  '@mark1russell7/layout-contract@0.3.2':
+    resolution: {integrity: sha512-1IT3x6PD8j8Tkn2CWe5ZvC69Uc6tisjBDd171s9ww6+xdxwTG+n8eh2kbrNxmxGTeL7L4OK0f8IWUaOJ152sPQ==}
+    engines: {node: '>=22.12'}
+
+  '@mark1russell7/packing@0.5.0':
+    resolution: {integrity: sha512-HAfaCPHn0R+/C54WDVT/FHmjFkLl+NypCFGSTkDAWKls0sgJfvzZk54C6WbcLRSxXbySR56eYZqJDE8+FvtYsA==}
     engines: {node: '>=22.12'}
 
   '@mark1russell7/rigor-bench@0.2.2':
@@ -1717,9 +1721,14 @@ snapshots:
 
   '@mark1russell7/layout-contract@0.2.21': {}
 
-  '@mark1russell7/packing@0.4.1':
+  '@mark1russell7/layout-contract@0.3.2':
     dependencies:
-      '@mark1russell7/layout-contract': 0.2.21
+      '@mark1russell7/rigor-generators': 0.1.0
+      '@mark1russell7/typeset': 0.1.0
+
+  '@mark1russell7/packing@0.5.0':
+    dependencies:
+      '@mark1russell7/layout-contract': 0.3.2
 
   '@mark1russell7/rigor-bench@0.2.2':
     dependencies:

@@ -11,10 +11,11 @@ import {
   type LayoutInput,
   type LayoutRecord,
   type PackInput,
+  type PackInputOptions,
   type PackOutput,
   type RunEnv,
 } from "@mark1russell7/layout-contract";
-import { checkHard, measure, outputHash as packHash, packWith, SELECT_MEMBERS, SELECT_TABLE, selectFeatures, selectLeaf, strategy as packStrategy, unsupportedOf, type SelectNode } from "@mark1russell7/packing";
+import { checkHard, GRAPH_ORDERS, measure, outputHash as packHash, packWith, SELECT_MEMBERS, SELECT_TABLE, selectFeatures, selectLeaf, strategy as packStrategy, unsupportedOf, type SelectNode } from "@mark1russell7/packing";
 import {
   asRouter,
   benchRun,
@@ -76,6 +77,9 @@ export const PACK_DEFAULT_TABLE: SelectNode = Object.freeze({
   no: { leaf: 7, pick: 0 },
 } satisfies SelectNode) as SelectNode;
 
+/** The sort order `graph-bfs` of `packing` 0.5.0 (roadmap item L47): a breadth-first walk of the links of the items, from the hub of each component. */
+export const GRAPH_BFS = "graph-bfs";
+
 /** The member of the entry `maxrects-bl`, for the order searches of `packing` 0.3.0 (roadmap item k26 of `packing`). */
 const MAXRECTS_BL = { id: "maxrects-bl", strategy: "maxrects", options: { rule: "bl" } };
 
@@ -85,7 +89,8 @@ const MAXRECTS_BL = { id: "maxrects-bl", strategy: "maxrects", options: { rule: 
  * - The composite strategy `select` of `packing` 0.2.15 (roadmap item L32) packs each input with `rows` or `maxrects-bl`. Its output is the output of that member.
  * - The entries of roadmap item k26 of `packing` 0.3.0 (`bench/entries.ts`): `anneal`, `genetic` and `tabu` search over the orders, with 16 packs of their member.
  * - The entry `pack` gives the choice of `pack()` without a strategy (`PACK_DEFAULT_TABLE`). The prediction `packing-k58-step-a` scores it.
- * The entries of bench-4 come after `select`. Thus the pairs of bench-3 keep their order.
+ * - The entries `rows-graph-bfs` and `maxrects-bl-graph-bfs` of roadmap item L47 pack in the order `graph-bfs` of `packing` 0.5.0. Their pack input has the links of the edges (`readsLinks`).
+ * The entries of bench-4 come after `select`. Thus the pairs of bench-3 keep their order. The entries of L47 come last, so each earlier pair keeps its order.
  */
 export const PACK_ENTRIES: readonly PackEntry[] = Object.freeze([
   { id: "rows", strategy: "rows", options: {} },
@@ -106,7 +111,18 @@ export const PACK_ENTRIES: readonly PackEntry[] = Object.freeze([
   { id: "genetic-maxrects-bl-k16", strategy: "genetic", options: { member: MAXRECTS_BL, iterations: 16, population: 4 } },
   { id: "tabu-maxrects-bl-k16", strategy: "tabu", options: { member: MAXRECTS_BL, iterations: 16, neighbors: 4 } },
   { id: "pack", strategy: "select", options: { table: PACK_DEFAULT_TABLE } },
+  { id: "rows-graph-bfs", strategy: "rows", options: { sortOrder: GRAPH_BFS } },
+  { id: "maxrects-bl-graph-bfs", strategy: "maxrects", options: { rule: "bl", sortOrder: GRAPH_BFS } },
 ]);
+
+/**
+ * This function tells if a pack entry reads the links of the items: its sort order is a graph order of `packing`.
+ * Only these entries get a pack input with `links`. Thus the pack input of each other entry does not change.
+ */
+export function readsLinks(entry: PackEntry): boolean {
+  const order = fullOptions(entry)["sortOrder"];
+  return (GRAPH_ORDERS as readonly unknown[]).includes(order);
+}
 
 /** The id of the composite pack entry `select` in the pair ids. */
 export const SELECT_PACK = "select";
@@ -233,13 +249,16 @@ export interface RunOptions {
   readonly freeRoutes?: boolean;
 }
 
-/** This function gives the input of the packer: the boxes without `group` and `parent`. No strategy of `packing` 0.2.10 supports groups. */
-export function packInputOf(input: LayoutInput): PackInput {
+/**
+ * This function gives the input of the packer: the boxes without `group` and `parent`. No strategy of `packing` 0.2.10 supports groups.
+ * With the option `links`, the input also has the links of the edges (`packLinks` of `layout-contract`). A graph order reads them.
+ */
+export function packInputOf(input: LayoutInput, options: PackInputOptions = {}): PackInput {
   const boxes = input.boxes.map((box) => {
     const { group: _group, parent: _parent, ...rest } = box;
     return rest;
   });
-  return toPackInput({ ...input, boxes });
+  return toPackInput({ ...input, boxes }, options);
 }
 
 /** The routed input of one pack: the placed boxes, and the edges between them. */
@@ -458,6 +477,9 @@ export function* pairRuns(input: LayoutInput, cell: Readonly<Record<string, unkn
   const now = options.now ?? ((): number => performance.now());
   const seed = input.seed ?? 0;
   const packInput = packInputOf(input);
+  // Only the entries of `readsLinks` get the links. Their pack input is made once, and the measures and the hard rules read `packInput`.
+  let linked: PackInput | undefined;
+  const inputFor = (entry: PackEntry): PackInput => (readsLinks(entry) ? (linked ??= packInputOf(input, { links: true })) : packInput);
   const target = input.container?.aspect ?? 1;
   const edgeCount = input.edges?.length ?? 0;
   const shared = new Map<string, PackGroup>();
@@ -571,7 +593,7 @@ export function* pairRuns(input: LayoutInput, cell: Readonly<Record<string, unkn
   for (const entry of packs) {
     const mine = only === undefined ? routers : routers.filter((router) => only.has(pairId(entry.id, router)));
     if (mine.length === 0) continue;
-    const run = packOnce(entry, packInput, cell, seed, now);
+    const run = packOnce(entry, inputFor(entry), cell, seed, now, packInput);
     packRuns.set(entry.id, run);
     if (!run.ok) {
       for (const router of mine) yield { record: skippedRecord(entry, router, run.reason) };
@@ -611,7 +633,7 @@ export function* pairRuns(input: LayoutInput, cell: Readonly<Record<string, unkn
     const extra = { lanes: { variant: lane.variant.name, mode: lane.variant.mode, passes: lane.variant.passes, base: pairId(lane.pack, lane.router), ...laneOpts } };
     // A generator cannot yield in a closure, so each skip of a lane pair yields its record here.
     const skip = (reason: string): PairRun => ({ record: skippedRecord(entry, lane.router, reason, lane.id, extra) });
-    let run = packRuns.get(lane.pack) ?? packOnce(entry, packInput, cell, seed, now);
+    let run = packRuns.get(lane.pack) ?? packOnce(entry, inputFor(entry), cell, seed, now, packInput);
     packRuns.set(lane.pack, run);
     if (!run.ok) {
       yield skip(run.reason);
@@ -643,7 +665,7 @@ export function* pairRuns(input: LayoutInput, cell: Readonly<Record<string, unkn
         laneMs += now() - t0;
       }
       boxes = laneMargins(boxes, run.output.placements, lanes, gap, lane.variant.mode, laneOpts);
-      const next = packInputOf({ ...input, boxes });
+      const next = packInputOf({ ...input, boxes }, { links: readsLinks(entry) });
       run = packOnce(entry, next, cell, seed, now, packInput);
       if (!run.ok) {
         failed = run.reason;
@@ -705,7 +727,7 @@ export function* pairRuns(input: LayoutInput, cell: Readonly<Record<string, unkn
   };
   /** This function packs and routes one round with the boxes of `boxes`, after the round `prev`. It gives the round, or the reason of a failure. */
   const roundOf = (entry: PackEntry, router: string, boxes: readonly LayoutBox[], prev: Totals, laneMs: number, best: (r: LayoutRecord) => number): IterRound | string => {
-    const run = packOnce(entry, packInputOf({ ...input, boxes }), cell, seed, now, packInput);
+    const run = packOnce(entry, packInputOf({ ...input, boxes }, { links: readsLinks(entry) }), cell, seed, now, packInput);
     if (!run.ok) return run.reason;
     const g = groupOf(run, `${ITER_PREFIX_ID}${LANE_SEPARATOR}${entry.id}`);
     const route = routeOf(g, router);
@@ -721,7 +743,7 @@ export function* pairRuns(input: LayoutInput, cell: Readonly<Record<string, unkn
   };
   /** This function starts the chain of a pack entry and a router: the base pair, then round 1 with the margins of `lanes-sides`. */
   const startChain = (entry: PackEntry, router: string): IterChain | { readonly ok: false; readonly reason: string } => {
-    const run = packRuns.get(entry.id) ?? packOnce(entry, packInput, cell, seed, now);
+    const run = packRuns.get(entry.id) ?? packOnce(entry, inputFor(entry), cell, seed, now, packInput);
     packRuns.set(entry.id, run);
     if (!run.ok) return { ok: false, reason: run.reason };
     const g = groupOf(run, entry.id);

@@ -8,6 +8,7 @@ This file lists the items of the roadmap of this repository. The status page of 
 | --- | --- | --- | --- |
 | L5 | in progress | P1 | highways reads the contract |
 | L34 | in progress | P1 | The strategy space as data |
+| L47 | in progress | P1 | Graph-aware item order: the joint entries rows-graph-bfs and maxrects-bl-graph-bfs |
 | L52 | in progress | P1 | Measure joint space coverage, with a weekly trend that rises |
 | L81 | in progress | P1 | Memory gate over each family of the bench, then the dense-hubs peak (3.4-4.3 GB) |
 | L82 | in progress | P2 | The bench scripts in TypeScript (rule typed-scripts of conventions 0.5.0) |
@@ -28,12 +29,6 @@ This file lists the items of the roadmap of this repository. The status page of 
 | L71 | next | P2 | A bound-first fast path for labels from a declared character set |
 | L72 | next | P1 | Neat is a family of objectives, not one |
 | L73 | next | P1 | Clarity of structure: macro and micro measures |
-
-## Waiting
-
-| ID | Status | Priority | Title |
-| --- | --- | --- | --- |
-| L47 | waiting | P1 | Graph-aware item order |
 
 ## Later
 

@@ -110,6 +110,16 @@ export interface AnalysisOptions {
 /** The pair of the sequential baseline (L10): the default pack entry `rows`, then the portfolio router. */
 export const BASELINE = "rows+portfolio";
 
+/**
+ * The comparisons of the graph-bfs pairs of L47 in the default of `pnpm bench analyze`, as pairs `[a, b]`.
+ * Each graph-bfs pair with the portfolio router goes against `BASELINE`. `maxrects-bl-graph-bfs` also goes against `maxrects-bl`, its own strategy with the order `height-desc`.
+ */
+export const GRAPH_COMPARE: readonly (readonly [string, string])[] = Object.freeze([
+  ["rows-graph-bfs+portfolio", BASELINE],
+  ["maxrects-bl-graph-bfs+portfolio", BASELINE],
+  ["maxrects-bl-graph-bfs+portfolio", "maxrects-bl+portfolio"],
+]);
+
 /** The router of the first row of the table of the route times. */
 export const TIME_FIRST = "shared-all";
 
