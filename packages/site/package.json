@@ -25,7 +25,7 @@
     "@layout-contract/joint": "workspace:*",
     "@mark1russell7/highways": "^0.13.0",
     "@mark1russell7/layout-contract": "workspace:*",
-    "@mark1russell7/packing": "^0.5.0",
+    "@mark1russell7/packing": "^0.6.0",
     "@mark1russell7/site-pages": "^0.2.0",
     "marked": "^18.1.2"
   },
