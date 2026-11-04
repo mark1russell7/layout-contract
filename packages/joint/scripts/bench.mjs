@@ -4,6 +4,7 @@
 //   smoke [--corpus <set>]                                                  packs and routes 1 input of each value of spacing with corners
 //   run --shards <n> --shard <i> --out <dir> [--slice pr] [--corpus <set>] [--lanes on] [--iterate on] [--cover on] [--pairs <id,id>]   writes <dir>/records-<i>.jsonl
 //   plan --shards <n> [--slice pr] [--corpus <set>] [--lanes on] [--iterate on] [--cover on] [--pairs <id,id>]              prints the planned cost of each shard
+//   Each of run, plan, resume and costs takes --pair-budget <text>: the time budget of each stage of a pair (parsePairBudget). A run with a budget holds its stamp.
 //   resume --records <dir> --out <dir> [--slice pr] [--corpus <set>] [--cover on] [--pairs <id,id>]   keeps the pairs of an earlier run with the stamp of this code (L101)
 //   costs --records <dir> [--corpus <set>] [--top <n>]                      prints the wall time of each pair, from the most time to the least
 //   confirm --confirm on --records <dir> --out <dir>   writes the decision of L40: <dir>/confirm.json and <dir>/confirm.md
@@ -37,12 +38,15 @@
 // analyze reads the folds of the greedy portfolios from the split "default" of the split file of the corpus (corpus/splits).
 // analyze fails when an input of the manifest has no records, unless the file of `--allow-missing` lists it. The files list one input id on each line.
 import { appendFileSync, existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
+import { caseProgress, startSupervisedProcess, superviseCases } from "@mark1russell7/rigor-bench/supervise";
 import { Session } from "node:inspector";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import {
   analyze,
   BASELINE,
+  budgetCases,
+  budgetTag,
   DENSE_HUBS,
   checkCorpus,
   CONFIRM_PLAIN_PAIRS,
@@ -75,6 +79,7 @@ import {
   packOf,
   pairId,
   pairRuns,
+  repairShard,
   PORTFOLIO_ROUTER,
   RANK_TOP,
   plannedCost,
@@ -91,8 +96,10 @@ import {
   coverOptions,
   doneKey,
   keptRecordLines,
+  keyParts,
   measuredCost,
   pairFactors,
+  parsePairBudget,
   parsePairLines,
   PRIOR_PAIRS_FILE,
   runShard,
@@ -116,6 +123,10 @@ if (args.lanes !== undefined && args.lanes !== "on" && args.lanes !== "off") thr
 // `--confirm on` is the run of L40: the pairs of `CONFIRM_PAIRS` on the seeds of `CONFIRM_SEEDS`. It replaces `--lanes` and `--iterate`.
 if (args.confirm !== undefined && args.confirm !== "on" && args.confirm !== "off") throw new RangeError(`The option --confirm is on or off, not "${args.confirm}".`);
 const confirming = args.confirm === "on";
+const pairBudget = args["pair-budget"] === undefined ? undefined : parsePairBudget(args["pair-budget"]);
+if (pairBudget !== undefined && (confirming || args.lanes === "on" || args.iterate === "on")) throw new RangeError("The option --pair-budget holds the plain pairs only, so it does not go with --confirm, --lanes or --iterate.");
+// The supervisor of a shard with a budget starts this script again with --child on, so one process runs each pair until a pair passes its budget.
+const supervised = args.child === "on";
 if (confirming && (args.lanes !== undefined || args.iterate !== undefined)) throw new RangeError("The option --confirm replaces --lanes and --iterate.");
 const lanes = confirming ? confirmLanes() : args.lanes === "on" ? laneEntries() : [];
 // The iteration pairs of L11 run only with `--iterate on`, for the same reason.
@@ -141,7 +152,7 @@ const expectedPairs = confirming ? CONFIRM_PLAIN_PAIRS : (cover.pairs ?? PACK_EN
 function benchStamp() {
   const version = (name) => JSON.parse(readFileSync(new URL(`../node_modules/@mark1russell7/${name}/package.json`, import.meta.url), "utf8")).version;
   const text = (file) => readFileSync(new URL(`../src/${file}`, import.meta.url), "utf8").replaceAll("\r\n", "\n");
-  return runStamp({ corpus: set, space: BENCH_SPACE_VERSION, packing: version("packing"), highways: version("highways"), contract: version("layout-contract"), runner: text("runner.ts"), cover: text("cover.ts") });
+  return runStamp({ corpus: set, space: BENCH_SPACE_VERSION, packing: version("packing"), highways: version("highways"), contract: version("layout-contract"), runner: text("runner.ts"), cover: text("cover.ts"), ...(pairBudget === undefined ? {} : { pairBudget: pairBudget.text }) });
 }
 
 /** This function gives the lines of a pair file that join this run: the lines of its stamp, for a pair of this run, on an input with the same hash. */
@@ -182,6 +193,54 @@ function shardPlan() {
   const factors = pairFactors(prior, (id) => unitOf.get(id));
   const items = units.map((item) => ({ ...item, cost: measuredCost(item.cost, expectedPairs.filter((pair) => !done.has(doneKey(item.id, pair))), factors) }));
   return { rows, shards, plan: planShards(items, shards), done };
+}
+
+/**
+ * This function runs one shard under the time budget. A child runs the pairs, and the supervisor writes the tagged record of each pair that did not finish.
+ * A stop can cut the last line of a file, so the supervisor repairs the files before each child and each tag. A resume thus runs no pair two times.
+ */
+async function superviseShard({ rows, done, file, pairFile, progressFile, stamp, deadlineMinutes, shard, env, commit }) {
+  const started = Date.now();
+  const byId = new Map(rows.map((row) => [row.entry.id, row]));
+  const repair = () => {
+    const recordText = readFileSync(file, "utf8");
+    const pairText = readFileSync(pairFile, "utf8");
+    const whole = repairShard(recordText, pairText, stamp);
+    if (whole.records !== recordText) writeFileSync(file, whole.records);
+    if (whole.pairs !== pairText) writeFileSync(pairFile, whole.pairs);
+    return whole.keys;
+  };
+  const inputs = rows.map((row) => ({ id: row.entry.id, boxes: row.input.boxes.length }));
+  const result = await superviseCases({
+    cases: budgetCases(inputs, expectedPairs, done, pairBudget),
+    progressFile,
+    start: () => {
+      repair();
+      const left = Math.max(0, deadlineMinutes - (Date.now() - started) / 60000);
+      return startSupervisedProcess([process.execPath, ...process.execArgv, ...process.argv.slice(1), "--child", "on", "--deadline-minutes", String(left)]);
+    },
+    onEnd: (ended) => {
+      // A pair can write its record just before the stop. That pair has its result.
+      if (repair().has(ended.id)) return;
+      const { input: id, pair } = keyParts(ended.id);
+      const { input, entry } = byId.get(id);
+      const tag = budgetTag(ended, pairBudget);
+      const { record } = pairRuns(input, entry.cell, { env, corpus: set, ...cover, pairs: [pair], tags: new Map([[pair, tag]]), ...(commit === undefined ? {} : { commit }) }).next().value;
+      appendFileSync(file, JSON.stringify(record) + "\n");
+      appendFileSync(pairFile, JSON.stringify({ stamp, input: id, inputHash: input.hash ?? "", strategy: pair, wallMs: ended.kind === "over-budget" ? ended.budgetMs : 0, tag: ended.kind }) + "\n");
+      console.log(`  pair ${pair} on ${id}: ${tag.reason}, budget ${pairBudget.text} min`);
+    },
+  });
+  const lines = parsePairLines(readFileSync(pairFile, "utf8"), stamp).lines;
+  const over = lines.filter((line) => line.tag === "over-budget").length;
+  const notRun = lines.filter((line) => line.tag === "not-run").length;
+  const end = `Shard ${shard}: ${lines.length} pairs done, ${result.left.length} pairs missing, ${over} over budget, ${notRun} not run, ${result.starts} processes`;
+  console.log(end);
+  const summary = process.env.GITHUB_STEP_SUMMARY;
+  if (summary !== undefined) appendFileSync(summary, `${end}\n\n${strategyCostTable(strategyCosts(lines), 10)}\n`);
+  // A child that a signal stopped has the code null. Only the supervisor stops a child, and then it starts another child for the pairs that are left.
+  const failed = result.code !== null ? result.code !== 0 : result.left.length > 0;
+  if (failed) process.exit(result.code ?? 1);
 }
 
 /** This function reads the records of a folder. The files can be in folders: `gh run download` writes each artifact into a folder of its name. */
@@ -287,8 +346,12 @@ if (command === "check") {
   mkdirSync(out, { recursive: true });
   const file = join(out, `records-${shard}.jsonl`);
   const pairFile = join(out, `pairs-${shard}.ndjson`);
-  writeFileSync(file, "");
-  writeFileSync(pairFile, "");
+  const progressFile = join(out, `progress-${shard}.log`);
+  // A child continues the files of its shard, and its supervisor made them empty.
+  if (!supervised) {
+    writeFileSync(file, "");
+    writeFileSync(pairFile, "");
+  }
   const deadlineMinutes = Number(args["deadline-minutes"] ?? SHARD_DEADLINE_MINUTES);
   if (!(Number.isFinite(deadlineMinutes) && deadlineMinutes >= 0)) throw new RangeError(`The option --deadline-minutes is a number of 0 or more, not "${args["deadline-minutes"]}".`);
   const env = runEnv();
@@ -304,6 +367,13 @@ if (command === "check") {
   const SLOW_PAIR_MS = 5000;
   const mb = (bytes) => Math.round(bytes / 2 ** 20);
   const stamp = benchStamp();
+  if (pairBudget !== undefined && !supervised) {
+    await superviseShard({ rows, done, file, pairFile, progressFile, stamp, deadlineMinutes, shard, env, commit });
+    process.exit(0);
+  }
+  const progress = supervised ? caseProgress(progressFile) : undefined;
+  // A later child leaves out the pairs on the disk. The plan does not read them, so each child has the same shards.
+  const finished = supervised ? new Set([...done, ...parsePairLines(readFileSync(pairFile, "utf8"), stamp).lines.map((line) => doneKey(line.input, line.strategy))]) : done;
   const lines = [];
   let recordCount = 0;
   let skipped = 0;
@@ -311,16 +381,17 @@ if (command === "check") {
     rows: rows.map((row) => ({ id: row.entry.id, inputHash: row.input.hash ?? "", row })),
     pairs: expectedPairs,
     extra: lanes.length + iterate.length,
-    done,
+    done: finished,
     stamp,
     deadlineMs: deadlineMinutes * 60000,
     now: () => performance.now(),
     // freeRoutes frees the routes that no lane pair and no iteration pair reads, so a large input fits in the heap (L63).
     runPairs: ({ input, entry }, missing) =>
-      pairRuns(input, entry.cell, { env, corpus: set, lanes, iterate, freeRoutes: true, ...cover, ...(confirming ? { pairs: CONFIRM_PLAIN_PAIRS } : {}), ...(missing === undefined ? {} : { pairs: missing }), ...(commit === undefined ? {} : { commit }) }),
+      pairRuns(input, entry.cell, { env, corpus: set, lanes, iterate, freeRoutes: true, ...(progress === undefined ? {} : { onStart: (pair, phase) => progress.start(doneKey(input.id, pair), phase) }), ...cover, ...(confirming ? { pairs: CONFIRM_PLAIN_PAIRS } : {}), ...(missing === undefined ? {} : { pairs: missing }), ...(commit === undefined ? {} : { commit }) }),
     write: (record, line) => {
       appendFileSync(file, JSON.stringify(record) + "\n");
       appendFileSync(pairFile, JSON.stringify(line) + "\n");
+      progress?.end(doneKey(line.input, line.strategy));
       lines.push(line);
       recordCount += 1;
       if (record.skipped !== undefined) skipped += 1;
@@ -336,7 +407,7 @@ if (command === "check") {
   const end = `Shard ${shard}: ${count.pairsDone} pairs done, ${count.pairsMissing} pairs missing${count.stopped ? `, stopped at the deadline of ${deadlineMinutes} minutes` : ""}.`;
   console.log(end);
   const summary = process.env.GITHUB_STEP_SUMMARY;
-  if (summary !== undefined) appendFileSync(summary, `${end}\n\n${strategyCostTable(strategyCosts(lines), 10)}\n`);
+  if (summary !== undefined && !supervised) appendFileSync(summary, `${end}\n\n${strategyCostTable(strategyCosts(lines), 10)}\n`);
 } else if (command === "resume") {
   if (args.records === undefined || args.out === undefined) throw new RangeError("The arguments of resume are --records <dir> --out <dir>.");
   mkdirSync(args.out, { recursive: true });

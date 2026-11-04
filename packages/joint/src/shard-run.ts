@@ -15,6 +15,8 @@ export interface PairLine {
   readonly inputHash: string;
   readonly strategy: string;
   readonly wallMs: number;
+  /** The kind of a pair that did not finish. Its `wallMs` is no measurement of the pair, so the costs leave it out. */
+  readonly tag?: "over-budget" | "not-run";
 }
 
 /** The counts of one shard. `stopped` is true when the deadline stopped the shard. */
@@ -157,6 +159,23 @@ export function keptRecordLines(text: string, accepted: ReadonlySet<string>, see
   return out;
 }
 
+/** The whole lines of a record file and a pair file, and the keys of their pairs. */
+export interface RepairedShard {
+  readonly records: string;
+  readonly pairs: string;
+  readonly keys: ReadonlySet<string>;
+}
+
+/** This function gives the files of a shard after a stop: a pair with a whole record and a whole pair line stays, and each other line goes out. */
+export function repairShard(recordText: string, pairText: string, stamp: string): RepairedShard {
+  const { lines } = parsePairLines(pairText, stamp);
+  const keys = new Set<string>();
+  const records = keptRecordLines(recordText, new Set(lines.map((line) => doneKey(line.input, line.strategy))), keys);
+  const kept = lines.filter((line) => keys.has(doneKey(line.input, line.strategy)));
+  const text = (rows: readonly string[]): string => rows.map((row) => `${row}\n`).join("");
+  return { records: text(records), pairs: text(kept.map((line) => JSON.stringify(line))), keys };
+}
+
 /** The measured cost of each pair against the plan: the sum of its wall times over the sum of its planned times. `fallback` is the same ratio over all pairs. */
 export interface PairFactors {
   readonly factors: ReadonlyMap<string, number>;
@@ -170,7 +189,7 @@ export function pairFactors(lines: readonly PairLine[], planned: (input: string)
   let plan = 0;
   for (const line of lines) {
     const unit = planned(line.input);
-    if (unit === undefined) continue;
+    if (unit === undefined || line.tag !== undefined) continue;
     const entry = walls.get(line.strategy) ?? { wall: 0, plan: 0 };
     entry.wall += line.wallMs;
     entry.plan += unit;
@@ -201,6 +220,7 @@ export interface StrategyCost {
 export function strategyCosts(lines: readonly PairLine[]): StrategyCost[] {
   const costs = new Map<string, StrategyCost>();
   for (const line of lines) {
+    if (line.tag !== undefined) continue;
     const c = costs.get(line.strategy);
     const slower = c === undefined || line.wallMs > c.slowestMs;
     costs.set(line.strategy, {
