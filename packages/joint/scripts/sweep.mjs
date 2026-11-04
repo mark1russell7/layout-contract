@@ -345,7 +345,7 @@ if (command === "plan") {
   const indexFile = join(out, "index.json");
   const index = existsSync(indexFile) ? readJson(indexFile) : { schema: "sweep-index/1", epochs: {} };
   index.latest = state.epoch;
-  index.epochs[state.epoch] = { corpus: state.corpus, nights: rest.nights.length, last: plan.date, configs: Object.keys(state.configs).length, counts };
+  index.epochs[state.epoch] = { corpus: state.corpus, nights: rest.nights.length, last: plan.date, missing: night.missing, configs: Object.keys(state.configs).length, counts };
   writeJson(indexFile, index);
   writeFileSync(join(out, "night.md"), nightMarkdown(state, night, counts, facts));
   console.log(readFileSync(join(out, "night.md"), "utf8"));

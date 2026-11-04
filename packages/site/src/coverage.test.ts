@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { addDays, checkSweepIndex, checkTrendRecord, FLAT_WEEK, mainLine, parseTrend, type TrendRecord, weekView } from "./coverage.ts";
-import { type Fetch, guardChart, loadSweep, runUrl, skillChart, SWEEP_RAW, sweepHtml, trendFileUrl } from "./sweep.ts";
+import { type Fetch, guardChart, loadSweep, nightNote, runUrl, skillChart, SWEEP_RAW, sweepHtml, trendFileUrl } from "./sweep.ts";
 
 const EPOCH = "joint-v2_packing-0.4.1_highways-0.10.0_space-bench-3";
 // The first record of the branch `sweep-data`, as the nightly sweep wrote it.
@@ -93,7 +93,7 @@ describe("the week view", () => {
 
 describe("the index of sweep-data", () => {
   it("gives the latest epoch and its entry", () => {
-    expect(checkSweepIndex(INDEX)).toEqual({ latest: EPOCH, entry: { corpus: "joint-v2", nights: 3, last: "2026-11-03", configs: 219 } });
+    expect(checkSweepIndex(INDEX)).toEqual({ latest: EPOCH, entry: { corpus: "joint-v2", nights: 3, last: "2026-11-03", configs: 219, missing: null } });
   });
 
   it("gives the problems of a bad index", () => {
@@ -129,7 +129,7 @@ describe("the section", () => {
 
   it("marks a lambda at the edge, and a flat week", () => {
     const line = [rec("2026-11-03", 0.1), rec("2026-11-10", 0.104, { lambdaAtEdge: true, lambda: 10000 })];
-    const html = sweepHtml({ kind: "ready", index: { latest: EPOCH, entry: { corpus: "joint-v2", nights: 8, last: "2026-11-10", configs: 9 } }, line, bad: 1, week: weekView(line) }, 500);
+    const html = sweepHtml({ kind: "ready", index: { latest: EPOCH, entry: { corpus: "joint-v2", nights: 8, last: "2026-11-10", configs: 9, missing: null } }, line, bad: 1, week: weekView(line) }, 500);
     expect(html).toContain("at the edge");
     expect(html).toContain("Flat week: a finding to explain.");
     expect(html).toContain("+0.004");
@@ -167,5 +167,33 @@ describe("the section", () => {
     // The null skill splits the band into a bar for one night and a polygon for two nights.
     expect(skillChart(line, 330)).toMatch(/<rect class="band"/);
     expect(skillChart(line, 330)).toMatch(/<polygon class="band"/);
+  });
+});
+
+describe("the line of the last night", () => {
+  const index = (last: string, missing: number | null) => ({ latest: EPOCH, entry: { corpus: "joint-v2", nights: 3, last, configs: 9, missing } });
+
+  it("states the date of a night on time", () => {
+    const html = nightNote(index("2026-11-03", 0), new Date("2026-11-04T10:00:00Z"));
+    expect(html).toContain("On time");
+    expect(html).toContain("Nov 3");
+  });
+
+  it("shows a late night after the hour of the rule, with a link to the runs", () => {
+    const html = nightNote(index("2026-11-03", 0), new Date("2026-11-04T17:00:00Z"));
+    expect(html).toContain("Late");
+    expect(html).toContain("1 night has no result.");
+    expect(html).toContain("actions/workflows/sweep.yml");
+  });
+
+  it("shows a partial night with its count", () => {
+    const html = nightNote(index("2026-11-03", 541), new Date("2026-11-04T10:00:00Z"));
+    expect(html).toContain("Partial");
+    expect(html).toContain("541 jobs");
+  });
+
+  it("is part of the section at the time of the call", async () => {
+    const state = await loadSweep(fake({ [`${SWEEP_RAW}/index.json`]: JSON.stringify(INDEX), [trendPath]: `${FIRST}\n` }));
+    expect(sweepHtml(state, 400, new Date("2030-01-01T00:00:00Z"))).toContain("Late");
   });
 });

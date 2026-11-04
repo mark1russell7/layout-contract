@@ -90,6 +90,7 @@ jobs:
           if git fetch --depth 1 origin sweep-data; then git archive FETCH_HEAD | tar -x -C "$RUNNER_TEMP/data"; else echo "The branch sweep-data does not exist yet. The night starts a new state."; fi
       # The budget of a night (L81). The window of a scheduled night ends at 14:00 UTC. The gate after the sweep takes its expected minutes from the window, but only when main changed since the last nightly gate.
       # The expected minutes of the gate are the median of the last 3 nightly gates. With no budget, the plan has only the limits of the inputs.
+      # A failed read does not stop the night. Each read has 4 tries with a backoff. After that the plan stops reading and states it. The fallback is 360 minutes, the safe side.
       - name: Compute the budget of the night
         id: budget
         env:
@@ -102,14 +103,17 @@ jobs:
           now="$(date -u +%s)"
           case "$BUDGET" in '') ;; *[!0-9]*) echo "The budget is a count of minutes, not $BUDGET."; exit 1;; *) echo "end=$((now + BUDGET * 60))" >> "$GITHUB_OUTPUT"; echo "gate=0" >> "$GITHUB_OUTPUT"; exit 0;; esac
           if [ "$EVENT" != schedule ]; then echo "A dispatch with no budget-minutes has no budget."; exit 0; fi
-          last=""; mins=""; count=0
-          for id in $(gh run list -R "$REPO" --workflow memory-probe.yml --branch main --status completed --limit 20 --json databaseId,event --jq '.[] | select(.event == "schedule" or .event == "workflow_run") | .databaseId'); do
-            row="$(gh run view "$id" -R "$REPO" --json jobs,headSha,startedAt,updatedAt --jq 'if ([.jobs[] | select(.name == "gate" and (.conclusion == "success" or .conclusion == "failure"))] | length) > 0 then "\(.headSha) \((((.updatedAt | fromdate) - (.startedAt | fromdate)) / 60) | floor)" else "" end')" || { echo "::warning::The read of the run $id failed, so this plan skips that run."; continue; }
+          read_api() { for pause in 5 20 60; do if "$@"; then return 0; fi; sleep "$pause"; done; "$@"; }
+          last=""; mins=""; count=0; failed=""
+          ids="$(read_api gh run list -R "$REPO" --workflow memory-probe.yml --branch main --status completed --limit 20 --json databaseId,event --jq '.[] | select(.event == "schedule" or .event == "workflow_run") | .databaseId')" || { failed="the list of the runs"; ids=""; }
+          for id in $ids; do
+            row="$(read_api gh run view "$id" -R "$REPO" --json jobs,headSha,startedAt,updatedAt --jq 'if ([.jobs[] | select(.name == "gate" and (.conclusion == "success" or .conclusion == "failure"))] | length) > 0 then "\(.headSha) \((((.updatedAt | fromdate) - (.startedAt | fromdate)) / 60) | floor)" else "" end')" || { failed="the run $id"; break; }
             if [ -z "$row" ]; then continue; fi
             if [ -z "$last" ]; then last="${row%% *}"; fi
             mins="$mins ${row##* }"; count=$((count + 1))
             if [ "$count" -ge 3 ]; then break; fi
           done
+          if [ -n "$failed" ]; then echo "::warning::The read of $failed failed after 4 tries. The budget uses only the runs that it read." | tee -a "$GITHUB_STEP_SUMMARY"; fi
           gate="$(echo $mins | tr ' ' '\n' | sort -n | awk '{ a[NR] = $1 } END { print NR == 0 ? 360 : a[int((NR + 1) / 2)] }')"
           if [ "$last" = "$SHA" ]; then gate=0; fi
           end="$(date -u -d "$(date -u +%Y-%m-%d) 14:00" +%s)"

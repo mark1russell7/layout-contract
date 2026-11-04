@@ -79,6 +79,9 @@ jobs:
       # A nightly run stops here in two cases. It has no new data.
       # (1) The last nightly gate examined the same commit of main. Only a run whose job gate passed or failed counts, because a run that stopped here also ends as a success.
       # (2) A scheduled run is the fallback, and a sweep on main started today. The end of that sweep starts the gate.
+      # A skip is green only after a pass. When the last nightly gate failed on this commit, the plan fails at no heavy cost. A new commit of main or a rerun of the failed run ends it.
+      # On 2026-10-31 and 2026-11-01 a skip after the failed gate of 2026-10-30 ended as a green run.
+      # A failed read does not stop the gate. Each read has 4 tries with a backoff. After that the plan states it and the gate runs, the safe side.
       - id: changed
         env:
           GH_TOKEN: ${{ github.token }}
@@ -87,18 +90,21 @@ jobs:
           SHA: ${{ github.sha }}
         run: |
           skip=false
+          read_api() { for pause in 5 20 60; do if "$@"; then return 0; fi; sleep "$pause"; done; "$@"; }
           if [ "$EVENT" = schedule ]; then
             today="$(date -u +%Y-%m-%d)"
-            sweeps="$(gh run list -R "$REPO" --workflow sweep.yml --branch main --limit 10 --json createdAt --jq "[.[] | select(.createdAt >= \"$today\")] | length")"
+            sweeps="$(read_api gh run list -R "$REPO" --workflow sweep.yml --branch main --limit 10 --json createdAt --jq "[.[] | select(.createdAt >= \"$today\")] | length")" || { echo "::warning::The read of the sweeps failed after 4 tries, so this fallback run goes on." | tee -a "$GITHUB_STEP_SUMMARY"; sweeps=0; }
             if [ "$sweeps" != 0 ]; then skip=true; echo "A sweep on main started on $today. The end of the sweep starts the gate, so this fallback run stops." | tee -a "$GITHUB_STEP_SUMMARY"; fi
           fi
           if [ "$skip" = false ] && { [ "$EVENT" = schedule ] || [ "$EVENT" = workflow_run ]; }; then
-            last=""
-            for id in $(gh run list -R "$REPO" --workflow memory-probe.yml --branch main --status completed --limit 20 --json databaseId,event --jq '.[] | select(.event == "schedule" or .event == "workflow_run") | .databaseId'); do
-              last="$(gh run view "$id" -R "$REPO" --json jobs,headSha --jq 'if ([.jobs[] | select(.name == "gate" and (.conclusion == "success" or .conclusion == "failure"))] | length) > 0 then .headSha else "" end')" || { echo "::warning::The read of the run $id failed, so this plan skips that run."; continue; }
-              if [ -n "$last" ]; then break; fi
+            last=""; result=""
+            ids="$(read_api gh run list -R "$REPO" --workflow memory-probe.yml --branch main --status completed --limit 20 --json databaseId,event --jq '.[] | select(.event == "schedule" or .event == "workflow_run") | .databaseId')" || { echo "::warning::The read of the runs failed after 4 tries, so the gate runs." | tee -a "$GITHUB_STEP_SUMMARY"; ids=""; }
+            for id in $ids; do
+              row="$(read_api gh run view "$id" -R "$REPO" --json jobs,headSha --jq '[.jobs[] | select(.name == "gate" and (.conclusion == "success" or .conclusion == "failure")) | .conclusion] as $gate | if ($gate | length) > 0 then "\(.headSha) \($gate[0])" else "" end')" || { echo "::warning::The read of the run $id failed after 4 tries, so the gate runs." | tee -a "$GITHUB_STEP_SUMMARY"; break; }
+              if [ -n "$row" ]; then last="${row%% *}"; result="${row##* }"; break; fi
             done
-            if [ "$last" = "$SHA" ]; then skip=true; echo "The last nightly gate examined $SHA. This run stops." | tee -a "$GITHUB_STEP_SUMMARY"; fi
+            if [ "$last" = "$SHA" ] && [ "$result" = failure ]; then echo "::error::The last nightly gate failed on $SHA, and main has not changed. This run stops and stays red." | tee -a "$GITHUB_STEP_SUMMARY"; exit 1; fi
+            if [ "$last" = "$SHA" ]; then skip=true; echo "The last nightly gate passed on $SHA. This run stops." | tee -a "$GITHUB_STEP_SUMMARY"; fi
           fi
           echo "skip=$skip" >> "$GITHUB_OUTPUT"
       - if: steps.changed.outputs.skip != 'true'

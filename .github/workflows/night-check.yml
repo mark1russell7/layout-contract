@@ -1,0 +1,46 @@
+# The check that the last night of the sweep has a result (docs/SWEEP.md, "The check of each night"). It fails when a due night is absent from the branch sweep-data.
+# A partial night gives a warning. This workflow is not a required check of a pull request. A failure shows on main and in the runs of this workflow.
+# It runs when a sweep on main ends, on each push to main, and each day after the window of the night.
+name: Night check
+
+on:
+  workflow_run:
+    workflows: [Sweep]
+    types: [completed]
+    branches: [main]
+  push:
+    branches: [main]
+  schedule:
+    # Each scheduled heavy run of the fleet has its own minute (the rule of 2026-10-30). This run is light, and it comes after the hour of the rule.
+    - cron: "11 16 * * *"
+  workflow_dispatch:
+
+# The check reads the branch when it runs, so a new run replaces a waiting run.
+concurrency:
+  group: night-check-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 26
+      - name: Read the index of the branch sweep-data
+        run: |
+          git fetch --depth 1 origin sweep-data
+          git show FETCH_HEAD:index.json > "$RUNNER_TEMP/index.json"
+      # After the end of a scheduled sweep, the night of today is due at once. A failed plan thus shows in minutes, not at the end of the window.
+      - name: Compare the last night with the night that is due
+        working-directory: packages/joint
+        env:
+          ENDED: ${{ github.event_name == 'workflow_run' && github.event.workflow_run.event == 'schedule' && '--ended' || '' }}
+        run: node scripts/night-check.ts "$RUNNER_TEMP/index.json" $ENDED

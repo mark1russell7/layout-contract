@@ -57,6 +57,8 @@ export interface EpochEntry {
   readonly nights: number;
   readonly last: string;
   readonly configs: number;
+  /** The count of the jobs of the last night with no record, or `null` when the index does not state it. */
+  readonly missing: number | null;
 }
 
 /** The facts of `index.json` that the page uses. */
@@ -176,5 +178,6 @@ export function checkSweepIndex(v: unknown): SweepIndex | string[] {
   if (!isObject(entry)) return [`epochs has no entry for ${latest}`];
   if (typeof entry["corpus"] !== "string" || !isCount(entry["nights"]) || typeof entry["last"] !== "string" || !isCount(entry["configs"]))
     return [`the entry of ${latest} has no corpus, nights, last or configs`];
-  return { latest, entry: { corpus: entry["corpus"], nights: entry["nights"], last: entry["last"], configs: entry["configs"] } };
+  const missing = isCount(entry["missing"]) ? entry["missing"] : null;
+  return { latest, entry: { corpus: entry["corpus"], nights: entry["nights"], last: entry["last"], configs: entry["configs"], missing } };
 }
