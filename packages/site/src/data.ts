@@ -340,6 +340,7 @@ export function checkDataFile(path: string, text: string): Problems {
   }
   if (path.startsWith("spaces/") || path.startsWith("examples/")) return checkSpaceFile(value);
   if (path === "news.json") return checkNews(value);
+  if (path === "stamps.json") return isObj(value) && value["schema"] === "data-stamp/1" ? [] : ["the file does not have the schema data-stamp/1"];
   return [`the path ${path} is not a known data file`];
 }
 

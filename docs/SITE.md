@@ -37,6 +37,9 @@ The data folder has these files:
 | `data/spaces/<engine>.json` | `site-space/1` | The strategy space of an engine, with its source and its date. |
 | `data/examples/<name>.json` | `site-space/1` | An example space. The site labels it as an example. |
 | `data/news.json` | `site-news/1` | The news, from the newest item to the oldest. |
+| `data/stamps.json` | `data-stamp/1` | The runs of each measured page, with their dates and engine versions, and a run in flight. |
+
+A run changes `data/stamps.json`. Set `inFlight` when a run starts on newer engines. Move the run to `runs` in the pull request of its data file. The build stops when the stamp does not agree with the newest joint run. The Pages workflow runs the freshness gate on this file at each build and each morning. The limits are 3 days of age, or a newer run in flight, and 1 minor version behind npm at the start of the run. A run in flight for more than 3 days fails the gate, so a resume run takes its place in `inFlight`.
 
 `src/data.ts` holds the formats and their checks:
 
