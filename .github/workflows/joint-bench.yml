@@ -13,6 +13,8 @@
 # A manual run with the input iterate adds the iteration pairs of L11 to each shard. The default plan does not change.
 # A manual run with the input cover adds the pairs of each other strategy and each open router to each shard. The default plan does not change.
 # A manual run with the input pairs runs only those pairs of the cover and the baseline pair, so a new strategy needs no whole cover run.
+# A shard stops at a clean point after 330 minutes, so that the job limit does not lose its records. Each shard writes each pair when the pair ends.
+# A manual run with the input resume-run runs only the pairs that the earlier run did not record, with the same stamp of the code and the same input hashes.
 # Only the times of these jobs count. The benchmark does not run on a local computer.
 name: Joint bench
 
@@ -46,6 +48,10 @@ on:
         default: false
       pairs:
         description: "Run only these pairs of the cover and the baseline pair, with commas. It replaces cover, lanes and iterate."
+        type: string
+        default: ""
+      resume-run:
+        description: "The id of an earlier run with the same options. With it, this run keeps the records of that run and runs only the missing pairs."
         type: string
         default: ""
       confirm:
@@ -128,8 +134,63 @@ jobs:
           echo "slice=$slice" >> "$GITHUB_OUTPUT"
           echo "shards=$(seq -s, 0 $((count - 1)) | sed 's/^/[/; s/$/]/')" >> "$GITHUB_OUTPUT"
 
-  run:
+  # The job prior of a resume. It keeps the records of the earlier run that have the stamp of this code, as the artifact joint-records-prior.
+  # The artifact name starts with joint-records-, so the job analyze and a later resume read these records with the records of this run.
+  prior:
     needs: plan
+    if: ${{ inputs.resume-run }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
+      actions: read
+    steps:
+      - name: Check the run id
+        env:
+          RESUME_RUN: ${{ inputs.resume-run }}
+        run: |
+          case "$RESUME_RUN" in ''|*[!0-9]*) echo "The input resume-run is a run id, not $RESUME_RUN."; exit 1;; esac
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 26
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          pattern: joint-records-*
+          merge-multiple: true
+          path: packages/joint/prior-in
+          run-id: ${{ inputs.resume-run }}
+          github-token: ${{ github.token }}
+      - name: Keep the pairs with the stamp of this code
+        working-directory: packages/joint
+        env:
+          COUNT: ${{ needs.plan.outputs.count }}
+          SLICE: ${{ needs.plan.outputs.slice }}
+          CORPUS: ${{ needs.plan.outputs.corpus }}
+          COVER: ${{ inputs.cover && 'on' || '' }}
+          PAIRS: ${{ inputs.pairs }}
+        run: |
+          node scripts/bench.mjs resume --corpus "$CORPUS" --records prior-in --out prior ${SLICE:+--slice "$SLICE"} ${PAIRS:+--pairs "$PAIRS"} ${COVER:+--cover on} | tee -a "$GITHUB_STEP_SUMMARY"
+          node scripts/bench.mjs plan --corpus "$CORPUS" --shards "$COUNT" --prior prior/prior-pairs.ndjson ${SLICE:+--slice "$SLICE"} ${PAIRS:+--pairs "$PAIRS"} ${COVER:+--cover on} | tee -a "$GITHUB_STEP_SUMMARY"
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: joint-records-prior
+          path: packages/joint/prior/
+          if-no-files-found: error
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: joint-prior-pairs
+          path: packages/joint/prior/prior-pairs.ndjson
+          if-no-files-found: error
+
+  run:
+    needs: [plan, prior]
+    if: ${{ !cancelled() && needs.plan.result == 'success' && (needs.prior.result == 'success' || needs.prior.result == 'skipped') }}
     runs-on: ubuntu-latest
     # One input of joint-v2 ran for more than 89 minutes in run 40666991882. 360 minutes is the limit of GitHub.
     timeout-minutes: 360
@@ -149,9 +210,18 @@ jobs:
           node-version: 26
           cache: pnpm
       - run: pnpm install --frozen-lockfile
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        if: ${{ inputs.resume-run }}
+        with:
+          name: joint-prior-pairs
+          path: packages/joint/prior
       - name: Run one shard
         working-directory: packages/joint
+        # The script stops at 330 minutes, after the pair that runs at that time. This limit stops one pair that runs for too long.
+        # A step limit does not stop the job, so the upload after this step runs.
+        timeout-minutes: 350
         env:
+          PRIOR: ${{ inputs.resume-run && 'prior/prior-pairs.ndjson' || '' }}
           SHARD: ${{ matrix.shard }}
           COUNT: ${{ needs.plan.outputs.count }}
           SLICE: ${{ needs.plan.outputs.slice }}
@@ -163,12 +233,15 @@ jobs:
           CONFIRM: ${{ inputs.confirm && 'on' || '' }}
           # 7 inputs of 1000 boxes went above the default heap of approximately 4 GB with 195 pairs in run 40815928586. The runner has 16 GB.
           NODE_OPTIONS: --max-old-space-size=6144
-        run: node scripts/bench.mjs run --corpus "$CORPUS" --shards "$COUNT" --shard "$SHARD" --out records ${SLICE:+--slice "$SLICE"} ${LANES:+--lanes on} ${ITERATE:+--iterate on} ${CONFIRM:+--confirm on} ${PAIRS:+--pairs "$PAIRS"} ${COVER:+--cover on}
+        run: node scripts/bench.mjs run --corpus "$CORPUS" --shards "$COUNT" --shard "$SHARD" --out records ${SLICE:+--slice "$SLICE"} ${LANES:+--lanes on} ${ITERATE:+--iterate on} ${CONFIRM:+--confirm on} ${PAIRS:+--pairs "$PAIRS"} ${COVER:+--cover on} ${PRIOR:+--prior "$PRIOR"}
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
-        if: ${{ !cancelled() }}
+        # A shard that failed or that a person cancelled still keeps each finished pair.
+        if: ${{ always() }}
         with:
           name: joint-records-${{ matrix.shard }}
-          path: packages/joint/records/*.jsonl
+          path: |
+            packages/joint/records/*.jsonl
+            packages/joint/records/*.ndjson
           if-no-files-found: error
 
   analyze:
@@ -215,6 +288,9 @@ jobs:
           status=0
           node scripts/bench.mjs analyze --corpus "$CORPUS" --records records --out report ${SLICE:+--slice "$SLICE"} ${subset:+--subset "$subset"} ${jobs:+--jobs "$jobs"} || status=$?
           if [ -f report/report.md ]; then cat report/report.md >> "$GITHUB_STEP_SUMMARY"; fi
+          mkdir -p report
+          node scripts/bench.mjs costs --corpus "$CORPUS" --records records > report/pair-costs.md || status=$?
+          cat report/pair-costs.md >> "$GITHUB_STEP_SUMMARY"
           exit "$status"
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         if: ${{ !cancelled() }}
@@ -281,7 +357,7 @@ jobs:
   joint-bench-ok:
     name: Joint bench OK
     if: always()
-    needs: [check, smoke, plan, run, analyze, reanalyze]
+    needs: [check, smoke, plan, prior, run, analyze, reanalyze]
     runs-on: ubuntu-latest
     timeout-minutes: 2
     permissions: {}
@@ -290,7 +366,7 @@ jobs:
         env:
           NEEDS: ${{ toJSON(needs) }}
           # The jobs that their own if may skip, separated by spaces. Each other job must pass.
-          ALLOW_SKIP: ${{ inputs.records-run && 'check smoke plan run analyze' || 'reanalyze' }}
+          ALLOW_SKIP: ${{ inputs.records-run && 'check smoke plan prior run analyze' || (inputs.resume-run && 'reanalyze' || 'prior reanalyze') }}
         run: |
           echo "$NEEDS" | jq -r 'to_entries[] | "\(.key) \(.value.result)"' > results
           cat results

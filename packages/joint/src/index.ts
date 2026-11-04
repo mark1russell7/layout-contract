@@ -4,6 +4,7 @@ export * from "./epoch-step.ts";
 export * from "./memory-gate.ts";
 export * from "./config-cost.ts";
 export * from "./plan.ts";
+export * from "./shard-run.ts";
 export * from "./split.ts";
 export * from "./sweep.ts";
 export * from "./confirm.ts";
