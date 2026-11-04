@@ -1,7 +1,7 @@
 // The page "Compare all pairs": one input, each chosen packer with each chosen router, side by side and in the order of the benchmark.
 import { marked } from "marked";
 import aboutText from "../content/compare.md?raw";
-import { VARIANT_TEXT, type JointPair, type PackChoice, type RouterChoice } from "./catalog.ts";
+import { exceptionNote, VARIANT_TEXT, type JointPair, type PackChoice, type RouterChoice } from "./catalog.ts";
 import { initBuild, initTheme } from "./chrome.ts";
 import { pairSvg } from "./draw.ts";
 import { boxesOf, parsePicked, pickedText, pickerHtml, PRESETS, readPicker, refOf, shortId, type Picked } from "./inputs.ts";
@@ -144,6 +144,7 @@ root.innerHTML = `
     <h2 class="panel-title">2. The packers <span class="count-note">(${packs.length})</span></h2>
     <div class="filter"><button type="button" data-all="packs">All</button><button type="button" data-bench="packs">Default bench</button><button type="button" data-none="packs">None</button></div>
     <div id="setup-packs" class="strategy-rows"></div>
+    ${exceptionNote(catalog.packExceptions)}
     <h2 class="panel-title">3. The routers <span class="count-note">(${routers.length})</span></h2>
     <div class="filter"><button type="button" data-all="routers">All</button><button type="button" data-none="routers">None</button></div>
     <div id="setup-routers" class="chips"></div>

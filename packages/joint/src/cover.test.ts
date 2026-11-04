@@ -17,6 +17,11 @@ describe("the cover of the catalogs", () => {
     for (const s of allStrategies) expect(ids).toContain(s.id);
   });
 
+  it("names a strategy of the registry in each entry", () => {
+    const known = new Set(packStrategyIds());
+    expect([...PACK_ENTRIES, ...coverEntries()].filter((e) => !known.has(e.strategy)).map((e) => e.id)).toEqual([]);
+  });
+
   it("gives each strategy an entry, with only the listed exceptions", () => {
     const entries = new Set([...PACK_ENTRIES, ...coverEntries()].map((e) => e.strategy));
     expect(packStrategyIds().filter((id) => !entries.has(id)).sort()).toEqual(Object.keys(COVER_EXCEPTIONS).sort());
