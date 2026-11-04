@@ -11,7 +11,6 @@ This file lists the items of the roadmap of this repository. The status page of 
 | L52 | in progress | P1 | Measure joint space coverage, with a weekly trend that rises |
 | L81 | in progress | P1 | Memory gate over each family of the bench, then the dense-hubs peak (3.4-4.3 GB) |
 | L82 | in progress | P2 | The bench scripts in TypeScript (rule typed-scripts of conventions 0.5.0) |
-| L84 | in progress | P1 | A paired-time A/A arm in the joint bench, for the new Time row |
 
 ## Next
 
@@ -46,7 +45,7 @@ This file lists the items of the roadmap of this repository. The status page of 
 | L74 | later | P2 | Forces you compose from queries (ghost edges) |
 | L75 | later | P2 | Objectives under an interaction |
 | L76 | later | P2 | The orbit of a node: a soft keep-out margin |
-| L80 | later | P3 | Site forms for packSpace of packing, then drop PACK_EXTRAS |
+| L80 | later | P3 | Site forms for packSpace of packing and routeSpace of highways, then drop PACK_EXTRAS |
 | L87 | later | P3 | Move the boxes and the bend points in one pass |
 | L88 | later | P3 | Compact the layout after the route |
 | L89 | later | P3 | A route demand map in the cost of the packer |
@@ -111,5 +110,6 @@ This file lists the items of the roadmap of this repository. The status page of 
 | L78 | done | P2 | An open playground |
 | L79 | done | P2 | bench-4: the next version of the joint space |
 | L83 | done | P2 | Record fields for highways: env.mode and env.context, and no deterministic claim on a skipped record |
+| L84 | done | P1 | A paired-time A/A arm in the joint bench, for the new Time row |
 | L85 | done | P2 | CI runs each command of the sweep script on a small fixture |
 | L86 | done | P3 | Move the random generators and the joint statistics to the rigor packages |
