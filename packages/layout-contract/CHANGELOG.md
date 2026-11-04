@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.3.7
+
+- PATCH before 1.0.0: two new exports, with no break.
+- `segmentsCross` tells if two segments cross inside both of them. It has no tolerance, so a touch at an end does not cross.
+- `pointSegmentDistance` gives the shortest distance from a point to a segment.
+
 ## 0.3.5
 
 - PATCH before 1.0.0: new exports and an optional method, with no break. `layoutText` does not change.
