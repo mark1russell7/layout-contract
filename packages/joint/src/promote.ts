@@ -101,13 +101,14 @@ export interface PromoteRow {
   readonly pair: string;
   /** The mean gain of night 1, in its own epoch. */
   readonly nightGain: number;
-  readonly compare: ConfirmCompare;
+  /** The comparison of the score, or `null` when no input has a value of both configs. */
+  readonly compare: ConfirmCompare | null;
   /** The mean gain over the inputs of each seed, for each seed with a pair of values. */
   readonly seedGains: readonly number[];
   readonly seedMean: number;
   readonly seedSd: number;
   /** The comparison of the score on the stress inputs. It does not change the result. */
-  readonly stress: ConfirmCompare;
+  readonly stress: ConfirmCompare | null;
   /** The headline inputs without a value of the config or of the incumbent. */
   readonly incomplete: number;
   readonly worseGuards: readonly ConfirmGuard[];
@@ -203,6 +204,20 @@ function unitsOf(inputs: readonly AnalysisInput[], base: Map<string, LayoutRecor
   });
 }
 
+/**
+ * This function gives the comparison of each pair, or `null` for a pair with no value on the inputs.
+ * A stopped shard can lose each record of a config. That config is then incomplete, and the report of the other configs stays.
+ * The Holm family stays the list of the pairs, so a lost config does not relax the test of the others.
+ */
+function compareRead(cell: CellValues, inputs: readonly AnalysisInput[], pairs: readonly (readonly [string, string])[]): (ConfirmCompare | null)[] {
+  const read = pairs.filter(([a, b]) => inputs.some((i) => cell.values.get(i.id)?.has(a) === true && cell.values.get(i.id)?.has(b) === true));
+  const compares = compareAll(cell, inputs, read, pairs.length);
+  return pairs.map((pair) => {
+    const at = read.indexOf(pair);
+    return at < 0 ? null : compares[at]!;
+  });
+}
+
 /** This function gives the score cell of a scope of inputs. */
 function cellOfScope(records: readonly LayoutRecord[], inputs: readonly AnalysisInput[]): CellValues {
   return cellValues(indexRecords(records), inputs, HEADLINE.rule, HEADLINE.cap);
@@ -230,8 +245,8 @@ export function promoteConfigs(
   const stressIds = new Set(stress.map((i) => i.id));
   const stressCell = cellOfScope(live.filter((r) => stressIds.has(r.input)), stress);
   const pairs = rows.map((row) => [incumbent, row.id] as const);
-  const compares = compareAll(cell, headline, pairs);
-  const stressCompares = compareAll(stressCell, stress, pairs);
+  const compares = compareRead(cell, headline, pairs);
+  const stressCompares = compareRead(stressCell, stress, pairs);
   const base = recordsOf(headlineRecords, incumbent);
   const seedCount = new Set(headline.map((i) => i.seed)).size;
   const aa: PromoteAa = {
@@ -248,13 +263,13 @@ export function promoteConfigs(
     ),
   };
   const out = rows.map((row, i): PromoteRow => {
-    const compare = compares[i]!;
+    const compare = compares[i] ?? null;
     const seedGains = seedGainsOf(cell, headline, incumbent, row.id);
     const incomplete = headline.filter((input) => [row.id, incumbent].some((c) => cell.values.get(input.id)?.has(c) !== true)).length;
     const worse = worseGuards(headlineRecords, incumbent, row.id);
     const unreadGuards = CONFIRM_GUARDS.filter((g) => !guardRead(headlineRecords, g, incumbent, row.id)).map((g) => g.id);
     const config = nightConfig(row);
-    const overAa = compare.mean > aa.score;
+    const overAa = compare !== null && compare.mean > aa.score;
     return {
       config: row.id,
       label: configLabel(config),
@@ -264,13 +279,13 @@ export function promoteConfigs(
       seedGains,
       seedMean: seedGains.length === 0 ? 0 : mean(seedGains),
       seedSd: seedGains.length < 2 ? 0 : sd(seedGains),
-      stress: stressCompares[i]!,
+      stress: stressCompares[i] ?? null,
       incomplete,
       worseGuards: worse,
       unreadGuards,
       units: unitsOf(headline, base, recordsOf(headlineRecords, row.id)),
       overAa,
-      passed: incomplete === 0 && compare.better && worse.length === 0 && unreadGuards.length === 0 && overAa,
+      passed: incomplete === 0 && compare?.better === true && worse.length === 0 && unreadGuards.length === 0 && overAa,
     };
   });
   return {
@@ -307,7 +322,7 @@ export function promoteMarkdown(report: PromoteReport): string {
     "|---|---:|---:|---|---:|---:|---:|---:|---:|---|",
     ...report.rows.map(
       (r) =>
-        `| \`${r.label}\` | ${signed(r.nightGain)} | ${signed(r.compare.mean)} | [${signed(r.compare.lo)}, ${signed(r.compare.hi)}] | ${signed(r.seedMean)} | ${r.seedSd.toFixed(3)} | ${r.compare.adjusted.toFixed(4)} | ${r.worseGuards.length} | ${r.incomplete} | ${r.passed ? "yes" : "no"} |`,
+        `| \`${r.label}\` | ${signed(r.nightGain)} | ${r.compare === null ? "n/a" : signed(r.compare.mean)} | ${r.compare === null ? "n/a" : `[${signed(r.compare.lo)}, ${signed(r.compare.hi)}]`} | ${signed(r.seedMean)} | ${r.seedSd.toFixed(3)} | ${r.compare === null ? "n/a" : r.compare.adjusted.toFixed(4)} | ${r.worseGuards.length} | ${r.incomplete} | ${r.passed ? "yes" : "no"} |`,
     ),
     "",
     `The A/A spread of the score is ${report.aa.score.toFixed(3)}, the largest difference of the incumbent with itself over ${report.aa.pairs} pairs of seeds. A gain under that spread is not a claim. The A/A pair of \`time-arms.yml\` gives the floor of the times.`,
@@ -325,7 +340,7 @@ export function promoteMarkdown(report: PromoteReport): string {
     "",
     "| Config | Gain | Label |",
     "|---|---:|---|",
-    ...report.rows.map((r) => `| \`${r.label}\` | ${signed(r.stress.mean)} | ${r.stress.label} |`),
+    ...report.rows.map((r) => `| \`${r.label}\` | ${r.stress === null ? "n/a" : signed(r.stress.mean)} | ${r.stress?.label ?? "n/a"} |`),
     "",
     "## The worse guards",
     "",

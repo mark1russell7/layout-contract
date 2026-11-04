@@ -115,6 +115,15 @@ describe("promoteConfigs", () => {
     expect(report.rows[0]!.passed).toBe(false);
   });
 
+  it("keeps the report when a config lost each record, and that config does not pass", () => {
+    const report = promoteConfigs(records.filter((r) => r.strategy !== rows[1]!.id), INPUTS, rows, incumbent);
+    expect(report.rows[1]!.compare).toBeNull();
+    expect(report.rows[1]!.incomplete).toBe(INPUTS.length);
+    expect(report.rows[1]!.passed).toBe(false);
+    expect(report.rows[0]!.compare).not.toBeNull();
+    expect(promoteMarkdown(report)).toContain("n/a");
+  });
+
   it("does not pass a config with no gain", () => {
     expect(promoteConfigs(records, INPUTS, rows, incumbent).rows[1]!.passed).toBe(false);
   });

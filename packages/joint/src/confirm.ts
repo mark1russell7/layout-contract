@@ -171,10 +171,14 @@ function medianMs(records: readonly LayoutRecord[]): number {
   return times.length === 0 ? 0 : quantileSorted(times, 0.5);
 }
 
-/** This function gives the comparisons of the score of each pair `[a, b]` on the inputs. The Holm family is the list of the pairs. */
-export function compareAll(cell: CellValues, inputs: readonly AnalysisInput[], pairs: readonly (readonly [string, string])[]): ConfirmCompare[] {
+/**
+ * This function gives the comparisons of the score of each pair `[a, b]` on the inputs. The Holm family is the list of the pairs.
+ * A larger `family` counts each planned comparison with no value as a p of 1, so a lost comparison does not relax the others.
+ */
+export function compareAll(cell: CellValues, inputs: readonly AnalysisInput[], pairs: readonly (readonly [string, string])[], family: number = pairs.length): ConfirmCompare[] {
   const verdicts = pairs.map(([a, b]) => ({ a, b, v: scoreVerdict(cell, inputs, a, b) }));
-  const corrected = holm(verdicts.map(({ v }) => v.permutation.p), SWEEP_LEVEL);
+  const lost = Array.from({ length: family - pairs.length }, () => 1);
+  const corrected = holm([...verdicts.map(({ v }) => v.permutation.p), ...lost], SWEEP_LEVEL);
   return verdicts.map(({ a, b, v }, i): ConfirmCompare => {
     const c = corrected[i]!;
     return { a, b, n: v.n, label: v.label, mean: v.stratified.mean, lo: v.stratified.lo, hi: v.stratified.hi, p: v.permutation.p, adjusted: c.adjusted, better: v.label === "better" && c.reject, worse: v.label === "worse" && c.reject, signs: v.signTest, summary: v.summary };
