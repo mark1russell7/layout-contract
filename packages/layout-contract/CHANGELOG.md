@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.3.8
+
+- PATCH before 1.0.0: a faster `spaceSize`, with no change of a result.
+- The count examines each constraint at the last stage that the constraint names, and it leaves a branch at the first break. Before this change, it examined each constraint on each whole combination.
+
 ## 0.3.7
 
 - PATCH before 1.0.0: two new exports, with no break.

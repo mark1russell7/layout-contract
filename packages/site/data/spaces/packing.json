@@ -1,0 +1,4695 @@
+{
+  "schema": "site-space/1",
+  "source": "packing 0.6.1",
+  "date": "2026-11-04",
+  "space": {
+    "schema": "strategy-space/1",
+    "engine": "packing",
+    "version": "1",
+    "stages": [
+      {
+        "name": "order",
+        "options": [
+          {
+            "id": "height-desc",
+            "params": [],
+            "supports": {
+              "shape": [
+                "rect"
+              ]
+            }
+          },
+          {
+            "id": "height-asc",
+            "params": [],
+            "supports": {
+              "shape": [
+                "rect"
+              ]
+            }
+          },
+          {
+            "id": "width-desc",
+            "params": [],
+            "supports": {
+              "shape": [
+                "rect"
+              ]
+            }
+          },
+          {
+            "id": "area-desc",
+            "params": [],
+            "supports": {
+              "shape": [
+                "rect"
+              ]
+            }
+          },
+          {
+            "id": "input",
+            "params": [],
+            "supports": {
+              "shape": [
+                "rect",
+                "circle"
+              ]
+            }
+          },
+          {
+            "id": "graph-bfs",
+            "params": [],
+            "supports": {
+              "shape": [
+                "rect"
+              ]
+            }
+          }
+        ]
+      },
+      {
+        "name": "size-search",
+        "options": [
+          {
+            "id": "log-sweep",
+            "params": [
+              {
+                "name": "samples",
+                "kind": "int",
+                "min": 12,
+                "max": 192,
+                "scale": "log",
+                "default": 48
+              }
+            ],
+            "supports": {
+              "shape": [
+                "rect"
+              ]
+            }
+          },
+          {
+            "id": "none",
+            "params": [],
+            "supports": {
+              "shape": [
+                "rect",
+                "circle"
+              ]
+            }
+          }
+        ]
+      },
+      {
+        "name": "placement",
+        "options": [
+          {
+            "id": "rows",
+            "params": [],
+            "supports": {
+              "shape": [
+                "rect"
+              ]
+            }
+          },
+          {
+            "id": "skyline",
+            "params": [
+              {
+                "name": "rule",
+                "kind": "enum",
+                "values": [
+                  "bl",
+                  "mw"
+                ],
+                "default": "bl"
+              },
+              {
+                "name": "wasteMap",
+                "kind": "bool",
+                "default": false
+              },
+              {
+                "name": "rotate",
+                "kind": "bool",
+                "default": false
+              }
+            ],
+            "supports": {
+              "shape": [
+                "rect"
+              ]
+            }
+          },
+          {
+            "id": "shelf",
+            "params": [
+              {
+                "name": "fit",
+                "kind": "enum",
+                "values": [
+                  "none",
+                  "next",
+                  "first",
+                  "best"
+                ],
+                "default": "none"
+              }
+            ],
+            "supports": {
+              "shape": [
+                "rect"
+              ]
+            }
+          },
+          {
+            "id": "maxrects",
+            "params": [
+              {
+                "name": "rule",
+                "kind": "enum",
+                "values": [
+                  "bssf",
+                  "blsf",
+                  "baf",
+                  "bl",
+                  "cp",
+                  "wire"
+                ],
+                "default": "bssf"
+              },
+              {
+                "name": "rotate",
+                "kind": "bool",
+                "default": false
+              },
+              {
+                "name": "fixedBands",
+                "kind": "bool",
+                "default": false
+              },
+              {
+                "name": "bandHeight",
+                "kind": "real",
+                "min": 1,
+                "max": 64,
+                "scale": "log",
+                "default": 8,
+                "when": {
+                  "param": "fixedBands",
+                  "in": [
+                    true
+                  ]
+                }
+              }
+            ],
+            "supports": {
+              "shape": [
+                "rect"
+              ]
+            }
+          },
+          {
+            "id": "guillotine",
+            "params": [
+              {
+                "name": "choice",
+                "kind": "enum",
+                "values": [
+                  "baf",
+                  "bssf",
+                  "blsf",
+                  "waf",
+                  "wssf",
+                  "wlsf"
+                ],
+                "default": "baf"
+              },
+              {
+                "name": "split",
+                "kind": "enum",
+                "values": [
+                  "sas",
+                  "las",
+                  "sa",
+                  "la",
+                  "minas",
+                  "maxas"
+                ],
+                "default": "sas"
+              },
+              {
+                "name": "rotate",
+                "kind": "bool",
+                "default": false
+              },
+              {
+                "name": "merge",
+                "kind": "bool",
+                "default": false
+              }
+            ],
+            "supports": {
+              "shape": [
+                "rect"
+              ]
+            }
+          },
+          {
+            "id": "push",
+            "params": [
+              {
+                "name": "maxShovesPerItem",
+                "kind": "int",
+                "min": 1,
+                "max": 64,
+                "scale": "log",
+                "default": 8
+              }
+            ],
+            "supports": {
+              "shape": [
+                "rect"
+              ]
+            }
+          },
+          {
+            "id": "bottom-left",
+            "params": [
+              {
+                "name": "rule",
+                "kind": "enum",
+                "values": [
+                  "baker",
+                  "liu-teng"
+                ],
+                "default": "baker"
+              }
+            ],
+            "supports": {
+              "shape": [
+                "rect"
+              ]
+            }
+          },
+          {
+            "id": "best-fit",
+            "params": [
+              {
+                "name": "side",
+                "kind": "enum",
+                "values": [
+                  "left",
+                  "tall",
+                  "short"
+                ],
+                "default": "left"
+              }
+            ],
+            "supports": {
+              "shape": [
+                "rect"
+              ]
+            }
+          },
+          {
+            "id": "hole-degree",
+            "params": [
+              {
+                "name": "steps",
+                "kind": "int",
+                "min": 0,
+                "max": 32,
+                "default": 8
+              }
+            ],
+            "supports": {
+              "shape": [
+                "circle"
+              ]
+            }
+          }
+        ]
+      },
+      {
+        "name": "local-search",
+        "options": [
+          {
+            "id": "none",
+            "params": [],
+            "supports": {
+              "shape": [
+                "rect",
+                "circle"
+              ]
+            }
+          }
+        ]
+      },
+      {
+        "name": "combine",
+        "optional": true,
+        "options": [
+          {
+            "id": "portfolio",
+            "params": [
+              {
+                "name": "key",
+                "kind": "enum",
+                "values": [
+                  "levels",
+                  "area",
+                  "fill"
+                ],
+                "default": "levels"
+              },
+              {
+                "name": "limitMembers",
+                "kind": "bool",
+                "default": false
+              },
+              {
+                "name": "maxMembers",
+                "kind": "int",
+                "min": 1,
+                "max": 5,
+                "default": 3,
+                "when": {
+                  "param": "limitMembers",
+                  "in": [
+                    true
+                  ]
+                }
+              },
+              {
+                "name": "limitTime",
+                "kind": "bool",
+                "default": false
+              },
+              {
+                "name": "budgetMs",
+                "kind": "real",
+                "min": 1,
+                "max": 2000,
+                "scale": "log",
+                "default": 50,
+                "when": {
+                  "param": "limitTime",
+                  "in": [
+                    true
+                  ]
+                }
+              },
+              {
+                "name": "limitWork",
+                "kind": "bool",
+                "default": false
+              },
+              {
+                "name": "budgetWork",
+                "kind": "enum",
+                "values": [
+                  4000,
+                  16000,
+                  64000,
+                  256000
+                ],
+                "default": 16000,
+                "when": {
+                  "param": "limitWork",
+                  "in": [
+                    true
+                  ]
+                }
+              },
+              {
+                "name": "aspectFit",
+                "kind": "bool",
+                "default": false
+              },
+              {
+                "name": "fixedTarget",
+                "kind": "bool",
+                "default": false,
+                "when": {
+                  "param": "aspectFit",
+                  "in": [
+                    true
+                  ]
+                }
+              },
+              {
+                "name": "targetAspect",
+                "kind": "real",
+                "min": 0.25,
+                "max": 4,
+                "scale": "log",
+                "default": 1,
+                "when": {
+                  "param": "fixedTarget",
+                  "in": [
+                    true
+                  ]
+                }
+              }
+            ],
+            "members": {
+              "min": 2,
+              "max": 5,
+              "ordered": true
+            },
+            "supports": {
+              "shape": [
+                "rect"
+              ]
+            }
+          },
+          {
+            "id": "cell-portfolio",
+            "params": [
+              {
+                "name": "k",
+                "kind": "enum",
+                "values": [
+                  "cell",
+                  2,
+                  3
+                ],
+                "default": "cell"
+              },
+              {
+                "name": "key",
+                "kind": "enum",
+                "values": [
+                  "levels",
+                  "area",
+                  "fill"
+                ],
+                "default": "levels"
+              },
+              {
+                "name": "limitMembers",
+                "kind": "bool",
+                "default": false
+              },
+              {
+                "name": "maxMembers",
+                "kind": "int",
+                "min": 1,
+                "max": 5,
+                "default": 3,
+                "when": {
+                  "param": "limitMembers",
+                  "in": [
+                    true
+                  ]
+                }
+              },
+              {
+                "name": "limitTime",
+                "kind": "bool",
+                "default": false
+              },
+              {
+                "name": "budgetMs",
+                "kind": "real",
+                "min": 1,
+                "max": 2000,
+                "scale": "log",
+                "default": 50,
+                "when": {
+                  "param": "limitTime",
+                  "in": [
+                    true
+                  ]
+                }
+              },
+              {
+                "name": "limitWork",
+                "kind": "bool",
+                "default": false
+              },
+              {
+                "name": "budgetWork",
+                "kind": "enum",
+                "values": [
+                  4000,
+                  16000,
+                  64000,
+                  256000
+                ],
+                "default": 16000,
+                "when": {
+                  "param": "limitWork",
+                  "in": [
+                    true
+                  ]
+                }
+              },
+              {
+                "name": "aspectFit",
+                "kind": "bool",
+                "default": false
+              },
+              {
+                "name": "fixedTarget",
+                "kind": "bool",
+                "default": false,
+                "when": {
+                  "param": "aspectFit",
+                  "in": [
+                    true
+                  ]
+                }
+              },
+              {
+                "name": "targetAspect",
+                "kind": "real",
+                "min": 0.25,
+                "max": 4,
+                "scale": "log",
+                "default": 1,
+                "when": {
+                  "param": "fixedTarget",
+                  "in": [
+                    true
+                  ]
+                }
+              }
+            ],
+            "members": {
+              "min": 11,
+              "max": 11,
+              "ordered": false,
+              "pool": [
+                [
+                  {
+                    "space": "packing",
+                    "stages": {
+                      "order": {
+                        "option": "height-desc"
+                      },
+                      "local-search": {
+                        "option": "none"
+                      },
+                      "size-search": {
+                        "option": "log-sweep",
+                        "params": {
+                          "samples": 48
+                        }
+                      },
+                      "placement": {
+                        "option": "rows"
+                      }
+                    }
+                  },
+                  {
+                    "space": "packing",
+                    "stages": {
+                      "order": {
+                        "option": "height-desc"
+                      },
+                      "local-search": {
+                        "option": "none"
+                      },
+                      "size-search": {
+                        "option": "log-sweep",
+                        "params": {
+                          "samples": 48
+                        }
+                      },
+                      "placement": {
+                        "option": "skyline",
+                        "params": {
+                          "rule": "bl",
+                          "wasteMap": false,
+                          "rotate": false
+                        }
+                      }
+                    }
+                  },
+                  {
+                    "space": "packing",
+                    "stages": {
+                      "order": {
+                        "option": "height-desc"
+                      },
+                      "local-search": {
+                        "option": "none"
+                      },
+                      "size-search": {
+                        "option": "log-sweep",
+                        "params": {
+                          "samples": 48
+                        }
+                      },
+                      "placement": {
+                        "option": "shelf",
+                        "params": {
+                          "fit": "none"
+                        }
+                      }
+                    }
+                  },
+                  {
+                    "space": "packing",
+                    "stages": {
+                      "order": {
+                        "option": "height-desc"
+                      },
+                      "local-search": {
+                        "option": "none"
+                      },
+                      "size-search": {
+                        "option": "log-sweep",
+                        "params": {
+                          "samples": 48
+                        }
+                      },
+                      "placement": {
+                        "option": "shelf",
+                        "params": {
+                          "fit": "next"
+                        }
+                      }
+                    }
+                  },
+                  {
+                    "space": "packing",
+                    "stages": {
+                      "order": {
+                        "option": "height-desc"
+                      },
+                      "local-search": {
+                        "option": "none"
+                      },
+                      "size-search": {
+                        "option": "log-sweep",
+                        "params": {
+                          "samples": 48
+                        }
+                      },
+                      "placement": {
+                        "option": "shelf",
+                        "params": {
+                          "fit": "first"
+                        }
+                      }
+                    }
+                  },
+                  {
+                    "space": "packing",
+                    "stages": {
+                      "order": {
+                        "option": "height-desc"
+                      },
+                      "local-search": {
+                        "option": "none"
+                      },
+                      "size-search": {
+                        "option": "log-sweep",
+                        "params": {
+                          "samples": 48
+                        }
+                      },
+                      "placement": {
+                        "option": "shelf",
+                        "params": {
+                          "fit": "best"
+                        }
+                      }
+                    }
+                  },
+                  {
+                    "space": "packing",
+                    "stages": {
+                      "order": {
+                        "option": "height-desc"
+                      },
+                      "local-search": {
+                        "option": "none"
+                      },
+                      "size-search": {
+                        "option": "log-sweep",
+                        "params": {
+                          "samples": 48
+                        }
+                      },
+                      "placement": {
+                        "option": "maxrects",
+                        "params": {
+                          "rule": "bssf",
+                          "rotate": false,
+                          "fixedBands": false
+                        }
+                      }
+                    }
+                  },
+                  {
+                    "space": "packing",
+                    "stages": {
+                      "order": {
+                        "option": "height-desc"
+                      },
+                      "local-search": {
+                        "option": "none"
+                      },
+                      "size-search": {
+                        "option": "log-sweep",
+                        "params": {
+                          "samples": 48
+                        }
+                      },
+                      "placement": {
+                        "option": "maxrects",
+                        "params": {
+                          "rule": "blsf",
+                          "rotate": false,
+                          "fixedBands": false
+                        }
+                      }
+                    }
+                  },
+                  {
+                    "space": "packing",
+                    "stages": {
+                      "order": {
+                        "option": "height-desc"
+                      },
+                      "local-search": {
+                        "option": "none"
+                      },
+                      "size-search": {
+                        "option": "log-sweep",
+                        "params": {
+                          "samples": 48
+                        }
+                      },
+                      "placement": {
+                        "option": "maxrects",
+                        "params": {
+                          "rule": "baf",
+                          "rotate": false,
+                          "fixedBands": false
+                        }
+                      }
+                    }
+                  },
+                  {
+                    "space": "packing",
+                    "stages": {
+                      "order": {
+                        "option": "height-desc"
+                      },
+                      "local-search": {
+                        "option": "none"
+                      },
+                      "size-search": {
+                        "option": "log-sweep",
+                        "params": {
+                          "samples": 48
+                        }
+                      },
+                      "placement": {
+                        "option": "maxrects",
+                        "params": {
+                          "rule": "bl",
+                          "rotate": false,
+                          "fixedBands": false
+                        }
+                      }
+                    }
+                  },
+                  {
+                    "space": "packing",
+                    "stages": {
+                      "order": {
+                        "option": "height-desc"
+                      },
+                      "local-search": {
+                        "option": "none"
+                      },
+                      "size-search": {
+                        "option": "log-sweep",
+                        "params": {
+                          "samples": 48
+                        }
+                      },
+                      "placement": {
+                        "option": "maxrects",
+                        "params": {
+                          "rule": "cp",
+                          "rotate": false,
+                          "fixedBands": false
+                        }
+                      }
+                    }
+                  }
+                ]
+              ]
+            },
+            "supports": {
+              "shape": [
+                "rect"
+              ]
+            }
+          },
+          {
+            "id": "select",
+            "params": [
+              {
+                "name": "table",
+                "kind": "enum",
+                "values": [
+                  "k66",
+                  "pack"
+                ],
+                "default": "k66"
+              }
+            ],
+            "members": {
+              "min": 2,
+              "max": 2,
+              "ordered": true
+            },
+            "supports": {
+              "shape": [
+                "rect"
+              ]
+            }
+          },
+          {
+            "id": "aspect-fit",
+            "params": [
+              {
+                "name": "fixedTarget",
+                "kind": "bool",
+                "default": false
+              },
+              {
+                "name": "targetAspect",
+                "kind": "real",
+                "min": 0.25,
+                "max": 4,
+                "scale": "log",
+                "default": 1,
+                "when": {
+                  "param": "fixedTarget",
+                  "in": [
+                    true
+                  ]
+                }
+              }
+            ],
+            "members": {
+              "min": 1,
+              "max": 1,
+              "ordered": true
+            },
+            "supports": {
+              "shape": [
+                "rect"
+              ]
+            }
+          },
+          {
+            "id": "restarts",
+            "params": [
+              {
+                "name": "key",
+                "kind": "enum",
+                "values": [
+                  "levels",
+                  "area",
+                  "fill"
+                ],
+                "default": "levels"
+              },
+              {
+                "name": "iterations",
+                "kind": "int",
+                "min": 1,
+                "max": 256,
+                "scale": "log",
+                "default": 16
+              },
+              {
+                "name": "perturb",
+                "kind": "enum",
+                "values": [
+                  "swap",
+                  "shuffle-blocks",
+                  "shuffle"
+                ],
+                "default": "swap"
+              },
+              {
+                "name": "strength",
+                "kind": "real",
+                "min": 0,
+                "max": 1,
+                "default": 0.1
+              },
+              {
+                "name": "limitTime",
+                "kind": "bool",
+                "default": false
+              },
+              {
+                "name": "budgetMs",
+                "kind": "real",
+                "min": 1,
+                "max": 2000,
+                "scale": "log",
+                "default": 50,
+                "when": {
+                  "param": "limitTime",
+                  "in": [
+                    true
+                  ]
+                }
+              },
+              {
+                "name": "limitWork",
+                "kind": "bool",
+                "default": false
+              },
+              {
+                "name": "budgetWork",
+                "kind": "enum",
+                "values": [
+                  4000,
+                  16000,
+                  64000,
+                  256000
+                ],
+                "default": 16000,
+                "when": {
+                  "param": "limitWork",
+                  "in": [
+                    true
+                  ]
+                }
+              }
+            ],
+            "members": {
+              "min": 1,
+              "max": 1,
+              "ordered": true
+            },
+            "supports": {
+              "shape": [
+                "rect"
+              ]
+            }
+          },
+          {
+            "id": "bbox",
+            "params": [
+              {
+                "name": "turn",
+                "kind": "bool",
+                "default": false
+              }
+            ],
+            "members": {
+              "min": 1,
+              "max": 1,
+              "ordered": true,
+              "view": "bounds"
+            },
+            "supports": {
+              "shape": [
+                "rect",
+                "polygon",
+                "circle",
+                "free"
+              ]
+            }
+          },
+          {
+            "id": "ruin-recreate",
+            "params": [
+              {
+                "name": "iterations",
+                "kind": "int",
+                "min": 1,
+                "max": 256,
+                "scale": "log",
+                "default": 64
+              },
+              {
+                "name": "ruin",
+                "kind": "enum",
+                "values": [
+                  "mixed",
+                  "region",
+                  "random",
+                  "adjacent"
+                ],
+                "default": "mixed"
+              },
+              {
+                "name": "strength",
+                "kind": "real",
+                "min": 0,
+                "max": 1,
+                "default": 0.3
+              },
+              {
+                "name": "shrink",
+                "kind": "real",
+                "min": 0.001,
+                "max": 0.5,
+                "scale": "log",
+                "default": 0.005
+              }
+            ],
+            "members": {
+              "min": 1,
+              "max": 1,
+              "ordered": true
+            },
+            "supports": {
+              "shape": [
+                "rect"
+              ]
+            }
+          },
+          {
+            "id": "overlap-min",
+            "params": [
+              {
+                "name": "iterations",
+                "kind": "int",
+                "min": 64,
+                "max": 65536,
+                "scale": "log",
+                "default": 8192
+              },
+              {
+                "name": "step",
+                "kind": "real",
+                "min": 0.001,
+                "max": 0.5,
+                "scale": "log",
+                "default": 0.01
+              }
+            ],
+            "members": {
+              "min": 1,
+              "max": 1,
+              "ordered": true
+            },
+            "supports": {
+              "shape": [
+                "rect"
+              ]
+            }
+          },
+          {
+            "id": "anneal",
+            "params": [
+              {
+                "name": "iterations",
+                "kind": "int",
+                "min": 1,
+                "max": 256,
+                "scale": "log",
+                "default": 64
+              },
+              {
+                "name": "temperature",
+                "kind": "real",
+                "min": 0.0001,
+                "max": 1,
+                "scale": "log",
+                "default": 0.01
+              },
+              {
+                "name": "cooling",
+                "kind": "real",
+                "min": 0.0001,
+                "max": 1,
+                "scale": "log",
+                "default": 0.01
+              },
+              {
+                "name": "limitWork",
+                "kind": "bool",
+                "default": false
+              },
+              {
+                "name": "budgetWork",
+                "kind": "enum",
+                "values": [
+                  4000,
+                  16000,
+                  64000,
+                  256000
+                ],
+                "default": 16000,
+                "when": {
+                  "param": "limitWork",
+                  "in": [
+                    true
+                  ]
+                }
+              }
+            ],
+            "members": {
+              "min": 1,
+              "max": 1,
+              "ordered": true
+            },
+            "supports": {
+              "shape": [
+                "rect"
+              ]
+            }
+          },
+          {
+            "id": "genetic",
+            "params": [
+              {
+                "name": "iterations",
+                "kind": "int",
+                "min": 1,
+                "max": 256,
+                "scale": "log",
+                "default": 64
+              },
+              {
+                "name": "population",
+                "kind": "int",
+                "min": 2,
+                "max": 64,
+                "scale": "log",
+                "default": 8
+              },
+              {
+                "name": "mutation",
+                "kind": "real",
+                "min": 0,
+                "max": 1,
+                "default": 0.5
+              },
+              {
+                "name": "limitWork",
+                "kind": "bool",
+                "default": false
+              },
+              {
+                "name": "budgetWork",
+                "kind": "enum",
+                "values": [
+                  4000,
+                  16000,
+                  64000,
+                  256000
+                ],
+                "default": 16000,
+                "when": {
+                  "param": "limitWork",
+                  "in": [
+                    true
+                  ]
+                }
+              }
+            ],
+            "members": {
+              "min": 1,
+              "max": 1,
+              "ordered": true
+            },
+            "supports": {
+              "shape": [
+                "rect"
+              ]
+            }
+          },
+          {
+            "id": "tabu",
+            "params": [
+              {
+                "name": "iterations",
+                "kind": "int",
+                "min": 1,
+                "max": 256,
+                "scale": "log",
+                "default": 64
+              },
+              {
+                "name": "tenure",
+                "kind": "int",
+                "min": 0,
+                "max": 64,
+                "default": 7
+              },
+              {
+                "name": "neighbors",
+                "kind": "int",
+                "min": 1,
+                "max": 64,
+                "scale": "log",
+                "default": 8
+              },
+              {
+                "name": "limitWork",
+                "kind": "bool",
+                "default": false
+              },
+              {
+                "name": "budgetWork",
+                "kind": "enum",
+                "values": [
+                  4000,
+                  16000,
+                  64000,
+                  256000
+                ],
+                "default": 16000,
+                "when": {
+                  "param": "limitWork",
+                  "in": [
+                    true
+                  ]
+                }
+              }
+            ],
+            "members": {
+              "min": 1,
+              "max": 1,
+              "ordered": true
+            },
+            "supports": {
+              "shape": [
+                "rect"
+              ]
+            }
+          },
+          {
+            "id": "relax",
+            "params": [
+              {
+                "name": "strength",
+                "kind": "real",
+                "min": 0,
+                "max": 1,
+                "default": 1
+              }
+            ],
+            "members": {
+              "min": 1,
+              "max": 1,
+              "ordered": true
+            },
+            "supports": {
+              "shape": [
+                "rect"
+              ]
+            }
+          },
+          {
+            "id": "relax-pull",
+            "params": [
+              {
+                "name": "pull",
+                "kind": "real",
+                "min": 0,
+                "max": 1,
+                "default": 1
+              }
+            ],
+            "members": {
+              "min": 1,
+              "max": 1,
+              "ordered": true
+            },
+            "supports": {
+              "shape": [
+                "rect"
+              ]
+            }
+          },
+          {
+            "id": "force",
+            "params": [
+              {
+                "name": "iterations",
+                "kind": "int",
+                "min": 1,
+                "max": 256,
+                "scale": "log",
+                "default": 60
+              },
+              {
+                "name": "rounds",
+                "kind": "int",
+                "min": 0,
+                "max": 32,
+                "default": 10
+              }
+            ],
+            "members": {
+              "min": 1,
+              "max": 1,
+              "ordered": true
+            },
+            "supports": {
+              "shape": [
+                "rect"
+              ]
+            }
+          }
+        ]
+      }
+    ],
+    "constraints": [
+      {
+        "if": {
+          "stage": "placement",
+          "option": "push"
+        },
+        "then": {
+          "stage": "size-search",
+          "option": "none"
+        }
+      },
+      {
+        "if": {
+          "stage": "placement",
+          "option": "hole-degree"
+        },
+        "then": {
+          "stage": "size-search",
+          "option": "none"
+        }
+      },
+      {
+        "if": {
+          "stage": "placement",
+          "option": "hole-degree"
+        },
+        "then": {
+          "stage": "order",
+          "option": "input"
+        }
+      },
+      {
+        "if": {
+          "stage": "placement",
+          "option": "push"
+        },
+        "then": {
+          "not": {
+            "stage": "order",
+            "option": "graph-bfs"
+          }
+        }
+      },
+      {
+        "if": {
+          "stage": "size-search",
+          "option": "none"
+        },
+        "then": {
+          "not": {
+            "stage": "placement",
+            "option": "rows"
+          }
+        }
+      },
+      {
+        "if": {
+          "stage": "size-search",
+          "option": "none"
+        },
+        "then": {
+          "not": {
+            "stage": "placement",
+            "option": "skyline"
+          }
+        }
+      },
+      {
+        "if": {
+          "stage": "size-search",
+          "option": "none"
+        },
+        "then": {
+          "not": {
+            "stage": "placement",
+            "option": "shelf"
+          }
+        }
+      },
+      {
+        "if": {
+          "stage": "size-search",
+          "option": "none"
+        },
+        "then": {
+          "not": {
+            "stage": "placement",
+            "option": "maxrects"
+          }
+        }
+      },
+      {
+        "if": {
+          "stage": "size-search",
+          "option": "none"
+        },
+        "then": {
+          "not": {
+            "stage": "placement",
+            "option": "guillotine"
+          }
+        }
+      },
+      {
+        "if": {
+          "stage": "size-search",
+          "option": "none"
+        },
+        "then": {
+          "not": {
+            "stage": "placement",
+            "option": "bottom-left"
+          }
+        }
+      },
+      {
+        "if": {
+          "stage": "size-search",
+          "option": "none"
+        },
+        "then": {
+          "not": {
+            "stage": "placement",
+            "option": "best-fit"
+          }
+        }
+      }
+    ],
+    "named": {
+      "rows": {
+        "space": "packing",
+        "stages": {
+          "order": {
+            "option": "height-desc"
+          },
+          "local-search": {
+            "option": "none"
+          },
+          "size-search": {
+            "option": "log-sweep",
+            "params": {
+              "samples": 48
+            }
+          },
+          "placement": {
+            "option": "rows"
+          }
+        }
+      },
+      "skyline": {
+        "space": "packing",
+        "stages": {
+          "order": {
+            "option": "height-desc"
+          },
+          "local-search": {
+            "option": "none"
+          },
+          "size-search": {
+            "option": "log-sweep",
+            "params": {
+              "samples": 48
+            }
+          },
+          "placement": {
+            "option": "skyline",
+            "params": {
+              "rule": "bl",
+              "wasteMap": false,
+              "rotate": false
+            }
+          }
+        }
+      },
+      "shelf": {
+        "space": "packing",
+        "stages": {
+          "order": {
+            "option": "height-desc"
+          },
+          "local-search": {
+            "option": "none"
+          },
+          "size-search": {
+            "option": "log-sweep",
+            "params": {
+              "samples": 48
+            }
+          },
+          "placement": {
+            "option": "shelf",
+            "params": {
+              "fit": "none"
+            }
+          }
+        }
+      },
+      "push": {
+        "space": "packing",
+        "stages": {
+          "order": {
+            "option": "height-desc"
+          },
+          "local-search": {
+            "option": "none"
+          },
+          "size-search": {
+            "option": "none"
+          },
+          "placement": {
+            "option": "push",
+            "params": {
+              "maxShovesPerItem": 8
+            }
+          }
+        }
+      },
+      "shelf-next": {
+        "space": "packing",
+        "stages": {
+          "order": {
+            "option": "height-desc"
+          },
+          "local-search": {
+            "option": "none"
+          },
+          "size-search": {
+            "option": "log-sweep",
+            "params": {
+              "samples": 48
+            }
+          },
+          "placement": {
+            "option": "shelf",
+            "params": {
+              "fit": "next"
+            }
+          }
+        }
+      },
+      "shelf-first": {
+        "space": "packing",
+        "stages": {
+          "order": {
+            "option": "height-desc"
+          },
+          "local-search": {
+            "option": "none"
+          },
+          "size-search": {
+            "option": "log-sweep",
+            "params": {
+              "samples": 48
+            }
+          },
+          "placement": {
+            "option": "shelf",
+            "params": {
+              "fit": "first"
+            }
+          }
+        }
+      },
+      "shelf-best": {
+        "space": "packing",
+        "stages": {
+          "order": {
+            "option": "height-desc"
+          },
+          "local-search": {
+            "option": "none"
+          },
+          "size-search": {
+            "option": "log-sweep",
+            "params": {
+              "samples": 48
+            }
+          },
+          "placement": {
+            "option": "shelf",
+            "params": {
+              "fit": "best"
+            }
+          }
+        }
+      },
+      "shelf-first-input": {
+        "space": "packing",
+        "stages": {
+          "order": {
+            "option": "input"
+          },
+          "local-search": {
+            "option": "none"
+          },
+          "size-search": {
+            "option": "log-sweep",
+            "params": {
+              "samples": 48
+            }
+          },
+          "placement": {
+            "option": "shelf",
+            "params": {
+              "fit": "first"
+            }
+          }
+        }
+      },
+      "skyline-mw": {
+        "space": "packing",
+        "stages": {
+          "order": {
+            "option": "height-desc"
+          },
+          "local-search": {
+            "option": "none"
+          },
+          "size-search": {
+            "option": "log-sweep",
+            "params": {
+              "samples": 48
+            }
+          },
+          "placement": {
+            "option": "skyline",
+            "params": {
+              "rule": "mw",
+              "wasteMap": false,
+              "rotate": false
+            }
+          }
+        }
+      },
+      "skyline-bl-waste": {
+        "space": "packing",
+        "stages": {
+          "order": {
+            "option": "height-desc"
+          },
+          "local-search": {
+            "option": "none"
+          },
+          "size-search": {
+            "option": "log-sweep",
+            "params": {
+              "samples": 48
+            }
+          },
+          "placement": {
+            "option": "skyline",
+            "params": {
+              "rule": "bl",
+              "wasteMap": true,
+              "rotate": false
+            }
+          }
+        }
+      },
+      "skyline-mw-waste": {
+        "space": "packing",
+        "stages": {
+          "order": {
+            "option": "height-desc"
+          },
+          "local-search": {
+            "option": "none"
+          },
+          "size-search": {
+            "option": "log-sweep",
+            "params": {
+              "samples": 48
+            }
+          },
+          "placement": {
+            "option": "skyline",
+            "params": {
+              "rule": "mw",
+              "wasteMap": true,
+              "rotate": false
+            }
+          }
+        }
+      },
+      "maxrects-bssf": {
+        "space": "packing",
+        "stages": {
+          "order": {
+            "option": "height-desc"
+          },
+          "local-search": {
+            "option": "none"
+          },
+          "size-search": {
+            "option": "log-sweep",
+            "params": {
+              "samples": 48
+            }
+          },
+          "placement": {
+            "option": "maxrects",
+            "params": {
+              "rule": "bssf",
+              "rotate": false,
+              "fixedBands": false
+            }
+          }
+        }
+      },
+      "maxrects-blsf": {
+        "space": "packing",
+        "stages": {
+          "order": {
+            "option": "height-desc"
+          },
+          "local-search": {
+            "option": "none"
+          },
+          "size-search": {
+            "option": "log-sweep",
+            "params": {
+              "samples": 48
+            }
+          },
+          "placement": {
+            "option": "maxrects",
+            "params": {
+              "rule": "blsf",
+              "rotate": false,
+              "fixedBands": false
+            }
+          }
+        }
+      },
+      "maxrects-baf": {
+        "space": "packing",
+        "stages": {
+          "order": {
+            "option": "height-desc"
+          },
+          "local-search": {
+            "option": "none"
+          },
+          "size-search": {
+            "option": "log-sweep",
+            "params": {
+              "samples": 48
+            }
+          },
+          "placement": {
+            "option": "maxrects",
+            "params": {
+              "rule": "baf",
+              "rotate": false,
+              "fixedBands": false
+            }
+          }
+        }
+      },
+      "maxrects-bl": {
+        "space": "packing",
+        "stages": {
+          "order": {
+            "option": "height-desc"
+          },
+          "local-search": {
+            "option": "none"
+          },
+          "size-search": {
+            "option": "log-sweep",
+            "params": {
+              "samples": 48
+            }
+          },
+          "placement": {
+            "option": "maxrects",
+            "params": {
+              "rule": "bl",
+              "rotate": false,
+              "fixedBands": false
+            }
+          }
+        }
+      },
+      "maxrects-cp": {
+        "space": "packing",
+        "stages": {
+          "order": {
+            "option": "height-desc"
+          },
+          "local-search": {
+            "option": "none"
+          },
+          "size-search": {
+            "option": "log-sweep",
+            "params": {
+              "samples": 48
+            }
+          },
+          "placement": {
+            "option": "maxrects",
+            "params": {
+              "rule": "cp",
+              "rotate": false,
+              "fixedBands": false
+            }
+          }
+        }
+      },
+      "maxrects-wire": {
+        "space": "packing",
+        "stages": {
+          "order": {
+            "option": "height-desc"
+          },
+          "local-search": {
+            "option": "none"
+          },
+          "size-search": {
+            "option": "log-sweep",
+            "params": {
+              "samples": 48
+            }
+          },
+          "placement": {
+            "option": "maxrects",
+            "params": {
+              "rule": "wire",
+              "rotate": false,
+              "fixedBands": false
+            }
+          }
+        }
+      },
+      "maxrects": {
+        "space": "packing",
+        "stages": {
+          "order": {
+            "option": "height-desc"
+          },
+          "local-search": {
+            "option": "none"
+          },
+          "size-search": {
+            "option": "log-sweep",
+            "params": {
+              "samples": 48
+            }
+          },
+          "placement": {
+            "option": "maxrects",
+            "params": {
+              "rule": "bssf",
+              "rotate": false,
+              "fixedBands": false
+            }
+          }
+        }
+      },
+      "guillotine-baf-sas": {
+        "space": "packing",
+        "stages": {
+          "order": {
+            "option": "height-desc"
+          },
+          "local-search": {
+            "option": "none"
+          },
+          "size-search": {
+            "option": "log-sweep",
+            "params": {
+              "samples": 48
+            }
+          },
+          "placement": {
+            "option": "guillotine",
+            "params": {
+              "choice": "baf",
+              "split": "sas",
+              "rotate": false,
+              "merge": false
+            }
+          }
+        }
+      },
+      "guillotine-bssf-sas-merge": {
+        "space": "packing",
+        "stages": {
+          "order": {
+            "option": "height-desc"
+          },
+          "local-search": {
+            "option": "none"
+          },
+          "size-search": {
+            "option": "log-sweep",
+            "params": {
+              "samples": 48
+            }
+          },
+          "placement": {
+            "option": "guillotine",
+            "params": {
+              "choice": "bssf",
+              "split": "sas",
+              "rotate": false,
+              "merge": true
+            }
+          }
+        }
+      },
+      "guillotine": {
+        "space": "packing",
+        "stages": {
+          "order": {
+            "option": "height-desc"
+          },
+          "local-search": {
+            "option": "none"
+          },
+          "size-search": {
+            "option": "log-sweep",
+            "params": {
+              "samples": 48
+            }
+          },
+          "placement": {
+            "option": "guillotine",
+            "params": {
+              "choice": "baf",
+              "split": "sas",
+              "rotate": false,
+              "merge": false
+            }
+          }
+        }
+      },
+      "hole-degree": {
+        "space": "packing",
+        "stages": {
+          "order": {
+            "option": "input"
+          },
+          "size-search": {
+            "option": "none"
+          },
+          "placement": {
+            "option": "hole-degree",
+            "params": {
+              "steps": 8
+            }
+          },
+          "local-search": {
+            "option": "none"
+          }
+        }
+      },
+      "bottom-left": {
+        "space": "packing",
+        "stages": {
+          "order": {
+            "option": "width-desc"
+          },
+          "local-search": {
+            "option": "none"
+          },
+          "size-search": {
+            "option": "log-sweep",
+            "params": {
+              "samples": 48
+            }
+          },
+          "placement": {
+            "option": "bottom-left",
+            "params": {
+              "rule": "baker"
+            }
+          }
+        }
+      },
+      "bottom-left-liu-teng": {
+        "space": "packing",
+        "stages": {
+          "order": {
+            "option": "width-desc"
+          },
+          "local-search": {
+            "option": "none"
+          },
+          "size-search": {
+            "option": "log-sweep",
+            "params": {
+              "samples": 48
+            }
+          },
+          "placement": {
+            "option": "bottom-left",
+            "params": {
+              "rule": "liu-teng"
+            }
+          }
+        }
+      },
+      "best-fit": {
+        "space": "packing",
+        "stages": {
+          "order": {
+            "option": "height-desc"
+          },
+          "local-search": {
+            "option": "none"
+          },
+          "size-search": {
+            "option": "log-sweep",
+            "params": {
+              "samples": 48
+            }
+          },
+          "placement": {
+            "option": "best-fit",
+            "params": {
+              "side": "left"
+            }
+          }
+        }
+      },
+      "best-fit-tall": {
+        "space": "packing",
+        "stages": {
+          "order": {
+            "option": "height-desc"
+          },
+          "local-search": {
+            "option": "none"
+          },
+          "size-search": {
+            "option": "log-sweep",
+            "params": {
+              "samples": 48
+            }
+          },
+          "placement": {
+            "option": "best-fit",
+            "params": {
+              "side": "tall"
+            }
+          }
+        }
+      },
+      "best-fit-short": {
+        "space": "packing",
+        "stages": {
+          "order": {
+            "option": "height-desc"
+          },
+          "local-search": {
+            "option": "none"
+          },
+          "size-search": {
+            "option": "log-sweep",
+            "params": {
+              "samples": 48
+            }
+          },
+          "placement": {
+            "option": "best-fit",
+            "params": {
+              "side": "short"
+            }
+          }
+        }
+      },
+      "portfolio-k2": {
+        "space": "packing",
+        "stages": {
+          "combine": {
+            "option": "cell-portfolio",
+            "params": {
+              "k": 2
+            },
+            "members": [
+              {
+                "space": "packing",
+                "stages": {
+                  "order": {
+                    "option": "height-desc"
+                  },
+                  "local-search": {
+                    "option": "none"
+                  },
+                  "size-search": {
+                    "option": "log-sweep",
+                    "params": {
+                      "samples": 48
+                    }
+                  },
+                  "placement": {
+                    "option": "rows"
+                  }
+                }
+              },
+              {
+                "space": "packing",
+                "stages": {
+                  "order": {
+                    "option": "height-desc"
+                  },
+                  "local-search": {
+                    "option": "none"
+                  },
+                  "size-search": {
+                    "option": "log-sweep",
+                    "params": {
+                      "samples": 48
+                    }
+                  },
+                  "placement": {
+                    "option": "skyline",
+                    "params": {
+                      "rule": "bl",
+                      "wasteMap": false,
+                      "rotate": false
+                    }
+                  }
+                }
+              },
+              {
+                "space": "packing",
+                "stages": {
+                  "order": {
+                    "option": "height-desc"
+                  },
+                  "local-search": {
+                    "option": "none"
+                  },
+                  "size-search": {
+                    "option": "log-sweep",
+                    "params": {
+                      "samples": 48
+                    }
+                  },
+                  "placement": {
+                    "option": "shelf",
+                    "params": {
+                      "fit": "none"
+                    }
+                  }
+                }
+              },
+              {
+                "space": "packing",
+                "stages": {
+                  "order": {
+                    "option": "height-desc"
+                  },
+                  "local-search": {
+                    "option": "none"
+                  },
+                  "size-search": {
+                    "option": "log-sweep",
+                    "params": {
+                      "samples": 48
+                    }
+                  },
+                  "placement": {
+                    "option": "shelf",
+                    "params": {
+                      "fit": "next"
+                    }
+                  }
+                }
+              },
+              {
+                "space": "packing",
+                "stages": {
+                  "order": {
+                    "option": "height-desc"
+                  },
+                  "local-search": {
+                    "option": "none"
+                  },
+                  "size-search": {
+                    "option": "log-sweep",
+                    "params": {
+                      "samples": 48
+                    }
+                  },
+                  "placement": {
+                    "option": "shelf",
+                    "params": {
+                      "fit": "first"
+                    }
+                  }
+                }
+              },
+              {
+                "space": "packing",
+                "stages": {
+                  "order": {
+                    "option": "height-desc"
+                  },
+                  "local-search": {
+                    "option": "none"
+                  },
+                  "size-search": {
+                    "option": "log-sweep",
+                    "params": {
+                      "samples": 48
+                    }
+                  },
+                  "placement": {
+                    "option": "shelf",
+                    "params": {
+                      "fit": "best"
+                    }
+                  }
+                }
+              },
+              {
+                "space": "packing",
+                "stages": {
+                  "order": {
+                    "option": "height-desc"
+                  },
+                  "local-search": {
+                    "option": "none"
+                  },
+                  "size-search": {
+                    "option": "log-sweep",
+                    "params": {
+                      "samples": 48
+                    }
+                  },
+                  "placement": {
+                    "option": "maxrects",
+                    "params": {
+                      "rule": "bssf",
+                      "rotate": false,
+                      "fixedBands": false
+                    }
+                  }
+                }
+              },
+              {
+                "space": "packing",
+                "stages": {
+                  "order": {
+                    "option": "height-desc"
+                  },
+                  "local-search": {
+                    "option": "none"
+                  },
+                  "size-search": {
+                    "option": "log-sweep",
+                    "params": {
+                      "samples": 48
+                    }
+                  },
+                  "placement": {
+                    "option": "maxrects",
+                    "params": {
+                      "rule": "blsf",
+                      "rotate": false,
+                      "fixedBands": false
+                    }
+                  }
+                }
+              },
+              {
+                "space": "packing",
+                "stages": {
+                  "order": {
+                    "option": "height-desc"
+                  },
+                  "local-search": {
+                    "option": "none"
+                  },
+                  "size-search": {
+                    "option": "log-sweep",
+                    "params": {
+                      "samples": 48
+                    }
+                  },
+                  "placement": {
+                    "option": "maxrects",
+                    "params": {
+                      "rule": "baf",
+                      "rotate": false,
+                      "fixedBands": false
+                    }
+                  }
+                }
+              },
+              {
+                "space": "packing",
+                "stages": {
+                  "order": {
+                    "option": "height-desc"
+                  },
+                  "local-search": {
+                    "option": "none"
+                  },
+                  "size-search": {
+                    "option": "log-sweep",
+                    "params": {
+                      "samples": 48
+                    }
+                  },
+                  "placement": {
+                    "option": "maxrects",
+                    "params": {
+                      "rule": "bl",
+                      "rotate": false,
+                      "fixedBands": false
+                    }
+                  }
+                }
+              },
+              {
+                "space": "packing",
+                "stages": {
+                  "order": {
+                    "option": "height-desc"
+                  },
+                  "local-search": {
+                    "option": "none"
+                  },
+                  "size-search": {
+                    "option": "log-sweep",
+                    "params": {
+                      "samples": 48
+                    }
+                  },
+                  "placement": {
+                    "option": "maxrects",
+                    "params": {
+                      "rule": "cp",
+                      "rotate": false,
+                      "fixedBands": false
+                    }
+                  }
+                }
+              }
+            ]
+          }
+        }
+      },
+      "portfolio-k3": {
+        "space": "packing",
+        "stages": {
+          "combine": {
+            "option": "cell-portfolio",
+            "params": {
+              "k": 3
+            },
+            "members": [
+              {
+                "space": "packing",
+                "stages": {
+                  "order": {
+                    "option": "height-desc"
+                  },
+                  "local-search": {
+                    "option": "none"
+                  },
+                  "size-search": {
+                    "option": "log-sweep",
+                    "params": {
+                      "samples": 48
+                    }
+                  },
+                  "placement": {
+                    "option": "rows"
+                  }
+                }
+              },
+              {
+                "space": "packing",
+                "stages": {
+                  "order": {
+                    "option": "height-desc"
+                  },
+                  "local-search": {
+                    "option": "none"
+                  },
+                  "size-search": {
+                    "option": "log-sweep",
+                    "params": {
+                      "samples": 48
+                    }
+                  },
+                  "placement": {
+                    "option": "skyline",
+                    "params": {
+                      "rule": "bl",
+                      "wasteMap": false,
+                      "rotate": false
+                    }
+                  }
+                }
+              },
+              {
+                "space": "packing",
+                "stages": {
+                  "order": {
+                    "option": "height-desc"
+                  },
+                  "local-search": {
+                    "option": "none"
+                  },
+                  "size-search": {
+                    "option": "log-sweep",
+                    "params": {
+                      "samples": 48
+                    }
+                  },
+                  "placement": {
+                    "option": "shelf",
+                    "params": {
+                      "fit": "none"
+                    }
+                  }
+                }
+              },
+              {
+                "space": "packing",
+                "stages": {
+                  "order": {
+                    "option": "height-desc"
+                  },
+                  "local-search": {
+                    "option": "none"
+                  },
+                  "size-search": {
+                    "option": "log-sweep",
+                    "params": {
+                      "samples": 48
+                    }
+                  },
+                  "placement": {
+                    "option": "shelf",
+                    "params": {
+                      "fit": "next"
+                    }
+                  }
+                }
+              },
+              {
+                "space": "packing",
+                "stages": {
+                  "order": {
+                    "option": "height-desc"
+                  },
+                  "local-search": {
+                    "option": "none"
+                  },
+                  "size-search": {
+                    "option": "log-sweep",
+                    "params": {
+                      "samples": 48
+                    }
+                  },
+                  "placement": {
+                    "option": "shelf",
+                    "params": {
+                      "fit": "first"
+                    }
+                  }
+                }
+              },
+              {
+                "space": "packing",
+                "stages": {
+                  "order": {
+                    "option": "height-desc"
+                  },
+                  "local-search": {
+                    "option": "none"
+                  },
+                  "size-search": {
+                    "option": "log-sweep",
+                    "params": {
+                      "samples": 48
+                    }
+                  },
+                  "placement": {
+                    "option": "shelf",
+                    "params": {
+                      "fit": "best"
+                    }
+                  }
+                }
+              },
+              {
+                "space": "packing",
+                "stages": {
+                  "order": {
+                    "option": "height-desc"
+                  },
+                  "local-search": {
+                    "option": "none"
+                  },
+                  "size-search": {
+                    "option": "log-sweep",
+                    "params": {
+                      "samples": 48
+                    }
+                  },
+                  "placement": {
+                    "option": "maxrects",
+                    "params": {
+                      "rule": "bssf",
+                      "rotate": false,
+                      "fixedBands": false
+                    }
+                  }
+                }
+              },
+              {
+                "space": "packing",
+                "stages": {
+                  "order": {
+                    "option": "height-desc"
+                  },
+                  "local-search": {
+                    "option": "none"
+                  },
+                  "size-search": {
+                    "option": "log-sweep",
+                    "params": {
+                      "samples": 48
+                    }
+                  },
+                  "placement": {
+                    "option": "maxrects",
+                    "params": {
+                      "rule": "blsf",
+                      "rotate": false,
+                      "fixedBands": false
+                    }
+                  }
+                }
+              },
+              {
+                "space": "packing",
+                "stages": {
+                  "order": {
+                    "option": "height-desc"
+                  },
+                  "local-search": {
+                    "option": "none"
+                  },
+                  "size-search": {
+                    "option": "log-sweep",
+                    "params": {
+                      "samples": 48
+                    }
+                  },
+                  "placement": {
+                    "option": "maxrects",
+                    "params": {
+                      "rule": "baf",
+                      "rotate": false,
+                      "fixedBands": false
+                    }
+                  }
+                }
+              },
+              {
+                "space": "packing",
+                "stages": {
+                  "order": {
+                    "option": "height-desc"
+                  },
+                  "local-search": {
+                    "option": "none"
+                  },
+                  "size-search": {
+                    "option": "log-sweep",
+                    "params": {
+                      "samples": 48
+                    }
+                  },
+                  "placement": {
+                    "option": "maxrects",
+                    "params": {
+                      "rule": "bl",
+                      "rotate": false,
+                      "fixedBands": false
+                    }
+                  }
+                }
+              },
+              {
+                "space": "packing",
+                "stages": {
+                  "order": {
+                    "option": "height-desc"
+                  },
+                  "local-search": {
+                    "option": "none"
+                  },
+                  "size-search": {
+                    "option": "log-sweep",
+                    "params": {
+                      "samples": 48
+                    }
+                  },
+                  "placement": {
+                    "option": "maxrects",
+                    "params": {
+                      "rule": "cp",
+                      "rotate": false,
+                      "fixedBands": false
+                    }
+                  }
+                }
+              }
+            ]
+          }
+        }
+      },
+      "aspect-fit-maxrects-bl": {
+        "space": "packing",
+        "stages": {
+          "combine": {
+            "option": "aspect-fit",
+            "members": [
+              {
+                "space": "packing",
+                "stages": {
+                  "order": {
+                    "option": "height-desc"
+                  },
+                  "local-search": {
+                    "option": "none"
+                  },
+                  "size-search": {
+                    "option": "log-sweep",
+                    "params": {
+                      "samples": 48
+                    }
+                  },
+                  "placement": {
+                    "option": "maxrects",
+                    "params": {
+                      "rule": "bl",
+                      "rotate": false,
+                      "fixedBands": false
+                    }
+                  }
+                }
+              }
+            ]
+          }
+        }
+      },
+      "aspect-fit-maxrects-bssf": {
+        "space": "packing",
+        "stages": {
+          "combine": {
+            "option": "aspect-fit",
+            "members": [
+              {
+                "space": "packing",
+                "stages": {
+                  "order": {
+                    "option": "height-desc"
+                  },
+                  "local-search": {
+                    "option": "none"
+                  },
+                  "size-search": {
+                    "option": "log-sweep",
+                    "params": {
+                      "samples": 48
+                    }
+                  },
+                  "placement": {
+                    "option": "maxrects",
+                    "params": {
+                      "rule": "bssf",
+                      "rotate": false,
+                      "fixedBands": false
+                    }
+                  }
+                }
+              }
+            ]
+          }
+        }
+      },
+      "aspect-fit-portfolio-k2": {
+        "space": "packing",
+        "stages": {
+          "combine": {
+            "option": "cell-portfolio",
+            "params": {
+              "k": 2,
+              "aspectFit": true
+            },
+            "members": [
+              {
+                "space": "packing",
+                "stages": {
+                  "order": {
+                    "option": "height-desc"
+                  },
+                  "local-search": {
+                    "option": "none"
+                  },
+                  "size-search": {
+                    "option": "log-sweep",
+                    "params": {
+                      "samples": 48
+                    }
+                  },
+                  "placement": {
+                    "option": "rows"
+                  }
+                }
+              },
+              {
+                "space": "packing",
+                "stages": {
+                  "order": {
+                    "option": "height-desc"
+                  },
+                  "local-search": {
+                    "option": "none"
+                  },
+                  "size-search": {
+                    "option": "log-sweep",
+                    "params": {
+                      "samples": 48
+                    }
+                  },
+                  "placement": {
+                    "option": "skyline",
+                    "params": {
+                      "rule": "bl",
+                      "wasteMap": false,
+                      "rotate": false
+                    }
+                  }
+                }
+              },
+              {
+                "space": "packing",
+                "stages": {
+                  "order": {
+                    "option": "height-desc"
+                  },
+                  "local-search": {
+                    "option": "none"
+                  },
+                  "size-search": {
+                    "option": "log-sweep",
+                    "params": {
+                      "samples": 48
+                    }
+                  },
+                  "placement": {
+                    "option": "shelf",
+                    "params": {
+                      "fit": "none"
+                    }
+                  }
+                }
+              },
+              {
+                "space": "packing",
+                "stages": {
+                  "order": {
+                    "option": "height-desc"
+                  },
+                  "local-search": {
+                    "option": "none"
+                  },
+                  "size-search": {
+                    "option": "log-sweep",
+                    "params": {
+                      "samples": 48
+                    }
+                  },
+                  "placement": {
+                    "option": "shelf",
+                    "params": {
+                      "fit": "next"
+                    }
+                  }
+                }
+              },
+              {
+                "space": "packing",
+                "stages": {
+                  "order": {
+                    "option": "height-desc"
+                  },
+                  "local-search": {
+                    "option": "none"
+                  },
+                  "size-search": {
+                    "option": "log-sweep",
+                    "params": {
+                      "samples": 48
+                    }
+                  },
+                  "placement": {
+                    "option": "shelf",
+                    "params": {
+                      "fit": "first"
+                    }
+                  }
+                }
+              },
+              {
+                "space": "packing",
+                "stages": {
+                  "order": {
+                    "option": "height-desc"
+                  },
+                  "local-search": {
+                    "option": "none"
+                  },
+                  "size-search": {
+                    "option": "log-sweep",
+                    "params": {
+                      "samples": 48
+                    }
+                  },
+                  "placement": {
+                    "option": "shelf",
+                    "params": {
+                      "fit": "best"
+                    }
+                  }
+                }
+              },
+              {
+                "space": "packing",
+                "stages": {
+                  "order": {
+                    "option": "height-desc"
+                  },
+                  "local-search": {
+                    "option": "none"
+                  },
+                  "size-search": {
+                    "option": "log-sweep",
+                    "params": {
+                      "samples": 48
+                    }
+                  },
+                  "placement": {
+                    "option": "maxrects",
+                    "params": {
+                      "rule": "bssf",
+                      "rotate": false,
+                      "fixedBands": false
+                    }
+                  }
+                }
+              },
+              {
+                "space": "packing",
+                "stages": {
+                  "order": {
+                    "option": "height-desc"
+                  },
+                  "local-search": {
+                    "option": "none"
+                  },
+                  "size-search": {
+                    "option": "log-sweep",
+                    "params": {
+                      "samples": 48
+                    }
+                  },
+                  "placement": {
+                    "option": "maxrects",
+                    "params": {
+                      "rule": "blsf",
+                      "rotate": false,
+                      "fixedBands": false
+                    }
+                  }
+                }
+              },
+              {
+                "space": "packing",
+                "stages": {
+                  "order": {
+                    "option": "height-desc"
+                  },
+                  "local-search": {
+                    "option": "none"
+                  },
+                  "size-search": {
+                    "option": "log-sweep",
+                    "params": {
+                      "samples": 48
+                    }
+                  },
+                  "placement": {
+                    "option": "maxrects",
+                    "params": {
+                      "rule": "baf",
+                      "rotate": false,
+                      "fixedBands": false
+                    }
+                  }
+                }
+              },
+              {
+                "space": "packing",
+                "stages": {
+                  "order": {
+                    "option": "height-desc"
+                  },
+                  "local-search": {
+                    "option": "none"
+                  },
+                  "size-search": {
+                    "option": "log-sweep",
+                    "params": {
+                      "samples": 48
+                    }
+                  },
+                  "placement": {
+                    "option": "maxrects",
+                    "params": {
+                      "rule": "bl",
+                      "rotate": false,
+                      "fixedBands": false
+                    }
+                  }
+                }
+              },
+              {
+                "space": "packing",
+                "stages": {
+                  "order": {
+                    "option": "height-desc"
+                  },
+                  "local-search": {
+                    "option": "none"
+                  },
+                  "size-search": {
+                    "option": "log-sweep",
+                    "params": {
+                      "samples": 48
+                    }
+                  },
+                  "placement": {
+                    "option": "maxrects",
+                    "params": {
+                      "rule": "cp",
+                      "rotate": false,
+                      "fixedBands": false
+                    }
+                  }
+                }
+              }
+            ]
+          }
+        }
+      },
+      "portfolio-area-rows-bl": {
+        "space": "packing",
+        "stages": {
+          "combine": {
+            "option": "portfolio",
+            "params": {
+              "key": "area"
+            },
+            "members": [
+              {
+                "space": "packing",
+                "stages": {
+                  "order": {
+                    "option": "height-desc"
+                  },
+                  "local-search": {
+                    "option": "none"
+                  },
+                  "size-search": {
+                    "option": "log-sweep",
+                    "params": {
+                      "samples": 48
+                    }
+                  },
+                  "placement": {
+                    "option": "rows"
+                  }
+                }
+              },
+              {
+                "space": "packing",
+                "stages": {
+                  "order": {
+                    "option": "height-desc"
+                  },
+                  "local-search": {
+                    "option": "none"
+                  },
+                  "size-search": {
+                    "option": "log-sweep",
+                    "params": {
+                      "samples": 48
+                    }
+                  },
+                  "placement": {
+                    "option": "maxrects",
+                    "params": {
+                      "rule": "bl",
+                      "rotate": false,
+                      "fixedBands": false
+                    }
+                  }
+                }
+              }
+            ]
+          }
+        }
+      },
+      "select-rows-bl": {
+        "space": "packing",
+        "stages": {
+          "combine": {
+            "option": "select",
+            "members": [
+              {
+                "space": "packing",
+                "stages": {
+                  "order": {
+                    "option": "height-desc"
+                  },
+                  "local-search": {
+                    "option": "none"
+                  },
+                  "size-search": {
+                    "option": "log-sweep",
+                    "params": {
+                      "samples": 48
+                    }
+                  },
+                  "placement": {
+                    "option": "rows"
+                  }
+                }
+              },
+              {
+                "space": "packing",
+                "stages": {
+                  "order": {
+                    "option": "height-desc"
+                  },
+                  "local-search": {
+                    "option": "none"
+                  },
+                  "size-search": {
+                    "option": "log-sweep",
+                    "params": {
+                      "samples": 48
+                    }
+                  },
+                  "placement": {
+                    "option": "maxrects",
+                    "params": {
+                      "rule": "bl",
+                      "rotate": false,
+                      "fixedBands": false
+                    }
+                  }
+                }
+              }
+            ]
+          }
+        }
+      },
+      "portfolio-fill-rows-bl": {
+        "space": "packing",
+        "stages": {
+          "combine": {
+            "option": "portfolio",
+            "params": {
+              "key": "fill"
+            },
+            "members": [
+              {
+                "space": "packing",
+                "stages": {
+                  "order": {
+                    "option": "height-desc"
+                  },
+                  "local-search": {
+                    "option": "none"
+                  },
+                  "size-search": {
+                    "option": "log-sweep",
+                    "params": {
+                      "samples": 48
+                    }
+                  },
+                  "placement": {
+                    "option": "rows"
+                  }
+                }
+              },
+              {
+                "space": "packing",
+                "stages": {
+                  "order": {
+                    "option": "height-desc"
+                  },
+                  "local-search": {
+                    "option": "none"
+                  },
+                  "size-search": {
+                    "option": "log-sweep",
+                    "params": {
+                      "samples": 48
+                    }
+                  },
+                  "placement": {
+                    "option": "maxrects",
+                    "params": {
+                      "rule": "bl",
+                      "rotate": false,
+                      "fixedBands": false
+                    }
+                  }
+                }
+              }
+            ]
+          }
+        }
+      },
+      "portfolio": {
+        "space": "packing",
+        "stages": {
+          "combine": {
+            "option": "cell-portfolio",
+            "members": [
+              {
+                "space": "packing",
+                "stages": {
+                  "order": {
+                    "option": "height-desc"
+                  },
+                  "local-search": {
+                    "option": "none"
+                  },
+                  "size-search": {
+                    "option": "log-sweep",
+                    "params": {
+                      "samples": 48
+                    }
+                  },
+                  "placement": {
+                    "option": "rows"
+                  }
+                }
+              },
+              {
+                "space": "packing",
+                "stages": {
+                  "order": {
+                    "option": "height-desc"
+                  },
+                  "local-search": {
+                    "option": "none"
+                  },
+                  "size-search": {
+                    "option": "log-sweep",
+                    "params": {
+                      "samples": 48
+                    }
+                  },
+                  "placement": {
+                    "option": "skyline",
+                    "params": {
+                      "rule": "bl",
+                      "wasteMap": false,
+                      "rotate": false
+                    }
+                  }
+                }
+              },
+              {
+                "space": "packing",
+                "stages": {
+                  "order": {
+                    "option": "height-desc"
+                  },
+                  "local-search": {
+                    "option": "none"
+                  },
+                  "size-search": {
+                    "option": "log-sweep",
+                    "params": {
+                      "samples": 48
+                    }
+                  },
+                  "placement": {
+                    "option": "shelf",
+                    "params": {
+                      "fit": "none"
+                    }
+                  }
+                }
+              },
+              {
+                "space": "packing",
+                "stages": {
+                  "order": {
+                    "option": "height-desc"
+                  },
+                  "local-search": {
+                    "option": "none"
+                  },
+                  "size-search": {
+                    "option": "log-sweep",
+                    "params": {
+                      "samples": 48
+                    }
+                  },
+                  "placement": {
+                    "option": "shelf",
+                    "params": {
+                      "fit": "next"
+                    }
+                  }
+                }
+              },
+              {
+                "space": "packing",
+                "stages": {
+                  "order": {
+                    "option": "height-desc"
+                  },
+                  "local-search": {
+                    "option": "none"
+                  },
+                  "size-search": {
+                    "option": "log-sweep",
+                    "params": {
+                      "samples": 48
+                    }
+                  },
+                  "placement": {
+                    "option": "shelf",
+                    "params": {
+                      "fit": "first"
+                    }
+                  }
+                }
+              },
+              {
+                "space": "packing",
+                "stages": {
+                  "order": {
+                    "option": "height-desc"
+                  },
+                  "local-search": {
+                    "option": "none"
+                  },
+                  "size-search": {
+                    "option": "log-sweep",
+                    "params": {
+                      "samples": 48
+                    }
+                  },
+                  "placement": {
+                    "option": "shelf",
+                    "params": {
+                      "fit": "best"
+                    }
+                  }
+                }
+              },
+              {
+                "space": "packing",
+                "stages": {
+                  "order": {
+                    "option": "height-desc"
+                  },
+                  "local-search": {
+                    "option": "none"
+                  },
+                  "size-search": {
+                    "option": "log-sweep",
+                    "params": {
+                      "samples": 48
+                    }
+                  },
+                  "placement": {
+                    "option": "maxrects",
+                    "params": {
+                      "rule": "bssf",
+                      "rotate": false,
+                      "fixedBands": false
+                    }
+                  }
+                }
+              },
+              {
+                "space": "packing",
+                "stages": {
+                  "order": {
+                    "option": "height-desc"
+                  },
+                  "local-search": {
+                    "option": "none"
+                  },
+                  "size-search": {
+                    "option": "log-sweep",
+                    "params": {
+                      "samples": 48
+                    }
+                  },
+                  "placement": {
+                    "option": "maxrects",
+                    "params": {
+                      "rule": "blsf",
+                      "rotate": false,
+                      "fixedBands": false
+                    }
+                  }
+                }
+              },
+              {
+                "space": "packing",
+                "stages": {
+                  "order": {
+                    "option": "height-desc"
+                  },
+                  "local-search": {
+                    "option": "none"
+                  },
+                  "size-search": {
+                    "option": "log-sweep",
+                    "params": {
+                      "samples": 48
+                    }
+                  },
+                  "placement": {
+                    "option": "maxrects",
+                    "params": {
+                      "rule": "baf",
+                      "rotate": false,
+                      "fixedBands": false
+                    }
+                  }
+                }
+              },
+              {
+                "space": "packing",
+                "stages": {
+                  "order": {
+                    "option": "height-desc"
+                  },
+                  "local-search": {
+                    "option": "none"
+                  },
+                  "size-search": {
+                    "option": "log-sweep",
+                    "params": {
+                      "samples": 48
+                    }
+                  },
+                  "placement": {
+                    "option": "maxrects",
+                    "params": {
+                      "rule": "bl",
+                      "rotate": false,
+                      "fixedBands": false
+                    }
+                  }
+                }
+              },
+              {
+                "space": "packing",
+                "stages": {
+                  "order": {
+                    "option": "height-desc"
+                  },
+                  "local-search": {
+                    "option": "none"
+                  },
+                  "size-search": {
+                    "option": "log-sweep",
+                    "params": {
+                      "samples": 48
+                    }
+                  },
+                  "placement": {
+                    "option": "maxrects",
+                    "params": {
+                      "rule": "cp",
+                      "rotate": false,
+                      "fixedBands": false
+                    }
+                  }
+                }
+              }
+            ]
+          }
+        }
+      },
+      "aspect-fit": {
+        "space": "packing",
+        "stages": {
+          "combine": {
+            "option": "aspect-fit",
+            "members": [
+              {
+                "space": "packing",
+                "stages": {
+                  "order": {
+                    "option": "height-desc"
+                  },
+                  "local-search": {
+                    "option": "none"
+                  },
+                  "size-search": {
+                    "option": "log-sweep",
+                    "params": {
+                      "samples": 48
+                    }
+                  },
+                  "placement": {
+                    "option": "maxrects",
+                    "params": {
+                      "rule": "bssf",
+                      "rotate": false,
+                      "fixedBands": false
+                    }
+                  }
+                }
+              }
+            ]
+          }
+        }
+      },
+      "select": {
+        "space": "packing",
+        "stages": {
+          "combine": {
+            "option": "select",
+            "members": [
+              {
+                "space": "packing",
+                "stages": {
+                  "order": {
+                    "option": "height-desc"
+                  },
+                  "local-search": {
+                    "option": "none"
+                  },
+                  "size-search": {
+                    "option": "log-sweep",
+                    "params": {
+                      "samples": 48
+                    }
+                  },
+                  "placement": {
+                    "option": "rows"
+                  }
+                }
+              },
+              {
+                "space": "packing",
+                "stages": {
+                  "order": {
+                    "option": "height-desc"
+                  },
+                  "local-search": {
+                    "option": "none"
+                  },
+                  "size-search": {
+                    "option": "log-sweep",
+                    "params": {
+                      "samples": 48
+                    }
+                  },
+                  "placement": {
+                    "option": "maxrects",
+                    "params": {
+                      "rule": "bl",
+                      "rotate": false,
+                      "fixedBands": false
+                    }
+                  }
+                }
+              }
+            ]
+          }
+        }
+      },
+      "pack": {
+        "space": "packing",
+        "stages": {
+          "combine": {
+            "option": "select",
+            "params": {
+              "table": "pack"
+            },
+            "members": [
+              {
+                "space": "packing",
+                "stages": {
+                  "order": {
+                    "option": "height-desc"
+                  },
+                  "local-search": {
+                    "option": "none"
+                  },
+                  "size-search": {
+                    "option": "log-sweep",
+                    "params": {
+                      "samples": 48
+                    }
+                  },
+                  "placement": {
+                    "option": "rows"
+                  }
+                }
+              },
+              {
+                "space": "packing",
+                "stages": {
+                  "order": {
+                    "option": "height-desc"
+                  },
+                  "local-search": {
+                    "option": "none"
+                  },
+                  "size-search": {
+                    "option": "log-sweep",
+                    "params": {
+                      "samples": 48
+                    }
+                  },
+                  "placement": {
+                    "option": "maxrects",
+                    "params": {
+                      "rule": "bl",
+                      "rotate": false,
+                      "fixedBands": false
+                    }
+                  }
+                }
+              }
+            ]
+          }
+        }
+      },
+      "restarts-maxrects-bl-k16": {
+        "space": "packing",
+        "stages": {
+          "combine": {
+            "option": "restarts",
+            "params": {
+              "iterations": 16
+            },
+            "members": [
+              {
+                "space": "packing",
+                "stages": {
+                  "order": {
+                    "option": "height-desc"
+                  },
+                  "local-search": {
+                    "option": "none"
+                  },
+                  "size-search": {
+                    "option": "log-sweep",
+                    "params": {
+                      "samples": 48
+                    }
+                  },
+                  "placement": {
+                    "option": "maxrects",
+                    "params": {
+                      "rule": "bl",
+                      "rotate": false,
+                      "fixedBands": false
+                    }
+                  }
+                }
+              }
+            ]
+          }
+        }
+      },
+      "restarts-rows-k16": {
+        "space": "packing",
+        "stages": {
+          "combine": {
+            "option": "restarts",
+            "params": {
+              "iterations": 16
+            },
+            "members": [
+              {
+                "space": "packing",
+                "stages": {
+                  "order": {
+                    "option": "height-desc"
+                  },
+                  "local-search": {
+                    "option": "none"
+                  },
+                  "size-search": {
+                    "option": "log-sweep",
+                    "params": {
+                      "samples": 48
+                    }
+                  },
+                  "placement": {
+                    "option": "rows"
+                  }
+                }
+              }
+            ]
+          }
+        }
+      },
+      "restarts-maxrects-bl-shuffle-k16": {
+        "space": "packing",
+        "stages": {
+          "combine": {
+            "option": "restarts",
+            "params": {
+              "iterations": 16,
+              "perturb": "shuffle"
+            },
+            "members": [
+              {
+                "space": "packing",
+                "stages": {
+                  "order": {
+                    "option": "height-desc"
+                  },
+                  "local-search": {
+                    "option": "none"
+                  },
+                  "size-search": {
+                    "option": "log-sweep",
+                    "params": {
+                      "samples": 48
+                    }
+                  },
+                  "placement": {
+                    "option": "maxrects",
+                    "params": {
+                      "rule": "bl",
+                      "rotate": false,
+                      "fixedBands": false
+                    }
+                  }
+                }
+              }
+            ]
+          }
+        }
+      },
+      "restarts": {
+        "space": "packing",
+        "stages": {
+          "combine": {
+            "option": "restarts",
+            "members": [
+              {
+                "space": "packing",
+                "stages": {
+                  "order": {
+                    "option": "height-desc"
+                  },
+                  "local-search": {
+                    "option": "none"
+                  },
+                  "size-search": {
+                    "option": "log-sweep",
+                    "params": {
+                      "samples": 48
+                    }
+                  },
+                  "placement": {
+                    "option": "maxrects",
+                    "params": {
+                      "rule": "bl",
+                      "rotate": false,
+                      "fixedBands": false
+                    }
+                  }
+                }
+              }
+            ]
+          }
+        }
+      },
+      "bbox-maxrects-bl": {
+        "space": "packing",
+        "stages": {
+          "combine": {
+            "option": "bbox",
+            "members": [
+              {
+                "space": "packing",
+                "stages": {
+                  "order": {
+                    "option": "height-desc"
+                  },
+                  "local-search": {
+                    "option": "none"
+                  },
+                  "size-search": {
+                    "option": "log-sweep",
+                    "params": {
+                      "samples": 48
+                    }
+                  },
+                  "placement": {
+                    "option": "maxrects",
+                    "params": {
+                      "rule": "bl",
+                      "rotate": false,
+                      "fixedBands": false
+                    }
+                  }
+                }
+              }
+            ]
+          }
+        }
+      },
+      "bbox-skyline": {
+        "space": "packing",
+        "stages": {
+          "combine": {
+            "option": "bbox",
+            "members": [
+              {
+                "space": "packing",
+                "stages": {
+                  "order": {
+                    "option": "height-desc"
+                  },
+                  "local-search": {
+                    "option": "none"
+                  },
+                  "size-search": {
+                    "option": "log-sweep",
+                    "params": {
+                      "samples": 48
+                    }
+                  },
+                  "placement": {
+                    "option": "skyline",
+                    "params": {
+                      "rule": "bl",
+                      "wasteMap": false,
+                      "rotate": false
+                    }
+                  }
+                }
+              }
+            ]
+          }
+        }
+      },
+      "bbox": {
+        "space": "packing",
+        "stages": {
+          "combine": {
+            "option": "bbox",
+            "members": [
+              {
+                "space": "packing",
+                "stages": {
+                  "order": {
+                    "option": "height-desc"
+                  },
+                  "local-search": {
+                    "option": "none"
+                  },
+                  "size-search": {
+                    "option": "log-sweep",
+                    "params": {
+                      "samples": 48
+                    }
+                  },
+                  "placement": {
+                    "option": "maxrects",
+                    "params": {
+                      "rule": "bl",
+                      "rotate": false,
+                      "fixedBands": false
+                    }
+                  }
+                }
+              }
+            ]
+          }
+        }
+      },
+      "ruin-recreate-maxrects-bl-k64": {
+        "space": "packing",
+        "stages": {
+          "combine": {
+            "option": "ruin-recreate",
+            "params": {
+              "iterations": 64
+            },
+            "members": [
+              {
+                "space": "packing",
+                "stages": {
+                  "order": {
+                    "option": "height-desc"
+                  },
+                  "local-search": {
+                    "option": "none"
+                  },
+                  "size-search": {
+                    "option": "log-sweep",
+                    "params": {
+                      "samples": 48
+                    }
+                  },
+                  "placement": {
+                    "option": "maxrects",
+                    "params": {
+                      "rule": "bl",
+                      "rotate": false,
+                      "fixedBands": false
+                    }
+                  }
+                }
+              }
+            ]
+          }
+        }
+      },
+      "ruin-recreate-skyline-k64": {
+        "space": "packing",
+        "stages": {
+          "combine": {
+            "option": "ruin-recreate",
+            "params": {
+              "iterations": 64
+            },
+            "members": [
+              {
+                "space": "packing",
+                "stages": {
+                  "order": {
+                    "option": "height-desc"
+                  },
+                  "local-search": {
+                    "option": "none"
+                  },
+                  "size-search": {
+                    "option": "log-sweep",
+                    "params": {
+                      "samples": 48
+                    }
+                  },
+                  "placement": {
+                    "option": "skyline",
+                    "params": {
+                      "rule": "bl",
+                      "wasteMap": false,
+                      "rotate": false
+                    }
+                  }
+                }
+              }
+            ]
+          }
+        }
+      },
+      "ruin-recreate": {
+        "space": "packing",
+        "stages": {
+          "combine": {
+            "option": "ruin-recreate",
+            "members": [
+              {
+                "space": "packing",
+                "stages": {
+                  "order": {
+                    "option": "height-desc"
+                  },
+                  "local-search": {
+                    "option": "none"
+                  },
+                  "size-search": {
+                    "option": "log-sweep",
+                    "params": {
+                      "samples": 48
+                    }
+                  },
+                  "placement": {
+                    "option": "maxrects",
+                    "params": {
+                      "rule": "bl",
+                      "rotate": false,
+                      "fixedBands": false
+                    }
+                  }
+                }
+              }
+            ]
+          }
+        }
+      },
+      "overlap-min-maxrects-bl-k8192": {
+        "space": "packing",
+        "stages": {
+          "combine": {
+            "option": "overlap-min",
+            "params": {
+              "iterations": 8192
+            },
+            "members": [
+              {
+                "space": "packing",
+                "stages": {
+                  "order": {
+                    "option": "height-desc"
+                  },
+                  "local-search": {
+                    "option": "none"
+                  },
+                  "size-search": {
+                    "option": "log-sweep",
+                    "params": {
+                      "samples": 48
+                    }
+                  },
+                  "placement": {
+                    "option": "maxrects",
+                    "params": {
+                      "rule": "bl",
+                      "rotate": false,
+                      "fixedBands": false
+                    }
+                  }
+                }
+              }
+            ]
+          }
+        }
+      },
+      "overlap-min-skyline-k8192": {
+        "space": "packing",
+        "stages": {
+          "combine": {
+            "option": "overlap-min",
+            "params": {
+              "iterations": 8192
+            },
+            "members": [
+              {
+                "space": "packing",
+                "stages": {
+                  "order": {
+                    "option": "height-desc"
+                  },
+                  "local-search": {
+                    "option": "none"
+                  },
+                  "size-search": {
+                    "option": "log-sweep",
+                    "params": {
+                      "samples": 48
+                    }
+                  },
+                  "placement": {
+                    "option": "skyline",
+                    "params": {
+                      "rule": "bl",
+                      "wasteMap": false,
+                      "rotate": false
+                    }
+                  }
+                }
+              }
+            ]
+          }
+        }
+      },
+      "overlap-min": {
+        "space": "packing",
+        "stages": {
+          "combine": {
+            "option": "overlap-min",
+            "members": [
+              {
+                "space": "packing",
+                "stages": {
+                  "order": {
+                    "option": "height-desc"
+                  },
+                  "local-search": {
+                    "option": "none"
+                  },
+                  "size-search": {
+                    "option": "log-sweep",
+                    "params": {
+                      "samples": 48
+                    }
+                  },
+                  "placement": {
+                    "option": "maxrects",
+                    "params": {
+                      "rule": "bl",
+                      "rotate": false,
+                      "fixedBands": false
+                    }
+                  }
+                }
+              }
+            ]
+          }
+        }
+      },
+      "anneal-maxrects-bl-k16": {
+        "space": "packing",
+        "stages": {
+          "combine": {
+            "option": "anneal",
+            "params": {
+              "iterations": 16
+            },
+            "members": [
+              {
+                "space": "packing",
+                "stages": {
+                  "order": {
+                    "option": "height-desc"
+                  },
+                  "local-search": {
+                    "option": "none"
+                  },
+                  "size-search": {
+                    "option": "log-sweep",
+                    "params": {
+                      "samples": 48
+                    }
+                  },
+                  "placement": {
+                    "option": "maxrects",
+                    "params": {
+                      "rule": "bl",
+                      "rotate": false,
+                      "fixedBands": false
+                    }
+                  }
+                }
+              }
+            ]
+          }
+        }
+      },
+      "anneal-skyline-k16": {
+        "space": "packing",
+        "stages": {
+          "combine": {
+            "option": "anneal",
+            "params": {
+              "iterations": 16
+            },
+            "members": [
+              {
+                "space": "packing",
+                "stages": {
+                  "order": {
+                    "option": "height-desc"
+                  },
+                  "local-search": {
+                    "option": "none"
+                  },
+                  "size-search": {
+                    "option": "log-sweep",
+                    "params": {
+                      "samples": 48
+                    }
+                  },
+                  "placement": {
+                    "option": "skyline",
+                    "params": {
+                      "rule": "bl",
+                      "wasteMap": false,
+                      "rotate": false
+                    }
+                  }
+                }
+              }
+            ]
+          }
+        }
+      },
+      "genetic-maxrects-bl-k16": {
+        "space": "packing",
+        "stages": {
+          "combine": {
+            "option": "genetic",
+            "params": {
+              "iterations": 16,
+              "population": 4
+            },
+            "members": [
+              {
+                "space": "packing",
+                "stages": {
+                  "order": {
+                    "option": "height-desc"
+                  },
+                  "local-search": {
+                    "option": "none"
+                  },
+                  "size-search": {
+                    "option": "log-sweep",
+                    "params": {
+                      "samples": 48
+                    }
+                  },
+                  "placement": {
+                    "option": "maxrects",
+                    "params": {
+                      "rule": "bl",
+                      "rotate": false,
+                      "fixedBands": false
+                    }
+                  }
+                }
+              }
+            ]
+          }
+        }
+      },
+      "tabu-maxrects-bl-k16": {
+        "space": "packing",
+        "stages": {
+          "combine": {
+            "option": "tabu",
+            "params": {
+              "iterations": 16,
+              "neighbors": 4
+            },
+            "members": [
+              {
+                "space": "packing",
+                "stages": {
+                  "order": {
+                    "option": "height-desc"
+                  },
+                  "local-search": {
+                    "option": "none"
+                  },
+                  "size-search": {
+                    "option": "log-sweep",
+                    "params": {
+                      "samples": 48
+                    }
+                  },
+                  "placement": {
+                    "option": "maxrects",
+                    "params": {
+                      "rule": "bl",
+                      "rotate": false,
+                      "fixedBands": false
+                    }
+                  }
+                }
+              }
+            ]
+          }
+        }
+      },
+      "anneal": {
+        "space": "packing",
+        "stages": {
+          "combine": {
+            "option": "anneal",
+            "members": [
+              {
+                "space": "packing",
+                "stages": {
+                  "order": {
+                    "option": "height-desc"
+                  },
+                  "local-search": {
+                    "option": "none"
+                  },
+                  "size-search": {
+                    "option": "log-sweep",
+                    "params": {
+                      "samples": 48
+                    }
+                  },
+                  "placement": {
+                    "option": "maxrects",
+                    "params": {
+                      "rule": "bl",
+                      "rotate": false,
+                      "fixedBands": false
+                    }
+                  }
+                }
+              }
+            ]
+          }
+        }
+      },
+      "genetic": {
+        "space": "packing",
+        "stages": {
+          "combine": {
+            "option": "genetic",
+            "members": [
+              {
+                "space": "packing",
+                "stages": {
+                  "order": {
+                    "option": "height-desc"
+                  },
+                  "local-search": {
+                    "option": "none"
+                  },
+                  "size-search": {
+                    "option": "log-sweep",
+                    "params": {
+                      "samples": 48
+                    }
+                  },
+                  "placement": {
+                    "option": "maxrects",
+                    "params": {
+                      "rule": "bl",
+                      "rotate": false,
+                      "fixedBands": false
+                    }
+                  }
+                }
+              }
+            ]
+          }
+        }
+      },
+      "tabu": {
+        "space": "packing",
+        "stages": {
+          "combine": {
+            "option": "tabu",
+            "members": [
+              {
+                "space": "packing",
+                "stages": {
+                  "order": {
+                    "option": "height-desc"
+                  },
+                  "local-search": {
+                    "option": "none"
+                  },
+                  "size-search": {
+                    "option": "log-sweep",
+                    "params": {
+                      "samples": 48
+                    }
+                  },
+                  "placement": {
+                    "option": "maxrects",
+                    "params": {
+                      "rule": "bl",
+                      "rotate": false,
+                      "fixedBands": false
+                    }
+                  }
+                }
+              }
+            ]
+          }
+        }
+      },
+      "relax-rows": {
+        "space": "packing",
+        "stages": {
+          "combine": {
+            "option": "relax",
+            "members": [
+              {
+                "space": "packing",
+                "stages": {
+                  "order": {
+                    "option": "height-desc"
+                  },
+                  "local-search": {
+                    "option": "none"
+                  },
+                  "size-search": {
+                    "option": "log-sweep",
+                    "params": {
+                      "samples": 48
+                    }
+                  },
+                  "placement": {
+                    "option": "rows"
+                  }
+                }
+              }
+            ]
+          }
+        }
+      },
+      "relax-maxrects-bl": {
+        "space": "packing",
+        "stages": {
+          "combine": {
+            "option": "relax",
+            "members": [
+              {
+                "space": "packing",
+                "stages": {
+                  "order": {
+                    "option": "height-desc"
+                  },
+                  "local-search": {
+                    "option": "none"
+                  },
+                  "size-search": {
+                    "option": "log-sweep",
+                    "params": {
+                      "samples": 48
+                    }
+                  },
+                  "placement": {
+                    "option": "maxrects",
+                    "params": {
+                      "rule": "bl",
+                      "rotate": false,
+                      "fixedBands": false
+                    }
+                  }
+                }
+              }
+            ]
+          }
+        }
+      },
+      "relax-skyline-bl-waste": {
+        "space": "packing",
+        "stages": {
+          "combine": {
+            "option": "relax",
+            "members": [
+              {
+                "space": "packing",
+                "stages": {
+                  "order": {
+                    "option": "height-desc"
+                  },
+                  "local-search": {
+                    "option": "none"
+                  },
+                  "size-search": {
+                    "option": "log-sweep",
+                    "params": {
+                      "samples": 48
+                    }
+                  },
+                  "placement": {
+                    "option": "skyline",
+                    "params": {
+                      "rule": "bl",
+                      "wasteMap": true,
+                      "rotate": false
+                    }
+                  }
+                }
+              }
+            ]
+          }
+        }
+      },
+      "relax": {
+        "space": "packing",
+        "stages": {
+          "combine": {
+            "option": "relax",
+            "members": [
+              {
+                "space": "packing",
+                "stages": {
+                  "order": {
+                    "option": "height-desc"
+                  },
+                  "local-search": {
+                    "option": "none"
+                  },
+                  "size-search": {
+                    "option": "log-sweep",
+                    "params": {
+                      "samples": 48
+                    }
+                  },
+                  "placement": {
+                    "option": "maxrects",
+                    "params": {
+                      "rule": "bl",
+                      "rotate": false,
+                      "fixedBands": false
+                    }
+                  }
+                }
+              }
+            ]
+          }
+        }
+      },
+      "relax-pull-rows": {
+        "space": "packing",
+        "stages": {
+          "combine": {
+            "option": "relax-pull",
+            "members": [
+              {
+                "space": "packing",
+                "stages": {
+                  "order": {
+                    "option": "height-desc"
+                  },
+                  "local-search": {
+                    "option": "none"
+                  },
+                  "size-search": {
+                    "option": "log-sweep",
+                    "params": {
+                      "samples": 48
+                    }
+                  },
+                  "placement": {
+                    "option": "rows"
+                  }
+                }
+              }
+            ]
+          }
+        }
+      },
+      "relax-pull-maxrects-bl": {
+        "space": "packing",
+        "stages": {
+          "combine": {
+            "option": "relax-pull",
+            "members": [
+              {
+                "space": "packing",
+                "stages": {
+                  "order": {
+                    "option": "height-desc"
+                  },
+                  "local-search": {
+                    "option": "none"
+                  },
+                  "size-search": {
+                    "option": "log-sweep",
+                    "params": {
+                      "samples": 48
+                    }
+                  },
+                  "placement": {
+                    "option": "maxrects",
+                    "params": {
+                      "rule": "bl",
+                      "rotate": false,
+                      "fixedBands": false
+                    }
+                  }
+                }
+              }
+            ]
+          }
+        }
+      },
+      "force-rows": {
+        "space": "packing",
+        "stages": {
+          "combine": {
+            "option": "force",
+            "members": [
+              {
+                "space": "packing",
+                "stages": {
+                  "order": {
+                    "option": "height-desc"
+                  },
+                  "local-search": {
+                    "option": "none"
+                  },
+                  "size-search": {
+                    "option": "log-sweep",
+                    "params": {
+                      "samples": 48
+                    }
+                  },
+                  "placement": {
+                    "option": "rows"
+                  }
+                }
+              }
+            ]
+          }
+        }
+      },
+      "force-maxrects-bl": {
+        "space": "packing",
+        "stages": {
+          "combine": {
+            "option": "force",
+            "members": [
+              {
+                "space": "packing",
+                "stages": {
+                  "order": {
+                    "option": "height-desc"
+                  },
+                  "local-search": {
+                    "option": "none"
+                  },
+                  "size-search": {
+                    "option": "log-sweep",
+                    "params": {
+                      "samples": 48
+                    }
+                  },
+                  "placement": {
+                    "option": "maxrects",
+                    "params": {
+                      "rule": "bl",
+                      "rotate": false,
+                      "fixedBands": false
+                    }
+                  }
+                }
+              }
+            ]
+          }
+        }
+      },
+      "force-skyline-bl-waste": {
+        "space": "packing",
+        "stages": {
+          "combine": {
+            "option": "force",
+            "members": [
+              {
+                "space": "packing",
+                "stages": {
+                  "order": {
+                    "option": "height-desc"
+                  },
+                  "local-search": {
+                    "option": "none"
+                  },
+                  "size-search": {
+                    "option": "log-sweep",
+                    "params": {
+                      "samples": 48
+                    }
+                  },
+                  "placement": {
+                    "option": "skyline",
+                    "params": {
+                      "rule": "bl",
+                      "wasteMap": true,
+                      "rotate": false
+                    }
+                  }
+                }
+              }
+            ]
+          }
+        }
+      },
+      "force": {
+        "space": "packing",
+        "stages": {
+          "combine": {
+            "option": "force",
+            "members": [
+              {
+                "space": "packing",
+                "stages": {
+                  "order": {
+                    "option": "height-desc"
+                  },
+                  "local-search": {
+                    "option": "none"
+                  },
+                  "size-search": {
+                    "option": "log-sweep",
+                    "params": {
+                      "samples": 48
+                    }
+                  },
+                  "placement": {
+                    "option": "maxrects",
+                    "params": {
+                      "rule": "bl",
+                      "rotate": false,
+                      "fixedBands": false
+                    }
+                  }
+                }
+              }
+            ]
+          }
+        }
+      }
+    }
+  }
+}

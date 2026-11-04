@@ -208,6 +208,38 @@ describe("canonicalConfig and configId", () => {
   });
 });
 
+describe("spaceSize with constraints over many stages", () => {
+  const ids = ["a", "b", "c"] as const;
+  const stages = ["s0", "s1", "s2", "s3", "s4"].map((name, i) => ({ name, ...(i % 2 === 0 ? { optional: true } : {}), options: ids.map((id) => ({ id, params: [] })) }));
+  const space: StrategySpace = {
+    schema: STRATEGY_SPACE_SCHEMA,
+    engine: "walk",
+    version: "1",
+    stages,
+    constraints: [
+      { if: { stage: "s0", option: "a" }, then: { stage: "s4", option: "b" } },
+      { if: { stage: "s3", option: "b" }, then: { not: { stage: "s1", option: "c" } } },
+      { if: { stage: "s2", option: null }, then: { stage: "s1", option: "a" } },
+      { if: { stage: "s4", option: "c" }, then: { stage: "s2", option: null } },
+    ],
+  };
+
+  it("counts the configs that checkConfig accepts", () => {
+    const choices = stages.map((s) => [...s.options.map((o) => o.id), ...(s.optional === true ? [null] : [])]);
+    let good = 0n;
+    const visit = (i: number, picked: Record<string, { option: string } | null>): void => {
+      if (i === stages.length) {
+        if (checkConfig(space, { space: "walk", stages: picked }).length === 0) good += 1n;
+        return;
+      }
+      for (const id of choices[i]!) visit(i + 1, { ...picked, [stages[i]!.name]: id === null ? null : { option: id } });
+    };
+    visit(0, {});
+    expect(good).toBeGreaterThan(0n);
+    expect(spaceSize(space, { levels: 1 }).base).toBe(good);
+  });
+});
+
 describe("paramLevels and spaceSize", () => {
   it("gives k levels on the scale of each numeric param", () => {
     const [shelf] = [pack.stages[1]!.options[1]!];
