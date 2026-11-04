@@ -1,14 +1,19 @@
 import { describe, expect, it } from "vitest";
 import type { JointData } from "./data.ts";
-import { enginesCurrent, type KpiCatalog, siteKpiInput } from "./kpi.ts";
+import { enginesCurrent, type KpiCatalog, packersMeasured, siteKpiInput } from "./kpi.ts";
 
-const run = (date: string, pairs: number, versions: Record<string, string>): JointData => ({ run: "1", date, pairs, versions }) as unknown as JointData;
+const run = (date: string, pairs: number, versions: Record<string, string>, packers: readonly string[] = ["shelf", "rows"]): JointData =>
+  ({ run: "1", date, pairs, versions, stress: { byPacker: packers.map((id) => ({ id })) } }) as unknown as JointData;
 
-const catalog: KpiCatalog = {
-  about: { packing: { shelf: "a", maxrects: "b", skyline: "c" }, highways: {} },
-  packWaiting: ["skyline"],
-  routers: ["corners", "trunks"],
-} as unknown as KpiCatalog;
+const catalog: KpiCatalog = { about: { packing: { shelf: "a", rows: "b", anneal: "c", skyline: "d" }, highways: {} }, routers: ["corners", "trunks"] };
+
+const entries = [
+  { id: "shelf", strategy: "shelf" },
+  { id: "shelf-next", strategy: "shelf" },
+  { id: "rows", strategy: "rows" },
+  { id: "anneal-maxrects-bl-k16", strategy: "anneal" },
+  { id: "gone", strategy: "gone" },
+];
 
 describe("enginesCurrent", () => {
   it("counts only the engines with the version of the build", () => {
@@ -20,20 +25,38 @@ describe("enginesCurrent", () => {
   });
 });
 
+describe("packersMeasured", () => {
+  it("counts a strategy one time, for each of its entries", () => {
+    expect(packersMeasured(run("2026-10-28", 130, {}, ["shelf", "shelf-next", "rows"]), catalog, entries)).toBe(2);
+  });
+
+  it("counts a strategy from an entry that has other options", () => {
+    expect(packersMeasured(run("2026-10-28", 130, {}, ["anneal-maxrects-bl-k16"]), catalog, entries)).toBe(1);
+  });
+
+  it("does not count a strategy with no result in the run", () => {
+    expect(packersMeasured(run("2026-10-28", 130, {}, []), catalog, entries)).toBe(0);
+  });
+
+  it("does not count a strategy that is not in the catalog", () => {
+    expect(packersMeasured(run("2026-10-28", 130, {}, ["gone"]), catalog, entries)).toBe(0);
+  });
+});
+
 describe("siteKpiInput", () => {
   it("gives no input without a run, because the time of the data is not known", () => {
-    expect(siteKpiInput([], catalog, {})).toBeUndefined();
+    expect(siteKpiInput([], catalog, {}, entries)).toBeUndefined();
   });
 
   it("takes the time of the data from the latest run, not from the build", () => {
-    const input = siteKpiInput([run("2026-10-20", 90, {}), run("2026-10-28", 130, {})], catalog, {});
+    const input = siteKpiInput([run("2026-10-20", 90, {}), run("2026-10-28", 130, {})], catalog, {}, entries);
     expect(input?.at).toBe("2026-10-28T00:00:00Z");
     expect(input?.measures.find((m) => m.id === "pairs-in-run")?.value).toBe(130);
   });
 
-  it("does not count a packer that waits for its bench result", () => {
-    const input = siteKpiInput([run("2026-10-28", 130, {})], catalog, {});
-    expect(input?.measures.find((m) => m.id === "packers-measured")?.value).toBe(2);
+  it("counts only the strategies of the latest run", () => {
+    const input = siteKpiInput([run("2026-10-20", 90, {}, ["shelf", "rows", "skyline"]), run("2026-10-28", 130, {}, ["shelf"])], catalog, {}, entries);
+    expect(input?.measures.find((m) => m.id === "packers-measured")?.value).toBe(1);
     expect(input?.measures.find((m) => m.id === "routers-on-compare")?.value).toBe(2);
   });
 });
