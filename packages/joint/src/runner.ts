@@ -370,7 +370,7 @@ function finite(values: Readonly<Record<string, number>>): Record<string, number
 }
 
 /** This function gives the router of an entry: a router strategy of `highways`, or `portfolio` for `portfolioRouter()`, with the options of the entry. */
-function routerOf(entry: RouterEntry): Router {
+export function routerOf(entry: RouterEntry): Router {
   const custom = Object.keys(entry.options).length > 0;
   if (entry.router === PORTFOLIO_ROUTER) return custom ? portfolioRouter(entry.options) : portfolioRouter();
   const s = HIGHWAY_ROUTERS.includes(entry.router)
