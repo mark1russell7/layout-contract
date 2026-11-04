@@ -2,8 +2,8 @@
 //
 //   check [--corpus <set>]                                                  examines the claims of the committed manifest and its split file
 //   smoke [--corpus <set>]                                                  packs and routes 1 input of each value of spacing with corners
-//   run --shards <n> --shard <i> --out <dir> [--slice pr] [--corpus <set>] [--lanes on] [--iterate on]   writes <dir>/records-<i>.jsonl
-//   plan --shards <n> [--slice pr] [--corpus <set>] [--lanes on] [--iterate on]                           prints the planned cost of each shard
+//   run --shards <n> --shard <i> --out <dir> [--slice pr] [--corpus <set>] [--lanes on] [--iterate on] [--cover on]   writes <dir>/records-<i>.jsonl
+//   plan --shards <n> [--slice pr] [--corpus <set>] [--lanes on] [--iterate on] [--cover on]              prints the planned cost of each shard
 //   analyze --records <dir> --out <dir> [--slice pr] [--corpus <set>] [--allow-missing <file>] [--subset <file>] [--baseline <pair[,pair]>]
 //           [--compare <a:b[,a:b]>] [--exclude-pack <id[,id]>] [--oracle-without <id[,id]>] [--times <spec[,spec]>] [--jobs <file>] [--rank-top <n>]
 //                                                                            writes <dir>/report.json and <dir>/report.md
@@ -74,6 +74,7 @@ import {
   runInput,
   SELECT_PACK,
   selectMemberOf,
+  coverOptions,
   SET_V2,
   SETS,
   SPACINGS,
@@ -90,6 +91,9 @@ const lanes = args.lanes === "on" ? laneEntries() : [];
 // The iteration pairs of L11 run only with `--iterate on`, for the same reason.
 if (args.iterate !== undefined && args.iterate !== "on" && args.iterate !== "off") throw new RangeError(`The option --iterate is on or off, not "${args.iterate}".`);
 const iterate = args.iterate === "on" ? iterEntries() : [];
+// The pairs of the cover run only with `--cover on`, for the same reason.
+if (args.cover !== undefined && args.cover !== "on" && args.cover !== "off") throw new RangeError(`The option --cover is on or off, not "${args.cover}".`);
+const cover = args.cover === "on" ? coverOptions() : {};
 
 /** This function gives the inputs and their manifest entries, in the order of the corpus, for the slice of the arguments. */
 function corpusSlice() {
@@ -105,7 +109,7 @@ function shardPlan() {
   const shards = Number(args.shards ?? 1);
   const rows = corpusSlice();
   // The lane passes use the lane term of the cost model. The rounds of the iteration pairs have no fit yet, so they cost `LANE_PASS_COST` pairs.
-  const pairs = PACK_ENTRIES.length * ROUTERS.length + iterPlanPairs(iterate);
+  const pairs = (cover.pairs?.length ?? PACK_ENTRIES.length * ROUTERS.length) + iterPlanPairs(iterate);
   const passes = lanePasses(lanes);
   const items = costedRows(rows, pairs, passes);
   return { rows, shards, plan: planShards(items, shards) };
@@ -210,7 +214,7 @@ if (command === "check") {
     const records = [];
     let last = t0;
     // freeRoutes frees the routes that no lane pair and no iteration pair reads, so a large input fits in the heap (L63).
-    for (const run of pairRuns(input, entry.cell, { env, corpus: set, lanes, iterate, freeRoutes: true, ...(commit === undefined ? {} : { commit }) })) {
+    for (const run of pairRuns(input, entry.cell, { env, corpus: set, lanes, iterate, freeRoutes: true, ...cover, ...(commit === undefined ? {} : { commit }) })) {
       records.push(run.record);
       const now = performance.now();
       if (now - last > SLOW_PAIR_MS) console.log(`  pair ${run.record.strategy}: ${Math.round(now - last)} ms, heap ${mb(process.memoryUsage().heapUsed)} MB`);

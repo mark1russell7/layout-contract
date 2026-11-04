@@ -15,7 +15,7 @@ initBuild();
 byId("about").innerHTML = marked.parse(aboutText, { async: false });
 
 const root = byId("compare");
-const packs: readonly (PackChoice & { readonly bench: boolean })[] = [...catalog.benchPacks.map((p) => ({ ...p, bench: true })), ...catalog.extraPacks.map((p) => ({ ...p, bench: false }))];
+const packs: readonly PackChoice[] = [...catalog.benchPacks, ...catalog.extraPacks];
 const routers: readonly RouterChoice[] = catalog.routers.map((r) => ({ id: r, router: r, options: {} }));
 const onPacks = new Set(packs.map((p) => p.id));
 const onRouters = new Set(routers.map((r) => r.id));
@@ -54,14 +54,20 @@ function writeHash(): void {
   history.replaceState(null, "", `#${h.toString()}`);
 }
 
-/** This function gives the chips of the packers: one group for each strategy of `packing`, with the entries of the benchmark marked. */
+/** This function gives the tag of a strategy of the list of exceptions, or no text for each other strategy. */
+function exceptionTag(strategy: string): string {
+  const exception = catalog.packExceptions[strategy];
+  return exception === undefined ? "" : ` <span class="tag" title="${esc(exception.reason)}">no joint input</span>`;
+}
+
+/** This function gives the chips of the packers: one group for each strategy of `packing`. A strategy that no joint input can run has a tag with the reason. */
 function packChips(): string {
   const strategies = Object.keys(catalog.about.packing);
   return strategies
     .map((s) => {
       const entries = packs.filter((p) => p.strategy === s);
       const chips = entries
-        .map((p) => `<button type="button" class="chip${onPacks.has(p.id) ? " on" : ""}" data-pack="${esc(p.id)}" aria-pressed="${onPacks.has(p.id)}">${esc(p.id)}${p.bench ? "" : ` <span class="tag">not in the bench</span>`}</button>`)
+        .map((p) => `<button type="button" class="chip${onPacks.has(p.id) ? " on" : ""}" data-pack="${esc(p.id)}" aria-pressed="${onPacks.has(p.id)}">${esc(p.id)}${exceptionTag(p.strategy)}</button>`)
         .join("");
       return `<div class="strategy-row"><span class="strategy-name" title="${esc(catalog.about.packing[s] ?? "")}"><code>${esc(s)}</code></span><div class="chips">${chips}</div></div>`;
     })
@@ -129,8 +135,8 @@ root.innerHTML = `
     <h2 class="panel-title">1. The input</h2>
     <div id="setup-input"></div>
     <p class="hint">The full compare takes inputs of up to ${catalog.compareMaxBoxes} boxes. An input of 1000 boxes takes minutes for all the pairs, so <a href="playground.html">the playground</a> runs it one pair at a time.</p>
-    <h2 class="panel-title">2. The packers <span class="count-note">(${packs.length}: ${catalog.benchPacks.length} of the bench, ${catalog.extraPacks.length} more)</span></h2>
-    <div class="filter"><button type="button" data-all="packs">All</button><button type="button" data-bench="packs">Bench only</button><button type="button" data-none="packs">None</button></div>
+    <h2 class="panel-title">2. The packers <span class="count-note">(${packs.length})</span></h2>
+    <div class="filter"><button type="button" data-all="packs">All</button><button type="button" data-bench="packs">Default bench</button><button type="button" data-none="packs">None</button></div>
     <div id="setup-packs" class="strategy-rows"></div>
     <h2 class="panel-title">3. The routers <span class="count-note">(${routers.length})</span></h2>
     <div class="filter"><button type="button" data-all="routers">All</button><button type="button" data-none="routers">None</button></div>
@@ -319,7 +325,7 @@ function start(): void {
   const chosen = joints.filter((j) => onJoints.has(j.pair));
   const lanes = chosen.flatMap((j) => (j.lane === undefined ? [] : [j.lane]));
   const iterate = chosen.flatMap((j) => (j.iter === undefined ? [] : [j.iter]));
-  const message: RunJob = { type: "run", job, input, packs: packs.filter((p) => onPacks.has(p.id)).map(({ bench: _b, ...p }) => p), routers: routers.filter((r) => onRouters.has(r.id)), lanes, iterate };
+  const message: RunJob = { type: "run", job, input, packs: packs.filter((p) => onPacks.has(p.id)), routers: routers.filter((r) => onRouters.has(r.id)), lanes, iterate };
   workerOf().postMessage(message);
 }
 
@@ -362,7 +368,7 @@ root.addEventListener("click", (e) => {
   else if (d["none"] !== undefined) setOf(d["none"]).clear();
   else if (d["bench"] !== undefined) {
     onPacks.clear();
-    for (const p of packs) if (p.bench) onPacks.add(p.id);
+    for (const p of catalog.benchPacks) onPacks.add(p.id);
   } else if (d["show"] !== undefined) {
     show = d["show"];
     for (const b of byId("show").querySelectorAll<HTMLButtonElement>("button")) b.setAttribute("aria-pressed", String(b.dataset["show"] === show));

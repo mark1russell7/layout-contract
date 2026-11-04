@@ -11,11 +11,12 @@ The times in this file come from one process that runs many pairs in order. Earl
 - The routers are the 9 router strategies of `highways` 0.6.0, and the portfolio router `portfolio` of `highways` 0.6.0.
 - The joint-v2 run of 2026-10-28 used `packing` 0.2.6 and `highways` 0.5.1. Version 0.6.0 changes the default members of `portfolio`.
 - Since `highways` 0.9.1, the routers also hold the 5 highway strategies of wave 3 (`HIGHWAY_ROUTERS`): `steiner`, `gaps`, `streets`, `search` and `interchanges`. Each makes a plan of highways, then `follow` routes it.
-- Thus the benchmark has 300 pairs: 20 pack entries and 15 routers. bench-4 had 270 pairs, and the space `bench-3` had 195 pairs.
+- Thus the default benchmark has 300 pairs: 20 pack entries and 15 routers. bench-4 had 270 pairs, and the space `bench-3` had 195 pairs.
 - The runs before `bench-3` had 130 pairs, and the runs before L32 had 120 pairs. `joint-v2` has 303 inputs, and `joint-v1` has 285 inputs.
 - The cost model of the shard plan gives each new pair the mean time of the 130 pairs of the fit. The first full run of 195 pairs gives the data for a new fit.
 - The option `--lanes on` adds the 18 lane pairs of L13. Refer to "The lane pairs".
 - The option `--iterate on` adds the 18 iteration pairs of L11. Refer to "The iteration pairs".
+- The option `--cover on` adds each other strategy of `packing` and each open router of `highways`. Refer to "The cover of the catalogs".
 - The nightly sweep runs the same runner on configs of the joint strategy space. `docs/SWEEP.md` tells it.
 
 The portfolio router is `portfolioRouter()` with its defaults: the rule `collection`, the cap 1.5 and the order `fit`. Its default is deterministic. Above 40 nodes, it uses only `shared`.
@@ -1134,6 +1135,20 @@ In L32, 8 of 11 claims held. The claims from the code held, and the misses were 
 | H9 | `lanes[]` with the scope `stress`: `lane.broken` of `lanes-iter3` and of `lanes-iter1` | The lane pairs |
 | H10 | `compare` of the headline cell: the gain and its interval for `lanes-iter3.maxrects-cp.corners+corners` | The pairwise comparisons |
 | H11, H12 | `shardTimes`: the step `Run one shard` of each shard | The shard times |
+
+## The cover of the catalogs
+
+The hand lists of the bench missed strategies and routers. `packages/joint/src/cover.ts` derives the rest from the registries, so a new strategy or a new router joins without a change here.
+
+- `coverEntries` gives one entry to each strategy with no entry in `PACK_ENTRIES`.
+- `aspect-fit` needs the strategy that it wraps, and `push` needs the mode `incremental`. `COVER_SETTINGS` gives both.
+- `push` starts each item with no earlier place, so it does not test a change of an input. It tests only that the strategy runs.
+- A cell that a strategy does not support gives a skipped record with the reason. A test fails when a strategy runs on no input.
+- Each new entry meets `corners`, `portfolio` and 2 other routers in turn. Each open router meets `maxrects-cp` and `select`.
+- `COVER_EXCEPTIONS` is a closed list. It holds only `hole-degree`, which packs only circles, and L94 removes it. A test fails when the list grows, and when `hole-degree` starts to run.
+- The test reads `strategies`, `composites` and `shapeStrategies` of `packing`. It changes to the single list when `packing` exports one.
+
+The default plan does not change, so the earlier reports stay comparable. A run with `--cover on` has more pairs, so the floors of that run do not compare with the floors of a default run.
 
 ## The result of iteration pairs (L11)
 
