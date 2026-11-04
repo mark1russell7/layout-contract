@@ -4,7 +4,7 @@
 # and private members. The command `api-report check` compares this file with the built .d.ts files.
 # To accept a change of the API, start the build, then `api-report update`, and review the diff.
 
-## . (build/index.d.ts): 297 names
+## . (build/index.d.ts): 298 names
 
 AnyOption: build/index.d.ts#AnyOption
 BALANCE_MEASURE_SUFFIXES: build/index.d.ts#BALANCE_MEASURE_SUFFIXES
@@ -96,6 +96,7 @@ PackLink: build/measures-C-Tuv8GU.d.ts#PackLink
 PackOutput: build/index.d.ts#PackOutput
 PairGap: build/measures-C-Tuv8GU.d.ts#PairGap
 ParamKind: build/index.d.ts#ParamKind
+ParamRoute: build/index.d.ts#ParamRoute
 ParamValue: build/index.d.ts#ParamValue
 ParamWhen: build/index.d.ts#ParamWhen
 PickSpec: build/index.d.ts#PickSpec
@@ -369,11 +370,13 @@ export interface CatalogCheck {
   readonly faults: readonly string[];
   readonly notRun: readonly string[];
   readonly notMatched: readonly string[];
+  readonly spaceOnly: readonly string[];
 }
 
 ### build/index.d.ts#CatalogCheckOptions
 export interface CatalogCheckOptions {
   readonly spaces?: readonly StrategySpace[];
+  readonly paramRoutes?: Readonly<Record<string, ParamRoute>>;
   readonly probes?: readonly SupportProbe[];
   readonly refusesChoice?: (owner: string, option: string, choice: string) => boolean | undefined;
 }
@@ -666,7 +669,7 @@ export interface NumberOption extends OptionBase {
 }
 
 ### build/index.d.ts#OptionDeclaration
-export type OptionDeclaration<V, S extends string = string> = [V] extends [number] ? NumberOption : [V] extends [boolean] ? BooleanOption : [V] extends [string] ? EnumOption<V> : [Extract<V, string>] extends [never] ? ValueOption<V, S> : EnumOption<Extract<V, string>> | ValueOption<V, S>;
+export type OptionDeclaration<V, S extends string = string> = [V] extends [number] ? NumberOption : [V] extends [boolean] ? BooleanOption : [V] extends [string] ? string extends V ? EnumOption<V> | ValueOption<V, S> : EnumOption<V> : [Extract<V, string>] extends [never] ? ValueOption<V, S> : EnumOption<Extract<V, string>> | ValueOption<V, S>;
 
 ### build/index.d.ts#OptionIssue
 export interface OptionIssue {
@@ -737,6 +740,14 @@ export interface PackOutput {
 
 ### build/index.d.ts#ParamKind
 export type ParamKind = "int" | "real" | "enum" | "bool";
+
+### build/index.d.ts#ParamRoute
+export type ParamRoute = {
+  readonly spaceOnly: string;
+} | {
+  readonly option?: string;
+  readonly value?: (value: ParamValue) => unknown;
+};
 
 ### build/index.d.ts#ParamValue
 export type ParamValue = number | string | boolean;
@@ -1077,6 +1088,7 @@ export interface ValueOption<V = unknown, S extends string = string> extends Opt
   readonly optionsKey?: string;
   readonly inlineOptions?: boolean;
   readonly optIn?: boolean;
+  readonly needs?: Readonly<Record<string, string>>;
   readonly of?: ListItem<S>;
   readonly min?: number;
   readonly max?: number;

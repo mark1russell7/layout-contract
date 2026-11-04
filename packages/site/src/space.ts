@@ -76,7 +76,7 @@ function optionPanel(space: StrategySpace, key: string, levels: number): string 
     )
     .join("");
   const table = option.params.length
-    ? `<div class="scroll"><table class="table"><thead><tr><th>Param</th><th>Kind</th><th>Range</th><th>Default</th><th>Active</th><th>Grid values at ${levels} levels</th></tr></thead><tbody>${rows}</tbody></table></div>`
+    ? `<div class="scroll scroll-cue" tabindex="0" aria-label="The params of the stage"><table class="table"><thead><tr><th>Param</th><th>Kind</th><th>Range</th><th>Default</th><th>Active</th><th>Grid values at ${levels} levels</th></tr></thead><tbody>${rows}</tbody></table></div>`
     : `<p class="hint">This option has no params.</p>`;
   return `<div class="panel"><h4>The option <code>${esc(stage.name)}.${esc(option.id)}</code></h4>${members}${table}</div>`;
 }
