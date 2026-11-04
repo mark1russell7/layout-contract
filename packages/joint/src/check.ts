@@ -1,6 +1,6 @@
 // The corpus check of the joint benchmark (`docs/JOINT-BENCH.md`, "The corpus check"). It examines the claims of a manifest against its input files.
 import { declaredCounts, marginSides, type ClaimBreak, type LayoutInput } from "@mark1russell7/layout-contract";
-import { arrayDimensions, claimsOf, SET, SET_V2, type CorpusClaims, type JointManifest, type JointSpec } from "./corpus.ts";
+import { arrayDimensions, claimsOf, type CorpusClaims, type JointManifest, type JointSet, type JointSpec } from "./corpus.ts";
 import { coverage } from "./coverage.ts";
 
 /** One broken claim, with the ids of the inputs that break it. The type comes from the contract. The claims of the joint corpus are `spacing`, `stressOnly`, `coverage`, `minPerKind`, `maxBoxes` and `index`. */
@@ -75,7 +75,7 @@ export function checkCorpus(manifest: JointManifest, inputs: readonly LayoutInpu
   }
 
   const arrays = arraysOf(manifest.specs);
-  const dims = arrayDimensions(manifest.corpus === SET ? SET : SET_V2);
+  const dims = arrayDimensions(manifest.corpus as JointSet);
   for (const [array, share] of Object.entries(claims.coverage)) {
     const dimensions = array === "grid" ? dims.grid : array === "ui" ? dims.ui : undefined;
     if (dimensions === undefined) {

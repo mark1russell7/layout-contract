@@ -150,12 +150,12 @@ The code path of the registry uses no API of Node: no `fs`, no `crypto` of Node 
 
 ## The joint corpus on the registry
 
-`jointRegistry(set)` of `packages/joint/src/families.ts` gives the families of a joint corpus. Each family is a generator of `packing`, then `EDGES_STEP`, then `SPACING_STEP` in `joint-v2`.
+`jointRegistry(set)` of `packages/joint/src/families.ts` gives the families of a joint corpus. Each family is a generator of `packing`, then `EDGES_STEP`, then `SPACING_STEP` in `joint-v2`. The corpus `joint-v3` puts `OPEN_SIZES_STEP` before `EDGES_STEP`.
 
 - `packingFamily(gen)` gives a family for a generator of `packing`. It changes nothing in the output. When `packing` registers its own families, the joint package uses them, and the function goes.
-- `jointCorpus(set)` makes each input with `jointRegistry(set)`. The manifests `corpus/joint-v1/corpus.json` and `corpus/joint-v2/corpus.json` do not change, byte for byte.
-- The joint test `families.test.ts` compares the registry with the path before `L45` on 19 specs of `joint-v1` and 20 specs of `joint-v2`, with each seed. The manifest tests compare all the inputs.
-- The same test counts 285 inputs of `joint-v1` and 303 inputs of `joint-v2`. The full sweep of the family `rect-grid` of `joint-v2` has 6123600 cells. The test counts them with no input.
+- `jointCorpus(set)` makes each input with `jointRegistry(set)`. The manifests `corpus/joint-v1/corpus.json` and `corpus/joint-v2/corpus.json` do not change, byte for byte. The manifest of `joint-v3` is new.
+- The joint test `families.test.ts` compares the registry with the path before `L45`, with each seed. It reads 19 specs of `joint-v1`, 20 specs of `joint-v2` and 25 specs of `joint-v3`. The manifest tests compare all the inputs.
+- The same test counts 285 inputs of `joint-v1`, 303 inputs of `joint-v2` and 390 inputs of `joint-v3`. The full sweep of the family `rect-grid` of `joint-v2` has 6123600 cells. The test counts them with no input.
 - A `rect-grid` input of `joint-v2` with 1000 boxes and 4000 edges takes approximately 90 ms in Node on a loaded machine. It ran in one process after other inputs, so this time is not the cost of an input alone. A site makes such an input in the browser with no worker.
 
 ## The coverage
@@ -179,6 +179,7 @@ Each cell tells the family that reads the dimension in each engine. "Own" tells 
 | `ports` | none | own: `fixedPorts` of the fixtures | `EDGES_STEP` |
 | `hubBy` | none | none | `EDGES_STEP` |
 | `spacing` | none | none | `SPACING_STEP` of `joint-v2` |
+| `openSize` | none | none | `OPEN_SIZES_STEP` of `joint-v3` |
 | `margin` | none: a knob of the site | none | through `spacing` |
 | `gap` | none: a knob of the site | own: `gap` of `hub-chain`, with a different meaning | through `spacing` |
 
@@ -189,7 +190,7 @@ Each cell tells the family that reads the dimension in each engine. "Own" tells 
 | `corpus-v1`, `xcheck-v1` and the portfolio sets | `packing` | The registrations of its 7 generators (`k73`), with `crossEngine`, and `RECT_SCATTERED` of the contract. The knobs `margin`, `gap`, `shape` and a log slider of `count` for its site. |
 | The screen sets (74 boards) | `highways` | The registrations of its 6 families. A new name for its fixture dimension `kind`, for example `layout`. Its own `documentHash`, with no number grid. |
 | The other sets of fixtures | `highways` | The same registrations, after the screen sets. |
-| `joint-v1` and `joint-v2` | `joint` | It uses the registry at this time, through the adapter `packingFamily`. It changes to the families of `packing` after `k73`. |
+| `joint-v1`, `joint-v2` and `joint-v3` | `joint` | It uses the registry at this time, through the adapter `packingFamily`. It changes to the families of `packing` after `k73`. |
 
 ### The owners of the families today
 

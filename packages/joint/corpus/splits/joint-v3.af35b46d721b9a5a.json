@@ -1,0 +1,12 @@
+{
+  "schema": "corpus-split/1",
+  "corpus": "joint-v3",
+  "corpusHash": "af35b46d721b9a5a",
+  "splits": {
+    "default": {"folds": [
+      {"train": [2, 3], "heldOut": [1]},
+      {"train": [1, 3], "heldOut": [2]},
+      {"train": [1, 2], "heldOut": [3]}
+    ]}
+  }
+}

@@ -19,6 +19,7 @@ import {
 } from "@mark1russell7/layout-contract";
 import { graphInput, HIGHWAYS_FAMILIES, type HighwaysFamily } from "@mark1russell7/highways";
 import { generator, type CorpusGenerator } from "@mark1russell7/packing";
+import { NO_OPEN_SIZE, OPEN_SIZE_NAMES, OPEN_SIZES_STEP_VERSION, openSizesStep } from "./open-sizes.ts";
 import { spacingStep, SPACING_STEP_VERSION, type Spacing } from "./spacing.ts";
 
 /** The names of the generators of `packing` that the joint corpus uses. */
@@ -80,8 +81,34 @@ export const SPACING_STEP: CorpusStep = Object.freeze({
   apply: (input: LayoutInput, seed: number, d: DimensionValues) => spacingStep(input, { spacing: d["spacing"] as Spacing }, seed),
 });
 
-/** The steps of each joint corpus: `edges` for `joint-v1`, and `edges` then `spacing` for `joint-v2`. */
-export const JOINT_STEPS: Readonly<Record<"joint-v1" | "joint-v2", readonly CorpusStep[]>> = Object.freeze({ "joint-v1": [EDGES_STEP], "joint-v2": [EDGES_STEP, SPACING_STEP] });
+/** The step `open-sizes` of `openSizesStep` (version 1), as a corpus step. Its family part is `sz-<openSize>`. */
+export const OPEN_SIZES_STEP: CorpusStep = Object.freeze({
+  name: "open-sizes",
+  version: OPEN_SIZES_STEP_VERSION,
+  owner: "joint",
+  meaning: "A new area for each box, from one named point of an open family of rigor-generators.",
+  dimensions: [
+    Object.freeze({
+      name: "openSize",
+      kind: "enum",
+      values: Object.freeze([NO_OPEN_SIZE, ...OPEN_SIZE_NAMES]),
+      default: NO_OPEN_SIZE,
+      meaning: "The open point of the areas of the boxes, or `none` for the sizes of the generator.",
+      engines: Object.freeze(["joint"]),
+    }) as CorpusDimension,
+  ],
+  seeding: "random of rigor-generators from the text open-sizes/<point>/<seed>.",
+  crossEngine: "libm-dependent",
+  familyPart: (d: DimensionValues) => `sz-${d["openSize"]}`,
+  apply: (input: LayoutInput, seed: number, d: DimensionValues) => openSizesStep(input, { point: String(d["openSize"]) }, seed),
+});
+
+/** The steps of each joint corpus: `edges` for `joint-v1`, `edges` then `spacing` for `joint-v2`, and `open-sizes` before them for `joint-v3`. */
+export const JOINT_STEPS: Readonly<Record<"joint-v1" | "joint-v2" | "joint-v3", readonly CorpusStep[]>> = Object.freeze({
+  "joint-v1": [EDGES_STEP],
+  "joint-v2": [EDGES_STEP, SPACING_STEP],
+  "joint-v3": [OPEN_SIZES_STEP, EDGES_STEP, SPACING_STEP],
+});
 
 /**
  * This function gives a family of the registry for a family of `highways` (CORPUS-GEN). The output is the input file of `graphInput` of the board.
@@ -113,9 +140,9 @@ export function highwaysFamily(family: HighwaysFamily): CorpusFamily<LayoutInput
  * A step with a dimension of the same name as a dimension of the family is not used.
  * For example, `sparse-long` of highways 0.9.4 and later has its own `spacing`: the size of the cell of each node.
  */
-function highwaysSteps(set: "joint-v1" | "joint-v2", family: HighwaysFamily): readonly CorpusStep[] {
+function highwaysSteps(set: keyof typeof JOINT_STEPS, family: HighwaysFamily): readonly CorpusStep[] {
   const own = new Set(family.dimensions.map((d) => d.name));
-  return JOINT_STEPS[set].filter((s) => s !== EDGES_STEP && s.dimensions.every((d) => !own.has(d.name)));
+  return JOINT_STEPS[set].filter((s) => s !== EDGES_STEP && s !== OPEN_SIZES_STEP && s.dimensions.every((d) => !own.has(d.name)));
 }
 
 /**
@@ -130,7 +157,7 @@ export const JOINT_HIGHWAYS_FAMILIES: readonly string[] = Object.freeze(HIGHWAYS
  * A highways family does not get a step with a dimension of the family.
  * The name of each family is the name of its generator. A highways family with the kind of a family before it throws a `RangeError`.
  */
-export function jointRegistry(set: "joint-v1" | "joint-v2"): FamilyRegistry<LayoutInput> {
+export function jointRegistry(set: keyof typeof JOINT_STEPS): FamilyRegistry<LayoutInput> {
   const steps = JOINT_STEPS[set];
   const registry = createFamilyRegistry(JOINT_BASES.map((name) => composeFamily(packingFamily(generator(name)), steps, { name, owner: "joint" })));
   const kinds = new Set(registry.families().map((f) => familyKind(f.name, f.version)));

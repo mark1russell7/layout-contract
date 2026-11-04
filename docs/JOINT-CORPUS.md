@@ -6,6 +6,7 @@ A joint input has boxes and edges, but no positions. The packer places the boxes
 - `edgeStep` of this package adds the edges, the groups and the ports to the base input.
 - The joint corpus `joint-v1` has 2 pairwise covering arrays over the 10 dimensions of the cells, with the seeds 1 to 3.
 - The joint corpus `joint-v2` adds the step `spacing` and its dimension `spacing`. Thus its cells have 11 dimensions.
+- The joint corpus `joint-v3` adds the step `open-sizes` and 6 open values of the dimension `sizes`.
 - The families of the joint corpora are on the shared family registry of `docs/CORPUS.md`. The manifests do not change.
 - The decision is `d14` of the tracker of `layout-stack`.
 
@@ -189,4 +190,54 @@ Thus the corpus has 95 specs (55, 37 and 3) and 285 inputs.
 - The manifest is `packages/joint/corpus/joint-v2/corpus.json`. Each spec has the stamps of the steps `edges` and `spacing`.
 - Each entry of the stress cell has the field `stress: true`. The cell of each entry has the value `spacing`.
 - The manifest has the field `claims`. The section "The corpus check" of `docs/JOINT-BENCH.md` tells the claims.
-- The script `corpus` of the package writes the manifests of the 2 corpora. `pnpm corpus joint-v2` writes only `joint-v2`.
+- The script `corpus` of the package writes the manifest of each corpus. `pnpm corpus joint-v2` writes only `joint-v2`.
+
+## The corpus `joint-v3`
+
+`jointCorpus("joint-v3")` gives the third corpus. The corpora `joint-v1` and `joint-v2` stay frozen. Their manifests and their inputs do not change.
+
+- The closed list of `joint-v2` has 6 names of sizes. The corpus `joint-v3` adds 6 named points of the open families of `@mark1russell7/rigor-generators`.
+- The dimension `sizes` of the array `grid` has the 12 names. The array `ui` keeps its dimensions.
+- The function `pairwise` makes each array again, with the same seed. The test gets a share of 1 for each array.
+- A row with an open name uses the generator `rect-grid` with the name `uniform`. Then the step `open-sizes` gives each box a new area.
+- The value `sizes` of the cell of such a row is the open name.
+- The corpus has no family of recorded sizes, because no public recorded set exists.
+- The bench runs `joint-v3` only on a dispatch. The default stays `joint-v2`, and the nightly sweep does not change.
+
+| Array | Rows |
+|---|---|
+| `grid` | 88: 43 with a closed name and 45 with an open name |
+| `ui` | 36 |
+| fixed cases | 6 |
+
+Thus the corpus has 130 specs and 390 inputs. The claims are the claims of `joint-v2`.
+
+| Point | Family | Parameters |
+|---|---|---|
+| `lognormal-narrow` | lognormal | `mu` 0, `sigma` from 0.3 to 0.6 |
+| `lognormal-wide` | lognormal | `mu` 0, `sigma` from 1 to 1.5 |
+| `pareto-heavy` | Pareto | `scale` 1, `shape` from 1.1 to 2 |
+| `zipf-ranks` | Zipf | `n` 40, `exponent` from 0.8 to 1.3 |
+| `beta-bowl` | beta | `a` and `b` from 0.4 to 0.7 |
+| `two-modes` | mixture | weight 4 of lognormal 0 and 0.3, weight 1 of lognormal 2.5 and 0.3 |
+
+### The step `open-sizes` (version 1)
+
+`openSizesStep(input, params, seed)` gives a new input. The default of `seed` is `input.seed`. The input does not change. The point `none` gives the same input, and another name gives a `RangeError`.
+
+1. The step makes `random` of `rigor-generators` from the text `open-sizes/<point>/<seed>`.
+2. The function `sampler` of the point gives one draw for each box, in the order of the boxes.
+3. The share of a box is its draw divided by the sum of the draws.
+4. The factor of a box is the square root of `share * area / (w * h)`. Here `area` is the sum of the areas of the input.
+5. The side limit caps the factor. Each side of a box stays at 0.6 of the same side of the container, when the container has that side.
+6. The new sides are the rounded products, with a minimum of 1. Thus each large box keeps its aspect.
+
+- With no side limit, the step keeps the total area in the limits of the rounding. A side limit makes the total area smaller.
+- The step goes before `edges`, because the hubs of `edges` read the areas of the boxes.
+- The step is `libm-dependent`, because each point uses the functions of the platform.
+
+### The files of `joint-v3`
+
+- The id of an input is `joint-v3/<family>/s<seed>`. The family of `joint-v2` gets the part `.sz-<openSize>` before the part of the edges, and a closed name gets `.sz-none`.
+- The manifest is `packages/joint/corpus/joint-v3/corpus.json`. The field `openSizes` of a spec has the stamp of the step. A spec with a closed name has no such field.
+- The manifests of `joint-v1` and `joint-v2` have no such field, so they keep their bytes.
