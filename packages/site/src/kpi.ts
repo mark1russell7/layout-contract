@@ -18,7 +18,7 @@ export interface SiteKpi {
   readonly project: string;
   /** The time of the data: the date of the last joint run. It is not the time of the build. */
   readonly at: string;
-  readonly measures: readonly SiteMeasure[];
+  measures: SiteMeasure[];
 }
 
 /** The parts of the catalog that the measures read. */

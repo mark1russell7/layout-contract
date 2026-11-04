@@ -52,4 +52,12 @@ click("#pg-start");
 check("the run of the other input ends", await until(done, RUN_MS), text("#pg-status"));
 check("the run of the other input has another caption", await until(() => text(".result-figure figcaption") !== secondCaption), text(".result-figure figcaption"));
 
+// The site publishes its measures, with the time of the data.
+const kpi = (await fetch("kpi.json")
+  .then((response) => (response.ok ? response.json() : undefined))
+  .catch(() => undefined)) as { project?: string; at?: string; measures?: unknown[] } | undefined;
+check("the file of measures names this project", kpi?.project === "layout-contract", kpi?.project);
+check("the file of measures has a data time", !Number.isNaN(Date.parse(kpi?.at ?? "")), kpi?.at);
+check("the file of measures has 4 measures", kpi?.measures?.length === 4, kpi?.measures?.length);
+
 export {};
