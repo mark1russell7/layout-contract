@@ -1,7 +1,7 @@
 // The step `open-sizes` of the joint corpus `joint-v3` (`docs/CORPUS.md`). The closed list of 6 size names of `rect-grid` stays.
 // This step gives the corpus named points of the open families of `@mark1russell7/rigor-generators`.
 import type { LayoutBox, LayoutContainer, LayoutGenerator, LayoutInput } from "@mark1russell7/layout-contract";
-import { random, sampler, type DistributionSpec } from "@mark1russell7/rigor-generators";
+import { DIAGRAM_BOX_AREA, GIT_BLOB_BYTES, random, recordedSpec, type RecordedTable, sampler, type DistributionSpec } from "@mark1russell7/rigor-generators";
 
 /** The version of `openSizesStep`. A change of its output gives a new version. */
 export const OPEN_SIZES_STEP_VERSION = 1;
@@ -34,9 +34,21 @@ export const OPEN_SIZES: Readonly<Record<string, DistributionSpec>> = Object.fre
 /** The names of `OPEN_SIZES`, in their order. */
 export const OPEN_SIZE_NAMES: readonly string[] = Object.freeze(Object.keys(OPEN_SIZES));
 
+/**
+ * The named points of the recorded tables of `@mark1russell7/rigor-generators`. Each number of a table is the relative area of one box.
+ * These points are not values of `joint-v3`, so that corpus stays frozen. The site offers them as size choices. They have no bench result at this time.
+ */
+export const RECORDED_SIZE_TABLES: Readonly<Record<string, RecordedTable>> = Object.freeze({
+  "recorded-diagram-boxes": DIAGRAM_BOX_AREA,
+  "recorded-git-blobs": GIT_BLOB_BYTES,
+});
+
+/** The names of `RECORDED_SIZE_TABLES`, in their order. */
+export const RECORDED_SIZE_NAMES: readonly string[] = Object.freeze(Object.keys(RECORDED_SIZE_TABLES));
+
 /** The parameters of `openSizesStep`. */
 export interface OpenSizesParams {
-  /** A name of `OPEN_SIZES`, or `NO_OPEN_SIZE`. */
+  /** A name of `OPEN_SIZES` or `RECORDED_SIZE_TABLES`, or `NO_OPEN_SIZE`. */
   readonly point: string;
 }
 
@@ -55,8 +67,9 @@ function sideLimit(box: LayoutBox, container: LayoutContainer | undefined): numb
  */
 export function openSizesStep(input: LayoutInput, params: OpenSizesParams, seed: number = input.seed ?? 0): LayoutInput {
   if (params.point === NO_OPEN_SIZE) return input;
-  const spec = OPEN_SIZES[params.point];
-  if (spec === undefined) throw new RangeError(`openSizesStep: the point is ${[NO_OPEN_SIZE, ...OPEN_SIZE_NAMES].join(", ")}, not "${params.point}".`);
+  const table = RECORDED_SIZE_TABLES[params.point];
+  const spec = table === undefined ? OPEN_SIZES[params.point] : recordedSpec(table);
+  if (spec === undefined) throw new RangeError(`openSizesStep: the point is ${[NO_OPEN_SIZE, ...OPEN_SIZE_NAMES, ...RECORDED_SIZE_NAMES].join(", ")}, not "${params.point}".`);
   const next = sampler(spec, random(`open-sizes/${params.point}/${seed}`));
   const draws = input.boxes.map(() => next());
   const drawn = draws.reduce((a, b) => a + b, 0);

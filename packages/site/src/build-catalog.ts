@@ -1,5 +1,5 @@
 // The build makes the catalog of the joint pages with this file. The Vite config reads the files and gives their text to it.
-import { GRID_DIMENSIONS_V2, jointCorpus, jointSpecs, SET_V2 } from "@layout-contract/joint/browser";
+import { GRID_DIMENSIONS_V2, jointCorpus, jointSpecs, RECORDED_SIZE_NAMES, SET_V2 } from "@layout-contract/joint/browser";
 import type { InputRow, JointCatalog } from "./catalog.ts";
 import { engineCatalog } from "./engines.ts";
 
@@ -36,5 +36,5 @@ export function buildCatalog(manifestText: string, versions: EngineVersions, cov
     }
   });
   const { count: _count, ...grid } = GRID_DIMENSIONS_V2;
-  return { ...catalog, inputs, grid, compareMaxBoxes: COMPARE_MAX_BOXES };
+  return { ...catalog, inputs, grid: { ...grid, sizes: [...(grid["sizes"] ?? []), ...RECORDED_SIZE_NAMES] }, compareMaxBoxes: COMPARE_MAX_BOXES };
 }

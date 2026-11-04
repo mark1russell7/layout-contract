@@ -11,7 +11,9 @@ import {
   pairId,
   pairRuns,
   rankPairs,
+  RECORDED_SIZE_NAMES,
   SET_V2,
+  SET_V3,
   type IterEntry,
   type JointSpec,
   type LaneEntry,
@@ -32,14 +34,17 @@ export function inputOf(ref: InputRef): { readonly input: LayoutInput; readonly 
     return { input, cell: entry.cell };
   }
   const d = ref.dims;
+  // A recorded size is an open point: the generator keeps the name `uniform`, and the step `open-sizes` of `joint-v3` gives the areas.
+  const recorded = RECORDED_SIZE_NAMES.includes(d["sizes"]!);
   const spec = jointSpecOf(
     "grid",
     "rect-grid",
-    { containerSize: d["containerSize"]!, containerShape: d["containerShape"]!, obstacles: d["obstacles"]!, sizes: d["sizes"]!, count: ref.count },
+    { containerSize: d["containerSize"]!, containerShape: d["containerShape"]!, obstacles: d["obstacles"]!, sizes: recorded ? "uniform" : d["sizes"]!, count: ref.count },
     jointEdgesOf(d),
     d["spacing"] as Parameters<typeof jointSpecOf>[4],
+    recorded ? d["sizes"] : undefined,
   );
-  const { input, entry } = jointInput({ ...spec, seeds: [ref.seed] }, ref.seed, SET_V2);
+  const { input, entry } = jointInput({ ...spec, seeds: [ref.seed] }, ref.seed, recorded ? SET_V3 : SET_V2);
   return { input, cell: entry.cell };
 }
 

@@ -132,7 +132,7 @@ export interface JointCatalog {
   /** The open routers of the playground (`OPEN_ROUTERS`): the other highway strategies and the member forms of the portfolio. */
   readonly openRouters: readonly string[];
   readonly inputs: readonly InputRow[];
-  /** The dimensions of the array `grid` of `joint-v2` without `count`. The page builds an input from one value of each. */
+  /** The dimensions of the array `grid` of `joint-v2` without `count`, with the recorded sizes as more values of `sizes`. The page builds an input from one value of each. */
   readonly grid: Readonly<Record<string, readonly string[]>>;
   /** The largest count of boxes of an input of the full compare. */
   readonly compareMaxBoxes: number;
