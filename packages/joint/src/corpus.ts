@@ -2,6 +2,7 @@ import { documentHash, EDGE_STEP_VERSION, type EdgeStepParams, type LayoutInput 
 import { generator, type CorpusCell, type GeneratorParams } from "@mark1russell7/packing";
 import { pairwise, type Dimensions, type Row } from "./pairwise.ts";
 import { jointRegistry } from "./families.ts";
+import { NO_OPEN_SIZE, OPEN_SIZE_NAMES, OPEN_SIZES_STEP_VERSION, type OpenSizesParams } from "./open-sizes.ts";
 import { spacingParams, SPACINGS, SPACING_STEP_VERSION, type Spacing, type SpacingParams } from "./spacing.ts";
 
 /** The name of the first corpus. Each input has it in `set`. It is frozen: the stress set of d7. */
@@ -11,7 +12,11 @@ export const SET = "joint-v1";
 export const SET_V2 = "joint-v2";
 
 /** The names of the joint corpora. */
-export const SETS: readonly ["joint-v1", "joint-v2"] = [SET, SET_V2];
+/** The name of the third corpus: `joint-v2` with the open points of `OPEN_SIZES` as more values of `sizes`. */
+export const SET_V3 = "joint-v3";
+
+/** The joint corpora. */
+export const SETS: readonly ["joint-v1", "joint-v2", "joint-v3"] = [SET, SET_V2, SET_V3];
 
 /** The name of one joint corpus. */
 export type JointSet = (typeof SETS)[number];
@@ -65,9 +70,13 @@ export const GRID_DIMENSIONS_V2: Dimensions = Object.freeze({ ...GRID_DIMENSIONS
 /** The dimensions of the array of the families of a user interface of `joint-v2`: the 6 dimensions of `joint-v1` and `spacing`. */
 export const UI_DIMENSIONS_V2: Dimensions = Object.freeze({ ...UI_DIMENSIONS, ...SPACING_DIMENSION });
 
+/** The dimensions of the array of `rect-grid` of `joint-v3`: the dimensions of `joint-v2`, and `sizes` with the names of `OPEN_SIZES` too. */
+export const GRID_DIMENSIONS_V3: Dimensions = Object.freeze({ ...GRID_DIMENSIONS_V2, sizes: [...GRID_DIMENSIONS["sizes"]!, ...OPEN_SIZE_NAMES] });
+
 /** This function gives the dimensions of the 2 arrays of a corpus. */
 export function arrayDimensions(set: JointSet): { readonly grid: Dimensions; readonly ui: Dimensions } {
-  return set === SET ? { grid: GRID_DIMENSIONS, ui: UI_DIMENSIONS } : { grid: GRID_DIMENSIONS_V2, ui: UI_DIMENSIONS_V2 };
+  if (set === SET) return { grid: GRID_DIMENSIONS, ui: UI_DIMENSIONS };
+  return { grid: set === SET_V3 ? GRID_DIMENSIONS_V3 : GRID_DIMENSIONS_V2, ui: UI_DIMENSIONS_V2 };
 }
 
 /** The cases of `edge-cases` outside the arrays. They have the edges `random` and `medium`. */
@@ -80,7 +89,7 @@ export const FIXED_SPACINGS: Readonly<Record<string, readonly Spacing[]>> = Obje
  * The cell of a joint input: the cell of `packing`, with the 4 dimensions of the edges. `edgeShape` can be `hubs`.
  * A cell of `joint-v2` also has `spacing`. `LayoutCell` of the contract does not have it.
  */
-export type JointCell = Omit<CorpusCell, "groups"> & Pick<EdgeParams, "edgeDensity" | "edgeShape" | "groups" | "ports"> & { readonly spacing?: Spacing };
+export type JointCell = Omit<CorpusCell, "groups" | "sizes"> & { readonly sizes?: string } & Pick<EdgeParams, "edgeDensity" | "edgeShape" | "groups" | "ports"> & { readonly spacing?: Spacing };
 
 /** The stamp of the step `edges` in a spec. */
 export interface EdgesStamp {
@@ -96,6 +105,13 @@ export interface SpacingStamp {
   readonly params: SpacingParams;
 }
 
+/** The stamp of the step `open-sizes` in a spec of `joint-v3`. The step goes before the steps of the field `steps`. */
+export interface OpenSizesStamp {
+  readonly name: "open-sizes";
+  readonly version: number;
+  readonly params: OpenSizesParams;
+}
+
 /** One spec of the corpus: the base generator with its full parameters, the steps and the seeds. A spec of `joint-v2` also has the step `spacing`. */
 export interface JointSpec {
   /** The array of the spec: `grid`, `ui`, or `fixed` for a case of `edge-cases`. */
@@ -104,6 +120,8 @@ export interface JointSpec {
   readonly version: number;
   readonly params: GeneratorParams;
   readonly steps: readonly [EdgesStamp] | readonly [EdgesStamp, SpacingStamp];
+  /** The open point of a spec of `joint-v3`. Without it, the boxes keep the sizes of the generator. */
+  readonly openSizes?: OpenSizesStamp;
   readonly seeds: readonly number[];
 }
 
@@ -157,7 +175,7 @@ export function jointEdgesOf(row: Row): EdgeParams {
 }
 
 /** This function gives a spec with the full parameters of its generator. With a value of `spacing`, the spec also has the step `spacing`. */
-export function jointSpecOf(array: JointSpec["array"], name: string, params: GeneratorParams, edges: EdgeParams, spacing?: Spacing): JointSpec {
+export function jointSpecOf(array: JointSpec["array"], name: string, params: GeneratorParams, edges: EdgeParams, spacing?: Spacing, openSize?: string): JointSpec {
   const gen = generator(name);
   const edgesStamp: EdgesStamp = { name: "edges", version: EDGE_STEP_VERSION, params: edges };
   return {
@@ -166,12 +184,16 @@ export function jointSpecOf(array: JointSpec["array"], name: string, params: Gen
     version: gen.version,
     params: gen.withDefaults(params),
     steps: spacing === undefined ? [edgesStamp] : [edgesStamp, { name: "spacing", version: SPACING_STEP_VERSION, params: spacingParams(spacing) }],
+    ...(openSize === undefined ? {} : { openSizes: { name: "open-sizes" as const, version: OPEN_SIZES_STEP_VERSION, params: { point: openSize } } }),
     seeds: [...SEEDS],
   };
 }
 
 /** This function gives the value of `spacing` of a row, or `undefined` for a row without it. */
 const spacingOf = (row: Row): Spacing | undefined => row["spacing"] as Spacing | undefined;
+
+/** This function gives the open point of a row, or `undefined` for a closed name of `sizes`. */
+const openSizeOf = (row: Row): string | undefined => (OPEN_SIZE_NAMES.includes(row["sizes"]!) ? row["sizes"] : undefined);
 
 /**
  * This function gives the specs of a corpus. The rows of the array `grid` come first, then the rows of the array `ui`, then the fixed cases.
@@ -183,9 +205,10 @@ export function jointSpecs(set: JointSet = SET): JointSpec[] {
     jointSpecOf(
       "grid",
       "rect-grid",
-      { containerSize: row["containerSize"]!, containerShape: row["containerShape"]!, obstacles: row["obstacles"]!, sizes: row["sizes"]!, count: COUNTS[row["count"]!]! },
+      { containerSize: row["containerSize"]!, containerShape: row["containerShape"]!, obstacles: row["obstacles"]!, sizes: openSizeOf(row) === undefined ? row["sizes"]! : "uniform", count: COUNTS[row["count"]!]! },
       jointEdgesOf(row),
       spacingOf(row),
+      openSizeOf(row),
     ),
   );
   const ui = pairwise(dims.ui, ARRAY_SEED).map((row) => jointSpecOf("ui", row["family"]!, { containerSize: row["containerSize"]! }, jointEdgesOf(row), spacingOf(row)));
@@ -223,7 +246,7 @@ export const JOINT_V1_CLAIMS: CorpusClaims = Object.freeze({
   maxBoxes: MAX_BOXES,
 });
 
-/** The claims of `joint-v2`, in the field `claims` of its manifest. */
+/** The claims of `joint-v2` and `joint-v3`, in the field `claims` of each manifest. */
 export const JOINT_V2_CLAIMS: CorpusClaims = Object.freeze({
   spacing: true,
   coverage: { grid: 1, ui: 1 },
@@ -239,15 +262,17 @@ export function jointInput(spec: JointSpec, seed: number, set: JointSet, registr
   const gen = generator(spec.generator);
   const edges = spec.steps[0].params;
   const spacing = spec.steps[1]?.params.spacing;
+  const open = spec.openSizes?.params.point;
   const cell: JointCell = {
     ...gen.cell(spec.params),
+    ...(open === undefined ? {} : { sizes: open }),
     edgeDensity: edges.edgeDensity,
     edgeShape: edges.edgeShape,
     groups: edges.groups,
     ports: edges.ports,
     ...(spacing === undefined ? {} : { spacing }),
   };
-  const input = registry.generate(spec.generator, seed, { ...spec.params, ...edges, ...(spacing === undefined ? {} : { spacing }) }, { set });
+  const input = registry.generate(spec.generator, seed, { ...spec.params, ...edges, ...(spacing === undefined ? {} : { spacing }), ...(set === SET_V3 ? { openSize: open ?? NO_OPEN_SIZE } : {}) }, { set });
   return { input, entry: { id: input.id, hash: input.hash!, cell, ...(spacing === "stress" ? { stress: true as const } : {}) } };
 }
 

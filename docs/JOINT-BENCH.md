@@ -411,7 +411,7 @@ A split file of `corpus-split/1` is beside each manifest, in `packages/joint/cor
 - The job `check` reads the split file with `loadSplit`. A missing file, a wrong corpus hash or a bad fold stops the run.
 - `pnpm bench analyze` gives the folds of the split `default` to `analyze`. These folds are the folds of leave-one-seed-out, so the report does not change.
 - On the slice `pr`, a fold without held-out inputs gives no row. A training seed without inputs adds no input.
-- The pinned corpus hashes are `277ffd12181e74ef` for `joint-v1` and `1d0909caec40631e` for `joint-v2`. A change of an input needs a new split file.
+- The pinned corpus hashes are `277ffd12181e74ef` for `joint-v1`, `1d0909caec40631e` for `joint-v2` and `af35b46d721b9a5a` for `joint-v3`. A change of an input needs a new split file.
 
 ## The Time row
 
@@ -485,7 +485,7 @@ Each job writes `paired.jsonl` and `aa.jsonl`. Each line is one `PairedTime` rec
 
 ## Start a run
 
-- The input `corpus` of the workflow selects the corpus. The default is `joint-v2`. A pull request runs `joint-v2`.
+- The input `corpus` of the workflow selects the corpus. The default is `joint-v2`. A pull request runs `joint-v2`. Only a dispatch runs `joint-v3`.
 - A pull request runs the slice `pr`: seed 1 of the specs with count 10 and of the fixed cases.
 - A manual run of the workflow, or a pull request with the label `bench:full`, runs the full corpus over 64 shards.
 - The job `analyze` keeps the artifact `joint-report` with `report.json` and `report.md`. Each shard keeps its raw records as `joint-records-<shard>`.

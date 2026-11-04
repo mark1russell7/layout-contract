@@ -3,8 +3,9 @@ import { checkInput, createFamilyRegistry, DEFAULT_RNG, edgeStep, familyKind, RE
 import { HIGHWAYS_FAMILIES } from "@mark1russell7/highways";
 import { generator, rectScattered } from "@mark1russell7/packing";
 import { describe, expect, it } from "vitest";
-import { edgeFamily, hashOf, jointSpecs, SETS, type JointSet, type JointSpec } from "./corpus.ts";
+import { edgeFamily, hashOf, jointSpecs, SET_V3, SETS, type JointSet, type JointSpec } from "./corpus.ts";
 import { JOINT_BASES, JOINT_HIGHWAYS_FAMILIES, jointRegistry, packingFamily } from "./families.ts";
+import { NO_OPEN_SIZE, openSizesStep } from "./open-sizes.ts";
 import { spacingStep } from "./spacing.ts";
 
 /** The path of the corpus before L45: the generator of packing, `edgeStep`, `spacingStep`, then the id, the family and the hash. */
@@ -12,8 +13,10 @@ function oldInput(set: JointSet, spec: JointSpec, seed: number): LayoutInput {
   const gen = generator(spec.generator);
   const edges = spec.steps[0].params;
   const spacing = spec.steps[1]?.params.spacing;
-  const base = gen.generate(seed, spec.params, set);
-  const family = `${base.family}.${edgeFamily(edges)}${spacing === undefined ? "" : `.sp-${spacing}`}`;
+  const generated = gen.generate(seed, spec.params, set);
+  const point = set === SET_V3 ? (spec.openSizes?.params.point ?? NO_OPEN_SIZE) : undefined;
+  const base = point === undefined ? generated : openSizesStep(generated, { point }, seed);
+  const family = `${base.family}${point === undefined ? "" : `.sz-${point}`}.${edgeFamily(edges)}${spacing === undefined ? "" : `.sp-${spacing}`}`;
   const withEdges = edgeStep(base, edges, seed);
   const stepped: LayoutInput = { ...(spacing === undefined ? withEdges : spacingStep(withEdges, { spacing }, seed)), id: `${set}/${family}/s${seed}`, family };
   return { ...stepped, hash: hashOf(stepped) };
@@ -28,7 +31,8 @@ describe("the joint families on the shared registry", () => {
       expect(sample.length).toBeGreaterThan(15);
       for (const spec of sample) {
         for (const seed of spec.seeds) {
-          const dims = { ...spec.params, ...spec.steps[0].params, ...(spec.steps[1] === undefined ? {} : { spacing: spec.steps[1].params.spacing }) };
+          const open = set === SET_V3 ? { openSize: spec.openSizes?.params.point ?? NO_OPEN_SIZE } : {};
+          const dims = { ...spec.params, ...spec.steps[0].params, ...(spec.steps[1] === undefined ? {} : { spacing: spec.steps[1].params.spacing }), ...open };
           const out = registry.generate(spec.generator, seed, dims, { set });
           const old = oldInput(set, spec, seed);
           expect(out.hash, out.id).toBe(old.hash);
@@ -40,7 +44,7 @@ describe("the joint families on the shared registry", () => {
 
   it("count the specs, the inputs and the full sweep of each family with no generated input", () => {
     const counts = Object.fromEntries(SETS.map((set) => [set, jointSpecs(set).reduce((n, s) => n + s.seeds.length, 0)]));
-    expect(counts).toEqual({ "joint-v1": 285, "joint-v2": 303 });
+    expect(counts).toEqual({ "joint-v1": 285, "joint-v2": 303, "joint-v3": 390 });
     const full = Object.fromEntries(JOINT_BASES.map((name) => [name, jointRegistry("joint-v2").cellCount(name)]));
     // rect-grid: 5 x 6 x 7 x 6 x 5 counts x 3 x 7 x 3 x 3 x 4 spacings, with hubBy 2 only for hubs and tree: 9 / 7 of the edge shapes.
     expect(full["rect-grid"]).toBe(5 * 6 * 7 * 6 * 5 * 3 * 9 * 3 * 3 * 4);

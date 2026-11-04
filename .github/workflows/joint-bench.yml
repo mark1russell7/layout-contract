@@ -25,7 +25,7 @@ on:
       corpus:
         description: "The joint corpus."
         type: choice
-        options: [joint-v2, joint-v1]
+        options: [joint-v2, joint-v1, joint-v3]
         default: joint-v2
       records-run:
         description: "The id of an earlier full run. With it, only the job reanalyze runs, on the records of that run."
@@ -116,7 +116,7 @@ jobs:
           CORPUS: ${{ inputs.corpus || 'joint-v2' }}
         run: |
           if [ "$FULL" = "true" ]; then count="$SHARDS"; slice=""; else count=2; slice=pr; fi
-          case "$CORPUS" in joint-v1|joint-v2) ;; *) echo "The corpus is joint-v1 or joint-v2, not $CORPUS."; exit 1;; esac
+          case "$CORPUS" in joint-v1|joint-v2|joint-v3) ;; *) echo "The corpus is joint-v1, joint-v2 or joint-v3, not $CORPUS."; exit 1;; esac
           echo "corpus=$CORPUS" >> "$GITHUB_OUTPUT"
           case "$count" in ''|*[!0-9]*) echo "The count of the shards is a number, not $count."; exit 1;; esac
           echo "count=$count" >> "$GITHUB_OUTPUT"

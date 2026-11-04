@@ -1,14 +1,15 @@
 # The joint corpus
 
-This private package makes the joint corpora `joint-v1` and `joint-v2`: inputs with boxes and edges, but no positions. The packer places the boxes, and then the router routes the edges.
+This private package makes the joint corpora `joint-v1`, `joint-v2` and `joint-v3`: inputs with boxes and edges, but no positions. The packer places the boxes, and then the router routes the edges.
 
 - The generators of `@mark1russell7/packing` give the base inputs. `edgeStep` of `@mark1russell7/layout-contract` adds the edges, the groups and the ports.
 - `jointCorpus(set)` gives the manifest and the input files. The same versions of the packages give the same files, byte for byte.
 - `spacingStep()` sets the margins and the gap of an input for the dimension `spacing` of `joint-v2`.
+- `openSizesStep()` gives each box a new area from an open family, for the corpus `joint-v3`.
 - `checkCorpus()` examines the claims of a manifest against its input files.
 - `coverage()` gives the pairs of values of a set of cells, the pairs that the cells cover and the share.
 - `pairwise()` gives a pairwise covering array with a greedy algorithm and a seed.
-- The manifests are `corpus/joint-v1/corpus.json` and `corpus/joint-v2/corpus.json`. The tests compare them with the corpora.
+- The manifests are `corpus/joint-v1/corpus.json`, `corpus/joint-v2/corpus.json` and `corpus/joint-v3/corpus.json`. The tests compare them with the corpora.
 
 The rules of the corpus are in `docs/JOINT-CORPUS.md` of this repository.
 

@@ -81,6 +81,7 @@ import {
   runInput,
   SELECT_PACK,
   selectMemberOf,
+  SET,
   coverOptions,
   SET_V2,
   SETS,
@@ -190,7 +191,7 @@ if (command === "check") {
 } else if (command === "smoke") {
   // For each value of spacing: the first input of seed 1 with count 10 and edges, packed by the first pack entry with no overflow and no overlap, and routed by corners.
   const rows = corpusSlice().filter(({ entry, input }) => entry.id.endsWith("/s1") && entry.cell.count === "10" && (input.edges?.length ?? 0) > 0);
-  const values = set === SET_V2 ? SPACINGS : ["none"];
+  const values = set === SET ? ["none"] : SPACINGS;
   let failed = false;
   for (const value of values) {
     const candidates = rows.filter(({ entry }) => (entry.cell.spacing ?? "none") === value);
@@ -476,7 +477,7 @@ if (command === "check") {
   const options = {
     // The job check examines that the committed manifest is the manifest of the code.
     folds: loadSplit(JSON.parse(readFileSync(join(dirname(fileURLToPath(import.meta.url)), "..", "corpus", set, "corpus.json"), "utf8"))),
-    predictions: set === SET_V2 ? "joint-v2" : "joint-v1",
+    predictions: set === SET ? "joint-v1" : "joint-v2",
     ...(args["allow-missing"] === undefined ? {} : { allowMissing: idFile(args["allow-missing"]) }),
     ...(args.subset === undefined ? {} : { subset: idFile(args.subset) }),
     ...(baselines.length === 0 ? {} : { baseline: baselines }),

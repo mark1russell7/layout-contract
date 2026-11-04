@@ -11,6 +11,8 @@ This file lists the items of the roadmap of this repository. The status page of 
 | L52 | in progress | P1 | Measure joint space coverage, with a weekly trend that rises |
 | L81 | in progress | P1 | Memory gate over each family of the bench, then the dense-hubs peak (3.4-4.3 GB) |
 | L82 | in progress | P2 | The bench scripts in TypeScript (rule typed-scripts of conventions 0.5.0) |
+| L95 | in progress | P1 | Open size families in the joint corpus (`joint-v3`) |
+| L96 | next | P2 | A family `recorded` in `rigor-generators`: a quantile table with its source, license and date, from public sets |
 
 ## Next
 
