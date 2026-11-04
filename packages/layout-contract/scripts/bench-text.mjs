@@ -4,7 +4,8 @@
 //
 // <file> is the path of a built `text.js`. The labels have the shape of the labels of a consumer page: 333 distinct texts of approximately 8 characters, mostly one word.
 // The rounds of the two builds alternate, so a slow period of the runner touches both. Each round swaps the order of the builds (ABBA), so neither build always runs second.
-// One untimed call of each build comes before the rounds, as the warm-up. The script writes a Markdown table with the CPU model to stdout.
+// A head with `createTextLayoutCache` gets a third arm: the same calls through one new layout cache for each round, so the first pass over the labels fills it.
+// One untimed call of each arm comes before the rounds, as the warm-up. The script writes a Markdown table with the CPU model to stdout.
 // Start it only in CI (`.github/workflows/text-bench.yml`). A shared computer gives times that are not stable.
 import { cpus } from "node:os";
 import { pathToFileURL } from "node:url";
@@ -57,14 +58,29 @@ function round(text) {
   return performance.now() - start;
 }
 
+/** This function gives the milliseconds of `calls` layouts through one new layout cache. */
+function cachedRound(text) {
+  const measurer = text.createMeasurer(advance);
+  const cache = text.createTextLayoutCache();
+  const start = performance.now();
+  for (let i = 0; i < calls; i++) cache.layout(labels[i % labels.length], { ...options, measurer });
+  return performance.now() - start;
+}
+
 const builds = {};
 for (const name of ["base", "head"]) {
   const before = made;
   const text = await import(pathToFileURL(args[name]).href);
   round(text);
-  builds[name] = { text, times: [], segmenters: made - before };
+  builds[name] = { text, run: round, times: [], segmenters: made - before };
 }
-for (let k = 0; k < rounds; k++) for (const name of k % 2 === 0 ? ["base", "head"] : ["head", "base"]) builds[name].times.push(round(builds[name].text));
+// The base can be a release from before the cache, so the arm is there only when the head has it.
+if (typeof builds.head.text.createTextLayoutCache === "function") {
+  cachedRound(builds.head.text);
+  builds["head with the cache"] = { text: builds.head.text, run: cachedRound, times: [], segmenters: 0 };
+}
+const arms = Object.keys(builds);
+for (let k = 0; k < rounds; k++) for (const name of k % 2 === 0 ? arms : [...arms].reverse()) builds[name].times.push(builds[name].run(builds[name].text));
 
 const median = (v) => [...v].sort((a, b) => a - b)[Math.floor(v.length / 2)];
 const base = median(builds.base.times);
@@ -73,8 +89,12 @@ console.log(`The bench of \`/text\`: ${calls} layouts of ${labels.length} labels
 console.log("");
 console.log("| Build | Median ms | Microseconds for each layout | Segmenters made |");
 console.log("|---|---|---|---|");
-for (const [name, ms] of [["base", base], ["head", head]]) console.log(`| ${name} | ${ms.toFixed(1)} | ${((ms * 1000) / calls).toFixed(2)} | ${builds[name].segmenters} |`);
+for (const name of arms) {
+  const ms = median(builds[name].times);
+  console.log(`| ${name} | ${ms.toFixed(1)} | ${((ms * 1000) / calls).toFixed(2)} | ${builds[name].segmenters} |`);
+}
 console.log("");
 console.log(`The head takes ${(head / base).toFixed(3)} of the time of the base.`);
+if (arms.includes("head with the cache")) console.log(`The head with the cache takes ${(median(builds["head with the cache"].times) / head).toFixed(3)} of the time of the head.`);
 console.log("");
 console.log("The two builds run in one process, one after the other. Thus these times and this ratio are not the cost of a build alone (the fleet bench rule of 2026-11-02). This bench is a report, not a gate.");
