@@ -8,6 +8,10 @@
 //        runs the units of shard <i> of <dir>/plan.json, and writes <out>/records-<round>-<i>.jsonl and <out>/shard-<round>-<i>.json
 //   race --night <dir> --records <dir> --out <dir> [--target-minutes 30] [--max-shards 20] [--max-configs 400]
 //        adds the records of round 1 to the state, races the configs, plans round 2, and writes the same files as plan
+//   promote-plan --out <dir> [--target-minutes 30] [--max-shards 20] [--corpus <set>]
+//        plans the promotion test of L61 on its fresh seeds, and writes <out>/plan.json and <out>/matrix.json. The command run reads the seeds from the plan.
+//   promote --plan <dir> --records <dir> --out <dir>
+//        gives the result of the promotion test: <out>/promotion.json and <out>/promotion.md
 //   summarize --night <dir> --records <dir> --data <dir> --out <dir> [--run <id>]
 //        adds the records of round 2, and writes the new tree of the data branch to <out>, with <out>/night.md for the summary of the job
 //
@@ -31,6 +35,10 @@ import {
   planDesign,
   planRound1,
   planRound2,
+  promoteConfigs,
+  promoteMarkdown,
+  promotePlan,
+  PROMOTE_SEEDS,
   raceNight,
   runEnv,
   runInput,
@@ -63,9 +71,9 @@ function numberArg(name, fallback) {
 }
 
 /** This function gives the inputs of the corpus as the sweep sees them, and the manifest entry of each input. */
-function corpusOf(set) {
+function corpusOf(set, seeds) {
   if (!SETS.includes(set)) throw new RangeError(`The corpus is one of ${SETS.join(", ")}, not "${set}".`);
-  const { manifest, inputs } = jointCorpus(set);
+  const { manifest, inputs } = jointCorpus(set, seeds === undefined ? {} : { seeds });
   const rows = inputs.map((input, i) => ({ input, entry: manifest.inputs[i] }));
   const sweep = rows.map(({ input, entry }) => ({
     id: entry.id,
@@ -216,7 +224,7 @@ if (command === "plan") {
   mkdirSync(out, { recursive: true });
   const file = join(out, `records-${plan.round}-${shard}.jsonl`);
   writeFileSync(file, "");
-  const { rows } = corpusOf(plan.corpus);
+  const { rows } = corpusOf(plan.corpus, plan.seeds);
   const byInput = new Map(rows.map((row) => [row.entry.id, row]));
   const units = new Map(plan.units.map((u) => [u.id, u]));
   const env = runEnv();
@@ -270,6 +278,38 @@ if (command === "plan") {
     plannedDone += unit.cost;
   }
   writeShard(done < count);
+} else if (command === "promote-plan") {
+  const set = args.corpus ?? SET_V2;
+  const date = today();
+  const options = planOptions(date, { nights: [] });
+  const { sweep } = corpusOf(set, PROMOTE_SEEDS);
+  const night = promotePlan(sweep, { ...options, maxConfigs: 0, date });
+  const out = args.out ?? "night";
+  writeJson(join(out, "plan.json"), {
+    round: night.round,
+    date,
+    corpus: set,
+    seeds: night.seeds,
+    scale: options.scale,
+    costModel: CONFIG_COST_ID,
+    shards: night.plan.shards,
+    loads: night.plan.loads,
+    units: night.plan.units,
+    runs: night.runs,
+    facts: night.facts,
+  });
+  writeJson(join(out, "matrix.json"), night.plan.shards.map((_, i) => i));
+  const f = night.facts;
+  console.log(`The promotion test: ${f.configs} configs, ${f.jobs} jobs, ${f.units} units, ${f.shards} shards, ${f.minutes.toFixed(1)} planned minutes, the longest shard ${f.longest.toFixed(1)}.`);
+} else if (command === "promote") {
+  const plan = readJson(join(args.plan ?? "night", "plan.json"));
+  const { rows } = corpusOf(plan.corpus, plan.seeds);
+  const inputs = corpusOf(plan.corpus, plan.seeds).sweep.map((s, i) => ({ ...s, cell: rows[i].entry.cell }));
+  const report = promoteConfigs(readRecords(args.records ?? "records").records, inputs);
+  const out = args.out ?? "promotion";
+  writeJson(join(out, "promotion.json"), report, 2);
+  writeFileSync(join(out, "promotion.md"), promoteMarkdown(report));
+  console.log(`The promotion test: ${report.passed.length} of ${report.rows.length} configs pass.`);
 } else if (command === "race") {
   const dir = args.night ?? "night";
   const state = readJson(join(dir, "state.json"));

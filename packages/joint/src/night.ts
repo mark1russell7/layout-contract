@@ -188,6 +188,20 @@ function finish(
   }
   const ids = [...new Set(jobs.map((j) => j.config))];
   const configs = Object.fromEntries(ids.map((id) => [id, state.configs[id]!.config]));
+  return planJobs(round, jobs, configs, fresh.length, inputs, options);
+}
+
+/** This function gives the plan of a list of jobs: the units, the shards and the facts of the round. The promotion test uses it with no state. */
+export function planJobs(
+  round: 1 | 2,
+  jobs: readonly SweepJob[],
+  configs: Readonly<Record<string, StrategyConfig>>,
+  sampled: number,
+  inputs: readonly SweepInput[],
+  options: PlanOptions,
+): NightPlan {
+  const space = options.space ?? JOINT_SPACE;
+  const ids = [...new Set(jobs.map((j) => j.config))];
   const runs = Object.fromEntries(ids.map((id) => [id, configRun(configs[id]!, space)]));
   const byId = new Map(inputs.map((i) => [i.id, i]));
   const cost = (j: SweepJob): number => jobCost(runs[j.config]!, byId.get(j.input)!);
@@ -195,7 +209,7 @@ function finish(
   const plan = planRound(units, (input) => byId.get(input)!.spec, options.target, options.maxShards);
   const facts: RoundFacts = {
     configs: ids.length,
-    sampled: fresh.length,
+    sampled,
     jobs: jobs.length,
     units: units.length,
     shards: plan.shards.length,
