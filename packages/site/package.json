@@ -27,7 +27,7 @@
     "@mark1russell7/highways": "^0.13.0",
     "@mark1russell7/layout-contract": "workspace:*",
     "@mark1russell7/packing": "^0.6.1",
-    "@mark1russell7/site-pages": "^0.2.5",
+    "@mark1russell7/site-pages": "^0.2.6",
     "marked": "^18.1.2"
   },
   "description": "The GitHub Pages site of layout-contract: the joint benchmark, the strategy-space explorer and the news, from the data in the repository."

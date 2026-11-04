@@ -11,12 +11,14 @@ export interface SiteMeasure {
   readonly id: string;
   readonly value: number;
   readonly unit?: string;
+  /** The time of the data of this measure. A measure of the run and a measure of the build have different times. */
+  readonly at: string;
 }
 
 /** The input of the writer of `kpi.json`. */
 export interface SiteKpi {
   readonly project: string;
-  /** The time of the data: the date of the last joint run. It is not the time of the build. */
+  /** The time of the joint data: the date of the last joint run. It is not the time of the build. */
   readonly at: string;
   measures: SiteMeasure[];
 }
@@ -49,18 +51,20 @@ export function packersMeasured(run: JointData, catalog: KpiCatalog, entries: re
  * @param catalog - The catalog of the build.
  * @param built - The version of each engine in the build of the site.
  * @param entries - The bench entries of the joint package.
+ * @param commitAt - The time of the commit of the build, in UTC. The catalog and the engine versions of the build have this time, so an old run does not age them.
  */
-export function siteKpiInput(files: readonly JointData[], catalog: KpiCatalog, built: Readonly<Record<string, string>>, entries: readonly BenchEntry[]): SiteKpi | undefined {
+export function siteKpiInput(files: readonly JointData[], catalog: KpiCatalog, built: Readonly<Record<string, string>>, entries: readonly BenchEntry[], commitAt: string): SiteKpi | undefined {
   const run = latestJoint(files);
   if (run === undefined) return undefined;
+  const at = `${run.date}T00:00:00Z`;
   return {
     project: KPI_PROJECT,
-    at: `${run.date}T00:00:00Z`,
+    at,
     measures: [
-      { id: "pairs-in-run", value: run.pairs, unit: "pairs" },
-      { id: "packers-measured", value: packersMeasured(run, catalog, entries), unit: "packers" },
-      { id: "routers-on-compare", value: catalog.routers.length, unit: "routers" },
-      { id: "engines-current", value: enginesCurrent(run.versions, built), unit: "engines" },
+      { id: "pairs-in-run", value: run.pairs, unit: "pairs", at },
+      { id: "packers-measured", value: packersMeasured(run, catalog, entries), unit: "packers", at },
+      { id: "routers-on-compare", value: catalog.routers.length, unit: "routers", at: commitAt },
+      { id: "engines-current", value: enginesCurrent(run.versions, built), unit: "engines", at: commitAt },
     ],
   };
 }
