@@ -59,6 +59,29 @@ The measures `time.*` give the time of each step after the pack, in milliseconds
 
 A strategy that does not support the cell of an input gives a record with `skipped` and no measures. An error and a graph above the node limit of a router also give a skipped record.
 
+## A shard with a deadline, and a resume
+
+A shard stops at a clean point after 330 minutes (`SHARD_DEADLINE_MINUTES`). The job limit of GitHub is 360 minutes, and a job at that limit can lose its records. The script examines the deadline after each pair, and it exits with 0. Its last line gives the count of the pairs done and the pairs missing. A step limit of 350 minutes stops one pair that runs for too long. Each pair is on the disk when it ends, so that stop keeps the pairs before it.
+
+Each shard writes two files, one line for each pair when the pair ends:
+
+| File | Line |
+| --- | --- |
+| `records-<i>.jsonl` | The record of the pair, with no change to its form |
+| `pairs-<i>.ndjson` | The stamp, the input, the input hash, the pair and `wallMs` |
+
+`wallMs` is the time from the end of the pair before it. Pairs of one input share a pack and shared routes, so the first pair of a pack entry holds the time of the pack. A later pair with the same pack output can cost almost nothing. Read a strategy by the sum of its pairs, not by one pair. `bench.mjs costs` gives that table, and the job analyze keeps it as `report/pair-costs.md`.
+
+A manual run with the input `resume-run` keeps the records of an earlier run and runs only the missing pairs:
+
+1. The job prior downloads the artifacts of the earlier run. `bench.mjs resume` keeps each pair that has the stamp of this code, the hash of its input and a whole record.
+2. It writes the kept records as the artifact `joint-records-prior`, so the analysis and a later resume read them.
+3. The plan gives each input the cost of its missing pairs. Each pair costs its measured time against the plan (`pairFactors`), not the mean cost of a pair.
+
+The stamp (`runStamp`) holds the corpus, `BENCH_SPACE_VERSION`, the versions of `packing`, `highways` and `layout-contract`, and the text of `runner.ts` and `cover.ts`. A change of any of these facts gives a new stamp, and no record of the old stamp joins. A release on `main` between two runs thus stops the resume. To keep a chain of runs, start each run from the same commit.
+
+The lane pairs, the iteration pairs and the confirmation do not take a resume, because each of them reads the routes of other pairs.
+
 ## The overflow rule
 
 An overflow box has no position, so the router cannot route its edges.

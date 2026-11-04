@@ -4,6 +4,8 @@
 //   smoke [--corpus <set>]                                                  packs and routes 1 input of each value of spacing with corners
 //   run --shards <n> --shard <i> --out <dir> [--slice pr] [--corpus <set>] [--lanes on] [--iterate on] [--cover on] [--pairs <id,id>]   writes <dir>/records-<i>.jsonl
 //   plan --shards <n> [--slice pr] [--corpus <set>] [--lanes on] [--iterate on] [--cover on] [--pairs <id,id>]              prints the planned cost of each shard
+//   resume --records <dir> --out <dir> [--slice pr] [--corpus <set>] [--cover on] [--pairs <id,id>]   keeps the pairs of an earlier run with the stamp of this code (L101)
+//   costs --records <dir> [--corpus <set>] [--top <n>]                      prints the wall time of each pair, from the most time to the least
 //   confirm --confirm on --records <dir> --out <dir>   writes the decision of L40: <dir>/confirm.json and <dir>/confirm.md
 //   analyze --records <dir> --out <dir> [--slice pr] [--corpus <set>] [--allow-missing <file>] [--subset <file>] [--baseline <pair[,pair]>]
 //           [--compare <a:b[,a:b]>] [--exclude-pack <id[,id]>] [--oracle-without <id[,id]>] [--times <spec[,spec]>] [--jobs <file>] [--rank-top <n>]
@@ -16,6 +18,8 @@
 //
 // The corpus is `joint-v2` by default. The slice `pr` is the small slice of the pull request: seed 1 of the specs with count 10 and of the fixed cases.
 // The shards get the inputs by their planned cost (`plannedCost`, `planShards`). Each shard job computes the same plan.
+// run writes each pair when it ends: the record to records-<i>.jsonl, and its wall time to pairs-<i>.ndjson. It stops at a clean point after `--deadline-minutes` (default SHARD_DEADLINE_MINUTES).
+// `--prior <file>` on run and plan runs only the pairs that the file does not hold, and plans them from their measured times. The command resume writes that file.
 // The cost model is data/cost-margins.json. scripts/fit-cost.mjs writes it from the shard logs of a full run.
 // analyze gives the gains over each baseline pair of `--baseline`. The default is `BASELINE` (rows+portfolio), and select+portfolio and pack+portfolio when the records have them.
 // `--compare a:b` gives the misses and the scores of the pairs a and b, and the gain of a over b.
@@ -82,8 +86,20 @@ import {
   SELECT_PACK,
   selectMemberOf,
   SET,
+  BENCH_SPACE_VERSION,
   chosenOptions,
   coverOptions,
+  doneKey,
+  keptRecordLines,
+  measuredCost,
+  pairFactors,
+  parsePairLines,
+  PRIOR_PAIRS_FILE,
+  runShard,
+  runStamp,
+  SHARD_DEADLINE_MINUTES,
+  strategyCosts,
+  strategyCostTable,
   SET_V2,
   SETS,
   SPACINGS,
@@ -112,6 +128,33 @@ if (args.pairs !== undefined && (confirming || args.cover !== undefined || args.
   throw new RangeError("The option --pairs replaces --cover, --lanes and --iterate, and --confirm replaces --pairs.");
 }
 const cover = args.pairs !== undefined ? chosenOptions(args.pairs.split(",").map((id) => id.trim()).filter((id) => id !== "")) : args.cover === "on" ? coverOptions() : {};
+// A resume needs one list of the pairs of each input, so the lane pairs, the iteration pairs and `--confirm` do not take `--prior`.
+if (args.prior !== undefined && (confirming || lanes.length > 0 || iterate.length > 0)) throw new RangeError("The option --prior does not go with --confirm, --lanes or --iterate.");
+const expectedPairs = confirming ? CONFIRM_PLAIN_PAIRS : (cover.pairs ?? PACK_ENTRIES.flatMap((entry) => ROUTERS.map((router) => pairId(entry.id, router))));
+
+/**
+ * This function gives the stamp of this code on this corpus. Records join only with records of the same stamp.
+ * It holds the corpus, the version of the space, the versions of the engines and the contract, and the text of the runner and the cover.
+ * The hash of each input is a second check, in `priorLines` and in the command resume.
+ */
+function benchStamp() {
+  const version = (name) => JSON.parse(readFileSync(new URL(`../node_modules/@mark1russell7/${name}/package.json`, import.meta.url), "utf8")).version;
+  const text = (file) => readFileSync(new URL(`../src/${file}`, import.meta.url), "utf8").replaceAll("\r\n", "\n");
+  return runStamp({ corpus: set, space: BENCH_SPACE_VERSION, packing: version("packing"), highways: version("highways"), contract: version("layout-contract"), runner: text("runner.ts"), cover: text("cover.ts") });
+}
+
+/** This function gives the lines of a pair file that join this run: the lines of its stamp, for a pair of this run, on an input with the same hash. */
+function joinLines(text, stamp, hashes, wanted) {
+  const read = parsePairLines(text, stamp);
+  return { ...read, lines: read.lines.filter((line) => hashes.get(line.input) === line.inputHash && wanted.has(line.strategy)) };
+}
+
+/** This function gives the pair lines of `--prior` for the rows of a slice. Without the option it gives undefined. */
+function priorLines(rows) {
+  if (args.prior === undefined) return undefined;
+  const hashes = new Map(rows.map(({ input, entry }) => [entry.id, input.hash ?? ""]));
+  return joinLines(readFileSync(args.prior, "utf8"), benchStamp(), hashes, new Set(expectedPairs)).lines;
+}
 
 /** This function gives the inputs and their manifest entries, in the order of the corpus, for the slice of the arguments. */
 function corpusSlice() {
@@ -127,10 +170,17 @@ function shardPlan() {
   const shards = Number(args.shards ?? 1);
   const rows = corpusSlice();
   // The lane passes use the lane term of the cost model. The rounds of the iteration pairs have no fit yet, so they cost `LANE_PASS_COST` pairs.
-  const pairs = (confirming ? CONFIRM_PLAIN_PAIRS.length : (cover.pairs?.length ?? PACK_ENTRIES.length * ROUTERS.length)) + iterPlanPairs(iterate);
+  const pairs = expectedPairs.length + iterPlanPairs(iterate);
   const passes = lanePasses(lanes);
-  const items = costedRows(rows, pairs, passes);
-  return { rows, shards, plan: planShards(items, shards) };
+  const prior = priorLines(rows);
+  if (prior === undefined) return { rows, shards, plan: planShards(costedRows(rows, pairs, passes), shards), done: new Set() };
+  // With a prior run, each input costs only its missing pairs, and each pair costs its measured time against the plan.
+  const done = new Set(prior.map((line) => doneKey(line.input, line.strategy)));
+  const units = costedRows(rows, 1, 0);
+  const unitOf = new Map(units.map((item) => [item.id, item.cost]));
+  const factors = pairFactors(prior, (id) => unitOf.get(id));
+  const items = units.map((item) => ({ ...item, cost: measuredCost(item.cost, expectedPairs.filter((pair) => !done.has(doneKey(item.id, pair))), factors) }));
+  return { rows, shards, plan: planShards(items, shards), done };
 }
 
 /** This function reads the records of a folder. The files can be in folders: `gh run download` writes each artifact into a folder of its name. */
@@ -223,8 +273,9 @@ if (command === "check") {
   }
   if (failed) process.exit(1);
 } else if (command === "plan") {
-  const { plan } = shardPlan();
+  const { plan, done, rows } = shardPlan();
   const min = (ms) => (ms / 60000).toFixed(1);
+  if (args.prior !== undefined) console.log(`${done.size} pairs of ${rows.length * expectedPairs.length} have records. The plan holds only the missing pairs.`);
   const loads = plan.loads.map((l, i) => ({ l, i })).sort((a, b) => b.l - a.l);
   const sum = plan.loads.reduce((s, l) => s + l, 0);
   console.log(`${set}: ${plan.shards.length} shards, ${min(sum)} predicted minutes in all, ${min(sum / plan.shards.length)} on average.`);
@@ -234,10 +285,14 @@ if (command === "check") {
   const out = args.out ?? "bench-out";
   mkdirSync(out, { recursive: true });
   const file = join(out, `records-${shard}.jsonl`);
+  const pairFile = join(out, `pairs-${shard}.ndjson`);
   writeFileSync(file, "");
+  writeFileSync(pairFile, "");
+  const deadlineMinutes = Number(args["deadline-minutes"] ?? SHARD_DEADLINE_MINUTES);
+  if (!(Number.isFinite(deadlineMinutes) && deadlineMinutes >= 0)) throw new RangeError(`The option --deadline-minutes is a number of 0 or more, not "${args["deadline-minutes"]}".`);
   const env = runEnv();
   const commit = process.env.GITHUB_SHA;
-  const { rows: all, shards, plan } = shardPlan();
+  const { rows: all, shards, plan, done } = shardPlan();
   if (!(Number.isInteger(shard) && shard >= 0 && shard < shards)) throw new RangeError(`The shard is an integer from 0 to ${shards - 1}, not ${shard}.`);
   // The plan gives the inputs of this shard from the least predicted cost to the most.
   const byId = new Map(all.map((row) => [row.entry.id, row]));
@@ -247,22 +302,81 @@ if (command === "check") {
   // The lines have no "records", so fit-cost.mjs does not read them.
   const SLOW_PAIR_MS = 5000;
   const mb = (bytes) => Math.round(bytes / 2 ** 20);
-  for (const { input, entry } of rows) {
-    const t0 = performance.now();
-    const records = [];
-    let last = t0;
+  const stamp = benchStamp();
+  const lines = [];
+  let recordCount = 0;
+  let skipped = 0;
+  const count = runShard({
+    rows: rows.map((row) => ({ id: row.entry.id, inputHash: row.input.hash ?? "", row })),
+    pairs: expectedPairs,
+    extra: lanes.length + iterate.length,
+    done,
+    stamp,
+    deadlineMs: deadlineMinutes * 60000,
+    now: () => performance.now(),
     // freeRoutes frees the routes that no lane pair and no iteration pair reads, so a large input fits in the heap (L63).
-    for (const run of pairRuns(input, entry.cell, { env, corpus: set, lanes, iterate, freeRoutes: true, ...cover, ...(confirming ? { pairs: CONFIRM_PLAIN_PAIRS } : {}), ...(commit === undefined ? {} : { commit }) })) {
-      records.push(run.record);
-      const now = performance.now();
-      if (now - last > SLOW_PAIR_MS) console.log(`  pair ${run.record.strategy}: ${Math.round(now - last)} ms, heap ${mb(process.memoryUsage().heapUsed)} MB`);
-      last = now;
-    }
-    appendFileSync(file, records.map((r) => JSON.stringify(r) + "\n").join(""));
-    console.log(`  peak rss ${mb(process.resourceUsage().maxRSS * 1024)} MB after ${input.id}`);
-    const skipped = records.filter((r) => r.skipped !== undefined).length;
-    console.log(`${input.id}: ${records.length} records, ${skipped} skipped, ${Math.round(performance.now() - t0)} ms`);
+    runPairs: ({ input, entry }, missing) =>
+      pairRuns(input, entry.cell, { env, corpus: set, lanes, iterate, freeRoutes: true, ...cover, ...(confirming ? { pairs: CONFIRM_PLAIN_PAIRS } : {}), ...(missing === undefined ? {} : { pairs: missing }), ...(commit === undefined ? {} : { commit }) }),
+    write: (record, line) => {
+      appendFileSync(file, JSON.stringify(record) + "\n");
+      appendFileSync(pairFile, JSON.stringify(line) + "\n");
+      lines.push(line);
+      recordCount += 1;
+      if (record.skipped !== undefined) skipped += 1;
+      if (line.wallMs > SLOW_PAIR_MS) console.log(`  pair ${line.strategy}: ${Math.round(line.wallMs)} ms, heap ${mb(process.memoryUsage().heapUsed)} MB`);
+    },
+    onInput: ({ input }, ms) => {
+      console.log(`  peak rss ${mb(process.resourceUsage().maxRSS * 1024)} MB after ${input.id}`);
+      console.log(`${input.id}: ${recordCount} records, ${skipped} skipped, ${Math.round(ms)} ms`);
+      recordCount = 0;
+      skipped = 0;
+    },
+  });
+  const end = `Shard ${shard}: ${count.pairsDone} pairs done, ${count.pairsMissing} pairs missing${count.stopped ? `, stopped at the deadline of ${deadlineMinutes} minutes` : ""}.`;
+  console.log(end);
+  const summary = process.env.GITHUB_STEP_SUMMARY;
+  if (summary !== undefined) appendFileSync(summary, `${end}\n\n${strategyCostTable(strategyCosts(lines), 10)}\n`);
+} else if (command === "resume") {
+  if (args.records === undefined || args.out === undefined) throw new RangeError("The arguments of resume are --records <dir> --out <dir>.");
+  mkdirSync(args.out, { recursive: true });
+  const rows = corpusSlice();
+  const hashes = new Map(rows.map(({ input, entry }) => [entry.id, input.hash ?? ""]));
+  const wanted = new Set(expectedPairs);
+  const stamp = benchStamp();
+  const names = readdirSync(args.records, { recursive: true }).map(String).sort();
+  const byKey = new Map();
+  let otherStamp = 0;
+  let broken = 0;
+  let outside = 0;
+  for (const name of names.filter((n) => n.endsWith(".ndjson"))) {
+    const text = readFileSync(join(args.records, name), "utf8");
+    const all = parsePairLines(text, stamp);
+    const read = joinLines(text, stamp, hashes, wanted);
+    otherStamp += all.otherStamp;
+    broken += all.broken;
+    outside += all.lines.length - read.lines.length;
+    for (const line of read.lines) if (!byKey.has(doneKey(line.input, line.strategy))) byKey.set(doneKey(line.input, line.strategy), line);
   }
+  // Each kept file comes from one file of the earlier run, so no file grows past the size that readRecords reads.
+  const seen = new Set();
+  const accepted = new Set(byKey.keys());
+  let kept = 0;
+  for (const name of names.filter((n) => n.endsWith(".jsonl"))) {
+    const lines = keptRecordLines(readFileSync(join(args.records, name), "utf8"), accepted, seen);
+    if (lines.length === 0) continue;
+    writeFileSync(join(args.out, `prior-${kept}.jsonl`), lines.join("\n") + "\n");
+    kept += 1;
+  }
+  // A pair line with no whole record is not a finished pair.
+  const pairLines = [...seen].map((key) => byKey.get(key));
+  writeFileSync(join(args.out, PRIOR_PAIRS_FILE), pairLines.map((line) => JSON.stringify(line) + "\n").join(""));
+  console.log(`Stamp ${stamp}: ${pairLines.length} of ${rows.length * expectedPairs.length} pairs kept. Left out: ${otherStamp} of another stamp, ${outside} of another input or pair, ${broken} cut lines, ${byKey.size - pairLines.length} with no record.`);
+} else if (command === "costs") {
+  if (args.records === undefined) throw new RangeError("The argument of costs is --records <dir>.");
+  const stamp = benchStamp();
+  const names = readdirSync(args.records, { recursive: true }).map(String).filter((n) => n.endsWith(".ndjson")).sort();
+  const lines = names.flatMap((name) => parsePairLines(readFileSync(join(args.records, name), "utf8"), stamp).lines);
+  console.log(`${lines.length} finished pairs.\n\n${strategyCostTable(strategyCosts(lines), Number(args.top ?? 20))}`);
 } else if (command === "probe") {
   // The memory probe of L77. It runs the inputs of `--inputs`, one after the other, and writes one line of memory facts for each pair.
   // With `node --expose-gc`, the probe forces a full GC after each pair. Then `heapLive` is the heap that the pair keeps.
