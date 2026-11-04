@@ -1796,3 +1796,26 @@ The Joint bench of pull request 157 (run `41581804139`) gives these results. The
 - The first push failed `CI OK`. The range of `sortOrder` of the site did not hold `graph-bfs`. The claim is a miss.
 - The Brier score of the 5 claims is 0.200.
 - No default changes. A tie or a win in one cell is not sufficient for a new default.
+
+## The promotion test of the configs of night 1 (L61)
+
+Night 1 of the sweep gave 9 configs the label `better`, in the epoch `joint-v2_packing-0.2.17_highways-0.9.3_space-bench-2`. That epoch used older engines, and its seeds chose the configs. So a gain of that night is not evidence about the current engines. This test gives each config a fresh trial.
+
+- **Inputs.** The test uses the corpus `joint-v2` with the seeds 7, 8, 9, 10 and 11. The seeds 1 to 3 chose the configs, and L40 holds the seeds 4 to 6. The corpus has 101 specs, so the test has 505 inputs.
+- **Arms.** The arms are the 9 configs and the baseline arm. The baseline arm holds the incumbent.
+- **Run.** Only a dispatch starts the workflow `promotion.yml`. Its shards use the command `run` of `scripts/sweep.mjs`, which reads the seeds from the plan. A stopped shard keeps its records.
+- **Report.** The artifact `promotion-report` has `promotion.json` and `promotion.md`. Each row gives the gain of each seed, the mean and the SD of those gains, the comparison and the guards.
+
+The pass rule has 5 parts, and it was fixed before the first run. A config passes only when each part is true:
+
+1. Each headline input has a record of the config.
+2. The score of the config is better than the score of the incumbent. The test uses Holm over the 9 configs, the level 0.05 and the tie 0.005.
+3. No guard is worse than the guard of the incumbent.
+4. The test reads each guard.
+5. The gain of the score is larger than the A/A spread of the score.
+
+The A/A spread compares the incumbent with itself. Only the seed changes between the two sides, and each difference is paired on its spec. The spread is the largest absolute mean difference over the 10 pairs of seeds. A gain under that spread is not a claim, because the incumbent moves that far with no change of config.
+
+The score is only the fill of the inputs that reach the floor. So the report also gives each config in the units of a reader, against the incumbent and the A/A spread of each measure. Those units are fill in points, crossings, overlaps and hard breaks, each as a mean for each layout.
+
+A pass does not change the default. A config that passes also needs the verdict of `time-arms.yml`, so each row keeps its pair id. If L40 changes the default, this test takes the new default as its incumbent. A new default raises the MINOR version, because callers rely on that behavior.

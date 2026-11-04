@@ -1,0 +1,131 @@
+# The promotion test of the 9 configs of night 1 (L61, docs/JOINT-BENCH.md, "The promotion test of the configs of night 1").
+# Only a dispatch starts this workflow. Each config meets the incumbent on the fresh seeds 7 to 11, with the current engines.
+# The shards reuse the command run of scripts/sweep.mjs. The job decide keeps the result as the artifact promotion-report.
+name: Promotion
+
+on:
+  workflow_dispatch:
+    inputs:
+      max-shards:
+        description: "The largest count of the shards."
+        type: string
+        default: "20"
+      target-minutes:
+        description: "The planned minutes of a shard."
+        type: string
+        default: "30"
+
+permissions:
+  contents: read
+
+# A new dispatch on the same ref waits for the run before it. A promotion record that runs halfway has no value when it stops.
+concurrency:
+  group: promotion-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  plan:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    outputs:
+      shards: ${{ steps.plan.outputs.shards }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 26
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Plan the test
+        id: plan
+        working-directory: packages/joint
+        env:
+          MAX_SHARDS: ${{ inputs.max-shards }}
+          TARGET: ${{ inputs.target-minutes }}
+        run: |
+          node scripts/sweep.mjs promote-plan --out night --max-shards "$MAX_SHARDS" --target-minutes "$TARGET"
+          echo "shards=$(cat night/matrix.json | tr -d ' \n')" >> "$GITHUB_OUTPUT"
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: promotion-plan
+          path: packages/joint/night/
+          if-no-files-found: error
+
+  run:
+    needs: plan
+    runs-on: ubuntu-latest
+    # The limit leaves a margin of 4 times the target of 30 minutes, as in sweep.yml.
+    timeout-minutes: 120
+    strategy:
+      fail-fast: false
+      # This is the limit of sweep.yml, for the jobs that the account runs at once.
+      max-parallel: 3
+      matrix:
+        shard: ${{ fromJSON(needs.plan.outputs.shards) }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 26
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: promotion-plan
+          path: packages/joint/night
+      - name: Run one shard
+        working-directory: packages/joint
+        env:
+          SHARD: ${{ matrix.shard }}
+          NODE_OPTIONS: --max-old-space-size=6144
+        # The deadline and the step limit are the values of sweep.yml. A stopped shard keeps its records, and the test counts the rest as incomplete.
+        timeout-minutes: 100
+        run: node scripts/sweep.mjs run --plan night --shard "$SHARD" --out records --deadline-minutes 90
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        if: ${{ !cancelled() }}
+        with:
+          name: promotion-records-${{ matrix.shard }}
+          path: packages/joint/records/
+          if-no-files-found: error
+
+  decide:
+    needs: [plan, run]
+    if: ${{ !cancelled() && needs.plan.result == 'success' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 26
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: promotion-plan
+          path: packages/joint/night
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          pattern: promotion-records-*
+          path: packages/joint/records
+      - name: Give the result
+        working-directory: packages/joint
+        env:
+          NODE_OPTIONS: --max-old-space-size=6144
+        run: |
+          node scripts/sweep.mjs promote --plan night --records records --out report
+          cat report/promotion.md >> "$GITHUB_STEP_SUMMARY"
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: promotion-report
+          path: packages/joint/report/
+          if-no-files-found: error

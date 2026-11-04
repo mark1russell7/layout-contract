@@ -171,17 +171,26 @@ function medianMs(records: readonly LayoutRecord[]): number {
   return times.length === 0 ? 0 : quantileSorted(times, 0.5);
 }
 
+/**
+ * This function gives the comparisons of the score of each pair `[a, b]` on the inputs. The Holm family is the list of the pairs.
+ * A larger `family` counts each planned comparison with no value as a p of 1, so a lost comparison does not relax the others.
+ */
+export function compareAll(cell: CellValues, inputs: readonly AnalysisInput[], pairs: readonly (readonly [string, string])[], family: number = pairs.length): ConfirmCompare[] {
+  const verdicts = pairs.map(([a, b]) => ({ a, b, v: scoreVerdict(cell, inputs, a, b) }));
+  const lost = Array.from({ length: family - pairs.length }, () => 1);
+  const corrected = holm([...verdicts.map(({ v }) => v.permutation.p), ...lost], SWEEP_LEVEL);
+  return verdicts.map(({ a, b, v }, i): ConfirmCompare => {
+    const c = corrected[i]!;
+    return { a, b, n: v.n, label: v.label, mean: v.stratified.mean, lo: v.stratified.lo, hi: v.stratified.hi, p: v.permutation.p, adjusted: c.adjusted, better: v.label === "better" && c.reject, worse: v.label === "worse" && c.reject, signs: v.signTest, summary: v.summary };
+  });
+}
+
 /** This function gives the result of one scope. The Holm family is the list of the comparisons of the scope. */
 function scopeOf(scope: ConfirmScope["scope"], records: readonly LayoutRecord[], inputs: readonly AnalysisInput[]): ConfirmScope {
   const ids = new Set(inputs.map((i) => i.id));
   const inScope = records.filter((r) => ids.has(r.input) && r.skipped === undefined);
   const cell = cellValues(indexRecords(inScope), inputs, HEADLINE.rule, HEADLINE.cap);
-  const verdicts = comparePairs().map(([a, b]) => ({ a, b, v: scoreVerdict(cell, inputs, a, b) }));
-  const corrected = holm(verdicts.map(({ v }) => v.permutation.p), SWEEP_LEVEL);
-  const compares = verdicts.map(({ a, b, v }, i): ConfirmCompare => {
-    const c = corrected[i]!;
-    return { a, b, n: v.n, label: v.label, mean: v.stratified.mean, lo: v.stratified.lo, hi: v.stratified.hi, p: v.permutation.p, adjusted: c.adjusted, better: v.label === "better" && c.reject, worse: v.label === "worse" && c.reject, signs: v.signTest, summary: v.summary };
-  });
+  const compares = compareAll(cell, inputs, comparePairs());
   const pairs = CONFIRM_PAIRS.map((pair): ConfirmPair => {
     const mine = inScope.filter((r) => r.strategy === pair);
     const at = new Set(mine.map((r) => r.input));
@@ -198,13 +207,13 @@ function scopeOf(scope: ConfirmScope["scope"], records: readonly LayoutRecord[],
 }
 
 /** This function tells if the records give a pair of values of a guard for the pairs `a` and `b`. */
-function guardRead(records: readonly LayoutRecord[], guard: ConfirmGuardSpec, a: string, b: string): boolean {
+export function guardRead(records: readonly LayoutRecord[], guard: ConfirmGuardSpec, a: string, b: string): boolean {
   const left = new Set(records.filter((r) => r.strategy === a && r.measures[guard.id] !== undefined).map((r) => r.input));
   return records.some((r) => r.strategy === b && r.measures[guard.id] !== undefined && left.has(r.input));
 }
 
 /** This function gives the guards of one candidate against one pair that have the label `worse`. A guard with no paired value does not count. */
-function worseGuards(records: readonly LayoutRecord[], a: string, b: string): ConfirmGuard[] {
+export function worseGuards(records: readonly LayoutRecord[], a: string, b: string): ConfirmGuard[] {
   const out: ConfirmGuard[] = [];
   for (const guard of CONFIRM_GUARDS) {
     if (!guardRead(records, guard, a, b)) continue;
