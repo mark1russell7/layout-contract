@@ -12,7 +12,6 @@ This file lists the items of the roadmap of this repository. The status page of 
 | L81 | in progress | P1 | Memory gate over each family of the bench, then the dense-hubs peak (3.4-4.3 GB) |
 | L82 | in progress | P2 | The bench scripts in TypeScript (rule typed-scripts of conventions 0.5.0) |
 | L84 | in progress | P1 | A paired-time A/A arm in the joint bench, for the new Time row |
-| L55 | in progress | P2 | Survey joint place-and-route methods as data |
 
 ## Next
 
@@ -50,6 +49,13 @@ This file lists the items of the roadmap of this repository. The status page of 
 | L75 | later | P2 | Objectives under an interaction |
 | L76 | later | P2 | The orbit of a node: a soft keep-out margin |
 | L80 | later | P3 | Site forms for packSpace of packing, then drop PACK_EXTRAS |
+| L87 | later | P3 | Move the boxes and the bend points in one pass |
+| L88 | later | P3 | Compact the layout after the route |
+| L89 | later | P3 | A route demand map in the cost of the packer |
+| L90 | later | P3 | Search the objective against real routes |
+| L91 | later | P3 | Align linked boxes so that the edges are straight |
+| L92 | later | P3 | A learned route proxy for the placer |
+| L93 | later | P3 | An exact joint reference for small inputs |
 
 ## Done
 
@@ -93,6 +99,7 @@ This file lists the items of the roadmap of this repository. The status page of 
 | L49 | done | P1 | Spacing per channel |
 | L51 | done | P2 | Close the 3 corpus API gaps that packing found in k73 |
 | L54 | done | P1 | Grow the joint input families every week |
+| L55 | done | P2 | Survey joint place-and-route methods as data |
 | L56 | done | P2 | A port position relative to its side (Port.along) |
 | L57 | done | P2 | Close the 3 shape gaps that packing found in k91 |
 | L59 | done | P1 | Measure the 5 wave-3 highway routers in the joint bench |

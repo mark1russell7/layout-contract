@@ -39,6 +39,7 @@ interface Method {
 
 interface Idea {
   readonly id: string;
+  readonly item: string;
   readonly title: string;
   readonly summary: string;
   readonly dependsOn: readonly string[];
@@ -121,14 +122,14 @@ describe("the joint survey", () => {
     }
   });
 
-  it("gives each method that is not built an item or an idea, and not both", () => {
-    const ideas = new Set(survey.ideas.map((i) => i.id));
+  it("gives each method that is not built an item or an idea, and an idea has the item of its method", () => {
+    const ideas = new Map(survey.ideas.map((i) => [i.id, i]));
     for (const m of survey.methods) {
       if (m.status === "not queued") {
         expect(m.item, m.id).toBeNull();
         expect(ideas.has(m.idea ?? ""), m.id).toBe(true);
-      } else {
-        expect(m.idea, m.id).toBeNull();
+      } else if (m.idea !== null) {
+        expect(ideas.get(m.idea)?.item, m.id).toBe(m.item);
       }
     }
   });
@@ -137,6 +138,7 @@ describe("the joint survey", () => {
     for (const idea of survey.ideas) {
       expect(survey.methods.some((m) => m.idea === idea.id), idea.id).toBe(true);
       expect(idea.score, idea.id).toBeCloseTo((idea.gain * idea.uncertainty) / idea.cost, 3);
+      expect(roadmapStatus(idea.item), idea.id).toBeDefined();
       for (const item of idea.dependsOn) expect(roadmapStatus(item), `${idea.id} ${item}`).toBeDefined();
     }
   });

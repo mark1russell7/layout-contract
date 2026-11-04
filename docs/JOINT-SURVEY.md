@@ -51,8 +51,8 @@ A row with `citing paper` has a weaker claim. Read the paper before you build fr
 ### The meaning of the status
 
 - `built` means that a repository has an analog of the idea. No row is the published algorithm. The `note` tells the difference.
-- `queued` means that an open roadmap item covers the method.
-- `not queued` means that no roadmap item covers the method. The field `idea` names its new idea.
+- `queued` means that an open roadmap item covers the method. A method with an `idea` got its item from this survey.
+- `not queued` means that no roadmap item covers the method. The field `idea` names its new idea. No row has this status today.
 - `rejected` means that the survey keeps the method and does not plan it. No row has this status today.
 
 The session checked `layout-contract`, `packing` and `highways` for each row. For `highways`, it read the idea records at their stages. For `packing`, it read the catalog, the roadmap and the strategy `force`. The session did not read each source file of those repositories.
@@ -61,31 +61,31 @@ The session checked `layout-contract`, `packing` and `highways` for each row. Fo
 
 | ID | Method | Source | Class | Status | Item or idea |
 |---|---|---|---|---|---|
-| J1 | Edge routing inside a force-directed layout | Dwyer 2006 | graph drawing | not queued | `joint-refine` |
-| J2 | Layout that keeps the topology of poly-line connectors | Dwyer 2009 | graph drawing | not queued | `joint-refine` |
+| J1 | Edge routing inside a force-directed layout | Dwyer 2006 | graph drawing | queued | L87 |
+| J2 | Layout that keeps the topology of poly-line connectors | Dwyer 2009 | graph drawing | queued | L87 |
 | J3 | Stress layout with ports and flow | Ruegg 2014 | graph drawing | queued | L62 |
-| J4 | Grid-like layout by soft and hard constraints | Kieffer 2013 | graph drawing | not queued | `straight-align` |
-| J5 | Curved edges by dummy vertices in a force layout | Finkel 2005 | graph drawing | not queued | `joint-refine` |
-| J6 | Near-Lombardi drawing by forces | Chernobelskiy 2012 | graph drawing | not queued | `joint-refine` |
+| J4 | Grid-like layout by soft and hard constraints | Kieffer 2013 | graph drawing | queued | L91 |
+| J5 | Curved edges by dummy vertices in a force layout | Finkel 2005 | graph drawing | queued | L87 |
+| J6 | Near-Lombardi drawing by forces | Chernobelskiy 2012 | graph drawing | queued | L87 |
 | J7 | Minimum-bend shape by network flow | Tamassia 1987 | graph drawing | queued | L48 |
 | J8 | Three-phase orthogonal drawing | Biedl 2000 | graph drawing | queued | L14 |
 | J9 | Topology-shape-metrics layout of class diagrams | Eiglsperger 2004 | graph drawing | queued | L48 |
-| J10 | Exact compaction of a routed drawing | Klau 1999 | graph drawing | not queued | `route-compact` |
-| J11 | One-dimensional compaction after a layered layout | Ruegg 2016 | graph drawing | not queued | `route-compact` |
+| J10 | Exact compaction of a routed drawing | Klau 1999 | graph drawing | queued | L88 |
+| J11 | One-dimensional compaction after a layered layout | Ruegg 2016 | graph drawing | queued | L88 |
 | J12 | Layered layout with port constraints | Schulze 2013 | graph drawing | queued | L14 |
 | J13 | Dummy nodes for ports in crossing reduction | Klauske 2012 | graph drawing | queued | L14 |
-| J14 | Stations and routes on an octilinear grid | Bast 2020 | metro maps | not queued | `exact-reference` |
-| J15 | Metro maps by one mixed-integer program | Nollenburg 2010 | metro maps | not queued | `exact-reference` |
+| J14 | Stations and routes on an octilinear grid | Bast 2020 | metro maps | queued | L93 |
+| J15 | Metro maps by one mixed-integer program | Nollenburg 2010 | metro maps | queued | L93 |
 | J16 | One genetic algorithm for node layout and edge bundling | Meikari 2024 | graph drawing | queued | L15 |
 | J17 | Global routing inside placement | Pan 2007 | VLSI | queued | L15 |
 | J18 | Simultaneous place and route for FPGAs | Nag 1994 | VLSI | queued | L15 |
-| J19 | RUDY, a routing demand estimate without a router | Spindler 2007 | VLSI | not queued | `demand-map` |
+| J19 | RUDY, a routing demand estimate without a router | Spindler 2007 | VLSI | queued | L89 |
 | J20 | Lookahead routing and cell bloating | Kim 2011 | VLSI | built | L11 |
 | J21 | Iterated spreading by temporary inflation | Roy 2009 | VLSI | built | L11 |
 | J22 | White space by congestion | Yang 2003 | VLSI | built | L13 |
-| J23 | Joint learning of placement and routing | Cheng 2021 | VLSI | not queued | `route-proxy` |
-| J24 | A graph network as a differentiable routability term | Hou 2024 | VLSI | not queued | `route-proxy` |
-| J25 | Placement objectives that evolve from routing feedback | Chen 2026 | VLSI | not queued | `objective-evolve` |
+| J23 | Joint learning of placement and routing | Cheng 2021 | VLSI | queued | L92 |
+| J24 | A graph network as a differentiable routability term | Hou 2024 | VLSI | queued | L92 |
+| J25 | Placement objectives that evolve from routing feedback | Chen 2026 | VLSI | queued | L90 |
 | J26 | Early global routing on a floorplan | Kar 2018 | VLSI | queued | L48 |
 | J27 | Floorplanning with pin assignment | Pedram 1990 | VLSI | queued | L14 |
 | J28 | Pin assignment inside the floorplanner | Xu 2025 | VLSI | queued | L14 |
@@ -94,15 +94,15 @@ The session checked `layout-contract`, `packing` and `highways` for each row. Fo
 
 Each method that is not built has an open item or an idea. The ideas are in the order of their scores. The score is gain x uncertainty / cost, as in the queue of items. The numbers are estimates of the survey, not measurements. Each idea needs a prediction before its run.
 
-| Idea | Title | Methods | Depends on | Gain | Uncertainty | Cost | Score |
-|---|---|---|---|---|---|---|---|
-| `joint-refine` | Move the boxes and the bend points in one pass | J1, J2, J5, J6 | L62, L68 | 0.5 | 0.7 | 3 | 0.117 |
-| `route-compact` | Compact the layout after the route | J10, J11 | none | 0.4 | 0.5 | 2 | 0.1 |
-| `demand-map` | A route demand map in the cost of the packer | J19 | L12 | 0.3 | 0.6 | 2 | 0.09 |
-| `objective-evolve` | Search the objective against real routes | J25 | L66, L68 | 0.3 | 0.8 | 3 | 0.08 |
-| `straight-align` | Align linked boxes so that the edges are straight | J4 | L50 | 0.3 | 0.5 | 2 | 0.075 |
-| `route-proxy` | A learned route proxy for the placer | J23, J24 | L12 | 0.3 | 0.7 | 3 | 0.07 |
-| `exact-reference` | An exact joint reference for small inputs | J14, J15 | none | 0.3 | 0.4 | 3 | 0.04 |
+| Idea | Item | Title | Methods | Depends on | Gain | Uncertainty | Cost | Score |
+|---|---|---|---|---|---|---|---|---|
+| `joint-refine` | L87 | Move the boxes and the bend points in one pass | J1, J2, J5, J6 | L62, L68 | 0.5 | 0.7 | 3 | 0.117 |
+| `route-compact` | L88 | Compact the layout after the route | J10, J11 | none | 0.4 | 0.5 | 2 | 0.1 |
+| `demand-map` | L89 | A route demand map in the cost of the packer | J19 | L12 | 0.3 | 0.6 | 2 | 0.09 |
+| `objective-evolve` | L90 | Search the objective against real routes | J25 | L66, L68 | 0.3 | 0.8 | 3 | 0.08 |
+| `straight-align` | L91 | Align linked boxes so that the edges are straight | J4 | L50 | 0.3 | 0.5 | 2 | 0.075 |
+| `route-proxy` | L92 | A learned route proxy for the placer | J23, J24 | L12 | 0.3 | 0.7 | 3 | 0.07 |
+| `exact-reference` | L93 | An exact joint reference for small inputs | J14, J15 | none | 0.3 | 0.4 | 3 | 0.04 |
 
 ## The next round
 
