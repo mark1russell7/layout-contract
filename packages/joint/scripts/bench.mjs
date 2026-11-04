@@ -2,8 +2,8 @@
 //
 //   check [--corpus <set>]                                                  examines the claims of the committed manifest and its split file
 //   smoke [--corpus <set>]                                                  packs and routes 1 input of each value of spacing with corners
-//   run --shards <n> --shard <i> --out <dir> [--slice pr] [--corpus <set>] [--lanes on] [--iterate on] [--cover on]   writes <dir>/records-<i>.jsonl
-//   plan --shards <n> [--slice pr] [--corpus <set>] [--lanes on] [--iterate on] [--cover on]              prints the planned cost of each shard
+//   run --shards <n> --shard <i> --out <dir> [--slice pr] [--corpus <set>] [--lanes on] [--iterate on] [--cover on] [--pairs <id,id>]   writes <dir>/records-<i>.jsonl
+//   plan --shards <n> [--slice pr] [--corpus <set>] [--lanes on] [--iterate on] [--cover on] [--pairs <id,id>]              prints the planned cost of each shard
 //   confirm --confirm on --records <dir> --out <dir>   writes the decision of L40: <dir>/confirm.json and <dir>/confirm.md
 //   analyze --records <dir> --out <dir> [--slice pr] [--corpus <set>] [--allow-missing <file>] [--subset <file>] [--baseline <pair[,pair]>]
 //           [--compare <a:b[,a:b]>] [--exclude-pack <id[,id]>] [--oracle-without <id[,id]>] [--times <spec[,spec]>] [--jobs <file>] [--rank-top <n>]
@@ -82,6 +82,7 @@ import {
   SELECT_PACK,
   selectMemberOf,
   SET,
+  chosenOptions,
   coverOptions,
   SET_V2,
   SETS,
@@ -106,7 +107,11 @@ const iterate = confirming ? confirmIterate() : args.iterate === "on" ? iterEntr
 // The pairs of the cover run only with `--cover on`, for the same reason.
 if (args.cover !== undefined && args.cover !== "on" && args.cover !== "off") throw new RangeError(`The option --cover is on or off, not "${args.cover}".`);
 if (confirming && args.cover === "on") throw new RangeError("The option --confirm replaces the option --cover.");
-const cover = args.cover === "on" ? coverOptions() : {};
+// `--pairs <id,id>` runs only these pairs of the cover and the baseline pair (L98). It replaces `--cover`, `--lanes` and `--iterate`.
+if (args.pairs !== undefined && (confirming || args.cover !== undefined || args.lanes !== undefined || args.iterate !== undefined)) {
+  throw new RangeError("The option --pairs replaces --cover, --lanes and --iterate, and --confirm replaces --pairs.");
+}
+const cover = args.pairs !== undefined ? chosenOptions(args.pairs.split(",").map((id) => id.trim()).filter((id) => id !== "")) : args.cover === "on" ? coverOptions() : {};
 
 /** This function gives the inputs and their manifest entries, in the order of the corpus, for the slice of the arguments. */
 function corpusSlice() {

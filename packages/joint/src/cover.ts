@@ -1,5 +1,6 @@
 // The cover of the bench: each strategy of `packing` and each router of `highways` gets pairs, with far fewer pairs than the full cross product (`docs/JOINT-BENCH.md`, "The cover of the catalogs").
 import { allStrategies } from "@mark1russell7/packing";
+import { BASELINE } from "./analysis.ts";
 import { OPEN_ROUTERS, PACK_ENTRIES, pairId, ROUTERS, type PackEntry, type RunOptions } from "./runner.ts";
 
 /** The routers that each new pack entry meets: the routers of the headline pairs. */
@@ -74,4 +75,17 @@ export function coverPairs(): string[] {
 export function coverOptions(): Pick<RunOptions, "packs" | "routers" | "pairs"> {
   const product = PACK_ENTRIES.flatMap((entry) => ROUTERS.map((router) => pairId(entry.id, router)));
   return { packs: [...PACK_ENTRIES, ...coverEntries()], routers: [...ROUTERS, ...coverRouters()], pairs: [...product, ...coverPairs()] };
+}
+
+/**
+ * This function gives the options of `pairRuns` for a run of chosen pairs of the cover. A new strategy thus does not need a whole cover run.
+ * The baseline pair always runs, because the analysis compares each pair with it. An id that is not a pair of the cover stops the run.
+ */
+export function chosenOptions(ids: readonly string[]): Pick<RunOptions, "packs" | "routers" | "pairs"> {
+  const cover = coverOptions();
+  const known = new Set(cover.pairs);
+  const unknown = ids.filter((id) => !known.has(id));
+  if (unknown.length > 0) throw new RangeError(`These ids are not pairs of the cover: ${unknown.join(", ")}.`);
+  if (ids.length === 0) throw new RangeError("Name at least one pair of the cover.");
+  return { ...cover, pairs: [...new Set([BASELINE, ...ids])] };
 }
