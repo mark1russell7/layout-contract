@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.3.10
+
+- PATCH before 1.0.0: a new optional field, a new optional check option, a new result list and a wider type, with no break. The first engine catalog found these gaps.
+- The schema stays `strategy-catalog/1`, because no engine has published a file of that schema at this time.
+- The field `needs` of a `strategy` option or item gives the values that a chosen strategy must take, by dimension of `supports`. `catalogChoices` reads it, so a chooser does not offer a strategy that the engine refuses.
+- The option `paramRoutes` of `checkCatalog` states how a param of a space reaches an option. A route can name another option, or give the option value of a param value. A route can also state, with a reason, that the place is only in the space.
+- The result of `checkCatalog` has the new list `spaceOnly`. A route that matches nothing is a fault, and so is a `spaceOnly` route on a param that is an option.
+- `OptionDeclaration` of a plain `string` also takes a `strategy` declaration, so an option that holds a strategy key has no local type.
+
 ## 0.3.9
 
 - PATCH before 1.0.0: new exports, with no break.
