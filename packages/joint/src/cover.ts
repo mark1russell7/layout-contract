@@ -1,5 +1,5 @@
 // The cover of the bench: each strategy of `packing` and each router of `highways` gets pairs, with far fewer pairs than the full cross product (`docs/JOINT-BENCH.md`, "The cover of the catalogs").
-import { composites, shapeStrategies, strategies } from "@mark1russell7/packing";
+import { allStrategies } from "@mark1russell7/packing";
 import { OPEN_ROUTERS, PACK_ENTRIES, pairId, ROUTERS, type PackEntry, type RunOptions } from "./runner.ts";
 
 /** The routers that each new pack entry meets: the routers of the headline pairs. */
@@ -36,9 +36,9 @@ const COVER_SETTINGS: Readonly<Record<string, Pick<PackEntry, "options" | "mode"
   push: { options: {}, mode: "incremental" },
 });
 
-/** This function gives the id of each strategy of `packing`, from each list of its registry. */
+/** This function gives the id of each strategy of `packing`, from its one list of all strategies. */
 export function packStrategyIds(): string[] {
-  return [...new Set([...strategies, ...composites, ...shapeStrategies].map((s) => s.id))];
+  return allStrategies.map((s) => s.id);
 }
 
 /** This function gives a pack entry for each strategy that has no entry in `PACK_ENTRIES`, without the exceptions. The list follows the registry of `packing`. */

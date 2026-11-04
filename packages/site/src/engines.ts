@@ -345,7 +345,7 @@ function registryRouters(): RouterStrategy[] {
 
 /** The ids of the strategies in the registries of the two engines. The completeness test compares the catalog with them. */
 export function registryIds(): { readonly packing: string[]; readonly highways: string[] } {
-  return { packing: [...packing.strategies, ...packing.composites, ...packing.shapeStrategies].map((s) => s.id), highways: registryRouters().map((s) => s.name) };
+  return { packing: packing.allStrategies.map((s) => s.id), highways: registryRouters().map((s) => s.name) };
 }
 
 /** The declared options of each strategy in the registries: the keys of `defaults`, and for `highways` the keys of `schema`. */
