@@ -24,7 +24,6 @@ This file lists the items of the roadmap of this repository. The status page of 
 | L62 | next | P1 | Node layout by physics as a joint step |
 | L65 | next | P1 | One measure registry in layout-contract |
 | L66 | next | P1 | An objective spec with one evaluator |
-| L70 | next | P2 | A layout cache per text and options in /text |
 | L71 | next | P2 | A bound-first fast path for labels from a declared character set |
 | L72 | next | P1 | Neat is a family of objectives, not one |
 | L73 | next | P1 | Clarity of structure: macro and micro measures |
@@ -106,6 +105,7 @@ This file lists the items of the roadmap of this repository. The status page of 
 | L60 | done | P1 | Text measuring and line breaking as a layout step |
 | L63 | done | P1 | Bound the memory of the joint runner before bench-4 |
 | L64 | done | P1 | Balance and stability measures in the contract (0.2.19) |
+| L70 | done | P2 | A layout cache per text and options in /text |
 | L77 | done | P1 | Find and bound what fills 6 GB on the 1000-box inputs |
 | L78 | done | P2 | An open playground |
 | L79 | done | P2 | bench-4: the next version of the joint space |

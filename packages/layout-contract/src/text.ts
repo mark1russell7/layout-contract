@@ -25,6 +25,8 @@ export interface TextMeasurer {
   stats(): MeasurerStats;
   /** This function clears the cache and the counts. */
   reset(): void;
+  /** This function gives the count of the `reset` calls. A `TextLayoutCache` reads it, and it does not give a layout from before a reset. */
+  generation?(): number;
 }
 
 /** The options of `createMeasurer`. */
@@ -49,6 +51,7 @@ export function createMeasurer(measure: AdvanceFn, options: MeasurerOptions = {}
   let requests = 0;
   let hits = 0;
   let calls = 0;
+  let generation = 0;
   return {
     advance(segment, font) {
       requests++;
@@ -74,7 +77,9 @@ export function createMeasurer(measure: AdvanceFn, options: MeasurerOptions = {}
       requests = 0;
       hits = 0;
       calls = 0;
+      generation++;
     },
+    generation: () => generation,
   };
 }
 
@@ -325,6 +330,152 @@ export function layoutText(text: string, options: TextLayoutOptions): TextLayout
     height: lines.length * lineHeight,
     wrapWidth: options.wrapWidth,
     truncated,
+  };
+}
+
+/** The counts of a `TextLayoutCache`. `calls` is the count of the `layoutText` calls, and `size` is the count of the entries. */
+export interface TextLayoutCacheStats extends MeasurerStats {
+  readonly size: number;
+}
+
+/** The options of `createTextLayoutCache`. */
+export interface TextLayoutCacheOptions {
+  /** The largest count of the entries. The default is 4096. With 0, the cache keeps no entry. */
+  readonly maxEntries?: number;
+}
+
+/** A cache of `layoutText` results. A caller asks for it with `createTextLayoutCache`. `layoutText` itself has no cache of results. */
+export interface TextLayoutCache {
+  /**
+   * This function gives the result of `layoutText` for the text and the options.
+   * The result is deeply frozen. Equal arguments give the same object until the cache removes the entry.
+   */
+  layout(text: string, options: TextLayoutOptions): TextLayout;
+  /** This function gives the counts since the start or since the last `reset`. */
+  stats(): TextLayoutCacheStats;
+  /** This function clears the entries and the counts. */
+  reset(): void;
+}
+
+/** This function gives the key text of a number. It keeps -0, because `layoutText` can give -0 back in a result. */
+function numberKey(value: number | undefined): string {
+  return Object.is(value, -0) ? "-0" : String(value);
+}
+
+/**
+ * This function gives the key of a set of options, without the text and the measurer. Two different sets do not give one key.
+ * A number has no comma. The two lengths mark the end of the font and of the ellipsis.
+ */
+function optionsKey(o: TextLayoutOptions): string {
+  const numbers = `${numberKey(o.lineHeight)},${numberKey(o.wrapWidth)},${numberKey(o.maxLines)},${numberKey(o.maxChars)},${numberKey(o.padding)},${numberKey(o.minWidth)},${numberKey(o.maxWidth)}`;
+  return `${numbers},${(o.wordBreak ?? "keep") === "keep"},${o.breaker},${o.font.length},${o.ellipsis?.length},${o.font}${o.ellipsis ?? ""}`;
+}
+
+/** This function tells if two sets of options are the same. It uses `Object.is`, so 0 and -0 are different. It makes no string, so it is cheap on each hit. */
+function sameOptions(a: TextLayoutOptions, b: TextLayoutOptions): boolean {
+  return (
+    a.font === b.font &&
+    a.measurer === b.measurer &&
+    Object.is(a.lineHeight, b.lineHeight) &&
+    Object.is(a.wrapWidth, b.wrapWidth) &&
+    Object.is(a.maxLines, b.maxLines) &&
+    Object.is(a.maxChars, b.maxChars) &&
+    Object.is(a.padding, b.padding) &&
+    Object.is(a.minWidth, b.minWidth) &&
+    Object.is(a.maxWidth, b.maxWidth) &&
+    a.ellipsis === b.ellipsis &&
+    a.wordBreak === b.wordBreak &&
+    a.breaker === b.breaker
+  );
+}
+
+/** The set of options of the last call of a cache, with its layouts by text. */
+interface CurrentOptions {
+  /** A copy of the options, so a later change of the object of the caller does not touch it. */
+  readonly options: TextLayoutOptions;
+  readonly generation: number | undefined;
+  readonly key: string;
+  readonly layouts: Map<string, TextLayout>;
+}
+
+/**
+ * This function gives a bounded cache of `layoutText` results, keyed by the text, the options and the measurer.
+ * A full cache removes one entry. It takes the set of options that a caller used least recently, and in it the text that a caller used least recently.
+ * The key holds the raw font string, because a host can give two spellings of a font two different advances.
+ * A measurer with `generation` starts a new set of keys after each `reset`. For a different measurer, start `reset` of the cache after a change of the advances.
+ */
+export function createTextLayoutCache(options: TextLayoutCacheOptions = {}): TextLayoutCache {
+  const max = options.maxEntries ?? 4096;
+  if (!(Number.isInteger(max) && max >= 0)) throw new RangeError(`createTextLayoutCache: maxEntries is an integer of 0 or more, not ${max}.`);
+  // Each Map keeps the order of insertion, so its first key is the least recently used. A set of options is here only while it has an entry.
+  const groups = new Map<string, Map<string, TextLayout>>();
+  // A measurer is an object. It gets a number here, so a key does not keep the measurer alive.
+  const ids = new WeakMap<TextMeasurer, number>();
+  let nextId = 0;
+  let current: CurrentOptions | undefined;
+  let size = 0;
+  let requests = 0;
+  let hits = 0;
+  let calls = 0;
+  const idOf = (measurer: TextMeasurer): number => {
+    let id = ids.get(measurer);
+    if (id === undefined) {
+      id = nextId++;
+      ids.set(measurer, id);
+    }
+    return id;
+  };
+  /** This function finds the layouts of a set of options, and it makes that set the most recently used. */
+  const open = (layoutOptions: TextLayoutOptions, generation: number | undefined): CurrentOptions => {
+    const key = `${idOf(layoutOptions.measurer)},${generation},${optionsKey(layoutOptions)}`;
+    const layouts = groups.get(key) ?? new Map<string, TextLayout>();
+    if (groups.delete(key)) groups.set(key, layouts);
+    return { options: { ...layoutOptions }, generation, key, layouts };
+  };
+  /** This function removes one entry. */
+  const evict = (): void => {
+    const [key, layouts] = groups.entries().next().value!;
+    layouts.delete(layouts.keys().next().value!);
+    size--;
+    if (layouts.size === 0) groups.delete(key);
+  };
+  return {
+    layout(text, layoutOptions) {
+      requests++;
+      const generation = layoutOptions.measurer.generation?.();
+      if (current === undefined || generation !== current.generation || !sameOptions(current.options, layoutOptions)) current = open(layoutOptions, generation);
+      const { key, layouts } = current;
+      const known = layouts.get(text);
+      if (known !== undefined) {
+        hits++;
+        // This moves the text to the end of the order.
+        layouts.delete(text);
+        layouts.set(text, known);
+        return known;
+      }
+      calls++;
+      const layout = layoutText(text, layoutOptions);
+      // The callers share this object, so it is frozen also when the cache does not keep it.
+      Object.freeze(layout.lines);
+      Object.freeze(layout.widths);
+      Object.freeze(layout);
+      if (max > 0) {
+        if (size >= max) evict();
+        if (layouts.size === 0) groups.set(key, layouts);
+        layouts.set(text, layout);
+        size++;
+      }
+      return layout;
+    },
+    stats: () => ({ requests, hits, calls, size }),
+    reset() {
+      groups.clear();
+      current = undefined;
+      size = 0;
+      requests = 0;
+      hits = 0;
+      calls = 0;
+    },
   };
 }
 
