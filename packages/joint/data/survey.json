@@ -1,0 +1,785 @@
+{
+  "schema": "joint-survey/1",
+  "surveyed": "2026-11-03",
+  "methods": [
+    {
+      "id": "J1",
+      "name": "Edge routing inside a force-directed layout",
+      "description": "The method starts from polyline edges. It moves the nodes to reduce stress and the bend points to straighten the edges. Separation constraints stop node-edge overlap and new crossings.",
+      "published": true,
+      "sources": [
+        {
+          "key": "Dwyer 2006",
+          "authors": "Dwyer, Marriott, Wybrow",
+          "year": 2006,
+          "title": "Integrating Edge Routing into Force-Directed Layout",
+          "url": "https://doi.org/10.1007/978-3-540-70904-6_3"
+        }
+      ],
+      "problemClass": "graph drawing",
+      "family": "analytical",
+      "item": null,
+      "itemTitle": null,
+      "idea": "joint-refine",
+      "related": ["L50", "L62", "L68"],
+      "status": "not queued",
+      "note": "packing has force (k125) and relax (k124), and they move only boxes. highways catalogs the bend step as RULE-008 and the constraints as RULE-009, both at stage cataloged. No repo moves boxes and bends in one pass.",
+      "checked": { "by": "page", "page": "https://www.sciweavers.org/node/190574", "claim": "page" },
+      "round": 1
+    },
+    {
+      "id": "J2",
+      "name": "Layout that keeps the topology of poly-line connectors",
+      "description": "The algorithm takes a feasible layout and improves it while it keeps the topology. Poly-line connectors and clusters act like rubber bands that try to shorten. It can refine a layout from another technique.",
+      "published": true,
+      "sources": [
+        {
+          "key": "Dwyer 2009",
+          "authors": "Dwyer, Marriott, Wybrow",
+          "year": 2009,
+          "title": "Topology Preserving Constrained Graph Layout",
+          "url": "https://doi.org/10.1007/978-3-642-00219-9_22"
+        }
+      ],
+      "problemClass": "graph drawing",
+      "family": "analytical",
+      "item": null,
+      "itemTitle": null,
+      "idea": "joint-refine",
+      "related": ["L50", "L68"],
+      "status": "not queued",
+      "note": "highways catalogs topology-keeping moves of routes as RULE-011 and RULE-050, at stage cataloged. Those records move routes only. The DOI comes from a web search.",
+      "checked": { "by": "page", "page": "https://bibbase.org/network/publication/dwyer-marriott-wybrow-topologypreservingconstrainedgraphlayout-2009", "claim": "page" },
+      "round": 1
+    },
+    {
+      "id": "J3",
+      "name": "Stress layout with ports and flow",
+      "description": "The method extends constrained stress majorization to ports and flow. Its stages are node positioning, grid-like alignment and orthogonal routing. The authors report more compact drawings than layered layouts.",
+      "published": true,
+      "sources": [
+        {
+          "key": "Ruegg 2014",
+          "authors": "Rüegg, Kieffer, Dwyer, Marriott, Wybrow",
+          "year": 2014,
+          "title": "Stress-Minimizing Orthogonal Layout of Data Flow Diagrams with Ports",
+          "url": "https://arxiv.org/abs/1408.4626"
+        }
+      ],
+      "problemClass": "graph drawing",
+      "family": "analytical",
+      "item": "L62",
+      "itemTitle": "Node layout by physics as a joint step",
+      "idea": null,
+      "related": ["L14", "L56"],
+      "status": "queued",
+      "note": "L62 names constrained stress with no overlap. Port.along (L56) gives the position of a port on its side. No repo runs this method.",
+      "checked": { "by": "page", "page": "https://arxiv.org/abs/1408.4626", "claim": "page" },
+      "round": 1
+    },
+    {
+      "id": "J4",
+      "name": "Grid-like layout by soft and hard constraints",
+      "description": "The method adds hard alignment constraints so that edges become axis-aligned, and it keeps nodes off the edges. The paper adds no orthogonal bends. Routing is only a post-process.",
+      "published": true,
+      "sources": [
+        {
+          "key": "Kieffer 2013",
+          "authors": "Kieffer, Dwyer, Marriott, Wybrow",
+          "year": 2013,
+          "title": "Incremental Grid-like Layout Using Soft and Hard Constraints",
+          "url": "https://arxiv.org/abs/1308.6368"
+        }
+      ],
+      "problemClass": "graph drawing",
+      "family": "analytical",
+      "item": null,
+      "itemTitle": null,
+      "idea": "straight-align",
+      "related": ["L50", "L62"],
+      "status": "not queued",
+      "note": "Placement moves so that the route needs no bend. The joint measures joint.straight.crossings and joint.straight.length can score this. The packing catalog has overlap removal, and no row that aligns linked boxes.",
+      "checked": { "by": "page", "page": "https://arxiv.org/abs/1308.6368", "claim": "page" },
+      "round": 1
+    },
+    {
+      "id": "J5",
+      "name": "Curved edges by dummy vertices in a force layout",
+      "description": "A force-directed method adds dummy vertices that act as control points of Bezier curves. The vertex positions are free to move.",
+      "published": true,
+      "sources": [
+        {
+          "key": "Finkel 2005",
+          "authors": "Finkel, Tamassia",
+          "year": 2005,
+          "title": "Curvilinear Graph Drawing Using the Force-Directed Method",
+          "url": "https://doi.org/10.1007/978-3-540-31843-9_46"
+        }
+      ],
+      "problemClass": "graph drawing",
+      "family": "analytical",
+      "item": null,
+      "itemTitle": null,
+      "idea": "joint-refine",
+      "related": ["L62"],
+      "status": "not queued",
+      "note": "The claim comes from a survey that cites this paper, not from the paper. An edge joins the node forces through its dummy vertices. No repo does this.",
+      "checked": { "by": "index", "index": "OpenAlex", "page": "https://arxiv.org/abs/1201.3011", "claim": "citing paper" },
+      "round": 1
+    },
+    {
+      "id": "J6",
+      "name": "Near-Lombardi drawing by forces",
+      "description": "Two spring algorithms draw edges as circular arcs. One applies tangent-based forces at the edge ends. The other adds dummy vertices on the edges.",
+      "published": true,
+      "sources": [
+        {
+          "key": "Chernobelskiy 2012",
+          "authors": "Chernobelskiy, Cunningham, Goodrich, Kobourov, Trott",
+          "year": 2012,
+          "title": "Force-directed Lombardi-style graph drawing",
+          "url": "https://doi.org/10.1007/978-3-642-25878-7_31"
+        }
+      ],
+      "problemClass": "graph drawing",
+      "family": "analytical",
+      "item": null,
+      "itemTitle": null,
+      "idea": "joint-refine",
+      "related": ["L62"],
+      "status": "not queued",
+      "note": "A citing survey says that only the first algorithm moves the vertices. The second one changes only the edges of a finished layout. Only the first is joint.",
+      "checked": { "by": "page", "page": "https://experts.arizona.edu/en/publications/force-directed-lombardi-style-graph-drawing/", "claim": "page" },
+      "round": 1
+    },
+    {
+      "id": "J7",
+      "name": "Minimum-bend shape by network flow",
+      "description": "The paper embeds a planar graph in the grid with the minimum number of bends through a network flow, in O(n^2 log n) time.",
+      "published": true,
+      "sources": [
+        {
+          "key": "Tamassia 1987",
+          "authors": "Tamassia",
+          "year": 1987,
+          "title": "On Embedding a Graph in the Grid with the Minimum Number of Bends",
+          "url": "https://doi.org/10.1137/0216030"
+        }
+      ],
+      "problemClass": "graph drawing",
+      "family": "exact",
+      "item": "L48",
+      "itemTitle": "Route-first skeleton",
+      "idea": null,
+      "related": [],
+      "status": "queued",
+      "note": "The bends come first and the positions follow them, which is the order of L48. The method needs a planar graph, and L48 does not. highways catalogs the flow as RULE-014, at stage cataloged, and as a router only.",
+      "checked": { "by": "index", "index": "OpenAlex", "claim": "index abstract" },
+      "round": 1
+    },
+    {
+      "id": "J8",
+      "name": "Three-phase orthogonal drawing",
+      "description": "A paper that cites this work says that the method has three phases: node placement, edge routing and port assignment. The cited paper is a general technique for high-degree orthogonal drawings.",
+      "published": true,
+      "sources": [
+        {
+          "key": "Biedl 2000",
+          "authors": "Biedl, Madden, Tollis",
+          "year": 2000,
+          "title": "The Three-Phase Method: A Unified Approach to Orthogonal Graph Drawing",
+          "url": "https://doi.org/10.1142/s0218195900000310"
+        }
+      ],
+      "problemClass": "graph drawing",
+      "family": "greedy",
+      "item": "L14",
+      "itemTitle": "Port-aware placement",
+      "idea": null,
+      "related": ["L56"],
+      "status": "queued",
+      "note": "The phases are in sequence, but the ports come after the routes, thus the routes choose the ports. L14 has the reverse order. The citing paper is arXiv 1807.09368, and it cites the conference version of 1997.",
+      "checked": { "by": "index", "index": "OpenAlex", "page": "https://arxiv.org/abs/1807.09368", "claim": "citing paper" },
+      "round": 1
+    },
+    {
+      "id": "J9",
+      "name": "Topology-shape-metrics layout of class diagrams",
+      "description": "The paper uses the topology-shape-metrics paradigm for UML class diagrams, with UML-Kandinsky in GoVisual. The authors say that it works when structural information is scarce or absent.",
+      "published": true,
+      "sources": [
+        {
+          "key": "Eiglsperger 2004",
+          "authors": "Eiglsperger, Gutwenger, Kaufmann, Kupke, Jünger, Leipert, Klein, Mutzel, Siebenhaller",
+          "year": 2004,
+          "title": "Automatic Layout of UML Class Diagrams in Orthogonal Style",
+          "url": "https://doi.org/10.1057/palgrave.ivs.9500078"
+        }
+      ],
+      "problemClass": "graph drawing",
+      "family": "hybrid",
+      "item": "L48",
+      "itemTitle": "Route-first skeleton",
+      "idea": null,
+      "related": [],
+      "status": "queued",
+      "note": "This row is the box form of J7: the shape of the routes comes before the sizes and positions. No repo has a topology-shape-metrics layout.",
+      "checked": { "by": "index", "index": "OpenAlex", "claim": "index abstract" },
+      "round": 1
+    },
+    {
+      "id": "J10",
+      "name": "Exact compaction of a routed drawing",
+      "description": "The paper changes the coordinates of vertices and edge segments to reduce total edge length, and it keeps the shape. It gives an integer linear program over constraint graphs.",
+      "published": true,
+      "sources": [
+        {
+          "key": "Klau 1999",
+          "authors": "Klau, Mutzel",
+          "year": 1999,
+          "title": "Optimal Compaction of Orthogonal Grid Drawings",
+          "url": "https://doi.org/10.1007/3-540-48777-8_23"
+        }
+      ],
+      "problemClass": "graph drawing",
+      "family": "exact",
+      "item": null,
+      "itemTitle": null,
+      "idea": "route-compact",
+      "related": [],
+      "status": "not queued",
+      "note": "The packing catalog lists this paper as compact-optimal, at status planned, for boxes without routes. The record has no DOI, and the DOI here comes from a web search.",
+      "checked": { "by": "index", "index": "OpenAlex", "claim": "index abstract" },
+      "round": 1
+    },
+    {
+      "id": "J11",
+      "name": "One-dimensional compaction after a layered layout",
+      "description": "A post-process of a layered layout compacts the drawing along one dimension. In a figure of the paper, the width falls by approximately 16 % and the mean edge length by over 50 %.",
+      "published": true,
+      "sources": [
+        {
+          "key": "Ruegg 2016",
+          "authors": "Rüegg, Schulze, Grevismühl, von Hanxleden",
+          "year": 2016,
+          "title": "Using One-Dimensional Compaction for Smaller Graph Drawings",
+          "url": "https://rtsys.informatik.uni-kiel.de/~biblio/downloads/papers/diagrams16a.pdf"
+        }
+      ],
+      "problemClass": "graph drawing",
+      "family": "geometry",
+      "item": null,
+      "itemTitle": null,
+      "idea": "route-compact",
+      "related": [],
+      "status": "not queued",
+      "note": "packing plans compact-1d under k54, for boxes only. The compaction here sees the routes. The numbers are for one figure, not for a benchmark.",
+      "checked": { "by": "page", "page": "https://rtsys.informatik.uni-kiel.de/~biblio/downloads/papers/diagrams16a.pdf", "claim": "page" },
+      "round": 1
+    },
+    {
+      "id": "J12",
+      "name": "Layered layout with port constraints",
+      "description": "The method adds port constraints to the layer-based approach through intermediate processors. One example of the paper goes from 3 crossings and 30 bends to 1 crossing and 14 bends.",
+      "published": true,
+      "sources": [
+        {
+          "key": "Schulze 2013",
+          "authors": "Schulze, Spönemann, von Hanxleden",
+          "year": 2013,
+          "title": "Drawing Layered Graphs with Port Constraints",
+          "url": "https://doi.org/10.1016/j.jvlc.2013.11.005"
+        }
+      ],
+      "problemClass": "graph drawing",
+      "family": "hybrid",
+      "item": "L14",
+      "itemTitle": "Port-aware placement",
+      "idea": null,
+      "related": ["L56"],
+      "status": "queued",
+      "note": "The order of the nodes in a layer sees the ports. A web search gives the journal issue as 2014. The contract has ports (Port.along, L56). In the files that the session read, packing only turns the ports with an item.",
+      "checked": { "by": "page", "page": "https://rtsys.informatik.uni-kiel.de/~biblio/downloads/papers/jvlc13.pdf", "claim": "page" },
+      "round": 1
+    },
+    {
+      "id": "J13",
+      "name": "Dummy nodes for ports in crossing reduction",
+      "description": "The algorithm adds dummy nodes and extends crossing minimization for port constraints. The authors report fewer crossings and bend points on Ptolemy models.",
+      "published": true,
+      "sources": [
+        {
+          "key": "Klauske 2012",
+          "authors": "Klauske, Schulze, Spönemann, von Hanxleden",
+          "year": 2012,
+          "title": "Improved Layout for Data Flow Diagrams with Port Constraints",
+          "url": "https://doi.org/10.1007/978-3-642-31223-6_11"
+        }
+      ],
+      "problemClass": "graph drawing",
+      "family": "hybrid",
+      "item": "L14",
+      "itemTitle": "Port-aware placement",
+      "idea": null,
+      "related": ["L56"],
+      "status": "queued",
+      "note": "The PDF confirms the title, the authors and the claim. The year and the DOI come from a web search.",
+      "checked": { "by": "page", "page": "https://rtsys.informatik.uni-kiel.de/~biblio/downloads/papers/diagrams12b.pdf", "claim": "page" },
+      "round": 1
+    },
+    {
+      "id": "J14",
+      "name": "Stations and routes on an octilinear grid",
+      "description": "The paper draws metro maps with an integer linear program and with a greedy method. Both use shortest paths between candidate nodes on an octilinear grid. The drawings have few bends and handle obstacles.",
+      "published": true,
+      "sources": [
+        {
+          "key": "Bast 2020",
+          "authors": "Bast, Brosi, Storandt",
+          "year": 2020,
+          "title": "Metro Maps on Octilinear Grid Graphs",
+          "url": "https://doi.org/10.1111/cgf.13986"
+        }
+      ],
+      "problemClass": "metro maps",
+      "family": "exact",
+      "item": null,
+      "itemTitle": null,
+      "idea": "exact-reference",
+      "related": ["L48"],
+      "status": "not queued",
+      "note": "A station takes its place when a line takes its path. highways catalogs the octilinear router as EDA-025, at stage cataloged, with fixed boxes.",
+      "checked": { "by": "index", "index": "OpenAlex", "claim": "index abstract" },
+      "round": 1
+    },
+    {
+      "id": "J15",
+      "name": "Metro maps by one mixed-integer program",
+      "description": "One mixed-integer program places the stations and the labels of a metro map, with hard and soft design rules.",
+      "published": true,
+      "sources": [
+        {
+          "key": "Nollenburg 2010",
+          "authors": "Nöllenburg, Wolff",
+          "year": 2010,
+          "title": "Drawing and Labeling High-Quality Metro Maps by Mixed-Integer Programming",
+          "url": "https://doi.org/10.1109/tvcg.2010.81"
+        }
+      ],
+      "problemClass": "metro maps",
+      "family": "exact",
+      "item": null,
+      "itemTitle": null,
+      "idea": "exact-reference",
+      "related": ["L15"],
+      "status": "not queued",
+      "note": "highways catalogs the program as RULE-016, at stage cataloged, for highways with fixed boxes. Here the nodes move too.",
+      "checked": { "by": "index", "index": "OpenAlex", "claim": "index abstract" },
+      "round": 1
+    },
+    {
+      "id": "J16",
+      "name": "One genetic algorithm for node layout and edge bundling",
+      "description": "One genetic algorithm optimizes the node layout and the edge bundling at the same time.",
+      "published": true,
+      "sources": [
+        {
+          "key": "Meikari 2024",
+          "authors": "Meikari, Saga",
+          "year": 2024,
+          "title": "Simultaneous Optimization of Edge Bundling and Node Layout Using Genetic Algorithm",
+          "url": "https://doi.org/10.5220/0012574200003660"
+        }
+      ],
+      "problemClass": "graph drawing",
+      "family": "metaheuristic",
+      "item": "L15",
+      "itemTitle": "Joint search",
+      "idea": null,
+      "related": ["L68"],
+      "status": "queued",
+      "note": "This is one search over both layers, which is L15 with a genetic algorithm. No repo has it.",
+      "checked": { "by": "page", "page": "https://www.scitepress.org/Papers/2024/125742/125742.pdf", "claim": "page" },
+      "round": 1
+    },
+    {
+      "id": "J17",
+      "name": "Global routing inside placement",
+      "description": "The paper says that primitive interconnect models differ from the real routing. It integrates global routing into placement, with a first focus on routability.",
+      "published": true,
+      "sources": [
+        {
+          "key": "Pan 2007",
+          "authors": "Pan, Chu",
+          "year": 2007,
+          "title": "IPR: An Integrated Placement and Routing Algorithm",
+          "url": "https://doi.org/10.1145/1278480.1278496"
+        }
+      ],
+      "problemClass": "VLSI",
+      "family": "hybrid",
+      "item": "L15",
+      "itemTitle": "Joint search",
+      "idea": null,
+      "related": ["L11"],
+      "status": "queued",
+      "note": "L11 routes after each pack, and L15 routes inside the search. The carry-over is the argument: a proxy of the route misleads the placer.",
+      "checked": { "by": "page", "page": "https://sciweavers.org/node/29373", "claim": "page" },
+      "round": 1
+    },
+    {
+      "id": "J18",
+      "name": "Simultaneous place and route for FPGAs",
+      "description": "The method does placement and routing at the same time for row-based FPGAs. The authors report up to 28 % better timing and 33 % better wirability than a sequential flow.",
+      "published": true,
+      "sources": [
+        {
+          "key": "Nag 1994",
+          "authors": "Nag, Rutenbar",
+          "year": 1994,
+          "title": "Performance-Driven Simultaneous Place and Route for Row-Based FPGAs",
+          "url": "https://www.sciweavers.org/node/177335"
+        },
+        {
+          "key": "Nag 1998",
+          "authors": "Nag, Rutenbar",
+          "year": 1998,
+          "title": "Performance-driven simultaneous placement and routing for FPGA's",
+          "url": "https://doi.org/10.1109/43.703831"
+        }
+      ],
+      "problemClass": "VLSI",
+      "family": "local search",
+      "item": "L15",
+      "itemTitle": "Joint search",
+      "idea": null,
+      "related": [],
+      "status": "queued",
+      "note": "The record of 1998 confirms the journal version in Crossref. Only a web search describes its loop, thus the claim uses the record of 1994.",
+      "checked": { "by": "page", "page": "https://www.sciweavers.org/node/177335", "claim": "page" },
+      "round": 1
+    },
+    {
+      "id": "J19",
+      "name": "RUDY, a routing demand estimate without a router",
+      "description": "RUDY gives each net a rectangular uniform wire density. The estimate does not depend on a router. The placer reduces demand and raises supply in congested areas.",
+      "published": true,
+      "sources": [
+        {
+          "key": "Spindler 2007",
+          "authors": "Spindler, Johannes",
+          "year": 2007,
+          "title": "Fast and accurate routing demand estimation for efficient routability-driven placement",
+          "url": "https://portal.fis.tum.de/en/publications/fast-and-accurate-routing-demand-estimation-for-efficient-routabi/"
+        }
+      ],
+      "problemClass": "VLSI",
+      "family": "analytical",
+      "item": null,
+      "itemTitle": null,
+      "idea": "demand-map",
+      "related": ["L12"],
+      "status": "not queued",
+      "note": "The carry-over is a link rectangle: the box between the two ends of a link adds density to its area. highways cites this paper in EDA-051, at stage cataloged, for its room step. L12 adds length and crossings, not density.",
+      "checked": { "by": "page", "page": "https://portal.fis.tum.de/en/publications/fast-and-accurate-routing-demand-estimation-for-efficient-routabi/", "claim": "page" },
+      "round": 1
+    },
+    {
+      "id": "J20",
+      "name": "Lookahead routing and cell bloating",
+      "description": "Lookahead routing gives the placer first-hand trouble spots. The method integrates a global router into a force-directed placer. It spreads cells in congested areas and uses cell bloating.",
+      "published": true,
+      "sources": [
+        {
+          "key": "Kim 2011",
+          "authors": "Kim, Hu, Lee, Markov",
+          "year": 2011,
+          "title": "A SimPLR Method for Routability-driven Placement",
+          "url": "https://web.eecs.umich.edu/~imarkov/pubs/conf/iccad11-simplr.pdf"
+        }
+      ],
+      "problemClass": "VLSI",
+      "family": "hybrid",
+      "item": "L11",
+      "itemTitle": "Iterate place, route, place",
+      "idea": null,
+      "related": ["L13", "L62"],
+      "status": "built",
+      "note": "An analog is built, not this algorithm. L11 routes, counts the lanes and packs again with new margins. The force-directed placer is not built as a joint step (L62).",
+      "checked": { "by": "page", "page": "https://web.eecs.umich.edu/~imarkov/pubs/conf/iccad11-simplr.pdf", "claim": "page" },
+      "round": 1
+    },
+    {
+      "id": "J21",
+      "name": "Iterated spreading by temporary inflation",
+      "description": "Fast global routing chooses the cells to inflate for a time. The method spreads them iteratively, only in congested regions.",
+      "published": true,
+      "sources": [
+        {
+          "key": "Roy 2009",
+          "authors": "Roy, Viswanathan, Nam, Alpert, Markov",
+          "year": 2009,
+          "title": "CRISP: Congestion Reduction by Iterated Spreading during Placement",
+          "url": "https://web.eecs.umich.edu/~imarkov/pubs/conf/iccad09-crisp.pdf"
+        }
+      ],
+      "problemClass": "VLSI",
+      "family": "hybrid",
+      "item": "L11",
+      "itemTitle": "Iterate place, route, place",
+      "idea": null,
+      "related": ["L13"],
+      "status": "built",
+      "note": "An analog is built, not this algorithm. The iteration pairs change a margin only on a side with a call, from the real routes. The inflation is the margin. The routers of highways do not read it.",
+      "checked": { "by": "page", "page": "https://web.eecs.umich.edu/~imarkov/pubs/conf/iccad09-crisp.pdf", "claim": "page" },
+      "round": 1
+    },
+    {
+      "id": "J22",
+      "name": "White space by congestion",
+      "description": "The approach assigns white space dynamically from the congestion during a top-down placement flow. Congested regions receive more white space through smooth allocating functions.",
+      "published": true,
+      "sources": [
+        {
+          "key": "Yang 2003",
+          "authors": "Yang, Choi, Sarrafzadeh",
+          "year": 2003,
+          "title": "Routability-driven white space allocation for fixed-die standard-cell placement",
+          "url": "https://doi.org/10.1109/tcad.2003.809660"
+        }
+      ],
+      "problemClass": "VLSI",
+      "family": "hybrid",
+      "item": "L13",
+      "itemTitle": "Routing-aware gaps",
+      "idea": null,
+      "related": ["L49"],
+      "status": "built",
+      "note": "An analog is built, not this algorithm. L13 sizes a gap from the lanes of a first route, and L49 gives one gap to a pair of boxes. The room module of highways also moves nodes from its own lane counts.",
+      "checked": { "by": "index", "index": "OpenAlex", "claim": "index abstract" },
+      "round": 1
+    },
+    {
+      "id": "J23",
+      "name": "Joint learning of placement and routing",
+      "description": "DeepPlace joins reinforcement learning and gradient placement. DeepPR uses reinforcement learning for placement and routing together, with random network distillation.",
+      "published": true,
+      "sources": [
+        {
+          "key": "Cheng 2021",
+          "authors": "Cheng, Yan",
+          "year": 2021,
+          "title": "On Joint Learning for Solving Placement and Routing in Chip Design",
+          "url": "https://arxiv.org/abs/2111.00234"
+        }
+      ],
+      "problemClass": "VLSI",
+      "family": "learned",
+      "item": null,
+      "itemTitle": null,
+      "idea": "route-proxy",
+      "related": ["L16"],
+      "status": "not queued",
+      "note": "L16 picks a pair of strategies, and it does not train a placer. No repo trains a policy over the pair.",
+      "checked": { "by": "page", "page": "https://arxiv.org/abs/2111.00234", "claim": "page" },
+      "round": 1
+    },
+    {
+      "id": "J24",
+      "name": "A graph network as a differentiable routability term",
+      "description": "RouteGNN acts as a differentiable routability term in the placer. The authors report total overflow down by up to 16 %, and by 44 % inside two-stage placers.",
+      "published": true,
+      "sources": [
+        {
+          "key": "Hou 2024",
+          "authors": "Hou, Ye, Zhang, Xu, Song",
+          "year": 2024,
+          "title": "RoutePlacer: An End-to-End Routability-Aware Placer with Graph Neural Network",
+          "url": "https://arxiv.org/abs/2406.02651"
+        }
+      ],
+      "problemClass": "VLSI",
+      "family": "learned",
+      "item": null,
+      "itemTitle": null,
+      "idea": "route-proxy",
+      "related": ["L12", "L68"],
+      "status": "not queued",
+      "note": "The joint bench records real routes, and they can train a proxy. The measure joint.proxy.rank tells how well the straight length predicts the route length today. The surrogate of packages/joint predicts the score of a config, and it is not a term of a placer.",
+      "checked": { "by": "page", "page": "https://arxiv.org/abs/2406.02651", "claim": "page" },
+      "round": 1
+    },
+    {
+      "id": "J25",
+      "name": "Placement objectives that evolve from routing feedback",
+      "description": "The method evolves readable differentiable objectives with routing feedback. The authors report post-route wire length down by 16.9 % and congestion by 36.7 % against DREAMPlace on 8 Nangate45 designs.",
+      "published": true,
+      "sources": [
+        {
+          "key": "Chen 2026",
+          "authors": "Chen, Xiao, Karri, Han",
+          "year": 2026,
+          "title": "CoEvoP&R: Co-Evolving Placement Objectives with Routing Feedback via Large Language Models",
+          "url": "https://arxiv.org/abs/2607.17398"
+        }
+      ],
+      "problemClass": "VLSI",
+      "family": "learned",
+      "item": null,
+      "itemTitle": null,
+      "idea": "objective-evolve",
+      "related": ["L66", "L68"],
+      "status": "not queued",
+      "note": "L66 makes an objective into data, and L68 gives it energy terms. Then a search can change the weights of the terms against real routes. No repo does this.",
+      "checked": { "by": "page", "page": "https://arxiv.org/abs/2607.17398", "claim": "page" },
+      "round": 1
+    },
+    {
+      "id": "J26",
+      "name": "Early global routing on a floorplan",
+      "description": "The model does an early global route on a floorplan to assess routability.",
+      "published": true,
+      "sources": [
+        {
+          "key": "Kar 2018",
+          "authors": "Kar, Sur-Kolay, Mandal",
+          "year": 2018,
+          "title": "Early Routability Assessment in VLSI Floorplans: A Generalized Routing Model",
+          "url": "https://arxiv.org/abs/1810.12789"
+        }
+      ],
+      "problemClass": "VLSI",
+      "family": "hybrid",
+      "item": "L48",
+      "itemTitle": "Route-first skeleton",
+      "idea": null,
+      "related": [],
+      "status": "queued",
+      "note": "This row assesses a floorplan, and it does not reserve corridors. L48 uses a sketch route to reserve them.",
+      "checked": { "by": "page", "page": "https://arxiv.org/abs/1810.12789", "claim": "page" },
+      "round": 1
+    },
+    {
+      "id": "J27",
+      "name": "Floorplanning with pin assignment",
+      "description": "The method finds the cell shapes and positions, the floating pin locations and the global routes. The paper says that these tasks influence each other.",
+      "published": true,
+      "sources": [
+        {
+          "key": "Pedram 1990",
+          "authors": "Pedram, Marek-Sadowska, Kuh",
+          "year": 1990,
+          "title": "Floorplanning with pin assignment",
+          "url": "https://vlsicad.ece.ucsb.edu/?q=node/190"
+        }
+      ],
+      "problemClass": "VLSI",
+      "family": "hybrid",
+      "item": "L14",
+      "itemTitle": "Port-aware placement",
+      "idea": null,
+      "related": ["L56"],
+      "status": "queued",
+      "note": "A floating pin is a port on a side of a box. Port.along (L56) gives its place. In the files that the session read, packing only turns the ports with an item.",
+      "checked": { "by": "page", "page": "https://vlsicad.ece.ucsb.edu/?q=node/190", "claim": "page" },
+      "round": 1
+    },
+    {
+      "id": "J28",
+      "name": "Pin assignment inside the floorplanner",
+      "description": "Piano optimizes module placement and pin assignment together, through a graph and iterative shortest paths. The authors report a 6.81 % reduction of half-perimeter wire length.",
+      "published": true,
+      "sources": [
+        {
+          "key": "Xu 2025",
+          "authors": "Xu, Zhou, Wang, Geng, Xu, Kai, Yuan, Wu",
+          "year": 2025,
+          "title": "Piano: A Multi-Constraint Pin Assignment-Aware Floorplanner",
+          "url": "https://arxiv.org/abs/2508.13161"
+        }
+      ],
+      "problemClass": "VLSI",
+      "family": "hybrid",
+      "item": "L14",
+      "itemTitle": "Port-aware placement",
+      "idea": null,
+      "related": ["L56"],
+      "status": "queued",
+      "note": "This row is the most recent form of J27. The paper reports other reductions too, and this row gives only the wire length.",
+      "checked": { "by": "page", "page": "https://arxiv.org/abs/2508.13161", "claim": "page" },
+      "round": 1
+    }
+  ],
+  "ideas": [
+    {
+      "id": "joint-refine",
+      "title": "Move the boxes and the bend points in one pass",
+      "summary": "After the route, one stress pass moves the boxes and the bend points together. It keeps the crossings of the route, and it refines any pair.",
+      "dependsOn": ["L62", "L68"],
+      "gain": 0.5,
+      "uncertainty": 0.7,
+      "cost": 3,
+      "score": 0.117
+    },
+    {
+      "id": "route-compact",
+      "title": "Compact the layout after the route",
+      "summary": "A compaction moves the boxes and the route segments together, and it keeps the shape of each route. The packing item k54 compacts boxes only.",
+      "dependsOn": [],
+      "gain": 0.4,
+      "uncertainty": 0.5,
+      "cost": 2,
+      "score": 0.1
+    },
+    {
+      "id": "demand-map",
+      "title": "A route demand map in the cost of the packer",
+      "summary": "Each link adds uniform density to the box between its two ends. The packer avoids dense areas, with no router in the loop.",
+      "dependsOn": ["L12"],
+      "gain": 0.3,
+      "uncertainty": 0.6,
+      "cost": 2,
+      "score": 0.09
+    },
+    {
+      "id": "objective-evolve",
+      "title": "Search the objective against real routes",
+      "summary": "A search changes the terms and weights of a readable objective, and it scores each objective by the real routes of the joint bench.",
+      "dependsOn": ["L66", "L68"],
+      "gain": 0.3,
+      "uncertainty": 0.8,
+      "cost": 3,
+      "score": 0.08
+    },
+    {
+      "id": "straight-align",
+      "title": "Align linked boxes so that the edges are straight",
+      "summary": "A pass after the pack aligns linked boxes on one axis, with no new overlap. Then a direct edge needs no bend.",
+      "dependsOn": ["L50"],
+      "gain": 0.3,
+      "uncertainty": 0.5,
+      "cost": 2,
+      "score": 0.075
+    },
+    {
+      "id": "route-proxy",
+      "title": "A learned route proxy for the placer",
+      "summary": "A small model learns the route cost of a placement from the records of the joint bench. The packer uses it as a cost term.",
+      "dependsOn": ["L12"],
+      "gain": 0.3,
+      "uncertainty": 0.7,
+      "cost": 3,
+      "score": 0.07
+    },
+    {
+      "id": "exact-reference",
+      "title": "An exact joint reference for small inputs",
+      "summary": "An integer program places boxes and routes edges together on a grid, for small inputs. It gives a reference line for the pairs, and it does not go into a default.",
+      "dependsOn": [],
+      "gain": 0.3,
+      "uncertainty": 0.4,
+      "cost": 3,
+      "score": 0.04
+    }
+  ]
+}
