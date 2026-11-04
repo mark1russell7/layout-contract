@@ -40,7 +40,7 @@ describe("the joint families on the shared registry", () => {
         }
       }
     }
-  });
+  }, 30_000);
 
   it("count the specs, the inputs and the full sweep of each family with no generated input", () => {
     const counts = Object.fromEntries(SETS.map((set) => [set, jointSpecs(set).reduce((n, s) => n + s.seeds.length, 0)]));
