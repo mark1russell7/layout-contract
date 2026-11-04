@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.3.7
+
+- PATCH before 1.0.0: two new exports, with no break.
+- `segmentsCross` tells if two segments cross inside both of them. It has no tolerance, so a touch at an end does not cross. It compares the signs of the turns, so a product does not underflow on a small crossing.
+- `pointSegmentDistance` gives the shortest distance from a point to a segment.
+
 ## 0.3.6
 
 - PATCH before 1.0.0: new optional options, a new optional result field and new exports, with no break. A caller who does not set `sizing` gets each earlier result.

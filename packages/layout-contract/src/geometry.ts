@@ -156,3 +156,30 @@ export function overlapOf(a: Rect, b: Rect): { readonly x: number; readonly y: n
     y: Math.min(a.y + a.h, b.y + b.h) - Math.max(a.y, b.y),
   };
 }
+
+/** This function gives the cross product of `ab` and `ac`. The sign tells the side of `ab` that has `c`. */
+function orient(a: Point, b: Point, c: Point): number {
+  return (b.x - a.x) * (c.y - a.y) - (b.y - a.y) * (c.x - a.x);
+}
+
+/** This function tells if two numbers have opposite signs. Zero and NaN give false, so a touch at an end does not count. */
+function opposite(p: number, q: number): boolean {
+  return (p < 0 && q > 0) || (p > 0 && q < 0);
+}
+
+/**
+ * This function tells if the segments `ab` and `cd` cross at one point inside both of them.
+ * Segments that only touch at an end, or that are collinear, do not cross. The test has no tolerance.
+ */
+export function segmentsCross(a: Point, b: Point, c: Point, d: Point): boolean {
+  return opposite(orient(c, d, a), orient(c, d, b)) && opposite(orient(a, b, c), orient(a, b, d));
+}
+
+/** This function gives the shortest distance from `p` to the segment `ab`. A segment of length 0 is the point `a`. */
+export function pointSegmentDistance(p: Point, a: Point, b: Point): number {
+  const dx = b.x - a.x;
+  const dy = b.y - a.y;
+  const l2 = dx * dx + dy * dy;
+  const t = l2 === 0 ? 0 : Math.max(0, Math.min(1, ((p.x - a.x) * dx + (p.y - a.y) * dy) / l2));
+  return Math.hypot(p.x - (a.x + t * dx), p.y - (a.y + t * dy));
+}
