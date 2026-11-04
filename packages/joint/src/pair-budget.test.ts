@@ -1,5 +1,7 @@
 import { describe, expect, it } from "vitest";
-import { budgetCases, budgetTag, earlierOverruns, keyParts, NOT_RUN_OVER_BUDGET, OVER_BUDGET, pairBudgetMs, parsePairBudget } from "./pair-budget.ts";
+import { budgetCases, budgetTag, earlierOverruns, keyParts, pairBudgetMs, parsePairBudget } from "./pair-budget.ts";
+import type { LayoutRecord } from "@mark1russell7/layout-contract";
+import { budgetLines, budgetReport, NOT_RUN_OVER_BUDGET, OVER_BUDGET, type AnalysisInput } from "./analysis.ts";
 import { pairRuns, PACK_ENTRIES } from "./runner.ts";
 import { doneKey, type PairLine } from "./shard-run.ts";
 
@@ -62,6 +64,48 @@ describe("earlierOverruns", () => {
   });
 });
 
+describe("budgetReport", () => {
+  const input = (id: string, count: string): AnalysisInput => ({ id, seed: 1, spec: id, kind: "rect-grid", cell: { count } });
+  const inputs = [input("small", "10"), input("large", "1000")];
+  const record = (id: string, strategy: string, skipped?: string, stage?: string): LayoutRecord =>
+    ({ input: id, strategy, options: stage === undefined ? {} : { budget: { budget: "5", stage } }, measures: {}, hard: {}, ...(skipped === undefined ? {} : { skipped }) }) as unknown as LayoutRecord;
+
+  it("has no value when no pair has a tag, so a run with no budget has no table", () => {
+    expect(budgetReport([record("small", "p+r")], inputs)).toBeUndefined();
+  });
+
+  it("gives the largest input that each router finished, and counts the tags apart", () => {
+    const report = budgetReport(
+      [
+        record("small", "p+r"),
+        record("large", "q+r"),
+        record("large", "p+slow", OVER_BUDGET, "route"),
+        record("large", "q+slow", NOT_RUN_OVER_BUDGET, "route"),
+        record("small", "p+slow"),
+        record("large", "s+none", OVER_BUDGET, "route"),
+        record("large", "t+r", OVER_BUDGET, "pack"),
+        record("large", "u+r", NOT_RUN_OVER_BUDGET, "pack"),
+        record("large", "v+r", "no routes"),
+      ],
+      inputs,
+    );
+    expect(report).toEqual({
+      budget: "5",
+      routers: [
+        { router: "none", largestFinished: undefined, finished: 0, overBudget: 1, notRun: 0 },
+        { router: "r", largestFinished: 1000, finished: 2, overBudget: 0, notRun: 0 },
+        { router: "slow", largestFinished: 10, finished: 1, overBudget: 1, notRun: 1 },
+      ],
+      pack: { overBudget: 1, notRun: 1 },
+    });
+    const lines = budgetLines(report!);
+    expect(lines).toContain("| slow | 10 | 1 | 1 | 1 |");
+    expect(lines).toContain("| none | none | 0 | 1 | 0 |");
+    expect(lines.join("\n")).toContain("the route stage holds 2 routes");
+    expect(lines.join("\n")).toContain("The pack stage has 1 pairs over budget, and 1 pairs that did not run.");
+  });
+});
+
 describe("budgetTag", () => {
   const budget = parsePairBudget("5");
 
@@ -73,10 +117,12 @@ describe("budgetTag", () => {
   });
 
   it("gives a skip the 2 pairs that caused it, with another reason than an overrun", () => {
-    const tag = budgetTag({ kind: "not-run", id: doneKey("i", "s+r"), budgetMs: 300_000, group: "g", because: [doneKey("i", "p+r"), doneKey("i", "q+r")] }, budget);
+    const tag = budgetTag({ kind: "not-run", id: doneKey("i", "s+r"), budgetMs: 300_000, group: "i
+route
+r", because: [doneKey("i", "p+r"), doneKey("i", "q+r")] }, budget);
     expect(tag.reason).toBe(NOT_RUN_OVER_BUDGET);
     expect(tag.reason).not.toBe(OVER_BUDGET);
-    expect(tag.facts).toEqual({ budget: "5", budgetMs: 300_000, because: ["p+r", "q+r"] });
+    expect(tag.facts).toEqual({ budget: "5", budgetMs: 300_000, stage: "route", because: ["p+r", "q+r"] });
   });
 });
 

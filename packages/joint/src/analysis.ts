@@ -129,6 +129,12 @@ export const DENSE_HUBS = "joint-v2/rect-grid.freeHeight.holes.none.bimodal.n100
 /** The limit of the claim S11 (L32) on the time of the step `Run one shard` of each shard, in minutes. */
 export const SHARD_LIMIT_MINUTES = 60;
 
+/** The reason of a pair that passed its budget. Its time is a lower bound: the pair ran for at least the budget. */
+export const OVER_BUDGET = "over budget";
+
+/** The reason of a pair that did not run, after 2 pairs of its router or its pack entry passed the budget on the input. This pair has no measurement. */
+export const NOT_RUN_OVER_BUDGET = "not run: over budget on this input";
+
 /** The name of the step of a shard job that runs the inputs of the shard. */
 export const SHARD_STEP = "Run one shard";
 
@@ -446,6 +452,25 @@ export interface SubsetReport {
 }
 
 /** The report of the analysis. */
+/** What one router finished under a time budget. The counts hold only the route stage: a slow pack entry does not count against a router. */
+export interface BudgetRow {
+  readonly router: string;
+  /** The box count of the largest input where a pair of the router finished, or `undefined` when no pair finished. */
+  readonly largestFinished: number | undefined;
+  readonly finished: number;
+  readonly overBudget: number;
+  readonly notRun: number;
+}
+
+/** The results of a time budget. */
+export interface BudgetReport {
+  /** The text of the option `--pair-budget`. */
+  readonly budget: string;
+  readonly routers: readonly BudgetRow[];
+  /** The tagged pairs of the pack stage. */
+  readonly pack: { readonly overBudget: number; readonly notRun: number };
+}
+
 export interface Report {
   /** The count of the inputs outside the stress cell. The headline cells use these inputs. */
   readonly inputs: number;
@@ -478,6 +503,8 @@ export interface Report {
   readonly times?: readonly SpecTimes[];
   /** The times of the shard jobs of `AnalysisOptions.jobs`. */
   readonly shardTimes?: ShardTimes;
+  /** The results of a time budget. A run with no tagged pair has no value. */
+  readonly budget?: BudgetReport;
   /** Each lane pair of L13 against its base pair, outside and in the stress cell. It is absent when the records have no lane pair. */
   readonly lanes?: readonly LaneRow[];
 }
@@ -1137,6 +1164,40 @@ export function routeTimes(records: readonly LayoutRecord[], inputs: readonly An
   });
 }
 
+/**
+ * This function gives what each router finished under a time budget, or `undefined` when no pair has a budget tag.
+ * The largest input is the answer for a router with no row at a large input. A tagged pair is a result and has no time here.
+ */
+export function budgetReport(records: readonly LayoutRecord[], inputs: readonly AnalysisInput[]): BudgetReport | undefined {
+  const tagOf = (r: LayoutRecord): "overBudget" | "notRun" | undefined => (r.skipped === OVER_BUDGET ? "overBudget" : r.skipped === NOT_RUN_OVER_BUDGET ? "notRun" : undefined);
+  const factsOf = (r: LayoutRecord): { readonly budget?: string; readonly stage?: string } => (r.options["budget"] ?? {}) as { readonly budget?: string; readonly stage?: string };
+  const first = records.find((r) => tagOf(r) !== undefined);
+  if (first === undefined) return undefined;
+  const sizes = new Map(inputs.map((input) => [input.id, Number(input.cell["count"])]));
+  const rows = new Map<string, { largestFinished: number | undefined; finished: number; overBudget: number; notRun: number }>();
+  const pack = { overBudget: 0, notRun: 0 };
+  for (const r of records) {
+    if (isLanePack(packOf(r.strategy))) continue;
+    const tag = tagOf(r);
+    if (tag !== undefined && factsOf(r).stage === "pack") {
+      pack[tag] += 1;
+      continue;
+    }
+    if (tag === undefined && r.skipped !== undefined) continue;
+    const router = routerOfPair(r.strategy);
+    const row = rows.get(router) ?? { largestFinished: undefined, finished: 0, overBudget: 0, notRun: 0 };
+    rows.set(router, row);
+    if (tag !== undefined) {
+      row[tag] += 1;
+      continue;
+    }
+    row.finished += 1;
+    const size = sizes.get(r.input);
+    if (size !== undefined && Number.isFinite(size) && size > (row.largestFinished ?? 0)) row.largestFinished = size;
+  }
+  return { budget: factsOf(first).budget ?? "", routers: routerOrder(rows.keys()).map((router) => ({ router, ...rows.get(router)! })), pack };
+}
+
 /** This function gives the minutes from one ISO time to another, or `undefined` without both times. */
 function minutesOf(start: string | undefined, end: string | undefined): number | undefined {
   if (start === undefined || end === undefined) return undefined;
@@ -1424,12 +1485,14 @@ export function analyze(allRecords: readonly LayoutRecord[], allInputs: readonly
   };
   const runRecords = allRecords.filter((r) => allIds.has(r.input));
   const lanes = laneRows(records, allInputs);
+  const budget = budgetReport(runRecords, allInputs);
   const extra = {
     ...(exclude.size === 0 ? {} : { excluded: [...exclude] }),
     ...(options.composite === undefined ? {} : { composite: compositeCheck(runRecords, allInputs, options.composite.pack, options.composite.members) }),
     ...(options.times === undefined ? {} : { times: routeTimes(runRecords, allInputs, options.times) }),
     ...(options.jobs === undefined ? {} : { shardTimes: shardTimes(options.jobs) }),
     ...(lanes.length === 0 ? {} : { lanes }),
+    ...(budget === undefined ? {} : { budget }),
   };
   return { ...base, predictions: options.predictions === "joint-v2" ? checkPredictionsV2(base) : checkPredictions(base), ...extra };
 }
@@ -1632,6 +1695,24 @@ function timeLines(report: Report): string[] {
   return lines;
 }
 
+/** This function writes the table of a time budget. A route stage holds 2 routes, so the text states the budget for 2 routes. */
+export function budgetLines(budget: BudgetReport): string[] {
+  const lines = [
+    "",
+    "### The time budget",
+    "",
+    `The option \`--pair-budget\` is \`${budget.budget}\` minutes. Each stage of a pair has this budget, and the route stage holds 2 routes.`,
+    "",
+    "An over-budget time is a lower bound, so it is not a value of a time statistic. A pair that did not run has no measurement.",
+    "",
+    "| Router | Largest input finished | Pairs finished | Over budget | Not run |",
+    "|---|---:|---:|---:|---:|",
+  ];
+  for (const row of budget.routers) lines.push(`| ${row.router} | ${row.largestFinished ?? "none"} | ${row.finished} | ${row.overBudget} | ${row.notRun} |`);
+  lines.push("", `The pack stage has ${budget.pack.overBudget} pairs over budget, and ${budget.pack.notRun} pairs that did not run.`);
+  return lines;
+}
+
 /** This function writes the times of the shard jobs. It gives no lines without the option `jobs`. */
 function shardLines(report: Report): string[] {
   const t = report.shardTimes;
@@ -1694,6 +1775,7 @@ export function reportMarkdown(report: Report, options: MarkdownOptions = {}): s
   lines.push(...baselineLines(report));
   lines.push(...compareLines(report));
   lines.push(...timeLines(report));
+  lines.push(...(report.budget === undefined ? [] : budgetLines(report.budget)));
   lines.push(...shardLines(report));
   if (report.subset !== undefined) {
     const full = report.cells.find((c) => c.rule === HEADLINE.rule && c.cap === HEADLINE.cap);

@@ -1,15 +1,9 @@
 // The time budget of a pair of the joint benchmark (docs/JOINT-BENCH.md, "A time budget for each pair").
 // The supervisor of @mark1russell7/rigor-bench holds each stage of a pair to the budget. This file gives it the cases of a shard, and gives the tag of each end.
 import type { SupervisedCase, SupervisedEnd } from "@mark1russell7/rigor-bench/supervise";
-import { packOf, routerOfPair } from "./analysis.ts";
+import { NOT_RUN_OVER_BUDGET, OVER_BUDGET, packOf, routerOfPair } from "./analysis.ts";
 import type { PairPhase, PairTag } from "./runner.ts";
 import { doneKey, type PairLine } from "./shard-run.ts";
-
-/** The reason of a pair that passed its budget. Its time is a lower bound: the pair ran for at least the budget. */
-export const OVER_BUDGET = "over budget";
-
-/** The reason of a pair that did not run, after 2 pairs of its router or its pack entry passed the budget on the input. This pair has no measurement. */
-export const NOT_RUN_OVER_BUDGET = "not run: over budget on this input";
 
 /** The budget of a run. The inputs of at most `boxes` boxes take the minutes of the first step that holds them, and each larger input takes `rest`. */
 export interface PairBudget {
@@ -82,9 +76,9 @@ export function keyParts(key: string): { readonly input: string; readonly pair: 
   return { input: key.slice(0, at), pair: key.slice(at + 1) };
 }
 
-/** This function gives the tag of the record of a pair that did not finish. An overrun states its lower bound, and a skip names the 2 pairs that caused it. */
+/** This function gives the tag of the record of a pair that did not finish. An overrun states its lower bound, and a skip names the 2 pairs that caused it and the stage of their group. */
 export function budgetTag(end: SupervisedEnd, budget: PairBudget): PairTag {
   const facts = { budget: budget.text, budgetMs: end.budgetMs };
   if (end.kind === "over-budget") return { reason: OVER_BUDGET, facts: { ...facts, stage: end.stage, atLeastMs: end.budgetMs } };
-  return { reason: NOT_RUN_OVER_BUDGET, facts: { ...facts, because: end.because.map((key) => keyParts(key).pair) } };
+  return { reason: NOT_RUN_OVER_BUDGET, facts: { ...facts, stage: end.group.split("\n")[1], because: end.because.map((key) => keyParts(key).pair) } };
 }
