@@ -1,0 +1,752 @@
+// The strategy catalog: every strategy and every option of an engine, as JSON (`docs/STRATEGY-CATALOG.md`).
+import { canonicalJson } from "./hash.ts";
+import type { Supports } from "./record.ts";
+import { type AnyOption, declarationIssues, type ListItem, type NoDefaultReason, optionIssue, type OptionScale, type ValueOption } from "./strategy-options.ts";
+import type { StrategySpace } from "./strategy-space.ts";
+
+/** The schema of a strategy catalog. A new field is a new version of the schema. */
+export const STRATEGY_CATALOG_SCHEMA = "strategy-catalog/1";
+
+/**
+ * The dimension of `supports` that tells who owns the positions of the nodes. The value `host` means that the strategy keeps the positions that the host gives.
+ * The value `engine` means that the strategy can set them. A strategy that moves nodes has only `engine`. A `SupportProbe` tests the claim with a run.
+ */
+export const NODE_POSITIONS_DIMENSION = "nodePositions";
+
+/** A limit on one measure of the input. The key of the record of limits names the measure, for example `nodes`. */
+export interface CatalogLimit {
+  /** The smallest value that the strategy takes. */
+  readonly min?: number;
+  /** The largest value that the strategy takes. */
+  readonly max?: number;
+  /** One short sentence that tells what the strategy does outside the limit. */
+  readonly describe: string;
+}
+
+/** The kind of a strategy: it places on its own, it wraps other strategies, or it is for one shape of item. */
+export type StrategyKind = "single" | "composite" | "shape";
+
+/** One strategy of a catalog. */
+export interface CatalogEntry {
+  /** The key is unique in the catalog: `<step>/<id>` with a step, else `id`. */
+  readonly key: string;
+  /** The name that the engine reads. */
+  readonly id: string;
+  /** The step of the pipeline of the engine. An engine without steps leaves it out. */
+  readonly step?: string;
+  /** The group of the strategy in a chooser. */
+  readonly family: string;
+  readonly kind: StrategyKind;
+  /** One line that tells what the strategy does. */
+  readonly describe: string;
+  /** For each dimension, the values that the strategy takes. A dimension that is not here has no declared limit. */
+  readonly supports: Supports;
+  /** The limits of the strategy on the measures of the input. An empty record means that the engine declares no limit. */
+  readonly limits: Readonly<Record<string, CatalogLimit>>;
+  /** The value is `true` when, with the default options, the result depends only on the input, the options and the seed. */
+  readonly deterministic: boolean;
+  /** One sentence that tells what can change this claim, for example a clock. */
+  readonly determinismNote?: string;
+  /** The value is `true` when the strategy is outside the default set of the engine, and a caller asks for it by name. */
+  readonly optIn: boolean;
+  /** The value `true` tells that the strategy is a baseline of a bench. It has `optIn` true, and a chooser does not offer it. */
+  readonly baseline?: true;
+  /** The declarations of the options, in the order of a form. */
+  readonly options: Readonly<Record<string, AnyOption>>;
+}
+
+/** The form of a catalog that an engine exports as data. It holds no version: the build gives the version from `package.json`. */
+export interface StrategyCatalogSource {
+  /** The npm name of the engine, without its scope. */
+  readonly engine: string;
+  readonly strategies: readonly CatalogEntry[];
+}
+
+/** A catalog document: the form that `writeStrategyCatalog` writes and `parseStrategyCatalog` reads. */
+export interface StrategyCatalog extends StrategyCatalogSource {
+  readonly schema: typeof STRATEGY_CATALOG_SCHEMA;
+  /** The npm version of the engine. */
+  readonly version: string;
+}
+
+/** The result of `parseStrategyCatalog`. */
+export type StrategyCatalogParse = { readonly ok: true; readonly catalog: StrategyCatalog } | { readonly ok: false; readonly faults: readonly string[] };
+
+/** The live facts of one strategy, for `checkCatalog`. */
+export interface RegistryEntry {
+  readonly key: string;
+  /** The live defaults of the strategy. */
+  readonly defaults: Readonly<Record<string, unknown>>;
+  readonly optIn: boolean;
+  /** The value `true` tells that the strategy is a baseline of a bench. */
+  readonly baseline?: boolean;
+  /** The limits in the code of the engine. Without them, the engine has no limits. */
+  readonly limits?: Readonly<Record<string, { readonly min?: number; readonly max?: number }>>;
+  /** This function runs the strategy on a small fixture and gives its output as text. The text does not hold times. */
+  readonly run?: () => string;
+}
+
+/** A test of one value of `supports`: each strategy runs on an input with this value. */
+export interface SupportProbe {
+  /** The dimension of `supports`. */
+  readonly field: string;
+  readonly value: string;
+  /** This function gives `true` if the strategy refuses the input, and `undefined` if the input cannot go to this strategy. */
+  readonly refuses: (key: string) => boolean | undefined;
+}
+
+/** The options of `checkCatalog`. */
+export interface CatalogCheckOptions {
+  /** Each param of these spaces is examined against the declaration of its option. */
+  readonly spaces?: readonly StrategySpace[];
+  readonly probes?: readonly SupportProbe[];
+  /** This function runs `owner` with `choice` in its option `option`. It gives `true` for a refusal, or `undefined` if the input cannot go to `owner`. */
+  readonly refusesChoice?: (owner: string, option: string, choice: string) => boolean | undefined;
+}
+
+/** The result of `checkCatalog`. */
+export interface CatalogCheck {
+  /** Each break of a rule, as one sentence. A good catalog has none. */
+  readonly faults: readonly string[];
+  /** The claims that no run examined, by key and with the reason. */
+  readonly notRun: readonly string[];
+  /** The stage options and the params of a space that have no entry or no declaration in the catalog. */
+  readonly notMatched: readonly string[];
+}
+
+/** The value of a strategy option that holds the options of the chosen strategy. A declaration with `inlineOptions` takes it. */
+export interface StrategyMember {
+  /** The key of the chosen strategy. */
+  readonly strategy: string;
+  /** The options of the chosen strategy, in the JSON form of its declarations. */
+  readonly options?: Readonly<Record<string, unknown>>;
+  /** The name of the member in the output. */
+  readonly id?: string;
+}
+
+/** The options of `catalogOptions`. */
+export interface CatalogOptionsOptions {
+  /** This function gives the key of a strategy from a default value of the type `strategy`. */
+  readonly strategyKey?: (value: unknown) => string | undefined;
+}
+
+const STRATEGY_KINDS: readonly string[] = ["single", "composite", "shape"];
+const NO_DEFAULT_REASONS: readonly NoDefaultReason[] = ["unset", "required", "derived", "function"];
+const SCALES: readonly OptionScale[] = ["linear", "log"];
+const TOP_FIELDS: readonly string[] = ["schema", "engine", "version", "strategies"];
+const ENTRY_FIELDS: readonly string[] = ["key", "id", "step", "family", "kind", "describe", "supports", "limits", "deterministic", "determinismNote", "optIn", "baseline", "options"];
+const COMMON_FIELDS: readonly string[] = ["type", "describe", "default", "noDefault", "when"];
+const NUMBER_FIELDS: readonly string[] = [...COMMON_FIELDS, "min", "max", "step", "scale", "special", "marks", "values"];
+const ENUM_FIELDS: readonly string[] = [...COMMON_FIELDS, "values", "custom"];
+const STRATEGY_FIELDS: readonly string[] = [...COMMON_FIELDS, "step", "kinds", "optionsKey", "inlineOptions", "optIn"];
+const MEMBER_FIELDS: readonly string[] = ["strategy", "options", "id"];
+const LIST_FIELDS: readonly string[] = [...COMMON_FIELDS, "of", "min", "max"];
+/** The fields of a declaration, in the order of the file. */
+const OPTION_ORDER: readonly string[] = ["type", "describe", "min", "max", "step", "scale", "special", "marks", "values", "custom", "kinds", "optionsKey", "inlineOptions", "optIn", "of", "default", "noDefault", "when"];
+
+type Fields = Readonly<Record<string, unknown>>;
+
+const isFields = (v: unknown): v is Fields => typeof v === "object" && v !== null && !Array.isArray(v);
+const isText = (v: unknown): v is string => typeof v === "string" && v.trim() !== "";
+const isTextList = (v: unknown): v is readonly string[] => Array.isArray(v) && v.every(isText);
+const isFiniteNumber = (v: unknown): v is number => typeof v === "number" && Number.isFinite(v);
+const isMember = (v: unknown): v is StrategyMember =>
+  isFields(v) &&
+  isText(v["strategy"]) &&
+  (v["options"] === undefined || isFields(v["options"])) &&
+  (v["id"] === undefined || isText(v["id"])) &&
+  Object.keys(v).every((k) => MEMBER_FIELDS.includes(k));
+
+/** This function gives the key of a strategy from its step and its id. */
+export function catalogKey(id: string, step?: string): string {
+  return step === undefined ? id : `${step}/${id}`;
+}
+
+/** This function adds one fault for each field of `o` that is not in `allowed`. */
+function refuseUnknown(at: string, o: Fields, allowed: readonly string[], faults: string[]): void {
+  for (const key of Object.keys(o)) if (!allowed.includes(key)) faults.push(`${at}: the field "${key}" is unknown.`);
+}
+
+/** This function restores a number field of a file. It gives `undefined` for each value that is not a finite number, `"Infinity"` or `"-Infinity"`. */
+function readNumber(v: unknown): number | undefined {
+  if (v === "Infinity") return Infinity;
+  if (v === "-Infinity") return -Infinity;
+  return isFiniteNumber(v) ? v : undefined;
+}
+
+/** This function restores a list of number fields, with one fault for each bad value. */
+function readNumbers(at: string, v: unknown, faults: string[]): number[] | undefined {
+  if (!Array.isArray(v)) {
+    faults.push(`${at} is not a list.`);
+    return undefined;
+  }
+  const out: number[] = [];
+  for (const x of v) {
+    const n = readNumber(x);
+    if (n === undefined) faults.push(`${at} holds a value that is not a number.`);
+    else out.push(n);
+  }
+  return out;
+}
+
+/** This function gives the fields of a number declaration, restored from a file. */
+function readNumberFields(at: string, raw: Fields, faults: string[]): Fields {
+  const out: Record<string, unknown> = {};
+  for (const f of ["min", "max"]) {
+    if (isFiniteNumber(raw[f])) out[f] = raw[f];
+    else faults.push(`${at}: "${f}" is not a finite number.`);
+  }
+  if (raw["step"] !== undefined) {
+    if (isFiniteNumber(raw["step"])) out["step"] = raw["step"];
+    else faults.push(`${at}: "step" is not a finite number.`);
+  }
+  if (raw["scale"] !== undefined) {
+    if (SCALES.includes(raw["scale"] as OptionScale)) out["scale"] = raw["scale"];
+    else faults.push(`${at}: "scale" is not linear or log.`);
+  }
+  for (const f of ["special", "marks"]) {
+    if (raw[f] === undefined) continue;
+    const list = readNumbers(`${at}: "${f}"`, raw[f], faults);
+    if (list !== undefined) out[f] = list;
+  }
+  if (raw["values"] !== undefined) {
+    if (Array.isArray(raw["values"]) && raw["values"].every(isFiniteNumber)) out["values"] = raw["values"];
+    else faults.push(`${at}: "values" is not a list of finite numbers.`);
+  }
+  if (raw["default"] !== undefined) {
+    const n = readNumber(raw["default"]);
+    if (n === undefined) faults.push(`${at}: the default is not a number.`);
+    else out["default"] = n;
+  }
+  return out;
+}
+
+/** This function gives the fields of a list declaration, restored from a file. */
+function readListFields(at: string, raw: Fields, faults: string[]): Fields {
+  const out: Record<string, unknown> = {};
+  if (raw["of"] !== undefined) {
+    const item = readOption(`${at}: "of"`, raw["of"], true, faults);
+    if (item !== undefined) out["of"] = item;
+    if (isFields(raw["of"]) && raw["of"]["optionsKey"] !== undefined) faults.push(`${at}: an item of a list has no sibling for "optionsKey". Use "inlineOptions".`);
+  }
+  for (const f of ["min", "max"]) {
+    if (raw[f] === undefined) continue;
+    if (Number.isInteger(raw[f]) && (raw[f] as number) >= 0) out[f] = raw[f];
+    else faults.push(`${at}: "${f}" is not a whole number.`);
+  }
+  if (raw["default"] !== undefined) {
+    if (Array.isArray(raw["default"])) out["default"] = raw["default"];
+    else faults.push(`${at}: the default is not a list.`);
+  }
+  if (typeof out["min"] === "number" && typeof out["max"] === "number" && out["min"] > out["max"]) faults.push(`${at}: "min" is more than "max".`);
+  return out;
+}
+
+/** This function gives the fields of a `strategy` declaration, restored from a file. */
+function readStrategyFields(at: string, raw: Fields, faults: string[]): Fields {
+  const out: Record<string, unknown> = {};
+  if (raw["step"] !== undefined) {
+    if (isText(raw["step"])) out["step"] = raw["step"];
+    else faults.push(`${at}: "step" is not a text.`);
+  }
+  if (raw["kinds"] !== undefined) {
+    if (isTextList(raw["kinds"]) && raw["kinds"].every((k) => STRATEGY_KINDS.includes(k))) out["kinds"] = raw["kinds"];
+    else faults.push(`${at}: "kinds" is not a list of strategy kinds.`);
+  }
+  if (raw["optionsKey"] !== undefined) {
+    if (isText(raw["optionsKey"])) out["optionsKey"] = raw["optionsKey"];
+    else faults.push(`${at}: "optionsKey" is not a text.`);
+  }
+  for (const f of ["inlineOptions", "optIn"]) {
+    if (raw[f] === undefined) continue;
+    if (typeof raw[f] === "boolean") out[f] = raw[f];
+    else faults.push(`${at}: "${f}" is not true or false.`);
+  }
+  if (raw["inlineOptions"] === true && raw["optionsKey"] !== undefined) faults.push(`${at}: "inlineOptions" and "optionsKey" give two places for the options.`);
+  if (raw["default"] !== undefined) {
+    if (isText(raw["default"]) || (raw["inlineOptions"] === true && isMember(raw["default"]))) out["default"] = raw["default"];
+    else faults.push(`${at}: the default is not the key of a strategy.`);
+  }
+  return out;
+}
+
+/** This function gives the fields that belong only to the type of a declaration, restored from a file. */
+function readTypeFields(at: string, type: string, raw: Fields, faults: string[]): Fields {
+  switch (type) {
+    case "number":
+    case "integer":
+      refuseUnknown(at, raw, NUMBER_FIELDS, faults);
+      return readNumberFields(at, raw, faults);
+    case "boolean":
+      refuseUnknown(at, raw, COMMON_FIELDS, faults);
+      if (raw["default"] !== undefined && typeof raw["default"] !== "boolean") faults.push(`${at}: the default is not true or false.`);
+      return raw["default"] === undefined ? {} : { default: raw["default"] };
+    case "enum": {
+      refuseUnknown(at, raw, ENUM_FIELDS, faults);
+      if (!isTextList(raw["values"])) faults.push(`${at}: "values" is not a list of texts.`);
+      if (raw["custom"] !== undefined && raw["custom"] !== "function") faults.push(`${at}: "custom" is not "function".`);
+      return { values: raw["values"], ...(raw["custom"] === undefined ? {} : { custom: raw["custom"] }), ...(raw["default"] === undefined ? {} : { default: raw["default"] }) };
+    }
+    case "strategy":
+      refuseUnknown(at, raw, STRATEGY_FIELDS, faults);
+      return readStrategyFields(at, raw, faults);
+    case "list":
+      refuseUnknown(at, raw, LIST_FIELDS, faults);
+      return readListFields(at, raw, faults);
+    case "object":
+      refuseUnknown(at, raw, COMMON_FIELDS, faults);
+      return raw["default"] === undefined ? {} : { default: raw["default"] };
+    case "function":
+      refuseUnknown(at, raw, COMMON_FIELDS, faults);
+      if (raw["default"] !== undefined) faults.push(`${at}: a function option has no default in JSON.`);
+      return {};
+    default:
+      faults.push(`${at}: the type "${type}" is unknown.`);
+      return {};
+  }
+}
+
+/** This function adds the faults of the statement of an absent default, and gives the statement. */
+function readNoDefault(at: string, raw: unknown, faults: string[]): Fields | undefined {
+  if (!isFields(raw)) {
+    faults.push(`${at}: "noDefault" is not an object.`);
+    return undefined;
+  }
+  refuseUnknown(`${at}: "noDefault"`, raw, ["reason", "describe"], faults);
+  if (!NO_DEFAULT_REASONS.includes(raw["reason"] as NoDefaultReason)) faults.push(`${at}: the reason of "noDefault" is unknown.`);
+  if (!isText(raw["describe"])) faults.push(`${at}: "noDefault" has no description.`);
+  return { reason: raw["reason"], describe: raw["describe"] };
+}
+
+/** This function restores one declaration of a file. An item of a list has only the fields of its type. */
+function readOption(at: string, raw: unknown, item: boolean, faults: string[]): AnyOption | ListItem | undefined {
+  if (!isFields(raw)) {
+    faults.push(`${at} is not an object.`);
+    return undefined;
+  }
+  const type = raw["type"];
+  if (typeof type !== "string") {
+    faults.push(`${at} has no type.`);
+    return undefined;
+  }
+  const before = faults.length;
+  const fields = readTypeFields(at, type, raw, faults);
+  const out: Record<string, unknown> = { type, ...fields };
+  if (item) {
+    for (const f of ["describe", "default", "noDefault", "when"]) if (raw[f] !== undefined) faults.push(`${at}: an item of a list has no "${f}".`);
+  } else {
+    if (isText(raw["describe"])) out["describe"] = raw["describe"];
+    else faults.push(`${at} has no description.`);
+    const hasDefault = raw["default"] !== undefined;
+    const hasNoDefault = raw["noDefault"] !== undefined;
+    if (hasDefault === hasNoDefault) faults.push(`${at} has ${hasDefault ? "both" : "neither"} of "default" and "noDefault".`);
+    if (hasNoDefault) out["noDefault"] = readNoDefault(at, raw["noDefault"], faults);
+    if (raw["when"] !== undefined) out["when"] = raw["when"];
+  }
+  return faults.length === before ? (out as unknown as AnyOption) : undefined;
+}
+
+/** This function adds the faults of the condition of an option, against the options before it. */
+function checkWhen(at: string, when: unknown, earlier: readonly string[], faults: string[]): void {
+  if (!isFields(when) || !isText(when["param"]) || !Array.isArray(when["in"])) {
+    faults.push(`${at}: "when" has no "param" and "in".`);
+    return;
+  }
+  refuseUnknown(`${at}: "when"`, when, ["param", "in"], faults);
+  if (!earlier.includes(when["param"])) faults.push(`${at}: "when" names "${when["param"]}", which is not an earlier option.`);
+}
+
+/** This function adds the faults of the limits of an entry. */
+function checkLimits(at: string, limits: unknown, faults: string[]): void {
+  if (!isFields(limits)) {
+    faults.push(`${at}: "limits" is not an object.`);
+    return;
+  }
+  for (const [name, raw] of Object.entries(limits)) {
+    const place = `${at}: the limit "${name}"`;
+    if (!isFields(raw)) {
+      faults.push(`${place} is not an object.`);
+      continue;
+    }
+    refuseUnknown(place, raw, ["min", "max", "describe"], faults);
+    if (!isText(raw["describe"])) faults.push(`${place} has no description.`);
+    if (raw["min"] === undefined && raw["max"] === undefined) faults.push(`${place} has no "min" and no "max".`);
+    for (const f of ["min", "max"]) if (raw[f] !== undefined && !isFiniteNumber(raw[f])) faults.push(`${place}: "${f}" is not a finite number.`);
+    if (isFiniteNumber(raw["min"]) && isFiniteNumber(raw["max"]) && raw["min"] > raw["max"]) faults.push(`${place}: "min" is more than "max".`);
+  }
+}
+
+/** This function restores one entry of a file. */
+function readEntry(at: string, raw: unknown, faults: string[]): CatalogEntry | undefined {
+  if (!isFields(raw)) {
+    faults.push(`${at} is not an object.`);
+    return undefined;
+  }
+  const before = faults.length;
+  refuseUnknown(at, raw, ENTRY_FIELDS, faults);
+  for (const f of ["key", "id", "family", "describe"]) if (!isText(raw[f])) faults.push(`${at}: "${f}" is not a text.`);
+  if (raw["step"] !== undefined && !isText(raw["step"])) faults.push(`${at}: "step" is not a text.`);
+  if (raw["determinismNote"] !== undefined && !isText(raw["determinismNote"])) faults.push(`${at}: "determinismNote" is not a text.`);
+  if (!STRATEGY_KINDS.includes(raw["kind"] as string)) faults.push(`${at}: "kind" is unknown.`);
+  for (const f of ["deterministic", "optIn"]) if (typeof raw[f] !== "boolean") faults.push(`${at}: "${f}" is not true or false.`);
+  if (raw["baseline"] !== undefined && raw["baseline"] !== true) faults.push(`${at}: "baseline" is not true.`);
+  if (raw["baseline"] === true && raw["optIn"] !== true) faults.push(`${at}: a baseline has "optIn" true.`);
+  if (!isFields(raw["supports"]) || !Object.values(raw["supports"]).every(isTextList)) faults.push(`${at}: "supports" is not a record of text lists.`);
+  checkLimits(at, raw["limits"], faults);
+  if (isText(raw["id"]) && raw["key"] !== catalogKey(raw["id"], raw["step"] as string | undefined)) faults.push(`${at}: the key does not follow from "step" and "id".`);
+  if (!isFields(raw["options"])) {
+    faults.push(`${at}: "options" is not an object.`);
+    return undefined;
+  }
+  const options: Record<string, AnyOption> = {};
+  const earlier: string[] = [];
+  for (const [key, value] of Object.entries(raw["options"])) {
+    const place = `${at}: the option "${key}"`;
+    const option = readOption(place, value, false, faults) as AnyOption | undefined;
+    if (option !== undefined) {
+      options[key] = option;
+      for (const message of declarationIssues(key, option)) faults.push(`${at}: ${message}`);
+      if (option.when !== undefined) checkWhen(place, option.when, earlier, faults);
+    }
+    earlier.push(key);
+  }
+  if (faults.length !== before) return undefined;
+  const { step, determinismNote } = raw as { readonly step?: string; readonly determinismNote?: string };
+  return {
+    key: raw["key"] as string,
+    id: raw["id"] as string,
+    ...(step === undefined ? {} : { step }),
+    family: raw["family"] as string,
+    kind: raw["kind"] as StrategyKind,
+    describe: raw["describe"] as string,
+    supports: raw["supports"] as Supports,
+    limits: raw["limits"] as Readonly<Record<string, CatalogLimit>>,
+    deterministic: raw["deterministic"] as boolean,
+    ...(determinismNote === undefined ? {} : { determinismNote }),
+    optIn: raw["optIn"] as boolean,
+    ...(raw["baseline"] === true ? { baseline: true as const } : {}),
+    options,
+  };
+}
+
+/**
+ * This function gives the strategies that a chooser offers, by the `step`, `kinds` and `optIn` of an option. Thus no chooser keeps a copy of this rule.
+ * A baseline is not in the result. A list gives the strategies of its items. An option of each other type gives nothing.
+ * Without a declaration, the function gives each strategy that is not a baseline.
+ */
+export function catalogChoices(strategies: readonly CatalogEntry[], declaration?: AnyOption | ListItem): readonly CatalogEntry[] {
+  const offered = strategies.filter((e) => e.baseline !== true);
+  if (declaration === undefined) return offered;
+  const d = (declaration.type === "list" ? declaration.of : declaration) as ValueOption | undefined;
+  if (d?.type !== "strategy") return [];
+  return offered.filter((e) => (d.step === undefined || e.step === d.step) && (d.kinds === undefined || d.kinds.includes(e.kind)) && (d.optIn === undefined || d.optIn === e.optIn));
+}
+
+/** This function adds one fault for each option of a member that its chosen strategy does not take. */
+function checkMember(at: string, member: StrategyMember, chosen: CatalogEntry, faults: string[]): void {
+  for (const [key, value] of Object.entries(member.options ?? {})) {
+    const declaration = chosen.options[key];
+    if (declaration === undefined) {
+      faults.push(`${at}: the default gives "${key}", and ${chosen.key} has no such option.`);
+      continue;
+    }
+    const issue = declaration.type === "strategy" ? undefined : optionIssue(key, decodeOptionValue(value, declaration), declaration);
+    if (issue !== undefined) faults.push(`${at}: ${issue.message}`);
+  }
+}
+
+/** This function adds one fault for each reference that names no strategy of the catalog, or a strategy that the option does not take. */
+function checkReferences(entries: readonly CatalogEntry[], faults: string[]): void {
+  const check = (at: string, o: AnyOption | ListItem, values: readonly unknown[]): void => {
+    const choices = catalogChoices(entries, o);
+    if (choices.length === 0) faults.push(`${at} takes no strategy of the catalog.`);
+    for (const value of values) {
+      const inline = ((o.type === "list" ? o.of : o) as ValueOption).inlineOptions === true && isMember(value);
+      const key = inline ? value.strategy : value;
+      const chosen = choices.find((e) => e.key === key);
+      if (chosen === undefined) faults.push(`${at}: the default ${JSON.stringify(key)} is not a strategy that the option takes.`);
+      else if (inline) checkMember(at, value, chosen, faults);
+    }
+  };
+  for (const entry of entries) {
+    for (const [key, o] of Object.entries(entry.options)) {
+      const at = `${entry.key}: the option "${key}"`;
+      if (o.type === "strategy") {
+        check(at, o, o.default === undefined ? [] : [o.default]);
+        if (o.optionsKey !== undefined && (o.optionsKey === key || entry.options[o.optionsKey]?.type !== "object")) faults.push(`${at}: "optionsKey" does not name an object option.`);
+      } else if (o.type === "list" && o.of?.type === "strategy") {
+        check(at, o, Array.isArray(o.default) ? o.default : []);
+      }
+      if (o.type === "list" && Array.isArray(o.default)) {
+        if (o.min !== undefined && o.default.length < o.min) faults.push(`${at}: the default has fewer than ${o.min} items.`);
+        if (o.max !== undefined && o.default.length > o.max) faults.push(`${at}: the default has more than ${o.max} items.`);
+      }
+    }
+  }
+}
+
+/**
+ * This function reads a catalog from parsed JSON. It refuses each unknown field and each other schema.
+ * It gives the catalog with its `Infinity` values restored, or the list of all faults.
+ */
+export function parseStrategyCatalog(value: unknown): StrategyCatalogParse {
+  const faults: string[] = [];
+  if (!isFields(value)) return { ok: false, faults: ["The catalog is not an object."] };
+  refuseUnknown("The catalog", value, TOP_FIELDS, faults);
+  if (value["schema"] !== STRATEGY_CATALOG_SCHEMA) faults.push(`The schema is not ${STRATEGY_CATALOG_SCHEMA}.`);
+  if (!isText(value["engine"])) faults.push(`"engine" is not a text.`);
+  if (!isText(value["version"])) faults.push(`"version" is not a text.`);
+  if (!Array.isArray(value["strategies"])) return { ok: false, faults: [...faults, `"strategies" is not a list.`] };
+  const entries: CatalogEntry[] = [];
+  (value["strategies"] as readonly unknown[]).forEach((raw, i) => {
+    const entry = readEntry(`The strategy ${isFields(raw) && isText(raw["key"]) ? raw["key"] : i}`, raw, faults);
+    if (entry !== undefined) entries.push(entry);
+  });
+  for (let i = 1; i < entries.length; i++) {
+    const [a, b] = [entries[i - 1]!.key, entries[i]!.key];
+    if (a === b) faults.push(`The key ${a} is not unique.`);
+    else if (a > b) faults.push(`The key ${b} is out of order.`);
+  }
+  // A bad entry is not in the list, so each reference to it would give a false fault.
+  if (faults.length === 0) checkReferences(entries, faults);
+  if (faults.length > 0) return { ok: false, faults };
+  return { ok: true, catalog: { schema: STRATEGY_CATALOG_SCHEMA, engine: value["engine"] as string, version: value["version"] as string, strategies: entries } };
+}
+
+/** This function gives the file form of a number. A value that is not finite becomes its name, and `NaN` stays for the writer to refuse. */
+const writeNumber = (v: unknown): unknown => (v === Infinity ? "Infinity" : v === -Infinity ? "-Infinity" : v);
+
+/**
+ * This function gives the value of an option for a call of the engine, from its JSON form.
+ * The strings `"Infinity"` and `"-Infinity"` become numbers in a number option, and in a list of numbers. Each other value stays as it is.
+ */
+export function decodeOptionValue(value: unknown, declaration: AnyOption | ListItem): unknown {
+  if (declaration.type === "number" || declaration.type === "integer") return readNumber(value) ?? value;
+  if (declaration.type === "list" && declaration.of !== undefined && Array.isArray(value)) {
+    const item = declaration.of;
+    return value.map((v: unknown) => decodeOptionValue(v, item));
+  }
+  return value;
+}
+
+/** This function gives the JSON form of the value of an option. It is the inverse of `decodeOptionValue`. */
+export function encodeOptionValue(value: unknown, declaration: AnyOption | ListItem): unknown {
+  if (declaration.type === "number" || declaration.type === "integer") return writeNumber(value);
+  if (declaration.type === "list" && declaration.of !== undefined && Array.isArray(value)) {
+    const item = declaration.of;
+    return value.map((v: unknown) => encodeOptionValue(v, item));
+  }
+  return value;
+}
+
+/** This function gives the file form of a declaration, with its fields in the order of the file. */
+function writeOption(option: AnyOption | ListItem): Fields {
+  const o = option as unknown as Fields;
+  for (const key of Object.keys(o)) if (!OPTION_ORDER.includes(key) && o[key] !== undefined) throw new Error(`The field "${key}" is not a field of a declaration.`);
+  const numeric = o["type"] === "number" || o["type"] === "integer";
+  const out: Record<string, unknown> = {};
+  for (const f of OPTION_ORDER) {
+    const v = o[f];
+    if (v === undefined) continue;
+    if (f === "of") out[f] = writeOption(v as ListItem);
+    else if (numeric && f === "default") out[f] = writeNumber(v);
+    else if (numeric && (f === "special" || f === "marks")) out[f] = (v as readonly number[]).map(writeNumber);
+    else out[f] = v;
+  }
+  return out;
+}
+
+/** This function gives the file form of an entry, with its fields in the order of the file. */
+function writeEntry(e: CatalogEntry): Fields {
+  const options = Object.fromEntries(Object.entries(e.options).map(([key, o]) => [key, writeOption(o)]));
+  return {
+    key: e.key,
+    id: e.id,
+    ...(e.step === undefined ? {} : { step: e.step }),
+    family: e.family,
+    kind: e.kind,
+    describe: e.describe,
+    supports: e.supports,
+    limits: e.limits,
+    deterministic: e.deterministic,
+    ...(e.determinismNote === undefined ? {} : { determinismNote: e.determinismNote }),
+    optIn: e.optIn,
+    ...(e.baseline === true ? { baseline: true } : {}),
+    options,
+  };
+}
+
+/** This function gives the place of each value that JSON cannot hold: a function, `undefined` in a list, or a number that is not finite. */
+function unsafeValues(v: unknown, at: string): string[] {
+  if (typeof v === "function") return [`${at} is a function.`];
+  if (typeof v === "number") return Number.isFinite(v) ? [] : [`${at} is ${v}.`];
+  if (Array.isArray(v)) return v.flatMap((x: unknown, i) => (x === undefined ? [`${at}[${i}] is undefined.`] : unsafeValues(x, `${at}[${i}]`)));
+  if (isFields(v)) return Object.entries(v).flatMap(([k, x]) => unsafeValues(x, `${at}.${k}`));
+  return [];
+}
+
+/**
+ * This function gives the text of the catalog file, sorted by key. The same source and version give the same bytes.
+ * The caller gives the version from `package.json`. The function throws an error if the file breaks a rule of the format.
+ */
+export function writeStrategyCatalog(source: StrategyCatalogSource, version: string): string {
+  const strategies = [...source.strategies].sort((a, b) => (a.key < b.key ? -1 : a.key > b.key ? 1 : 0)).map(writeEntry);
+  const doc = { schema: STRATEGY_CATALOG_SCHEMA, engine: source.engine, version, strategies };
+  const unsafe = unsafeValues(doc, "catalog");
+  if (unsafe.length > 0) throw new Error(`The catalog of ${source.engine} has values that JSON cannot hold: ${unsafe.join(" ")}`);
+  const text = `${JSON.stringify(doc, null, 2)}\n`;
+  const parsed = parseStrategyCatalog(JSON.parse(text));
+  if (!parsed.ok) throw new Error(`The catalog of ${source.engine} breaks the format: ${parsed.faults.join(" ")}`);
+  return text;
+}
+
+/** This function gives the default of each option of an entry that has a default. */
+export function catalogDefaults(entry: CatalogEntry): Record<string, unknown> {
+  return Object.fromEntries(Object.entries(entry.options).flatMap(([key, o]) => (o.default === undefined ? [] : [[key, o.default]])));
+}
+
+/**
+ * This function gives the catalog declarations of a strategy from its live `defaults` and its schema. Thus each engine has no copy of this rule.
+ * A live default goes on its declaration. A function stays out, so the declaration needs its own `noDefault`.
+ */
+export function catalogOptions(defaults: Readonly<Record<string, unknown>>, schema: Readonly<Record<string, AnyOption>>, options: CatalogOptionsOptions = {}): Record<string, AnyOption> {
+  const out: Record<string, AnyOption> = {};
+  for (const [key, declaration] of Object.entries(schema)) {
+    const live = key in defaults ? defaults[key] : declaration.default;
+    const object = declaration.type === "strategy" && typeof live === "object" && live !== null;
+    const value = object && !(declaration.inlineOptions === true && isMember(live)) ? options.strategyKey?.(live) : live;
+    const { default: _unused, ...rest } = declaration;
+    out[key] = (value === undefined || typeof value === "function" ? rest : { ...rest, default: value }) as AnyOption;
+  }
+  return out;
+}
+
+/** This function adds the faults of one entry against its live facts. */
+function checkLive(entry: CatalogEntry, live: RegistryEntry, faults: string[]): void {
+  const defaults = catalogDefaults(entry);
+  if (entry.optIn !== live.optIn) faults.push(`${entry.key}: "optIn" is ${entry.optIn}, and the engine gives ${live.optIn}.`);
+  if ((entry.baseline === true) !== (live.baseline === true)) faults.push(`${entry.key}: "baseline" differs from the engine.`);
+  const limits = Object.fromEntries(Object.entries(entry.limits).map(([name, { min, max }]) => [name, { min, max }]));
+  if (canonicalJson(limits) !== canonicalJson(live.limits ?? {})) faults.push(`${entry.key}: "limits" differ from the limits of the engine.`);
+  for (const [key, value] of Object.entries(live.defaults)) {
+    const option = entry.options[key];
+    if (option === undefined) {
+      faults.push(`${entry.key}: the default "${key}" has no declaration.`);
+    } else if (typeof value === "function") {
+      if (option.noDefault?.reason !== "function") faults.push(`${entry.key}: the default "${key}" is code, and its "noDefault" does not say it.`);
+    } else if (option.type !== "strategy" || typeof value === "string" || (option.inlineOptions === true && isMember(value))) {
+      const same = Object.is(value, defaults[key]) || canonicalJson(value) === canonicalJson(defaults[key]);
+      if (!same) faults.push(`${entry.key}: the default "${key}" differs from the live default.`);
+    }
+  }
+}
+
+/** This function runs each entry that claims determinism two times, and compares the bytes. */
+function checkDeterminism(entry: CatalogEntry, live: RegistryEntry, faults: string[], notRun: string[]): void {
+  if (!entry.deterministic) return;
+  if (live.run === undefined) {
+    notRun.push(`${entry.key}: the engine gives no fixture.`);
+    return;
+  }
+  try {
+    if (live.run() !== live.run()) faults.push(`${entry.key}: "deterministic" is true, and two runs differ.`);
+  } catch (error) {
+    notRun.push(`${entry.key}: ${error instanceof Error ? error.message : String(error)}`);
+  }
+}
+
+/** This function runs each probe on an entry, and compares the refusal with `supports`. */
+function checkProbes(entry: CatalogEntry, probes: readonly SupportProbe[], faults: string[], notRun: string[]): void {
+  for (const probe of probes) {
+    const name = `${entry.key} on ${probe.field} ${probe.value}`;
+    const declared = entry.supports[probe.field];
+    const takes = declared === undefined || declared.includes(probe.value);
+    let refused: boolean | undefined;
+    try {
+      refused = probe.refuses(entry.key);
+    } catch (error) {
+      notRun.push(`${name}: ${error instanceof Error ? error.message : String(error)}`);
+      continue;
+    }
+    if (refused === undefined) notRun.push(`${name}: the input cannot go to this strategy.`);
+    else if (refused === takes) faults.push(`${name}: "supports" ${takes ? "takes" : "refuses"} the value, and the engine ${refused ? "refuses" : "takes"} it.`);
+  }
+}
+
+/** This function runs each strategy that an option of an entry offers, because a chooser must not offer a strategy that fails. */
+function checkChoices(entry: CatalogEntry, strategies: readonly CatalogEntry[], refuses: NonNullable<CatalogCheckOptions["refusesChoice"]>, faults: string[], notRun: string[]): void {
+  for (const [key, declaration] of Object.entries(entry.options)) {
+    for (const choice of catalogChoices(strategies, declaration)) {
+      const name = `${entry.key}: the option "${key}" with ${choice.key}`;
+      let refused: boolean | undefined;
+      try {
+        refused = refuses(entry.key, key, choice.key);
+      } catch (error) {
+        notRun.push(`${name}: ${error instanceof Error ? error.message : String(error)}`);
+        continue;
+      }
+      if (refused === undefined) notRun.push(`${name}: the input cannot go to this strategy.`);
+      else if (refused) faults.push(`${name}: the option offers this strategy, and the engine refuses it.`);
+    }
+  }
+}
+
+/** This function examines each param of a space against the declaration of its option. */
+function checkSpaceParams(space: StrategySpace, entries: ReadonlyMap<string, CatalogEntry>, faults: string[], notMatched: string[]): void {
+  for (const stage of space.stages) {
+    for (const option of stage.options) {
+      const entry = entries.get(`${stage.name}/${option.id}`) ?? entries.get(option.id);
+      if (entry === undefined) {
+        notMatched.push(`${stage.name}/${option.id}`);
+        continue;
+      }
+      for (const param of option.params) {
+        const declaration = entry.options[param.name];
+        if (declaration === undefined) {
+          notMatched.push(`${stage.name}/${option.id}.${param.name}`);
+          continue;
+        }
+        const values = [param.min, param.max, ...(param.values ?? []), param.default].filter((v) => v !== undefined);
+        for (const value of values) {
+          const issue = optionIssue(param.name, value, declaration);
+          if (issue !== undefined) faults.push(`${entry.key}: the space ${space.engine} is outside the declaration. ${issue.message}`);
+        }
+      }
+    }
+  }
+}
+
+/**
+ * This function examines a catalog against its engine: the live defaults, the set of strategies and a round trip through JSON.
+ * It also examines the claims of determinism, `supports`, `limits`, the choices of each strategy option and the spaces.
+ * A claim that no run can examine goes to `notRun`, by key, so a test can state their count.
+ */
+export function checkCatalog(source: StrategyCatalogSource, registry: readonly RegistryEntry[], options: CatalogCheckOptions = {}): CatalogCheck {
+  const faults: string[] = [];
+  const notRun: string[] = [];
+  const notMatched: string[] = [];
+  let text: string | undefined;
+  try {
+    text = writeStrategyCatalog(source, "0.0.0");
+  } catch (error) {
+    faults.push(error instanceof Error ? error.message : String(error));
+  }
+  if (text !== undefined) {
+    const parsed = parseStrategyCatalog(JSON.parse(text));
+    if (!parsed.ok || writeStrategyCatalog(parsed.catalog, "0.0.0") !== text) faults.push("A round trip through JSON changes the catalog.");
+  }
+  const entries = new Map(source.strategies.map((e) => [e.key, e]));
+  const live = new Map(registry.map((e) => [e.key, e]));
+  for (const key of live.keys()) if (!entries.has(key)) faults.push(`${key} is in the engine, and not in the catalog.`);
+  for (const key of entries.keys()) if (!live.has(key)) faults.push(`${key} is in the catalog, and not in the engine.`);
+  for (const [key, entry] of entries) {
+    const facts = live.get(key);
+    if (facts === undefined) continue;
+    checkLive(entry, facts, faults);
+    checkDeterminism(entry, facts, faults, notRun);
+    checkProbes(entry, options.probes ?? [], faults, notRun);
+    if (options.refusesChoice !== undefined) checkChoices(entry, source.strategies, options.refusesChoice, faults, notRun);
+  }
+  for (const space of options.spaces ?? []) checkSpaceParams(space, entries, faults, notMatched);
+  return { faults, notRun, notMatched };
+}

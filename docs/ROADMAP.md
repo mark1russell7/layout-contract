@@ -14,6 +14,7 @@ This file lists the items of the roadmap of this repository. The status page of 
 | L95 | done | P1 | Open size families in the joint corpus (`joint-v3`) |
 | L96 | in progress | P2 | Two named tables of the family `recorded` in `rigor-generators`, with source, license and date, as joint inputs and size choices of the site |
 | L98 | done | P2 | Bench: run only chosen rows of the cover |
+| L102 | in progress | P1 | The strategy catalog: each strategy and option of an engine as JSON (`docs/STRATEGY-CATALOG.md`) |
 | L101 | in progress | P0 | Bench: a shard with a deadline, a record for each pair, and a resume of a run |
 | L100 | in progress | P1 | The step between two epochs: raw values of the baseline arm, with a marked step on the charts |
 | L99 | in progress | P1 | A night with no result shows: `night-check.yml`, a line on the site, retries on API reads, and no green skip after a failed gate |
