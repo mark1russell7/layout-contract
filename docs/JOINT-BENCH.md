@@ -1653,7 +1653,19 @@ The formula of each limit is the worst value of the 5 probes of the run 41408115
 | s2 | 2886809 + 5588 | 2892397 | 369 + 1 | 370 |
 | s3 | 3175543 + 5864 | 3181407 | 450 + 1 (the spread is 0) | 451 |
 
-- The limits are in `MEMORY_LIMITS` of `src/memory-gate.ts`. A test examines each limit against the values of this table.
+The re-fit of 2026-11-04 replaces these limits. It uses the same formula on the run [41654875543](https://github.com/mark1russell7/layout-contract/actions/runs/41654875543), on commit `21f9dc4` of `main`. Each seed has 300 pairs in that run, not 270, because the order `graph-bfs` added 30 pairs.
+
+| Seed | Allocation (MB): worst + margin | Allocation limit (MB) | `liveMaxMb` (MB): worst + margin | `liveMaxMb` limit (MB) |
+|---|---|---|---|---|
+| s1 | 2531692 + 3575 | 2535267 | 393 + 1 (the spread is 0) | 394 |
+| s2 | 3307620 + 1088 | 3308708 | 420 + 1 (the spread is 0) | 421 |
+| s3 | 3566522 + 7250 | 3573772 | 502 + 1 (the spread is 0) | 503 |
+
+- The 270 old pairs did not move. Over the 15 probes, their largest live heap is 369, 369 and 451 MB, inside the old limits. Their allocation is at most 2181621, 2881538 and 3177537 MB.
+- The 30 new pairs give the rise. The largest live heap is on `maxrects-bl-graph-bfs+corners-smooth` for each seed. The routers are the same, but the retained heap also depends on the layout that a router reads.
+- The peak RSS of this run is 3320 to 4700 MB. This is under the ceiling, so the ceiling does not change.
+
+- The limits are in `MEMORY_LIMITS` of `src/memory-gate.ts`. A test examines each limit against the values of the table of the re-fit.
 - A probe fails when a value is more than its limit, or when it has no value.
 - The ceiling of the peak RSS is the worst peak of the 15 probes plus their spread: 4503 + (4503 - 3215) = 5791 MB. It applies to each probe of each input. It is a guard against a crash, because the peak RSS depends on the time of the GC.
 - The scope: the limits of the allocation and of `liveMaxMb` cover only the 3 seeds of input F, the dense input with hubs. The other 100 families have only the ceiling of the peak RSS.
