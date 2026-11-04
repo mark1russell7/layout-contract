@@ -114,7 +114,7 @@ function cells(d: JointData): string {
     })
     .join("");
   return `<details class="more"><summary>All ${d.cells.length} cells of the headline inputs</summary>
-    <div class="scroll"><table class="table"><thead><tr><th>Rule</th><th class="num">Cap</th><th>Best pair</th><th class="num">Misses</th><th class="num">Score</th><th class="num">Oracle</th><th class="num">Gain</th><th class="num">3-pair share</th></tr></thead><tbody>${rows}</tbody></table></div>
+    <div class="scroll scroll-cue" tabindex="0" aria-label="The cells of the headline inputs"><table class="table"><thead><tr><th>Rule</th><th class="num">Cap</th><th>Best pair</th><th class="num">Misses</th><th class="num">Score</th><th class="num">Oracle</th><th class="num">Gain</th><th class="num">3-pair share</th></tr></thead><tbody>${rows}</tbody></table></div>
   </details>`;
 }
 

@@ -288,6 +288,9 @@ importers:
       '@mark1russell7/packing':
         specifier: ^0.6.0
         version: 0.6.0
+      '@mark1russell7/site-pages':
+        specifier: ^0.2.0
+        version: 0.2.0
       marked:
         specifier: ^18.1.2
         version: 18.1.2
@@ -554,6 +557,11 @@ packages:
   '@mark1russell7/rigor-statistics@0.1.6':
     resolution: {integrity: sha512-TReETn+ycVdnuPn/AwYAK5tNqOfNeDujLBm78AuoGYHm5U+L7wWutBl4joBVgRa73U/HRqXr3mTDMuC2lyA+BQ==}
     engines: {node: '>=22'}
+
+  '@mark1russell7/site-pages@0.2.0':
+    resolution: {integrity: sha512-dahr/WG5PFj/zrcTk/NvufB6N3Tswc60vvGregftq9nraEgeHhaEr+s0zr/gbcOrK7Cz2EHiyO5F2inHc2utYw==}
+    engines: {node: '>=22'}
+    hasBin: true
 
   '@mark1russell7/ste-lint@0.1.2':
     resolution: {integrity: sha512-Gq7XrLLBbuaGp+a6HbmikoPR2KmU06w/XZh8TFVmG9qbMsknMjOhh50lcZ1kEpYStI++uhlxrNv+sOkOqgnN5w==}
@@ -1764,6 +1772,8 @@ snapshots:
   '@mark1russell7/rigor-statistics@0.1.6':
     dependencies:
       '@mark1russell7/rigor-generators': 0.1.1
+
+  '@mark1russell7/site-pages@0.2.0': {}
 
   '@mark1russell7/ste-lint@0.1.2':
     dependencies:
