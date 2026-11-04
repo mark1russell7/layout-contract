@@ -54,11 +54,15 @@ function writeHash(): void {
   history.replaceState(null, "", `#${h.toString()}`);
 }
 
-/** This function gives the tag of a strategy with no bench result: an exception, or a strategy that waits for the first cover run. Each other strategy has no tag. */
-function resultTag(strategy: string): string {
+/**
+ * This function gives the tag of a pack entry with no bench result. The entry is an exception, or its strategy waits for the first cover run, or it is newer than the newest run.
+ * Each other entry has no tag.
+ */
+function resultTag(strategy: string, id: string): string {
   const exception = catalog.packExceptions[strategy];
   if (exception !== undefined) return ` <span class="tag" title="${esc(exception.reason)}">no joint input</span>`;
   if (catalog.packWaiting.includes(strategy)) return ` <span class="tag" title="This strategy has no bench result at this time. You can run it here on one input.">waiting for the first cover run</span>`;
+  if (catalog.packNoResult.includes(id)) return ` <span class="tag" title="The newest published run does not hold this entry. A new run gives it a result. You can run it here on one input.">waiting for a new run</span>`;
   return "";
 }
 
@@ -69,7 +73,7 @@ function packChips(): string {
     .map((s) => {
       const entries = packs.filter((p) => p.strategy === s);
       const chips = entries
-        .map((p) => `<button type="button" class="chip${onPacks.has(p.id) ? " on" : ""}" data-pack="${esc(p.id)}" aria-pressed="${onPacks.has(p.id)}">${esc(p.id)}${resultTag(p.strategy)}</button>`)
+        .map((p) => `<button type="button" class="chip${onPacks.has(p.id) ? " on" : ""}" data-pack="${esc(p.id)}" aria-pressed="${onPacks.has(p.id)}">${esc(p.id)}${resultTag(p.strategy, p.id)}</button>`)
         .join("");
       return `<div class="strategy-row"><span class="strategy-name" title="${esc(catalog.about.packing[s] ?? "")}"><code>${esc(s)}</code></span><div class="chips">${chips}</div></div>`;
     })

@@ -34,6 +34,13 @@ describe("the lists of the joint pages", () => {
     expect(buildCatalog(manifestText, versions, true).packWaiting).toEqual([]);
   });
 
+  it("gives the entries of the benchmark that the newest run does not hold", () => {
+    const ids = catalog.benchPacks.map((p) => p.id);
+    expect(catalog.packNoResult).toEqual([]);
+    expect(buildCatalog(manifestText, versions, false, ids).packNoResult).toEqual([]);
+    expect(buildCatalog(manifestText, versions, false, ids.slice(1)).packNoResult).toEqual(ids.slice(0, 1));
+  });
+
   it("tags only the strategies of the closed list of exceptions", () => {
     expect(Object.keys(catalog.packExceptions)).toEqual(["hole-degree"]);
     expect(packs.some((p) => p.strategy === "hole-degree")).toBe(true);
