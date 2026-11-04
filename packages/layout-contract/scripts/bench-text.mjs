@@ -5,10 +5,13 @@
 // <file> is the path of a built `text.js`. The labels have the shape of the labels of a consumer page: 333 distinct texts of approximately 8 characters, mostly one word.
 // The rounds of the two builds alternate, so a slow period of the runner touches both. Each round swaps the order of the builds (ABBA), so neither build always runs second.
 // A head with `createTextLayoutCache` gets a third arm: the same calls through one new layout cache for each round, so the first pass over the labels fills it.
+// A head with `createTextCharset` gets the arms of L71: passes over the labels with a cold measurer, with `sizing` at "exact" and at "bound-first", and one "exact" arm again as the A/A check.
+// The L71 arms use a table of proportional advances (`text-labels.ts`). The table is cheap, so these times leave out the cost of a real measure of a browser or a shaper.
 // One untimed call of each arm comes before the rounds, as the warm-up. The script writes a Markdown table with the CPU model to stdout.
 // Start it only in CI (`.github/workflows/text-bench.yml`). A shared computer gives times that are not stable.
 import { cpus } from "node:os";
 import { pathToFileURL } from "node:url";
+import { DIGIT_LABELS, helveticaAdvance, LETTER_LABELS as labels } from "./text-labels.ts";
 
 const args = {};
 for (let i = 2; i < process.argv.length; i += 2) args[process.argv[i].replace(/^--/, "")] = process.argv[i + 1];
@@ -25,27 +28,6 @@ Intl.Segmenter = class extends Original {
     made++;
   }
 };
-
-/** This function gives a seeded generator, so each run uses the same labels. */
-function rng(seed) {
-  let a = seed >>> 0;
-  return () => {
-    a = (a + 0x6d2b79f5) >>> 0;
-    let t = a;
-    t = Math.imul(t ^ (t >>> 15), t | 1);
-    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
-    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
-  };
-}
-
-const r = rng(333);
-const word = (n) => Array.from({ length: n }, () => String.fromCharCode(97 + Math.floor(r() * 26))).join("");
-const labels = [];
-while (labels.length < 333) {
-  const words = r() < 0.9 ? 1 : 2 + Math.floor(r() * 2);
-  const text = Array.from({ length: words }, () => word(3 + Math.floor(r() * 12))).join(" ");
-  if (!labels.includes(text)) labels.push(text);
-}
 
 const advance = (text) => Array.from(text).reduce((s, c) => s + (c === " " ? 3.1 : 7.3), 0);
 const options = { font: "12px sans-serif", lineHeight: 16, wrapWidth: 160, maxLines: 2 };
@@ -67,6 +49,17 @@ function cachedRound(text) {
   return performance.now() - start;
 }
 
+/** This function gives the milliseconds of passes over the labels. Each pass has a new cold measurer, and the passes make `calls` layouts or a little more. */
+function coldRound(text, family, sizing) {
+  const passes = Math.ceil(calls / family.labels.length);
+  const start = performance.now();
+  for (let p = 0; p < passes; p++) {
+    const measurer = text.createMeasurer(helveticaAdvance);
+    for (const label of family.labels) text.layoutText(label, { ...options, measurer, sizing, charset: family.charset });
+  }
+  return performance.now() - start;
+}
+
 const builds = {};
 for (const name of ["base", "head"]) {
   const before = made;
@@ -79,12 +72,29 @@ if (typeof builds.head.text.createTextLayoutCache === "function") {
   cachedRound(builds.head.text);
   builds["head with the cache"] = { text: builds.head.text, run: cachedRound, times: [], segmenters: 0 };
 }
+// The families of L71. A set is a value for `createTextCharset`.
+const head = builds.head.text;
+const families =
+  typeof head.createTextCharset === "function"
+    ? [
+        { name: "letter labels, printable ASCII set", labels, charset: head.createTextCharset(head.PRINTABLE_ASCII) },
+        { name: "letter labels, set of a to z and the space", labels, charset: head.createTextCharset(" abcdefghijklmnopqrstuvwxyz") },
+        { name: "digit labels, digit set", labels: DIGIT_LABELS, charset: head.createTextCharset(head.DIGITS) },
+      ]
+    : [];
+for (const family of families) {
+  for (const [label, sizing] of [["exact", "exact"], ["exact again", "exact"], ["bound-first", "bound-first"]]) {
+    const run = (text) => coldRound(text, family, sizing);
+    run(head);
+    builds[`cold ${label}: ${family.name}`] = { text: head, run, times: [], segmenters: 0 };
+  }
+}
 const arms = Object.keys(builds);
 for (let k = 0; k < rounds; k++) for (const name of k % 2 === 0 ? arms : [...arms].reverse()) builds[name].times.push(builds[name].run(builds[name].text));
 
 const median = (v) => [...v].sort((a, b) => a - b)[Math.floor(v.length / 2)];
-const base = median(builds.base.times);
-const head = median(builds.head.times);
+const baseMs = median(builds.base.times);
+const headMs = median(builds.head.times);
 console.log(`The bench of \`/text\`: ${calls} layouts of ${labels.length} labels for each round, ${rounds} rounds in the order ABBA, node ${process.version}, CPU ${cpus()[0]?.model ?? "unknown"}.`);
 console.log("");
 console.log("| Build | Median ms | Microseconds for each layout | Segmenters made |");
@@ -94,7 +104,29 @@ for (const name of arms) {
   console.log(`| ${name} | ${ms.toFixed(1)} | ${((ms * 1000) / calls).toFixed(2)} | ${builds[name].segmenters} |`);
 }
 console.log("");
-console.log(`The head takes ${(head / base).toFixed(3)} of the time of the base.`);
-if (arms.includes("head with the cache")) console.log(`The head with the cache takes ${(median(builds["head with the cache"].times) / head).toFixed(3)} of the time of the head.`);
+console.log(`The head takes ${(headMs / baseMs).toFixed(3)} of the time of the base.`);
+if (arms.includes("head with the cache")) console.log(`The head with the cache takes ${(median(builds["head with the cache"].times) / headMs).toFixed(3)} of the time of the head.`);
 console.log("");
+if (families.length > 0) {
+  console.log("`sizing` on one cold pass, with the options of the bench and the table of proportional advances. The counts do not change from run to run. The slack is (bound - exact) / exact of the whole label on one line.");
+  console.log("");
+  console.log("| Family | Labels | Skip the measure | Measure calls, exact | Measure calls, bound-first | Median slack of bound | Bound-first / exact, cold | Exact again / exact, cold |");
+  console.log("|---|---|---|---|---|---|---|---|");
+  for (const family of families) {
+    const pass = (sizing) => {
+      const measurer = head.createMeasurer(helveticaAdvance);
+      const layouts = family.labels.map((label) => head.layoutText(label, { ...options, measurer, sizing, charset: family.charset }));
+      return { layouts, calls: measurer.stats().calls };
+    };
+    const exact = pass("exact");
+    const first = pass("bound-first");
+    const skipped = first.layouts.filter((layout) => layout.bounded === true).length;
+    const measurer = head.createMeasurer(helveticaAdvance);
+    const natural = (label, sizing) => head.layoutText(label, { font: options.font, lineHeight: options.lineHeight, measurer, sizing, charset: family.charset }).widths[0];
+    const slack = median(family.labels.map((label) => (natural(label, "bound") - natural(label, "exact")) / natural(label, "exact")));
+    const ms = (label) => median(builds[`cold ${label}: ${family.name}`].times);
+    console.log(`| ${family.name} | ${family.labels.length} | ${((100 * skipped) / family.labels.length).toFixed(1)}% | ${exact.calls} | ${first.calls} | ${(100 * slack).toFixed(1)}% | ${(ms("bound-first") / ms("exact")).toFixed(3)} | ${(ms("exact again") / ms("exact")).toFixed(3)} |`);
+  }
+  console.log("");
+}
 console.log("The two builds run in one process, one after the other. Thus these times and this ratio are not the cost of a build alone (the fleet bench rule of 2026-11-02). This bench is a report, not a gate.");

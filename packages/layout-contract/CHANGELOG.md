@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.3.6
+
+- PATCH before 1.0.0: new optional options, a new optional result field and new exports, with no break. A caller who does not set `sizing` gets each earlier result.
+- `layoutText` has the new options `sizing` (`exact`, `bound-first` or `bound`) and `charset`.
+- `createTextCharset(characters, { pairMargin })` gives a declared character set. `DIGITS` and `PRINTABLE_ASCII` are two strings for it.
+- With `bound-first`, a label of the set stays on one line with no measure when its bound fits. Other labels get a measure.
+- With `bound`, a label of the set gets no measure, and its box has the size of the bound. A layout from the bound has `bounded: true`.
+- The key of `createTextLayoutCache` holds `sizing` and the character set.
+- `docs/TEXT.md` gives the rules, the hard cases and the numbers of one rough bench run.
+
 ## 0.3.5
 
 - PATCH before 1.0.0: new exports and an optional method, with no break. `layoutText` does not change.

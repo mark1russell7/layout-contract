@@ -9,7 +9,9 @@ The subpath `@mark1russell7/layout-contract/text` lays out the text of a label: 
 | `AdvanceFn` | The function of the host that gives the width of a text in a font, in pixels. |
 | `canvasAdvance(context)` | The advance function of a canvas context. It sets `font` only when the font changes. |
 | `createMeasurer(advance, { maxEntries })` | A measurer with a cache keyed by the font and the segment. It gives each advance in whole units of 1/`TEXT_UNITS` (1/64) pixel. |
+| `createTextCharset(characters, { pairMargin })` | A declared character set for the option `sizing`. "Sizing from a declared character set" below gives its rules. |
 | `createTextLayoutCache({ maxEntries })` | A bounded cache of `layoutText` results. "The layout cache" below gives its rules. |
+| `DIGITS`, `PRINTABLE_ASCII` | Two strings for `createTextCharset`. |
 | `fontKey(font)` | The key of a font: the font string with its white space collapsed. |
 | `graphemesOf(text)` | The grapheme clusters of a text. |
 | `layoutText(text, options)` | The lines, the width of each line, the line count, the box and the `truncated` flag. |
@@ -38,7 +40,8 @@ const cache = createTextLayoutCache({ maxEntries: 4096 });
 const layout = cache.layout(text, { font, measurer, lineHeight: 16, wrapWidth: 160 });
 ```
 
-- **Key.** The key holds the text, each option and the measurer. Two calls share an entry only when the text and all these values are the same.
+- **Key.** The key holds the text, each option and the measurer. Two calls share an entry only when the text and all these values are the same. The options include `sizing` and `charset`.
+- **Character set.** The cache gives each character set object a number, as for a measurer. Two sets with the same characters thus do not share an entry.
 - **Font.** The key holds the raw font string, not `fontKey(font)`. Two spellings of one font thus use two entries.
 - **Measurer.** The cache gives each measurer object a number. Two measurer objects thus do not share an entry. The cache keeps only the measurer of its last call alive.
 - **Reset of a measurer.** `generation()` of a measurer is part of the key, so `measurer.reset()` makes the old entries unreachable. They stay in the count until the cache removes them.
@@ -49,6 +52,57 @@ const layout = cache.layout(text, { font, measurer, lineHeight: 16, wrapWidth: 1
 - **Shared result.** Each result is deeply frozen, because all callers with one key get the same object. A change of a result throws a `TypeError` in strict mode, and it has no effect in other code. To change a result, change a copy from `structuredClone(layout)`.
 - **Errors.** A call that throws keeps no entry.
 - **Counts.** `cache.stats()` gives `requests`, `hits`, `calls` and `size`. A hit does not use the measurer, so the counts of the measurer do not include it.
+
+## Sizing from a declared character set
+
+A label can skip the measure when each of its characters comes from a declared set. The width of the label is then at most its length times the largest advance of the set. This product costs O(1) after the check of the characters, and it uses no measure.
+
+```ts
+const digits = createTextCharset(DIGITS);
+const layout = layoutText("12345", { font, measurer, lineHeight: 16, wrapWidth: 160, sizing: "bound-first", charset: digits });
+```
+
+| `sizing` | A label in the set | A label out of the set |
+|---|---|---|
+| `exact` (the default) | It gets a measure. | It gets a measure. |
+| `bound-first` | It stays on one line with no measure when its bound fits. Else it gets a measure, and its layout is the `exact` layout. | It gets a measure. |
+| `bound` | It gets no measure. All widths and the box come from the bound, also when the label wraps. | It gets a measure. |
+
+- **Result.** A layout from the bound has the field `bounded: true`. Each of its widths is at or above the measured width. A measured layout does not have the field.
+- **Box of a skipped label.** No measure means no exact width, so the box of a skipped label is the box of the bound. The lines, the height and `truncated` of a skipped label are the `exact` values.
+- **Lines of `bound`.** The breaker uses the bound of each word. A label can thus get more lines than `exact`, and the greedy breaker does not give fewer. A label that wraps at `maxLines` gets one measure, for the ellipsis.
+- **Charset.** `bound-first` and `bound` need `charset`. Without it, `layoutText` gives a `RangeError`.
+- **First use.** The set measures each of its members once for each font and measurer: 10 measures for `DIGITS`, 95 for `PRINTABLE_ASCII`. After `measurer.reset()`, it measures them again. For a measurer without `generation`, it measures them on each call.
+- **The largest advance.** The set takes the largest member advance in units, and it adds 1 unit. The added unit is necessary: 5 characters of 7.3 pixels give 2336 units as one segment, but 5 times the rounded advance is 2335.
+
+The cases that can break a bound:
+
+| Case | What happens |
+|---|---|
+| A kerning pair that is narrower | The bound holds, because the sum of the advances stays above the width. |
+| A kerning pair or a ligature that is wider | The bound is low with the default `pairMargin` of 0. Give the largest added width of a pair as a share of the largest advance. A test shows the low bound and the correction. |
+| Letter spacing and word spacing | `layoutText` has no such option. A host puts them in its advance function, so each member advance holds them. A host that adds letter spacing only between two characters gives it in `pairMargin`. |
+| Tab, line break, soft hyphen, zero-width character | `createTextCharset` refuses them, so a label with one gets a measure. `exact` collapses a tab or a line break to one space, so `layoutText` has no hard break. |
+| White space other than the space | `createTextCharset` refuses it, because `exact` replaces it with one space of a different width. |
+| Combining marks, emoji parts, bidirectional controls | `createTextCharset` refuses them, so a label with one gets a measure. |
+| Scripts that join or change their shape | `createTextCharset` refuses them. Only the Latin, Greek, Cyrillic, Han, Hiragana, Katakana and Common scripts are members. Thus Hebrew and Arabic text gets a measure. |
+| A character out of the set | The label gets a measure. |
+| A member with an advance of 0 or no number | That is a gap in the font. Each label of the font gets a measure. |
+| An ellipsis from `maxChars` | The check reads the text after the cut, so an ellipsis out of the set gives a measure. |
+
+The bench `packages/layout-contract/scripts/bench-text.mjs` gives these numbers. They come from one bench job with 20000 layouts for each round and 7 rounds, on Node 24 on a shared computer. The job is rough, and it is not a gate. The labels are the 333 letter labels of the bench and 333 labels of digits, with `wrapWidth: 160` and `maxLines: 2`. The advances come from the Helvetica table of `scripts/text-labels.ts` at 12 pixels, with no kerning.
+
+| Labels and set | Labels that skip | Measure calls, `exact` | Measure calls, `bound-first` | Median slack of `bound` | Time, `bound-first` / `exact` | Time, `exact` / `exact` (A/A) |
+|---|---|---|---|---|---|---|
+| Letters, `PRINTABLE_ASCII` | 82.9% | 387 | 200 | 109.7% | 0.607 | 1.041 |
+| Letters, a to z and the space | 91.9% | 387 | 97 | 72.1% | 0.440 | 0.968 |
+| Digits, `DIGITS` | 100.0% | 334 | 10 | 0.2% | 0.312 | 1.032 |
+
+- The slack is the bound minus the exact width, divided by the exact width, for the whole label on one line.
+- The counts come from one cold pass over the labels, so they are the same in each job.
+- Each time comes from passes with a new cold measurer for each pass. The table costs little, so a time ratio leaves out the cost of a real measure. The A/A column shows the noise of this job: differences under approximately 4% have no meaning here.
+- The time of `exact` with no cold measurer is in the same table of the bench. CI gives this time against the last release, on the pull request.
+- A small set gives a smaller slack. One wide character, for example `@`, sets the bound for all members.
 
 ## The units and the error
 
