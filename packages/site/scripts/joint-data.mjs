@@ -4,7 +4,7 @@
 //        --versions highways=<v>,packing=<v> [--corpus <set>] [--cover on]
 //
 // It writes packages/site/data/joint/<run>.json, and it fails when the result does not pass checkJoint.
-// The corpus is joint-v2 by default. Each new result adds one file. The site shows the latest default result, and it marks a cover run.
+// The corpus is joint-v2 by default. Each new result adds one file. The site shows the newest result, and it marks a cover run.
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
