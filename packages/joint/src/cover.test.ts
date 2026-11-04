@@ -1,4 +1,4 @@
-import { composites, shapeStrategies, strategies } from "@mark1russell7/packing";
+import { allStrategies } from "@mark1russell7/packing";
 import { listStrategies, MEMBER_FORMS, routerStrategies, STRATEGIES } from "@mark1russell7/highways";
 import { describe, expect, it } from "vitest";
 import { COVER_EXCEPTIONS, COVER_PACKS, COVER_ROUTERS, coverEntries, coverOptions, coverPairs, coverRouters, packStrategyIds } from "./cover.ts";
@@ -13,7 +13,7 @@ const routerOf = (pair: string): string => pair.slice(pair.indexOf("+") + 1);
 describe("the cover of the catalogs", () => {
   it("reads each list of the registry of packing", () => {
     const ids = packStrategyIds();
-    for (const list of [strategies, composites, shapeStrategies]) for (const s of list) expect(ids).toContain(s.id);
+    for (const s of allStrategies) expect(ids).toContain(s.id);
   });
 
   it("gives each strategy an entry, with only the listed exceptions", () => {

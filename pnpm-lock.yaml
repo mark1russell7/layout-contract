@@ -215,8 +215,8 @@ importers:
         specifier: workspace:*
         version: link:../layout-contract
       '@mark1russell7/packing':
-        specifier: ^0.6.0
-        version: 0.6.0
+        specifier: ^0.6.1
+        version: 0.6.1
       '@mark1russell7/rigor-bench':
         specifier: ^0.2.2
         version: 0.2.5
@@ -286,8 +286,8 @@ importers:
         specifier: workspace:*
         version: link:../layout-contract
       '@mark1russell7/packing':
-        specifier: ^0.6.0
-        version: 0.6.0
+        specifier: ^0.6.1
+        version: 0.6.1
       '@mark1russell7/site-pages':
         specifier: ^0.2.0
         version: 0.2.0
@@ -538,8 +538,8 @@ packages:
     resolution: {integrity: sha512-zBQVEXtbEcPYbTff+SyNE73xsHcn+TFA4f/es7UWO4XYt7VYZ0B0hd1A/7SFdKL1lcHLRFWDc5bpk7+IBoUYQQ==}
     engines: {node: '>=22.12'}
 
-  '@mark1russell7/packing@0.6.0':
-    resolution: {integrity: sha512-p6iiKvu+bb+VeIVg4nbG3N1rOxUVVL8BHCnncewlQAvtS0c3PidUjmXn59wBq1T0A2ganhthas5a6xhx0kPtHA==}
+  '@mark1russell7/packing@0.6.1':
+    resolution: {integrity: sha512-AX/IWfesqar/IUWF1XRPXC3PzwLNQAQzJ7tvlYQ7CSiIpMPO3qmBr9emMHK8h4GyIbH11gQU15iklZ4N0+NlUA==}
     engines: {node: '>=22.12'}
 
   '@mark1russell7/rigor-bench@0.2.5':
@@ -1753,7 +1753,7 @@ snapshots:
       '@mark1russell7/rigor-generators': 0.1.1
       '@mark1russell7/typeset': 0.1.0
 
-  '@mark1russell7/packing@0.6.0':
+  '@mark1russell7/packing@0.6.1':
     dependencies:
       '@mark1russell7/layout-contract': 0.3.5
       '@mark1russell7/rigor-generators': 0.1.1
