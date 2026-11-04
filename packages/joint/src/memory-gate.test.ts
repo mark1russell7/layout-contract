@@ -1,6 +1,7 @@
 // The memory gate of L81: the probe inputs cover each family of the corpus, and the gate fails on each kind of bad probe.
 import { describe, expect, it } from "vitest";
 import { jointCorpus, SET_V2 } from "./corpus.ts";
+import { straightCrossings } from "./joint-measures.ts";
 import {
   expectedProbes,
   familyOf,
@@ -12,6 +13,9 @@ import {
   MEMORY_LIMITS,
   memoryGate,
   type ProbeResult,
+  STEP_FUNCTION,
+  STEP_LINE_MB,
+  stepCount,
 } from "./memory-gate.ts";
 import { plannedCost } from "./plan.ts";
 import { PACK_ENTRIES, ROUTERS } from "./runner.ts";
@@ -95,6 +99,32 @@ describe("the gate", () => {
   });
 });
 
+describe("the steps of the allocation", () => {
+  const site = (mb: number, name = STEP_FUNCTION) => ({ at: `${name} file:///x/joint-measures.ts:121`, mb });
+
+  it("counts the pairs where the function allocates the line or more", () => {
+    const pairs = [{ top: [site(27.8)] }, { top: [site(STEP_LINE_MB)] }, { top: [site(1076.3)] }, { top: [] }];
+    expect(stepCount(pairs)).toBe(2);
+  });
+
+  it("does not count another function", () => {
+    expect(stepCount([{ top: [site(5000, `${STEP_FUNCTION}Other`), site(5000, "hypot")] }])).toBe(0);
+  });
+
+  it("follows the name of the function", () => {
+    expect(straightCrossings.name).toBe(STEP_FUNCTION);
+  });
+
+  it("shows the count next to the allocation, and an empty cell without a count", () => {
+    const expected = [{ input: "a", mode: "measure-6144" }, { input: "b", mode: "bench-6144" }];
+    const results = [{ input: "a", mode: "measure-6144", status: 0, peakRssMb: 100, allocMb: 7, steps: 2 }, { input: "b", mode: "bench-6144", status: 0, peakRssMb: 90 }];
+    const text = gateMarkdown(memoryGate(expected, results));
+    expect(text).toContain("| Allocation (MB) | Steps |");
+    expect(text).toContain("| a | measure-6144 | 0 | 100 | 7 | 2 |");
+    expect(text).toContain("| b | bench-6144 | 0 | 90 |  |  |");
+  });
+});
+
 describe("the limits of input F", () => {
   const limits = { a: { allocMb: 1000, liveMaxMb: 300 } };
   const probe = (allocMb: number | undefined, liveMaxMb: number | undefined): ProbeResult => ({ input: "a", mode: LIMITS_MODE, status: 0, peakRssMb: 900, allocMb, liveMaxMb });
@@ -112,9 +142,9 @@ describe("the limits of input F", () => {
     expect(gate.pass).toBe(true);
   });
 
-  it("are the worst value of run 41654875543 plus the spread, with one step of 1 MB at least", () => {
-    // The values of the 5 probes of each seed: [min, max] of allocMb and of liveMaxMb.
-    const run = { s1: [2528117, 2531692, 393, 393], s2: [3306532, 3307620, 420, 420], s3: [3559272, 3566522, 502, 502] };
+  it("are the worst value of runs 41654875543 and 41769223049 plus the spread, with one step of 1 MB at least", () => {
+    // The values of the 6 probes of each seed: [min, max] of allocMb and of liveMaxMb.
+    const run = { s1: [2528117, 2531692, 393, 393], s2: [3306532, 3310056, 420, 420], s3: [3559272, 3566862, 502, 502] };
     for (const [seed, [aMin, aMax, lMin, lMax]] of Object.entries(run)) {
       const limit = MEMORY_LIMITS[`${DENSE_HUBS_FAMILY}/${seed}`]!;
       expect(limit.allocMb).toBe(aMax! + Math.max(aMax! - aMin!, 1));

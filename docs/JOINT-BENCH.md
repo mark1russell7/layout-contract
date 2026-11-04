@@ -1740,6 +1740,36 @@ The re-fit of 2026-11-04 replaces these limits. It uses the same formula on the 
 - The 30 new pairs give the rise. The largest live heap is on `maxrects-bl-graph-bfs+corners-smooth` for each seed. The routers are the same, but the retained heap also depends on the layout that a router reads.
 - The peak RSS of this run is 3320 to 4700 MB. This is under the ceiling, so the ceiling does not change.
 
+A second re-fit on 2026-11-04 replaces the limits of s2 and s3. The gate of the run [41769223049](https://github.com/mark1russell7/layout-contract/actions/runs/41769223049), on commit `5a00107`, failed on s2. Its allocation is 3310056 MB, and the limit was 3308708 MB.
+
+No engine changed after `21f9dc4`. The node version is the same. Each of the 300 records of each seed has the same result bytes as the 5 probes of the first re-fit. Thus the 6 probes are one sample, and the limits use the same formula on the 6 probes.
+
+| Seed | Allocation (MB): worst + margin | Allocation limit (MB) | `liveMaxMb` limit (MB) |
+|---|---|---|---|
+| s1 | 2531692 + 3575 | 2535267 | 394 |
+| s2 | 3310056 + 3524 | 3313580 | 421 |
+| s3 | 3566862 + 7590 | 3574452 | 503 |
+
+- The function `straightCrossings` of `src/joint-measures.ts` gives the steps in the allocation. It runs one time for each pack, on the pair with the router `straight`. Some of these calls allocate approximately 1100 MB more than the others.
+- One probe has 0 to 4 steps. The 5 probes of s2 in the first re-fit had 0 steps, so their spread of 1088 MB was less than one step. The new probe of s2 has 1 step.
+- The reason for a step inside a call is not known at this time. The result bytes are equal, so the step is not a change of the layouts.
+- Without the steps, the spread of the 6 probes is 2676 MB (s1), 2390 MB (s2) and 4484 MB (s3). Thus a filter of the steps does not give a much smaller limit, and the gate keeps the full allocation.
+- The largest value of s2 without steps is 3308922 MB. With 4 steps of 1134 MB, it is 3313458 MB. This is under the limit of s2.
+- `gate.md` shows the count of the steps of each probe next to its allocation. `stepCount` of `src/memory-gate.ts` counts the pairs where `straightCrossings` allocates 500 MB or more. In the 18 probes of the two runs, a plain call allocates at most 27.8 MB. The 21 steps allocate 1076.3 to 1140 MB.
+
+These limits do not catch each growth. The table gives the real growth of the allocation of all pairs, against the 6 probes.
+
+| Seed | A growth that no seen value fails | A growth that each seen value fails |
+|---|---|---|
+| s1 | up to 3575 MB (0.14%) | more than 7150 MB (0.28%) |
+| s2 | up to 3524 MB (0.11%) | more than 7048 MB (0.21%) |
+| s3 | up to 7590 MB (0.21%) | more than 15180 MB (0.43%) |
+
+- The first column is the margin, as a share of the worst value. The second column is the limit minus the lowest value, as a share of the lowest value.
+- A growth between the two columns fails on some nights only. The result depends on the count of the steps and on the noise.
+- The allocation alone is blind to 4 steps. They are 4560 MB: 0.18% of s1, 0.14% of s2 and 0.13% of s3. The lowest value of each seed without steps stays under its limit with 4 steps. Thus read the count of the steps before you read a change of this size as a growth.
+- These limits move again only with a measured cause. If a probe goes over a limit, do not re-fit, also when the probe has more than 4 steps. First measure why a call of `straightCrossings` steps, with one small job on that function alone. The first test is the tier of V8. This is a guess at this time.
+
 - The limits are in `MEMORY_LIMITS` of `src/memory-gate.ts`. A test examines each limit against the values of the table of the re-fit.
 - A probe fails when a value is more than its limit, or when it has no value.
 - The ceiling of the peak RSS is the worst peak of the 15 probes plus their spread: 4503 + (4503 - 3215) = 5791 MB. It applies to each probe of each input. It is a guard against a crash, because the peak RSS depends on the time of the GC.

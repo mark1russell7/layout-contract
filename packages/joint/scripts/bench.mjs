@@ -103,6 +103,7 @@ import {
   SET_V2,
   SETS,
   SPACINGS,
+  stepCount,
 } from "../src/index.ts";
 
 const [command, ...rest] = process.argv.slice(2);
@@ -527,12 +528,16 @@ if (command === "check") {
     // summary.jsonl has one line for the input when the probe ended. The modes without a sampler or a forced GC write null.
     const summaryFile = join(dir, sub, "summary.jsonl");
     const summary = existsSync(summaryFile) ? readFileSync(summaryFile, "utf8").split("\n").filter((l) => l !== "").map((l) => JSON.parse(l)).at(-1) : undefined;
+    // alloc.jsonl has one line for each pair in the modes that sample the allocation. The gate shows the count of the steps next to the allocation.
+    const allocFile = join(dir, sub, "alloc.jsonl");
+    const allocated = summary?.allocMb != null && existsSync(allocFile) ? readFileSync(allocFile, "utf8").split("\n").filter((l) => l !== "").map((l) => JSON.parse(l)) : undefined;
     return {
       input: text(sub, "input.txt"),
       mode: text(sub, "mode.txt"),
       status: Number(text(sub, "status.txt")),
       peakRssMb: facts.length === 0 ? undefined : Math.max(...facts.map((f) => f.maxRss)),
       allocMb: summary?.allocMb ?? undefined,
+      steps: allocated === undefined ? undefined : stepCount(allocated),
       liveMaxMb: summary?.liveMaxMb ?? undefined,
     };
   });
