@@ -191,7 +191,7 @@ The baseline arm of the night gives the reference of each input. The reference h
 
 The reference is fixed, so the scores of different nights compare. The floor of the reference is not higher than the floor of all pairs. Thus a config that reaches the floor of all pairs also reaches the floor of the reference.
 
-The baseline arm runs again each night. When a baseline config gets another score on an input, the night counts the input as drift.
+The baseline arm runs again each night. When a baseline config gets another score on an input, the night counts the input as drift. The check compares the stored values, with 6 decimal places. The drift of 296 and 265 inputs in the nights 2026-11-02 and 2026-11-03 is not a change of the baseline. It came from a check of a rounded value against an unrounded value, and each raw value of these nights is equal.
 
 ## The race
 
@@ -253,6 +253,7 @@ The epoch is `<corpus>_packing-<version>_highways-<version>_space-<version>`, fo
 A new engine version starts a new epoch, and the trend of each epoch starts again. The first night of an epoch thus measures the step from the epoch before it. That step goes to `index.json`, and the site marks it on the charts.
 
 - The step needs no extra run. Round 1 of each night runs the baseline arm on each input.
+- The bench adds no noise to the step. With the same engines, each raw value of the 909 pairs was equal in the nights 2026-11-02 and 2026-11-03. Thus each ratio that is not 1 comes from the engines.
 - The step compares raw values: the fill, the hard constraints and the crossings of the baseline pick. A `sweep.score` does not pair across epochs, because it depends on the reference of its epoch.
 - A pair counts only when the input id, the input hash, the config id and `BENCH_SPACE_VERSION` are equal. Each other pair drops, and the step states the count.
 - The field `inputHashes` of a state has the hash of each input. An older state has no such field, so `LEGACY_INPUT_LISTS` has the hash of its list, from the manifest at its last night.

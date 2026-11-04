@@ -356,11 +356,12 @@ export function applyRecords(state: SweepState, records: readonly LayoutRecord[]
     for (const [id, v] of values) {
       const arr = (state.values[id] ??= state.inputs.map(() => null));
       const old = arr[i];
+      const stored = Number(v.score.toFixed(6));
       if (old !== null && old !== undefined) {
-        if (state.configs[id]!.status === "baseline" && Math.abs(old - v.score) > 1e-9) drifted = true;
+        if (state.configs[id]!.status === "baseline" && Math.abs(old - stored) > 1e-9) drifted = true;
         continue;
       }
-      arr[i] = Number(v.score.toFixed(6));
+      arr[i] = stored;
       addToSummary(rows, id, input, v, baseline);
       added++;
     }

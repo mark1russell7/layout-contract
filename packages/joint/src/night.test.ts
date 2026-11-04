@@ -101,6 +101,15 @@ describe("a night of the sweep on small inputs", () => {
     expect(planned(third).slice(0, Math.min(waited.length, planned(third).length))).toEqual(waited.slice(0, Math.min(waited.length, planned(third).length)));
   });
 
+  it("gives no drift for a value with more digits than the state stores", () => {
+    const state = emptyState("test", "test", INPUTS);
+    const base = baselineIds();
+    const same = INPUTS.flatMap((i) => base.map((b) => record(b, i.id, 0.123456789)));
+    applyRecords(state, same, INPUTS, "2026-10-28");
+    applyRecords(state, same, INPUTS, "2026-10-29");
+    expect(state.nights.find((n) => n.date === "2026-10-29")?.drift).toBe(0);
+  });
+
   it("counts the drift of the baseline arm", () => {
     const state = emptyState("test", "test", INPUTS);
     const base = baselineIds();
