@@ -22,17 +22,24 @@ export interface SiteKpi {
 }
 
 /** The parts of the catalog that the measures read. */
-export type KpiCatalog = Pick<JointCatalog, "benchPacks" | "extraPacks" | "routers">;
+export type KpiCatalog = Pick<JointCatalog, "about" | "routers">;
+
+/** One bench entry: its id in the run, and the strategy of `packing` that it uses. */
+export interface BenchEntry {
+  readonly id: string;
+  readonly strategy: string;
+}
 
 /** This function counts the engines of the run that have the version of the build of the site. */
 export function enginesCurrent(run: Readonly<Record<string, string>>, built: Readonly<Record<string, string>>): number {
   return Object.keys(run).filter((engine) => run[engine] === built[engine]).length;
 }
 
-/** This function counts the packers of the compare page with a result in the run. A chip with no result and a run entry with no chip do not count. */
-export function packersMeasured(run: JointData, catalog: KpiCatalog): number {
-  const chips = new Set([...catalog.benchPacks, ...catalog.extraPacks].map((pack) => pack.id));
-  return run.stress.byPacker.filter((packer) => chips.has(packer.id)).length;
+/** This function counts the strategies of the catalog with a result in the run. One bench entry with a result is enough for its strategy. */
+export function packersMeasured(run: JointData, catalog: KpiCatalog, entries: readonly BenchEntry[]): number {
+  const strategyOf = new Map(entries.map((entry) => [entry.id, entry.strategy]));
+  const measured = new Set(run.stress.byPacker.map((packer) => strategyOf.get(packer.id)));
+  return Object.keys(catalog.about.packing).filter((strategy) => measured.has(strategy)).length;
 }
 
 /**
@@ -41,8 +48,9 @@ export function packersMeasured(run: JointData, catalog: KpiCatalog): number {
  * @param files - The data files of `data/joint/`.
  * @param catalog - The catalog of the build.
  * @param built - The version of each engine in the build of the site.
+ * @param entries - The bench entries of the joint package.
  */
-export function siteKpiInput(files: readonly JointData[], catalog: KpiCatalog, built: Readonly<Record<string, string>>): SiteKpi | undefined {
+export function siteKpiInput(files: readonly JointData[], catalog: KpiCatalog, built: Readonly<Record<string, string>>, entries: readonly BenchEntry[]): SiteKpi | undefined {
   const run = latestJoint(files);
   if (run === undefined) return undefined;
   return {
@@ -50,7 +58,7 @@ export function siteKpiInput(files: readonly JointData[], catalog: KpiCatalog, b
     at: `${run.date}T00:00:00Z`,
     measures: [
       { id: "pairs-in-run", value: run.pairs, unit: "pairs" },
-      { id: "packers-measured", value: packersMeasured(run, catalog), unit: "packers" },
+      { id: "packers-measured", value: packersMeasured(run, catalog, entries), unit: "packers" },
       { id: "routers-on-compare", value: catalog.routers.length, unit: "routers" },
       { id: "engines-current", value: enginesCurrent(run.versions, built), unit: "engines" },
     ],
