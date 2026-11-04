@@ -3,8 +3,8 @@
 ## 0.3.9
 
 - PATCH before 1.0.0: new exports, with no break.
-- The schema `strategy-catalog/1` gives each strategy and each option of an engine as JSON: `STRATEGY_CATALOG_SCHEMA`, `parseStrategyCatalog`, `writeStrategyCatalog`, `checkCatalog`, `catalogDefaults`, `catalogOptions`, `catalogKey`, `decodeOptionValue`, `encodeOptionValue`, `NODE_POSITIONS_DIMENSION`.
-- This package holds the option declarations: `OptionSchema`, `AnyOption`, `listOptions`, `optionDefaults`, `checkOptions`, `clampOptions`, `sweepValues`, `sweepOf`, `sweepGrid`, `checkSchema`. New fields: `noDefault`, `when`, `kinds`, `optionsKey`, `of`.
+- The schema `strategy-catalog/1` gives each strategy and each option of an engine as JSON: `STRATEGY_CATALOG_SCHEMA`, `parseStrategyCatalog`, `writeStrategyCatalog`, `checkCatalog`, `catalogDefaults`, `catalogOptions`, `catalogChoices`, `catalogKey`, `decodeOptionValue`, `encodeOptionValue`, `NODE_POSITIONS_DIMENSION`.
+- This package holds the option declarations: `OptionSchema`, `AnyOption`, `listOptions`, `optionDefaults`, `checkOptions`, `clampOptions`, `sweepValues`, `sweepOf`, `sweepGrid`, `checkSchema`. New fields: `noDefault`, `when`, `kinds`, `optionsKey`, `inlineOptions`, `optIn`, `of`.
 
 ## 0.3.8
 

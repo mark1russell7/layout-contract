@@ -4,7 +4,7 @@ The schema `strategy-catalog/1` gives each strategy and each option of one engin
 
 ## The file
 
-Each engine exports the file `./strategy-catalog.json` at a package path. The file is the main form, because a reader of the catalog does not run engine code. The engine also exports the same data as a constant `strategyCatalog`.
+Each engine exports the file `./strategy-catalog.json` at a package path. The file is the main form, because a reader of the catalog does not run engine code. The engine also exports the same data as a constant `strategyCatalog`, at its root or at a subpath. A subpath keeps the declarations out of the root bundle.
 
 ```json
 {
@@ -32,7 +32,7 @@ Each engine exports the file `./strategy-catalog.json` at a package path. The fi
 | `family` | The group in a chooser. An engine without groups gives the step. |
 | `kind` | `single`, `composite` or `shape`. |
 | `describe` | One line for a chooser. |
-| `supports` | The values that the strategy takes, by dimension. A dimension that is not here has no declared limit. It does not mean that the strategy takes all values. |
+| `supports` | The values that the strategy takes, by dimension. A dimension that is not here has no declared limit, so a chooser offers the strategy. A `SupportProbe` makes this a tested claim: an entry that refuses the value must list the dimension. |
 | `limits` | The limits on the measures of the input, by measure. An empty record means that the engine declares no limit. |
 | `deterministic` | A claim for the default options: the result depends only on the input, the options and the seed. It has no unknown value. |
 | `determinismNote` | Optional: one sentence on what can change the claim, for example a clock. |
@@ -54,7 +54,7 @@ A limit has the form `{ "max": 10000, "describe": "..." }`, under the name of th
 | `number`, `integer` | `min`, `max`, `step`, `scale`, `special`, `marks`, `values` |
 | `boolean` | no other fields |
 | `enum` | `values`, `custom` |
-| `strategy` | `step`, `kinds`, `optionsKey` |
+| `strategy` | `step`, `kinds`, `optionsKey`, `inlineOptions`, `optIn` |
 | `list` | `of`, `min`, `max` |
 | `object` | no other fields |
 | `function` | no other fields, and a form cannot set it from JSON |
@@ -90,9 +90,10 @@ JSON has no form for `Infinity`, and `JSON.stringify(Infinity)` gives `null` wit
 ```
 
 - The value is the `key` of an entry of the same catalog. A reference does not go to another engine.
-- `step` and `kinds` limit the choice.
+- `step`, `kinds` and `optIn` limit the choice. `optIn: false` leaves out the opt-in strategies, for an engine that finds a member only in its default set. `catalogChoices(strategies, declaration)` gives the strategies that an option offers, so no chooser keeps a copy of this rule.
 - `optionsKey` names the option that holds the options of the chosen strategy. A form renders that option from the chosen entry.
-- A list of members is a `list` with `of`: `{ "type": "list", "of": { "type": "strategy", "kinds": ["single"] }, "min": 2, "max": 8 }`.
+- `inlineOptions: true` is the other form: the value holds its options. The value is a key or an object `{ "strategy": "maxrects", "options": { "rule": "bl" }, "id": "maxrects-bl" }`, and `options` and `id` are optional. The options of the value have the JSON form of the declarations of the chosen entry. A declaration does not have both forms.
+- A list of members is a `list` with `of`: `{ "type": "list", "of": { "type": "strategy", "kinds": ["single"], "inlineOptions": true }, "min": 2, "max": 8 }`. An item has no sibling option, so `of` does not have `optionsKey`.
 
 ## The check of an engine
 
@@ -105,8 +106,9 @@ JSON has no form for `Infinity`, and `JSON.stringify(Infinity)` gives `null` wit
 5. A round trip through JSON gives the same bytes.
 6. `limits` equals the limits in the code.
 7. Each entry with `deterministic: true` runs two times on a fixture, with the same output bytes. An entry that cannot run goes to `notRun`, by name. The output of the fixture holds no times.
-8. Each `SupportProbe` runs each entry. The refusal and `supports` agree. A dimension that `supports` does not list means that the engine takes the value, so a refusal is a fault.
+8. Each `SupportProbe` runs each entry. The refusal and `supports` agree. A probe on a dimension that an entry does not list expects the engine to take the value, so a refusal is a fault.
 9. Each param of a space is inside the declaration of its option. A stage option or a param without a match goes to `notMatched`.
+10. With `refusesChoice`, each strategy that an option offers runs as the value of that option. A refusal is a fault, because a chooser offers only what works.
 
 ## The relation to the strategy space
 

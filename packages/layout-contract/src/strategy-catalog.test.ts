@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  catalogChoices,
   catalogDefaults,
   catalogKey,
   catalogOptions,
@@ -210,6 +211,81 @@ describe("the parser", () => {
     expect(faultsOf("aspect-fit", (e) => (optionsOf(e)["members"]!["default"] = ["other"]))[0]).toContain("not a strategy that the option takes");
     expect(faultsOf("aspect-fit", (e) => (optionsOf(e)["members"]!["default"] = []))[0]).toContain("fewer than 1");
     expect(faultsOf("aspect-fit", (e) => (optionsOf(e)["members"]!["default"] = ["shelf", "shelf", "shelf"]))[0]).toContain("more than 2");
+  });
+});
+
+describe("the options inside a value", () => {
+  const wide: CatalogEntry = { ...shelf, key: "wide", id: "wide", optIn: true, options: {} };
+  const member = { strategy: "shelf", options: { fit: "best", gap: "Infinity" }, id: "shelf-best" };
+  const outer = (options: CatalogEntry["options"]): CatalogEntry => ({ ...wrap, key: "outer", id: "outer", options });
+
+  it("takes a member as a default, alone and in a list, and keeps its bytes", () => {
+    const entry = outer({
+      member: { type: "strategy", describe: "The member.", inlineOptions: true, default: member },
+      members: { type: "list", describe: "The members.", of: { type: "strategy", inlineOptions: true }, default: ["shelf", member] },
+    });
+    const s: StrategyCatalogSource = { engine: "packing", strategies: [entry, shelf] };
+    const text = writeStrategyCatalog(s, "1.0.0");
+    const parsed = parseStrategyCatalog(JSON.parse(text));
+    expect(parsed.ok).toBe(true);
+    if (parsed.ok) expect(writeStrategyCatalog(parsed.catalog, "1.0.0")).toBe(text);
+    expect(catalogDefaults(entry)["member"]).toEqual(member);
+  });
+
+  it("refuses a member without the field, a bad member and both forms", () => {
+    const write = (o: AnyOption): (() => string) => () => writeStrategyCatalog({ engine: "packing", strategies: [outer({ member: o }), shelf] }, "1.0.0");
+    expect(write({ type: "strategy", describe: "x", default: member })).toThrow(/not the key of a strategy/);
+    expect(write({ type: "strategy", describe: "x", inlineOptions: true, default: { strategy: "shelf", other: 1 } })).toThrow(/not the key of a strategy/);
+    expect(write({ type: "strategy", describe: "x", inlineOptions: true, optionsKey: "o", default: "shelf" })).toThrow(/two places/);
+    expect(write({ type: "strategy", describe: "x", inlineOptions: 1 as never, default: "shelf" })).toThrow(/not true or false/);
+    expect(write({ type: "list", describe: "x", of: { type: "strategy", optionsKey: "o" }, default: [] })).toThrow(/no sibling/);
+  });
+
+  it("examines the options of a member against the chosen strategy", () => {
+    const write = (m: unknown): (() => string) => () => writeStrategyCatalog({ engine: "packing", strategies: [outer({ member: { type: "strategy", describe: "x", inlineOptions: true, default: m } as AnyOption }), shelf] }, "1.0.0");
+    expect(write({ strategy: "shelf", options: { other: 1 } })).toThrow(/no such option/);
+    expect(write({ strategy: "shelf", options: { fit: "worst" } })).toThrow(/takes first, best/);
+    expect(write({ strategy: "other" })).toThrow(/"other" is not a strategy/);
+    expect(write({ strategy: "shelf" })).not.toThrow();
+  });
+
+  it("leaves out the opt-in strategies, and refuses one as a default", () => {
+    const strategies = [shelf, wide];
+    expect(catalogChoices(strategies, { type: "strategy", describe: "x", optIn: false }).map((e) => e.key)).toEqual(["shelf"]);
+    expect(catalogChoices(strategies, { type: "strategy", describe: "x" }).map((e) => e.key)).toEqual(["shelf", "wide"]);
+    expect(catalogChoices(strategies, { type: "list", describe: "x", of: { type: "strategy", optIn: true } }).map((e) => e.key)).toEqual(["wide"]);
+    expect(catalogChoices(strategies, { type: "boolean", describe: "x" })).toEqual([]);
+    expect(catalogChoices(strategies, { type: "list", describe: "x" })).toEqual([]);
+    const bad = outer({ member: { type: "strategy", describe: "x", optIn: false, default: "wide" } });
+    expect(() => writeStrategyCatalog({ engine: "packing", strategies: [bad, shelf, wide] }, "1.0.0")).toThrow(/"wide" is not a strategy/);
+  });
+
+  it("keeps a live member on the declaration, and compares it", () => {
+    const schema: Record<string, AnyOption> = { member: { type: "strategy", describe: "x", inlineOptions: true } };
+    expect(catalogOptions({ member }, schema)["member"]?.default).toEqual(member);
+    const entry = outer({ member: { ...schema["member"], default: member } as AnyOption });
+    const s: StrategyCatalogSource = { engine: "packing", strategies: [entry, shelf] };
+    const run = (live: unknown): readonly string[] => checkCatalog(s, [{ key: "outer", defaults: { member: live }, optIn: true }, registry[0]!]).faults;
+    expect(run(member)).toEqual([]);
+    expect(run({ ...member, id: "other" })[0]).toContain("differs from the live default");
+  });
+
+  it("runs each strategy that an option offers", () => {
+    const entry = outer({ member: { type: "strategy", describe: "x", optIn: false, default: "shelf" } });
+    const s: StrategyCatalogSource = { engine: "packing", strategies: [entry, shelf, wide] };
+    const live: readonly RegistryEntry[] = [{ key: "outer", defaults: {}, optIn: true }, registry[0]!, { key: "wide", defaults: {}, optIn: true, limits: { nodes: { max: 10000 } } }];
+    const seen: string[] = [];
+    const taken = checkCatalog(s, live, { refusesChoice: (owner, option, choice) => (seen.push(`${owner} ${option} ${choice}`), false) });
+    expect(seen).toEqual(["outer member shelf"]);
+    expect(taken.notRun.filter((n) => n.includes("option"))).toEqual([]);
+    expect(checkCatalog(s, live, { refusesChoice: () => true }).faults.at(-1)).toContain("the engine refuses it");
+    expect(checkCatalog(s, live, { refusesChoice: () => undefined }).notRun.join(" ")).toContain("cannot go to this strategy");
+    const stopped = checkCatalog(s, live, {
+      refusesChoice: () => {
+        throw new Error("no input");
+      },
+    });
+    expect(stopped.notRun.join(" ")).toContain("no input");
   });
 });
 

@@ -4,13 +4,20 @@
 # and private members. The command `api-report check` compares this file with the built .d.ts files.
 # To accept a change of the API, start the build, then `api-report update`, and review the diff.
 
-## . (build/index.d.ts): 249 names
+## . (build/index.d.ts): 297 names
 
+AnyOption: build/index.d.ts#AnyOption
 BALANCE_MEASURE_SUFFIXES: build/index.d.ts#BALANCE_MEASURE_SUFFIXES
 BALANCE_SIDE_DEPTH: build/index.d.ts#BALANCE_SIDE_DEPTH
 Balance: build/index.d.ts#Balance
 BalanceMeasureSuffix: build/index.d.ts#BalanceMeasureSuffix
+BooleanOption: build/index.d.ts#BooleanOption
 CORPUS_DIMENSIONS: build/index.d.ts#CORPUS_DIMENSIONS
+CatalogCheck: build/index.d.ts#CatalogCheck
+CatalogCheckOptions: build/index.d.ts#CatalogCheckOptions
+CatalogEntry: build/index.d.ts#CatalogEntry
+CatalogLimit: build/index.d.ts#CatalogLimit
+CatalogOptionsOptions: build/index.d.ts#CatalogOptionsOptions
 CellsOptions: build/index.d.ts#CellsOptions
 ClaimBreak: build/measures-C-Tuv8GU.d.ts#ClaimBreak
 ComposeOptions: build/index.d.ts#ComposeOptions
@@ -26,6 +33,7 @@ DEFAULT_RNG: build/index.d.ts#DEFAULT_RNG
 DEFAULT_SHAPES: build/measures-C-Tuv8GU.d.ts#DEFAULT_SHAPES
 DEFAULT_TOLERANCE: build/index.d.ts#DEFAULT_TOLERANCE
 DeclaredClaim: build/measures-C-Tuv8GU.d.ts#DeclaredClaim
+DeclaredStrategy: build/index.d.ts#DeclaredStrategy
 Declares: build/measures-C-Tuv8GU.d.ts#Declares
 DimensionValues: build/index.d.ts#DimensionValues
 Direction: build/measures-C-Tuv8GU.d.ts#Direction
@@ -35,6 +43,7 @@ EDGE_STEP_VERSION: build/index.d.ts#EDGE_STEP_VERSION
 EPS: build/index.d.ts#EPS
 EdgeShape: build/index.d.ts#EdgeShape
 EdgeStepParams: build/index.d.ts#EdgeStepParams
+EnumOption: build/index.d.ts#EnumOption
 EnumerateOptions: build/index.d.ts#EnumerateOptions
 ExerciseEvidence: build/index.d.ts#ExerciseEvidence
 FAMILY_ANY_KIND: build/measures-C-Tuv8GU.d.ts#FAMILY_ANY_KIND
@@ -58,14 +67,24 @@ LayoutEdge: build/measures-C-Tuv8GU.d.ts#LayoutEdge
 LayoutGenerator: build/measures-C-Tuv8GU.d.ts#LayoutGenerator
 LayoutInput: build/measures-C-Tuv8GU.d.ts#LayoutInput
 LayoutRecord: build/index.d.ts#LayoutRecord
+ListItem: build/index.d.ts#ListItem
 Margin: build/measures-C-Tuv8GU.d.ts#Margin
 MeasureSpec: build/measures-C-Tuv8GU.d.ts#MeasureSpec
 Member: build/index.d.ts#Member
 MemberRule: build/index.d.ts#MemberRule
 MemberStatus: build/index.d.ts#MemberStatus
 MemberTrace: build/index.d.ts#MemberTrace
+NODE_POSITIONS_DIMENSION: build/index.d.ts#NODE_POSITIONS_DIMENSION
+NoDefault: build/index.d.ts#NoDefault
+NoDefaultReason: build/index.d.ts#NoDefaultReason
+NumberOption: build/index.d.ts#NumberOption
 Obstacle: build/measures-C-Tuv8GU.d.ts#Obstacle
+OptionDeclaration: build/index.d.ts#OptionDeclaration
+OptionIssue: build/index.d.ts#OptionIssue
 OptionRef: build/index.d.ts#OptionRef
+OptionScale: build/index.d.ts#OptionScale
+OptionSchema: build/index.d.ts#OptionSchema
+OptionSetting: build/index.d.ts#OptionSetting
 OptionSupports: build/index.d.ts#OptionSupports
 OutputGroup: build/index.d.ts#OutputGroup
 OwnerDimensionSpec: build/index.d.ts#OwnerDimensionSpec
@@ -97,6 +116,7 @@ RECT_SCATTERED: build/index.d.ts#RECT_SCATTERED
 Rect: build/measures-C-Tuv8GU.d.ts#Rect
 Region: build/measures-C-Tuv8GU.d.ts#Region
 RegistryCell: build/index.d.ts#RegistryCell
+RegistryEntry: build/index.d.ts#RegistryEntry
 RngFactory: build/index.d.ts#RngFactory
 RuleLevel: build/measures-C-Tuv8GU.d.ts#RuleLevel
 RunEnv: build/index.d.ts#RunEnv
@@ -105,6 +125,7 @@ SHAPE_KINDS: build/measures-C-Tuv8GU.d.ts#SHAPE_KINDS
 SHAPE_KIND_IDS: build/measures-C-Tuv8GU.d.ts#SHAPE_KIND_IDS
 SIDES: build/measures-C-Tuv8GU.d.ts#SIDES
 SPLIT_SCHEMA: build/measures-C-Tuv8GU.d.ts#SPLIT_SCHEMA
+STRATEGY_CATALOG_SCHEMA: build/index.d.ts#STRATEGY_CATALOG_SCHEMA
 STRATEGY_SPACE_SCHEMA: build/index.d.ts#STRATEGY_SPACE_SCHEMA
 SampleOptions: build/index.d.ts#SampleOptions
 SelectCandidate: build/index.d.ts#SelectCandidate
@@ -132,18 +153,26 @@ Stage: build/index.d.ts#Stage
 StageChoice: build/index.d.ts#StageChoice
 StageOption: build/index.d.ts#StageOption
 StageTrace: build/index.d.ts#StageTrace
+StrategyCatalog: build/index.d.ts#StrategyCatalog
+StrategyCatalogParse: build/index.d.ts#StrategyCatalogParse
+StrategyCatalogSource: build/index.d.ts#StrategyCatalogSource
 StrategyConfig: build/index.d.ts#StrategyConfig
 StrategyInfo: build/index.d.ts#StrategyInfo
+StrategyKind: build/index.d.ts#StrategyKind
+StrategyMember: build/index.d.ts#StrategyMember
 StrategySpace: build/index.d.ts#StrategySpace
+SupportProbe: build/index.d.ts#SupportProbe
 SupportedRange: build/index.d.ts#SupportedRange
 SupportedValues: build/index.d.ts#SupportedValues
 Supports: build/index.d.ts#Supports
+SweepOptions: build/index.d.ts#SweepOptions
 Tolerance: build/index.d.ts#Tolerance
 VERDICT_DRAWS: build/index.d.ts#VERDICT_DRAWS
 VERDICT_EXACT_CAP: build/index.d.ts#VERDICT_EXACT_CAP
 VERDICT_EXACT_MAX: build/index.d.ts#VERDICT_EXACT_MAX
 VERDICT_RUNS: build/index.d.ts#VERDICT_RUNS
 VERDICT_SEED: build/index.d.ts#VERDICT_SEED
+ValueOption: build/index.d.ts#ValueOption
 Verdict: build/measures-C-Tuv8GU.d.ts#Verdict
 VerdictBreadth: build/index.d.ts#VerdictBreadth
 VerdictInterval: build/index.d.ts#VerdictInterval
@@ -164,13 +193,21 @@ boxArea: build/measures-C-Tuv8GU.d.ts#boxArea
 canonicalConfig: build/index.d.ts#canonicalConfig
 canonicalInput: build/measures-C-Tuv8GU.d.ts#canonicalInput
 canonicalJson: build/index.d.ts#canonicalJson
+catalogChoices: build/index.d.ts#catalogChoices
+catalogDefaults: build/index.d.ts#catalogDefaults
+catalogKey: build/index.d.ts#catalogKey
+catalogOptions: build/index.d.ts#catalogOptions
+checkCatalog: build/index.d.ts#checkCatalog
 checkConfig: build/index.d.ts#checkConfig
 checkDeclared: build/measures-C-Tuv8GU.d.ts#checkDeclared
 checkInput: build/index.d.ts#checkInput
 checkLayoutRecord: build/index.d.ts#checkLayoutRecord
+checkOptions: build/index.d.ts#checkOptions
+checkSchema: build/index.d.ts#checkSchema
 checkShapes: build/measures-C-Tuv8GU.d.ts#checkShapes
 checkSpace: build/index.d.ts#checkSpace
 checkSplit: build/measures-C-Tuv8GU.d.ts#checkSplit
+clampOptions: build/index.d.ts#clampOptions
 compareMeasure: build/measures-C-Tuv8GU.d.ts#compareMeasure
 composeFamily: build/index.d.ts#composeFamily
 configId: build/index.d.ts#configId
@@ -180,13 +217,16 @@ countOutside: build/index.d.ts#countOutside
 countOverlaps: build/index.d.ts#countOverlaps
 countPortsOffBorder: build/index.d.ts#countPortsOffBorder
 createFamilyRegistry: build/index.d.ts#createFamilyRegistry
+declarationIssues: build/index.d.ts#declarationIssues
 declaredClaimOf: build/measures-C-Tuv8GU.d.ts#declaredClaimOf
 declaredCounts: build/measures-C-Tuv8GU.d.ts#declaredCounts
+decodeOptionValue: build/index.d.ts#decodeOptionValue
 dimensionAt: build/index.d.ts#dimensionAt
 dimensionSupports: build/index.d.ts#dimensionSupports
 dimensionUnit: build/index.d.ts#dimensionUnit
 documentHash: build/index.d.ts#documentHash
 edgeStep: build/index.d.ts#edgeStep
+encodeOptionValue: build/index.d.ts#encodeOptionValue
 enumerateSpace: build/index.d.ts#enumerateSpace
 exercised: build/index.d.ts#exercised
 familyKind: build/index.d.ts#familyKind
@@ -198,10 +238,13 @@ itemShapeOf: build/measures-C-Tuv8GU.d.ts#itemShapeOf
 joinConfigs: build/index.d.ts#joinConfigs
 leaveOneSeedOut: build/measures-C-Tuv8GU.d.ts#leaveOneSeedOut
 levelsOf: build/index.d.ts#levelsOf
+listOptions: build/index.d.ts#listOptions
 marginSides: build/measures-C-Tuv8GU.d.ts#marginSides
 minEffectOf: build/measures-C-Tuv8GU.d.ts#minEffectOf
 mulberry32: build/index.d.ts#mulberry32
 nearestGaps: build/index.d.ts#nearestGaps
+optionDefaults: build/index.d.ts#optionDefaults
+optionIssue: build/index.d.ts#optionIssue
 outputGroups: build/index.d.ts#outputGroups
 outputHash: build/index.d.ts#outputHash
 overlapOf: build/measures-C-Tuv8GU.d.ts#overlapOf
@@ -213,6 +256,7 @@ paramLevels: build/index.d.ts#paramLevels
 paramProblem: build/index.d.ts#paramProblem
 paramValue: build/index.d.ts#paramValue
 parseLayoutRecord: build/index.d.ts#parseLayoutRecord
+parseStrategyCatalog: build/index.d.ts#parseStrategyCatalog
 perChange: build/index.d.ts#perChange
 pickMoves: build/index.d.ts#pickMoves
 placedRect: build/index.d.ts#placedRect
@@ -243,6 +287,9 @@ splitConfig: build/index.d.ts#splitConfig
 splitFileName: build/measures-C-Tuv8GU.d.ts#splitFileName
 splitFolds: build/measures-C-Tuv8GU.d.ts#splitFolds
 stepRandom: build/index.d.ts#stepRandom
+sweepGrid: build/index.d.ts#sweepGrid
+sweepOf: build/index.d.ts#sweepOf
+sweepValues: build/index.d.ts#sweepValues
 toLayoutRecord: build/index.d.ts#toLayoutRecord
 toPackInput: build/measures-C-Tuv8GU.d.ts#toPackInput
 toRect: build/measures-C-Tuv8GU.d.ts#toRect
@@ -255,6 +302,7 @@ turnPort: build/index.d.ts#turnPort
 turnRegion: build/index.d.ts#turnRegion
 turnSide: build/index.d.ts#turnSide
 verdict: build/index.d.ts#verdict
+writeStrategyCatalog: build/index.d.ts#writeStrategyCatalog
 
 ## ./text (build/text.d.ts): 26 names
 
@@ -287,6 +335,9 @@ textMeasures: build/text.d.ts#textMeasures
 
 ## Declarations
 
+### build/index.d.ts#AnyOption
+export type AnyOption<S extends string = string> = NumberOption | BooleanOption | EnumOption | ValueOption<unknown, S>;
+
 ### build/index.d.ts#BALANCE_MEASURE_SUFFIXES
 export declare const BALANCE_MEASURE_SUFFIXES: readonly BalanceMeasureSuffix[];
 
@@ -304,8 +355,56 @@ export interface Balance {
 ### build/index.d.ts#BalanceMeasureSuffix
 export type BalanceMeasureSuffix = "balance.gapCv" | "balance.centroidOffset" | "balance.side.top" | "balance.side.right" | "balance.side.bottom" | "balance.side.left" | "balance.sideRange" | "stability.procrustes" | "stability.seed";
 
+### build/index.d.ts#BooleanOption
+export interface BooleanOption extends OptionBase {
+  readonly type: "boolean";
+  readonly default?: boolean;
+}
+
 ### build/index.d.ts#CORPUS_DIMENSIONS
 export declare const CORPUS_DIMENSIONS: Readonly<Record<string, CorpusDimension>>;
+
+### build/index.d.ts#CatalogCheck
+export interface CatalogCheck {
+  readonly faults: readonly string[];
+  readonly notRun: readonly string[];
+  readonly notMatched: readonly string[];
+}
+
+### build/index.d.ts#CatalogCheckOptions
+export interface CatalogCheckOptions {
+  readonly spaces?: readonly StrategySpace[];
+  readonly probes?: readonly SupportProbe[];
+  readonly refusesChoice?: (owner: string, option: string, choice: string) => boolean | undefined;
+}
+
+### build/index.d.ts#CatalogEntry
+export interface CatalogEntry {
+  readonly key: string;
+  readonly id: string;
+  readonly step?: string;
+  readonly family: string;
+  readonly kind: StrategyKind;
+  readonly describe: string;
+  readonly supports: Supports;
+  readonly limits: Readonly<Record<string, CatalogLimit>>;
+  readonly deterministic: boolean;
+  readonly determinismNote?: string;
+  readonly optIn: boolean;
+  readonly options: Readonly<Record<string, AnyOption>>;
+}
+
+### build/index.d.ts#CatalogLimit
+export interface CatalogLimit {
+  readonly min?: number;
+  readonly max?: number;
+  readonly describe: string;
+}
+
+### build/index.d.ts#CatalogOptionsOptions
+export interface CatalogOptionsOptions {
+  readonly strategyKey?: (value: unknown) => string | undefined;
+}
 
 ### build/index.d.ts#CellsOptions
 export interface CellsOptions {
@@ -378,6 +477,13 @@ export declare const DEFAULT_RNG: RngFactory;
 ### build/index.d.ts#DEFAULT_TOLERANCE
 export declare const DEFAULT_TOLERANCE: Tolerance;
 
+### build/index.d.ts#DeclaredStrategy
+export interface DeclaredStrategy<O extends object = object, S extends string = string> {
+  readonly name: string;
+  readonly defaults: O;
+  readonly schema?: OptionSchema<O, S>;
+}
+
 ### build/index.d.ts#DimensionValues
 export type DimensionValues = Readonly<Record<string, ParamValue>>;
 
@@ -403,6 +509,14 @@ export interface EdgeStepParams {
   readonly groups?: "none" | "flat" | "nested";
   readonly ports?: "free" | "sides" | "fixed";
   readonly hubBy?: "area" | "random";
+}
+
+### build/index.d.ts#EnumOption
+export interface EnumOption<V extends string = string> extends OptionBase {
+  readonly type: "enum";
+  readonly values: readonly V[];
+  readonly custom?: "function";
+  readonly default?: V;
 }
 
 ### build/index.d.ts#EnumerateOptions
@@ -494,6 +608,9 @@ export interface LayoutRecord {
   readonly commit?: string;
 }
 
+### build/index.d.ts#ListItem
+export type ListItem<S extends string = string> = ItemOf<AnyOption<S>>;
+
 ### build/index.d.ts#Member
 export interface Member<I, O> {
   readonly id: string;
@@ -522,10 +639,58 @@ export interface MemberTrace {
   readonly error?: string;
 }
 
+### build/index.d.ts#NODE_POSITIONS_DIMENSION
+export declare const NODE_POSITIONS_DIMENSION = "nodePositions";
+
+### build/index.d.ts#NoDefault
+export interface NoDefault {
+  readonly reason: NoDefaultReason;
+  readonly describe: string;
+}
+
+### build/index.d.ts#NoDefaultReason
+export type NoDefaultReason = "unset" | "required" | "derived" | "function";
+
+### build/index.d.ts#NumberOption
+export interface NumberOption extends OptionBase {
+  readonly type: "number" | "integer";
+  readonly min: number;
+  readonly max: number;
+  readonly step?: number;
+  readonly scale?: OptionScale;
+  readonly special?: readonly number[];
+  readonly marks?: readonly number[];
+  readonly values?: readonly number[];
+  readonly default?: number;
+}
+
+### build/index.d.ts#OptionDeclaration
+export type OptionDeclaration<V, S extends string = string> = [V] extends [number] ? NumberOption : [V] extends [boolean] ? BooleanOption : [V] extends [string] ? EnumOption<V> : [Extract<V, string>] extends [never] ? ValueOption<V, S> : EnumOption<Extract<V, string>> | ValueOption<V, S>;
+
+### build/index.d.ts#OptionIssue
+export interface OptionIssue {
+  readonly key: string;
+  readonly value: unknown;
+  readonly problem: "unknown" | "type" | "range" | "integer" | "value";
+  readonly message: string;
+}
+
 ### build/index.d.ts#OptionRef
 export interface OptionRef {
   readonly stage: string;
   readonly option: string | null;
+}
+
+### build/index.d.ts#OptionScale
+export type OptionScale = "linear" | "log";
+
+### build/index.d.ts#OptionSchema
+export type OptionSchema<O, S extends string = string> = { readonly [K in keyof O]-?: OptionDeclaration<NonNullable<O[K]>, S>; };
+
+### build/index.d.ts#OptionSetting
+export interface OptionSetting<O extends object> {
+  readonly name: string;
+  readonly options: Partial<O>;
 }
 
 ### build/index.d.ts#OptionSupports
@@ -665,6 +830,18 @@ export type RegistryCell = Readonly<Record<string, ParamValue>> & {
   readonly kind: string;
 };
 
+### build/index.d.ts#RegistryEntry
+export interface RegistryEntry {
+  readonly key: string;
+  readonly defaults: Readonly<Record<string, unknown>>;
+  readonly optIn: boolean;
+  readonly limits?: Readonly<Record<string, {
+    readonly min?: number;
+    readonly max?: number;
+  }>>;
+  readonly run?: () => string;
+}
+
 ### build/index.d.ts#RngFactory
 export type RngFactory = (seed: number) => () => number;
 
@@ -682,6 +859,9 @@ export interface RunEnv {
 
 ### build/index.d.ts#RunFacts
 export type RunFacts = Omit<LayoutRecord, "schema" | "input" | "inputHash" | "set" | "nodes" | "edges" | "shapes">;
+
+### build/index.d.ts#STRATEGY_CATALOG_SCHEMA
+export declare const STRATEGY_CATALOG_SCHEMA = "strategy-catalog/1";
 
 ### build/index.d.ts#STRATEGY_SPACE_SCHEMA
 export declare const STRATEGY_SPACE_SCHEMA = "strategy-space/1";
@@ -783,6 +963,27 @@ export interface StageTrace {
   readonly measures?: Readonly<Record<string, number>>;
 }
 
+### build/index.d.ts#StrategyCatalog
+export interface StrategyCatalog extends StrategyCatalogSource {
+  readonly schema: typeof STRATEGY_CATALOG_SCHEMA;
+  readonly version: string;
+}
+
+### build/index.d.ts#StrategyCatalogParse
+export type StrategyCatalogParse = {
+  readonly ok: true;
+  readonly catalog: StrategyCatalog;
+} | {
+  readonly ok: false;
+  readonly faults: readonly string[];
+};
+
+### build/index.d.ts#StrategyCatalogSource
+export interface StrategyCatalogSource {
+  readonly engine: string;
+  readonly strategies: readonly CatalogEntry[];
+}
+
 ### build/index.d.ts#StrategyConfig
 export interface StrategyConfig {
   readonly space: string;
@@ -799,6 +1000,16 @@ export interface StrategyInfo<O = unknown, S extends Supports = Supports> {
   readonly deterministic: boolean;
 }
 
+### build/index.d.ts#StrategyKind
+export type StrategyKind = "single" | "composite" | "shape";
+
+### build/index.d.ts#StrategyMember
+export interface StrategyMember {
+  readonly strategy: string;
+  readonly options?: Readonly<Record<string, unknown>>;
+  readonly id?: string;
+}
+
 ### build/index.d.ts#StrategySpace
 export interface StrategySpace {
   readonly schema: typeof STRATEGY_SPACE_SCHEMA;
@@ -808,6 +1019,13 @@ export interface StrategySpace {
   readonly constraints?: readonly SpaceConstraint[];
   readonly named?: Readonly<Record<string, StrategyConfig>>;
   readonly parts?: readonly StrategySpace[];
+}
+
+### build/index.d.ts#SupportProbe
+export interface SupportProbe {
+  readonly field: string;
+  readonly value: string;
+  readonly refuses: (key: string) => boolean | undefined;
 }
 
 ### build/index.d.ts#SupportedRange
@@ -821,6 +1039,12 @@ export type SupportedValues = readonly ParamValue[] | SupportedRange;
 
 ### build/index.d.ts#Supports
 export type Supports = Readonly<Record<string, readonly string[]>>;
+
+### build/index.d.ts#SweepOptions
+export interface SweepOptions {
+  readonly count?: number;
+  readonly special?: boolean;
+}
 
 ### build/index.d.ts#Tolerance
 export interface Tolerance {
@@ -842,6 +1066,20 @@ export declare const VERDICT_RUNS = 1e4;
 
 ### build/index.d.ts#VERDICT_SEED
 export declare const VERDICT_SEED = 1;
+
+### build/index.d.ts#ValueOption
+export interface ValueOption<V = unknown, S extends string = string> extends OptionBase {
+  readonly type: "function" | "strategy" | "list" | "object";
+  readonly step?: S;
+  readonly kinds?: readonly string[];
+  readonly optionsKey?: string;
+  readonly inlineOptions?: boolean;
+  readonly optIn?: boolean;
+  readonly of?: ListItem<S>;
+  readonly min?: number;
+  readonly max?: number;
+  readonly default?: V;
+}
 
 ### build/index.d.ts#VerdictBreadth
 export interface VerdictBreadth {
@@ -939,6 +1177,21 @@ export declare function canonicalConfig(space: StrategySpace, config: StrategyCo
 ### build/index.d.ts#canonicalJson
 export declare function canonicalJson(value: unknown): string;
 
+### build/index.d.ts#catalogChoices
+export declare function catalogChoices(strategies: readonly CatalogEntry[], declaration: AnyOption | ListItem): readonly CatalogEntry[];
+
+### build/index.d.ts#catalogDefaults
+export declare function catalogDefaults(entry: CatalogEntry): Record<string, unknown>;
+
+### build/index.d.ts#catalogKey
+export declare function catalogKey(id: string, step?: string): string;
+
+### build/index.d.ts#catalogOptions
+export declare function catalogOptions(defaults: Readonly<Record<string, unknown>>, schema: Readonly<Record<string, AnyOption>>, options?: CatalogOptionsOptions): Record<string, AnyOption>;
+
+### build/index.d.ts#checkCatalog
+export declare function checkCatalog(source: StrategyCatalogSource, registry: readonly RegistryEntry[], options?: CatalogCheckOptions): CatalogCheck;
+
 ### build/index.d.ts#checkConfig
 export declare function checkConfig(space: StrategySpace, config: StrategyConfig, options?: ShapeFilter): ClaimBreak[];
 
@@ -948,8 +1201,17 @@ export declare function checkInput(input: LayoutInput): readonly string[];
 ### build/index.d.ts#checkLayoutRecord
 export declare function checkLayoutRecord(value: unknown): string[];
 
+### build/index.d.ts#checkOptions
+export declare function checkOptions<O extends object>(strategy: DeclaredStrategy<O>, options: Partial<O>): OptionIssue[];
+
+### build/index.d.ts#checkSchema
+export declare function checkSchema(strategy: DeclaredStrategy): string[];
+
 ### build/index.d.ts#checkSpace
 export declare function checkSpace(space: StrategySpace): ClaimBreak[];
+
+### build/index.d.ts#clampOptions
+export declare function clampOptions<O extends object>(strategy: DeclaredStrategy<O>, options: Partial<O>): Partial<O>;
 
 ### build/index.d.ts#composeFamily
 export declare function composeFamily(base: CorpusFamily<LayoutInput>, steps: readonly CorpusStep[], options?: ComposeOptions): CorpusFamily<LayoutInput>;
@@ -972,6 +1234,12 @@ export declare function countPortsOffBorder(boxes: readonly LayoutBox[], eps?: n
 ### build/index.d.ts#createFamilyRegistry
 export declare function createFamilyRegistry<O = LayoutInput>(families?: Iterable<CorpusFamily<O>>): FamilyRegistry<O>;
 
+### build/index.d.ts#declarationIssues
+export declare function declarationIssues(key: string, d: AnyOption): string[];
+
+### build/index.d.ts#decodeOptionValue
+export declare function decodeOptionValue(value: unknown, declaration: AnyOption | ListItem): unknown;
+
 ### build/index.d.ts#dimensionAt
 export declare function dimensionAt(dim: SpaceParam, t: number): number;
 
@@ -986,6 +1254,9 @@ export declare function documentHash(doc: object, options?: HashOptions): string
 
 ### build/index.d.ts#edgeStep
 export declare function edgeStep(input: LayoutInput, params: EdgeStepParams, seed?: number): LayoutInput;
+
+### build/index.d.ts#encodeOptionValue
+export declare function encodeOptionValue(value: unknown, declaration: AnyOption | ListItem): unknown;
 
 ### build/index.d.ts#enumerateSpace
 export declare function enumerateSpace(space: StrategySpace, options: EnumerateOptions): StrategyConfig[];
@@ -1005,11 +1276,24 @@ export declare function joinConfigs(space: string, parts: readonly StrategyConfi
 ### build/index.d.ts#levelsOf
 export declare function levelsOf(dim: CorpusDimension, steps?: number): ParamValue[];
 
+### build/index.d.ts#listOptions
+export declare function listOptions<O extends object, S extends string = string>(strategy: DeclaredStrategy<O, S>): {
+  readonly key: keyof O & string;
+  readonly declaration: AnyOption<S>;
+  readonly value: unknown;
+}[];
+
 ### build/index.d.ts#mulberry32
 export declare function mulberry32(seed: number): () => number;
 
 ### build/index.d.ts#nearestGaps
 export declare function nearestGaps(boxes: readonly Rect[]): number[];
+
+### build/index.d.ts#optionDefaults
+export declare function optionDefaults<O extends object, S extends string = string>(strategy: DeclaredStrategy<O, S>): Partial<O>;
+
+### build/index.d.ts#optionIssue
+export declare function optionIssue(key: string, value: unknown, d: AnyOption): OptionIssue | undefined;
 
 ### build/index.d.ts#outputGroups
 export declare function outputGroups(hashes: Readonly<Record<string, readonly string[]>>): OutputGroup[];
@@ -1037,6 +1321,9 @@ export declare function paramValue(param: SpaceParam, value: ParamValue): ParamV
 
 ### build/index.d.ts#parseLayoutRecord
 export declare function parseLayoutRecord(value: unknown): LayoutRecord;
+
+### build/index.d.ts#parseStrategyCatalog
+export declare function parseStrategyCatalog(value: unknown): StrategyCatalogParse;
 
 ### build/index.d.ts#perChange
 export declare function perChange(move: number, changed: number, count: number): number;
@@ -1091,6 +1378,15 @@ export declare function splitConfig(config: StrategyConfig, engine: string): Str
 ### build/index.d.ts#stepRandom
 export declare function stepRandom(seed: number, step: string): () => number;
 
+### build/index.d.ts#sweepGrid
+export declare function sweepGrid<O extends object>(strategy: DeclaredStrategy<O>, keys: readonly (keyof O & string)[], options?: SweepOptions): OptionSetting<O>[];
+
+### build/index.d.ts#sweepOf
+export declare function sweepOf<O extends object>(strategy: DeclaredStrategy<O>, key: keyof O & string, options?: SweepOptions): OptionSetting<O>[];
+
+### build/index.d.ts#sweepValues
+export declare function sweepValues(declaration: AnyOption, options?: SweepOptions): unknown[];
+
 ### build/index.d.ts#toLayoutRecord
 export declare function toLayoutRecord(input: LayoutInput, run: RunFacts): LayoutRecord;
 
@@ -1114,6 +1410,9 @@ export declare function turnSide(side: Side): Side;
 
 ### build/index.d.ts#verdict
 export declare function verdict<R extends VerdictRecord>(records: Iterable<R>, options: VerdictOptions<R>): VerdictResult;
+
+### build/index.d.ts#writeStrategyCatalog
+export declare function writeStrategyCatalog(source: StrategyCatalogSource, version: string): string;
 
 ### build/measures-C-Tuv8GU.d.ts#ClaimBreak
 interface ClaimBreak {

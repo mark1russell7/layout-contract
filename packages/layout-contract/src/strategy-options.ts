@@ -82,6 +82,10 @@ export interface ValueOption<V = unknown, S extends string = string> extends Opt
   readonly kinds?: readonly string[];
   /** The key of the option that holds the options of the chosen strategy, for the type `strategy`. */
   readonly optionsKey?: string;
+  /** The value `true` lets a value hold its options: a key, or an object with the fields `strategy`, `options` and `id`. This field is for the type `strategy`, and also for an item of a list. */
+  readonly inlineOptions?: boolean;
+  /** The value `false` leaves out the opt-in strategies, because the option finds only the default set of the engine. This field is for the type `strategy`. */
+  readonly optIn?: boolean;
   /** The declaration of each item, for the type `list`. */
   readonly of?: ListItem<S>;
   /** The smallest number of items, for the type `list`. */
