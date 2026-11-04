@@ -142,7 +142,7 @@ button { cursor: pointer; }
 .seg button { border: 0; background: transparent; border-radius: 8px; padding: 6px 12px; color: var(--ink-2); }
 .seg button[aria-checked="true"] { background: var(--surface); color: var(--ink); box-shadow: 0 1px 2px rgb(0 0 0 / 0.15); font-weight: 600; }
 .runs { display: flex; gap: 8px; align-items: center; margin-bottom: 12px; font-size: 0.9rem; }
-.runs select { max-width: 100%; padding: 4px 6px; border-radius: 6px; border: 1px solid var(--line); background: var(--surface); }
+.runs select { min-width: 0; max-width: 100%; padding: 4px 6px; border-radius: 6px; border: 1px solid var(--line); background: var(--surface); }
 
 /* The headline */
 .hero { display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, 2fr); gap: 12px; margin-bottom: 18px; }
