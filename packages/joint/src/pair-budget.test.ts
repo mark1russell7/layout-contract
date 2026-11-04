@@ -117,9 +117,7 @@ describe("budgetTag", () => {
   });
 
   it("gives a skip the 2 pairs that caused it, with another reason than an overrun", () => {
-    const tag = budgetTag({ kind: "not-run", id: doneKey("i", "s+r"), budgetMs: 300_000, group: "i
-route
-r", because: [doneKey("i", "p+r"), doneKey("i", "q+r")] }, budget);
+    const tag = budgetTag({ kind: "not-run", id: doneKey("i", "s+r"), budgetMs: 300_000, group: "i\nroute\nr", because: [doneKey("i", "p+r"), doneKey("i", "q+r")] }, budget);
     expect(tag.reason).toBe(NOT_RUN_OVER_BUDGET);
     expect(tag.reason).not.toBe(OVER_BUDGET);
     expect(tag.facts).toEqual({ budget: "5", budgetMs: 300_000, stage: "route", because: ["p+r", "q+r"] });
