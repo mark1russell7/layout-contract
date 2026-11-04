@@ -57,7 +57,7 @@ The records of a run are CI artifacts, and the repository does not keep them. Th
    pnpm --filter @layout-contract/site run data:joint -- <dir>/report.json --run <run> --date <YYYY-MM-DD> --item <id> --versions highways=<v>,packing=<v>
    ```
 
-3. Commit `packages/site/data/joint/<run>.json`. The site shows the latest result first, and a list gives the earlier results.
+3. Commit `packages/site/data/joint/<run>.json`. The site shows the latest default result first, and a list gives the other results. Give `--cover on` for a cover run: the site marks that result, and it does not show that result first. Until a cover run is in `data/joint/`, each covered entry has the tag "waiting for the first cover run". The next build removes the tag when that file lands.
 
 The script `scripts/joint-data.mjs` keeps the headline cell (the rule `all` with the cap 1.25) and the same cell on the stress inputs. It also keeps the 6 cells of the headline inputs and the predictions of the run. The corpus is `joint-v2` by default. The option `--corpus` changes it.
 
@@ -117,7 +117,7 @@ The Vite plugin `jointCatalog` makes the module `virtual:joint-catalog` at build
 
 | List | Source |
 |---|---|
-| The packers | `strategies` and `composites` of `@mark1russell7/packing`. The bench entries are `PACK_ENTRIES` of `@layout-contract/joint`. Each other strategy gets one entry, marked "not in the bench". |
+| The packers | `strategies`, `composites` and `shapeStrategies` of `@mark1russell7/packing`. The entries are `PACK_ENTRIES` of `@layout-contract/joint`. Each other strategy gets one entry. |
 | The routers | `listStrategies(STRATEGIES, "router")` of `@mark1russell7/highways`, the highway strategies of `HIGHWAY_ROUTERS`, then `portfolio`. They are `ROUTERS` of the joint benchmark. The list then has the open routers of `OPEN_ROUTERS`. The benchmark does not race those routers, and only the playground uses them. |
 | The options of a router | The field `schema` of each strategy, with `optionDefaults`. `portfolio` has no schema, so the site makes one from `PORTFOLIO_RULES`, `PORTFOLIO_CAPS`, `PORTFOLIO_KS_API` and `PORTFOLIO_HASHES`. |
 | The options of a packer | The field `defaults` of each strategy. `packing` declares no schema, so the site makes a range from each default and tags it "site range". `PACK_EXTRAS` in `src/engines.ts` lists the options without a default. |

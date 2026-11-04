@@ -16,9 +16,10 @@ export interface EngineVersions {
 /**
  * This function gives the catalog of the joint pages, with the joint space of `jointSpace`.
  * It makes each input of `joint-v2`, and it throws when the hash of an input is not the hash of the committed manifest.
+ * The value `coverRun` tells that `data/joint/` holds a cover run, so no entry waits for one.
  */
-export function buildCatalog(manifestText: string, versions: EngineVersions): JointCatalog {
-  const catalog = engineCatalog({ ...versions });
+export function buildCatalog(manifestText: string, versions: EngineVersions, coverRun = false): JointCatalog {
+  const catalog = engineCatalog({ ...versions }, coverRun);
   const manifest = JSON.parse(manifestText) as { readonly inputs: readonly { readonly id: string; readonly hash: string }[] };
   const committed = new Map(manifest.inputs.map((e) => [e.id, e.hash]));
   const corpus = jointCorpus(SET_V2);

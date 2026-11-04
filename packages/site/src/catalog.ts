@@ -123,6 +123,10 @@ export interface JointCatalog {
   readonly benchPacks: readonly PackChoice[];
   /** One pack entry for each strategy of `packing` that no entry of the benchmark uses. */
   readonly extraPacks: readonly PackChoice[];
+  /** The closed list of the strategies that no joint input can run, with the reason of each. */
+  readonly packExceptions: Readonly<Record<string, { readonly reason: string }>>;
+  /** The strategies that have no bench result until the first cover run ends. This list is empty when `data/joint/` holds a cover run. */
+  readonly packWaiting: readonly string[];
   /** The routers of the joint benchmark (`ROUTERS`). */
   readonly routers: readonly string[];
   /** The open routers of the playground (`OPEN_ROUTERS`): the other highway strategies and the member forms of the portfolio. */

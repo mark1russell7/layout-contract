@@ -1,6 +1,6 @@
 // This file makes the catalog of the joint pages from the registries of the two engines. The build imports it, so the pages get the catalog as data.
 // When an engine exports a strategy space (`packSpace` of `packing`, `routeSpace` of `highways`), the catalog uses it. Else it derives a space from the registry.
-import { HIGHWAY_ROUTERS, highwayRouterOf, iterEntries, jointSpace, laneEntries, laneSpace, OPEN_ROUTERS, openRouterOf, PACK_ENTRIES, pairId, PORTFOLIO_ROUTER, ROUTERS } from "@layout-contract/joint/browser";
+import { COVER_EXCEPTIONS, coverEntries, HIGHWAY_ROUTERS, highwayRouterOf, iterEntries, jointSpace, laneEntries, laneSpace, OPEN_ROUTERS, openRouterOf, PACK_ENTRIES, pairId, PORTFOLIO_ROUTER, ROUTERS } from "@layout-contract/joint/browser";
 import {
   checkSpace,
   STRATEGY_SPACE_SCHEMA,
@@ -117,12 +117,13 @@ const PACK_ABOUT: Readonly<Record<string, string>> = {
   portfolio: "Packs with a set of strategies and keeps the best output.",
   "aspect-fit": "Packs at some widths near the target aspect, and keeps the best output.",
   select: "Picks rows or maxrects-bl from the features of the input.",
+  "hole-degree": "Packs circles by the maximum hole degree. Only for circle items.",
 };
 
 /** This function gives the facts of each strategy of `packing`: the base strategies, then the composites. */
 function packFacts(): StrategyFacts[] {
   const all = stringLists(packing as unknown as Record<string, unknown>);
-  return [...packing.strategies, ...packing.composites].map((s) => {
+  return [...packing.strategies, ...packing.composites, ...packing.shapeStrategies].map((s) => {
     const defaults = (s.defaults ?? {}) as Readonly<Record<string, unknown>>;
     const lists = ITEM_ORDER_STRATEGIES.has(s.id) ? [ITEM_ORDERS, ...listsOf(all, s.id)] : listsOf(all, s.id);
     const options: OptionSpec[] = Object.entries(defaults).map(([key, value]) => ({ key, schema: schemaOfDefault(value, lists), value, derived: true }));
@@ -288,7 +289,7 @@ function jointPairs(): JointPair[] {
  * This function gives the catalog of the joint pages from the registries of `packing` and `highways`.
  * The named configs of the pack space are the pack entries of the benchmark and the extra entries. The named configs of the route space are the routers.
  */
-export function engineCatalog(versions: Readonly<Record<string, string>>): EngineCatalog {
+export function engineCatalog(versions: Readonly<Record<string, string>>, coverRun = false): EngineCatalog {
   const pf = packFacts();
   const rf = routeFacts();
   const derivedPack = spaceOf("packing", versions["packing"] ?? "", PACK_STAGE, pf);
@@ -317,6 +318,8 @@ export function engineCatalog(versions: Readonly<Record<string, string>>): Engin
     about: { packing: Object.fromEntries(pf.map((f) => [f.id, f.about])), highways: Object.fromEntries(rf.map((f) => [f.id, f.about])) },
     benchPacks,
     extraPacks,
+    packExceptions: COVER_EXCEPTIONS,
+    packWaiting: coverRun ? [] : coverEntries().map((e) => e.strategy),
     routers: [...ROUTERS],
     openRouters: [...OPEN_ROUTERS],
   };
@@ -342,7 +345,7 @@ function registryRouters(): RouterStrategy[] {
 
 /** The ids of the strategies in the registries of the two engines. The completeness test compares the catalog with them. */
 export function registryIds(): { readonly packing: string[]; readonly highways: string[] } {
-  return { packing: [...packing.strategies, ...packing.composites].map((s) => s.id), highways: registryRouters().map((s) => s.name) };
+  return { packing: [...packing.strategies, ...packing.composites, ...packing.shapeStrategies].map((s) => s.id), highways: registryRouters().map((s) => s.name) };
 }
 
 /** The declared options of each strategy in the registries: the keys of `defaults`, and for `highways` the keys of `schema`. */

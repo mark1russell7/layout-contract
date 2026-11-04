@@ -64,6 +64,8 @@ export interface PackEntry {
   readonly id: string;
   readonly strategy: string;
   readonly options: Readonly<Record<string, unknown>>;
+  /** The mode of the pack, for a strategy that needs another mode than the mode of the input. The default is the mode of the input. */
+  readonly mode?: string;
 }
 
 /**
@@ -428,7 +430,7 @@ type PackRun =
 function packOnce(entry: PackEntry, input: PackInput, cell: Readonly<Record<string, unknown>> | undefined, seed: number, now: () => number, score: PackInput = input): PackRun {
   const s = packStrategy(entry.strategy);
   if (cell !== undefined) {
-    const miss = unsupportedOf(s.supports, { ...(cell as Record<string, string>), groups: "none" });
+    const miss = unsupportedOf(s.supports, { ...(cell as Record<string, string>), groups: "none", ...(entry.mode === undefined ? {} : { mode: entry.mode }) });
     if (miss !== undefined) return { ok: false, reason: `The strategy does not support ${miss.dimension} ${miss.value}.` };
   }
   try {

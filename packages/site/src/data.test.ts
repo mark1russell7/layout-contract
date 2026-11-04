@@ -110,4 +110,15 @@ describe("jointData", () => {
     const c = { ...a, run: "99", date: "2026-10-01" };
     expect(latestJoint([a, b, c])?.run).toBe("10");
   });
+
+  it("keeps a default run first when a cover run is newer", () => {
+    const a = jointData(report, facts);
+    const cover = jointData(report, { ...facts, run: "99", date: "2027-01-01", cover: true });
+    expect(cover.cover).toBe(true);
+    expect(a.cover).toBeUndefined();
+    expect(checkJoint(cover)).toEqual([]);
+    expect(checkJoint({ ...cover, cover: "yes" })).toContain("joint.cover is not a boolean");
+    expect(latestJoint([a, cover])?.run).toBe(a.run);
+    expect(latestJoint([cover])?.run).toBe("99");
+  });
 });

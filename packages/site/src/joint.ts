@@ -147,11 +147,12 @@ export function renderJoint(root: HTMLElement, files: readonly JointData[]): voi
       files.length > 1
         ? `<label class="runs">Result <select data-run>${[...files]
             .sort((a, b) => b.date.localeCompare(a.date) || b.run.localeCompare(a.run))
-            .map((f) => `<option value="${esc(f.run)}"${f.run === d.run ? " selected" : ""}>${esc(f.date)} · ${esc(f.item)} · run ${esc(f.run)}</option>`)
+            .map((f) => `<option value="${esc(f.run)}"${f.run === d.run ? " selected" : ""}>${esc(f.date)} · ${esc(f.item)}${f.cover === true ? " · cover" : ""} · run ${esc(f.run)}</option>`)
             .join("")}</select></label>`
         : "";
     root.innerHTML = `
-      <p class="dataline"><span class="badge">${esc(d.item)}</span> Data of <a href="${REPO}/actions/runs/${esc(d.run)}">run ${esc(d.run)}</a>, ${esc(d.date)} · ${versions} · corpus <code>${esc(d.corpus)}</code> · ${d.records.toLocaleString("en")} records, ${d.pairs} pairs</p>
+      <p class="dataline"><span class="badge">${esc(d.item)}</span>${d.cover === true ? ` <span class="badge warn">cover run</span>` : ""} Data of <a href="${REPO}/actions/runs/${esc(d.run)}">run ${esc(d.run)}</a>, ${esc(d.date)} · ${versions} · corpus <code>${esc(d.corpus)}</code> · ${d.records.toLocaleString("en")} records, ${d.pairs} pairs</p>
+      ${d.cover === true ? `<p class="note">This cover run has each strategy and each open router, so it has more pairs. Its floors do not compare with the floors of a default run.</p>` : ""}
       ${runs}
       <div class="seg" role="radiogroup" aria-label="Inputs">
         <button type="button" role="radio" data-view="headline" aria-checked="${state.view === "headline"}">Headline inputs (${d.headline.inputs})</button>
