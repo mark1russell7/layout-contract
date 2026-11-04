@@ -1,7 +1,7 @@
 // The page "Compare all pairs": one input, each chosen packer with each chosen router, side by side and in the order of the benchmark.
 import { marked } from "marked";
 import aboutText from "../content/compare.md?raw";
-import { VARIANT_TEXT, type JointPair, type PackChoice, type RouterChoice } from "./catalog.ts";
+import { packTag, VARIANT_TEXT, type JointPair, type PackChoice, type RouterChoice } from "./catalog.ts";
 import { initBuild, initTheme } from "./chrome.ts";
 import { pairSvg } from "./draw.ts";
 import { boxesOf, parsePicked, pickedText, pickerHtml, PRESETS, readPicker, refOf, shortId, type Picked } from "./inputs.ts";
@@ -60,8 +60,12 @@ function packChips(): string {
   return strategies
     .map((s) => {
       const entries = packs.filter((p) => p.strategy === s);
+      const tagOf = (p: (typeof packs)[number]): string => {
+        const tag = packTag(p.strategy, p.bench, catalog.benchStrategies);
+        return tag === undefined ? "" : ` <span class="tag">${esc(tag)}</span>`;
+      };
       const chips = entries
-        .map((p) => `<button type="button" class="chip${onPacks.has(p.id) ? " on" : ""}" data-pack="${esc(p.id)}" aria-pressed="${onPacks.has(p.id)}">${esc(p.id)}${p.bench ? "" : ` <span class="tag">not in the bench</span>`}</button>`)
+        .map((p) => `<button type="button" class="chip${onPacks.has(p.id) ? " on" : ""}" data-pack="${esc(p.id)}" aria-pressed="${onPacks.has(p.id)}">${esc(p.id)}${tagOf(p)}</button>`)
         .join("");
       return `<div class="strategy-row"><span class="strategy-name" title="${esc(catalog.about.packing[s] ?? "")}"><code>${esc(s)}</code></span><div class="chips">${chips}</div></div>`;
     })

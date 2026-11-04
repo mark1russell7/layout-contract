@@ -317,6 +317,7 @@ export function engineCatalog(versions: Readonly<Record<string, string>>): Engin
     about: { packing: Object.fromEntries(pf.map((f) => [f.id, f.about])), highways: Object.fromEntries(rf.map((f) => [f.id, f.about])) },
     benchPacks,
     extraPacks,
+    benchStrategies: [...new Set(PACK_ENTRIES.map((e) => e.strategy))],
     routers: [...ROUTERS],
     openRouters: [...OPEN_ROUTERS],
   };

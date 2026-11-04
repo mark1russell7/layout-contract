@@ -123,6 +123,8 @@ export interface JointCatalog {
   readonly benchPacks: readonly PackChoice[];
   /** One pack entry for each strategy of `packing` that no entry of the benchmark uses. */
   readonly extraPacks: readonly PackChoice[];
+  /** The strategies with an entry of the joint benchmark. An entry that the forms cannot set is not in `benchPacks`, but its strategy is in the bench. */
+  readonly benchStrategies: readonly string[];
   /** The routers of the joint benchmark (`ROUTERS`). */
   readonly routers: readonly string[];
   /** The open routers of the playground (`OPEN_ROUTERS`): the other highway strategies and the member forms of the portfolio. */
@@ -241,4 +243,13 @@ export function pairOfConfigs(
 /** This function tells if a param is a mode param, and gives the name of its option. */
 export function modeKey(p: SpaceParam): string | undefined {
   return p.name.endsWith(MODE) ? p.name.slice(0, -MODE.length) : undefined;
+}
+
+/**
+ * This function gives the tag of a pack entry on the compare page, or `undefined` for an entry of the benchmark.
+ * A strategy with an entry that the forms cannot set is in the bench, with settings that the page does not show.
+ */
+export function packTag(strategy: string, inBench: boolean, benchStrategies: readonly string[]): string | undefined {
+  if (inBench) return undefined;
+  return benchStrategies.includes(strategy) ? "the bench uses other settings" : "not in the bench";
 }

@@ -54,6 +54,7 @@ This file lists the items of the roadmap of this repository. The status page of 
 | L92 | later | P3 | A learned route proxy for the placer |
 | L93 | later | P3 | An exact joint reference for small inputs |
 | L94 | later | P2 | Route around circle items in the joint bench |
+| L97 | in progress | P1 | Site: remove the false tag "not in the bench" from strategies that have a bench entry |
 
 ## Done
 

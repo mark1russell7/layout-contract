@@ -4,7 +4,7 @@ import { checkSpace } from "@mark1russell7/layout-contract";
 import { describe, expect, it } from "vitest";
 import manifestText from "../../joint/corpus/joint-v2/corpus.json?raw";
 import { buildCatalog } from "./build-catalog.ts";
-import { LANE_STAGE, laneFormSpace, LANE_TEXT, PACK_STAGE, ROUTE_STAGE, VARIANT_TEXT } from "./catalog.ts";
+import { LANE_STAGE, laneFormSpace, LANE_TEXT, PACK_STAGE, packTag, ROUTE_STAGE, VARIANT_TEXT } from "./catalog.ts";
 import { declaredOptions, inForms, packExtraKeys, registryIds } from "./engines.ts";
 import { formHtml } from "./form.ts";
 import { PRESETS } from "./inputs.ts";
@@ -22,6 +22,14 @@ describe("the lists of the joint pages", () => {
     const shown = PACK_ENTRIES.filter(inForms);
     expect(catalog.benchPacks.map((p) => p.id)).toEqual(shown.map((e) => e.id));
     for (const p of catalog.extraPacks) expect(shown.some((e) => e.strategy === p.strategy)).toBe(false);
+  });
+
+  it("tags a strategy as not in the bench only when no entry of the benchmark uses it", () => {
+    const inBench = new Set(PACK_ENTRIES.map((e) => e.strategy));
+    expect([...catalog.benchStrategies].sort()).toEqual([...inBench].sort());
+    for (const p of catalog.extraPacks) expect(packTag(p.strategy, false, catalog.benchStrategies) === "not in the bench").toBe(!inBench.has(p.strategy));
+    for (const s of ["anneal", "genetic", "tabu"]) expect(packTag(s, false, catalog.benchStrategies)).toBe("the bench uses other settings");
+    expect(packTag("rows", true, catalog.benchStrategies)).toBeUndefined();
   });
 
   it("has each router of the registry of highways, as a router of the benchmark or an open router", () => {
