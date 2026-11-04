@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { budgetCases, budgetTag, earlierOverruns, keyParts, pairBudgetMs, parsePairBudget } from "./pair-budget.ts";
 import type { LayoutRecord } from "@mark1russell7/layout-contract";
-import { budgetLines, budgetReport, NOT_RUN_OVER_BUDGET, OVER_BUDGET, type AnalysisInput } from "./analysis.ts";
+import { budgetLines, budgetReport, NOT_RUN_OVER_BUDGET, OVER_BUDGET } from "./analysis.ts";
 import { pairRuns, PACK_ENTRIES } from "./runner.ts";
 import { doneKey, type PairLine } from "./shard-run.ts";
 
@@ -65,30 +65,26 @@ describe("earlierOverruns", () => {
 });
 
 describe("budgetReport", () => {
-  const input = (id: string, count: string): AnalysisInput => ({ id, seed: 1, spec: id, kind: "rect-grid", cell: { count } });
-  const inputs = [input("small", "10"), input("large", "1000")];
+  const sizes: Readonly<Record<string, number>> = { small: 10, large: 1000 };
   const record = (id: string, strategy: string, skipped?: string, stage?: string): LayoutRecord =>
-    ({ input: id, strategy, options: stage === undefined ? {} : { budget: { budget: "5", stage } }, measures: {}, hard: {}, ...(skipped === undefined ? {} : { skipped }) }) as unknown as LayoutRecord;
+    ({ input: id, nodes: sizes[id], strategy, options: stage === undefined ? {} : { budget: { budget: "5", stage } }, measures: {}, hard: {}, ...(skipped === undefined ? {} : { skipped }) }) as unknown as LayoutRecord;
 
   it("has no value when no pair has a tag, so a run with no budget has no table", () => {
-    expect(budgetReport([record("small", "p+r")], inputs)).toBeUndefined();
+    expect(budgetReport([record("small", "p+r")])).toBeUndefined();
   });
 
   it("gives the largest input that each router finished, and counts the tags apart", () => {
-    const report = budgetReport(
-      [
-        record("small", "p+r"),
-        record("large", "q+r"),
-        record("large", "p+slow", OVER_BUDGET, "route"),
-        record("large", "q+slow", NOT_RUN_OVER_BUDGET, "route"),
-        record("small", "p+slow"),
-        record("large", "s+none", OVER_BUDGET, "route"),
-        record("large", "t+r", OVER_BUDGET, "pack"),
-        record("large", "u+r", NOT_RUN_OVER_BUDGET, "pack"),
-        record("large", "v+r", "no routes"),
-      ],
-      inputs,
-    );
+    const report = budgetReport([
+      record("small", "p+r"),
+      record("large", "q+r"),
+      record("large", "p+slow", OVER_BUDGET, "route"),
+      record("large", "q+slow", NOT_RUN_OVER_BUDGET, "route"),
+      record("small", "p+slow"),
+      record("large", "s+none", OVER_BUDGET, "route"),
+      record("large", "t+r", OVER_BUDGET, "pack"),
+      record("large", "u+r", NOT_RUN_OVER_BUDGET, "pack"),
+      record("large", "v+r", "no routes"),
+    ]);
     expect(report).toEqual({
       budget: "5",
       routers: [

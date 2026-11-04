@@ -1166,14 +1166,14 @@ export function routeTimes(records: readonly LayoutRecord[], inputs: readonly An
 
 /**
  * This function gives what each router finished under a time budget, or `undefined` when no pair has a budget tag.
- * The largest input is the answer for a router with no row at a large input. A tagged pair is a result and has no time here.
+ * The largest input is the answer for a router with no row at a large input. Its size is the count of the boxes of the record, because the cell of a large input has the text `1k`.
+ * A tagged pair is a result and has no time here.
  */
-export function budgetReport(records: readonly LayoutRecord[], inputs: readonly AnalysisInput[]): BudgetReport | undefined {
+export function budgetReport(records: readonly LayoutRecord[]): BudgetReport | undefined {
   const tagOf = (r: LayoutRecord): "overBudget" | "notRun" | undefined => (r.skipped === OVER_BUDGET ? "overBudget" : r.skipped === NOT_RUN_OVER_BUDGET ? "notRun" : undefined);
   const factsOf = (r: LayoutRecord): { readonly budget?: string; readonly stage?: string } => (r.options["budget"] ?? {}) as { readonly budget?: string; readonly stage?: string };
   const first = records.find((r) => tagOf(r) !== undefined);
   if (first === undefined) return undefined;
-  const sizes = new Map(inputs.map((input) => [input.id, Number(input.cell["count"])]));
   const rows = new Map<string, { largestFinished: number | undefined; finished: number; overBudget: number; notRun: number }>();
   const pack = { overBudget: 0, notRun: 0 };
   for (const r of records) {
@@ -1192,8 +1192,7 @@ export function budgetReport(records: readonly LayoutRecord[], inputs: readonly 
       continue;
     }
     row.finished += 1;
-    const size = sizes.get(r.input);
-    if (size !== undefined && Number.isFinite(size) && size > (row.largestFinished ?? 0)) row.largestFinished = size;
+    if (r.nodes > (row.largestFinished ?? 0)) row.largestFinished = r.nodes;
   }
   return { budget: factsOf(first).budget ?? "", routers: routerOrder(rows.keys()).map((router) => ({ router, ...rows.get(router)! })), pack };
 }
@@ -1485,7 +1484,7 @@ export function analyze(allRecords: readonly LayoutRecord[], allInputs: readonly
   };
   const runRecords = allRecords.filter((r) => allIds.has(r.input));
   const lanes = laneRows(records, allInputs);
-  const budget = budgetReport(runRecords, allInputs);
+  const budget = budgetReport(runRecords);
   const extra = {
     ...(exclude.size === 0 ? {} : { excluded: [...exclude] }),
     ...(options.composite === undefined ? {} : { composite: compositeCheck(runRecords, allInputs, options.composite.pack, options.composite.members) }),
