@@ -3,7 +3,7 @@
 // This test measures them on fresh seeds with the current engines, because each gain of night 1 belongs to its epoch.
 import { configId, type LayoutRecord, type StrategyConfig } from "@mark1russell7/layout-contract";
 import { mean, sd } from "@mark1russell7/rigor-statistics";
-import { cellValues, HEADLINE, indexRecords, scoreOf, type AnalysisInput, type CellValues } from "./analysis.ts";
+import { cellValues, hardOf, HEADLINE, indexRecords, scoreOf, type AnalysisInput, type CellValues } from "./analysis.ts";
 import { compareAll, CONFIRM_GUARDS, guardRead, worseGuards, type ConfirmCompare, type ConfirmGuard } from "./confirm.ts";
 import { planJobs, type NightPlan, type PlanOptions } from "./night.ts";
 import { configLabel, configRun, JOINT_SPACE } from "./space.ts";
@@ -69,6 +69,30 @@ export function promotePlan(inputs: readonly SweepInput[], options: PlanOptions)
   return { ...planJobs(1, jobs, configs, 0, inputs, options), seeds: PROMOTE_SEEDS };
 }
 
+/** One measure in the units of a reader of a layout. */
+interface UserUnit {
+  readonly id: string;
+  readonly label: string;
+  readonly read: (record: LayoutRecord) => number | undefined;
+}
+
+/** The measures that a reader sees in a layout. The score alone is only the fill of the inputs that reach the floor. */
+const USER_UNITS: readonly UserUnit[] = Object.freeze([
+  { id: "fill", label: "Fill, in points", read: (r) => (r.measures["joint.fill"] === undefined ? undefined : 100 * r.measures["joint.fill"]) },
+  { id: "crossings", label: "Crossings", read: (r) => r.measures["joint.straight.crossings"] },
+  { id: "overlaps", label: "Overlaps", read: (r) => r.hard?.["pack.no-overlap"] },
+  { id: "breaks", label: "Hard breaks", read: (r) => hardOf(r, HEADLINE.rule, HEADLINE.cap) },
+]);
+
+/** The change of one user measure, as a mean over the inputs with a record of both configs. */
+export interface PromoteUnit {
+  readonly id: string;
+  readonly incumbent: number;
+  readonly config: number;
+  /** The config minus the incumbent. For a crossing, an overlap or a break, a lower value is better. */
+  readonly change: number;
+}
+
 /** The result of one config of night 1 against the incumbent on the headline inputs. */
 export interface PromoteRow {
   readonly config: string;
@@ -89,7 +113,21 @@ export interface PromoteRow {
   readonly worseGuards: readonly ConfirmGuard[];
   /** The guards with no paired value. A guard that nothing reads is not a clean guard. */
   readonly unreadGuards: readonly string[];
+  /** The changes in the units of a reader of a layout. */
+  readonly units: readonly PromoteUnit[];
+  /** True when the gain of the score is larger than the A/A spread of the score. */
+  readonly overAa: boolean;
   readonly passed: boolean;
+}
+
+/** The spread of the incumbent against itself. No config changes between the two sides, and only the seed changes. */
+export interface PromoteAa {
+  /** The count of the pairs of seeds. */
+  readonly pairs: number;
+  /** The largest absolute mean difference of the score over the pairs of seeds. */
+  readonly score: number;
+  /** The same spread for each user measure, by its id. */
+  readonly units: Readonly<Record<string, number>>;
 }
 
 /** The result of the promotion test. */
@@ -101,6 +139,7 @@ export interface PromoteReport {
   readonly incumbent: string;
   readonly headlineInputs: number;
   readonly stressInputs: number;
+  readonly aa: PromoteAa;
   readonly rows: readonly PromoteRow[];
   /** The configs that pass. Each one still needs the time verdict of `time-arms.yml` before it replaces the default. */
   readonly passed: readonly string[];
@@ -115,6 +154,55 @@ function seedGainsOf(cell: CellValues, inputs: readonly AnalysisInput[], a: stri
   });
 }
 
+/**
+ * This function gives the A/A spread of a value of the incumbent: the largest absolute mean difference between two seeds.
+ * Each difference is paired on its spec. A pair of seeds with no spec in common gives no difference.
+ */
+export function aaSpread(inputs: readonly AnalysisInput[], valueOf: (input: AnalysisInput) => number | undefined): number {
+  const seeds = [...new Set(inputs.map((i) => i.seed))].sort((x, y) => x - y);
+  const bySpec = new Map<string, Map<number, number>>();
+  for (const input of inputs) {
+    const value = valueOf(input);
+    if (value === undefined) continue;
+    const at = bySpec.get(input.spec) ?? new Map<number, number>();
+    at.set(input.seed, value);
+    bySpec.set(input.spec, at);
+  }
+  let spread = 0;
+  for (const [i, a] of seeds.entries()) {
+    for (const b of seeds.slice(i + 1)) {
+      const diffs = [...bySpec.values()].flatMap((at) => {
+        const x = at.get(a);
+        const y = at.get(b);
+        return x === undefined || y === undefined ? [] : [x - y];
+      });
+      if (diffs.length > 0) spread = Math.max(spread, Math.abs(mean(diffs)));
+    }
+  }
+  return spread;
+}
+
+/** This function gives the record of each input of a config. */
+function recordsOf(records: readonly LayoutRecord[], config: string): Map<string, LayoutRecord> {
+  return new Map(records.filter((r) => r.strategy === config).map((r) => [r.input, r]));
+}
+
+/** This function gives the changes of a config in the user measures, over the inputs with a value of both configs. */
+function unitsOf(inputs: readonly AnalysisInput[], base: Map<string, LayoutRecord>, other: Map<string, LayoutRecord>): PromoteUnit[] {
+  return USER_UNITS.map((unit) => {
+    const pairs = inputs.flatMap((input) => {
+      const a = base.get(input.id);
+      const b = other.get(input.id);
+      const x = a === undefined ? undefined : unit.read(a);
+      const y = b === undefined ? undefined : unit.read(b);
+      return x === undefined || y === undefined ? [] : [[x, y] as const];
+    });
+    const incumbent = pairs.length === 0 ? 0 : mean(pairs.map((p) => p[0]));
+    const config = pairs.length === 0 ? 0 : mean(pairs.map((p) => p[1]));
+    return { id: unit.id, incumbent, config, change: config - incumbent };
+  });
+}
+
 /** This function gives the score cell of a scope of inputs. */
 function cellOfScope(records: readonly LayoutRecord[], inputs: readonly AnalysisInput[]): CellValues {
   return cellValues(indexRecords(records), inputs, HEADLINE.rule, HEADLINE.cap);
@@ -122,9 +210,10 @@ function cellOfScope(records: readonly LayoutRecord[], inputs: readonly Analysis
 
 /**
  * This function gives the result of the test. The rule comes before the run. A config passes when:
- * - each headline input has a value of the config and of the incumbent;
- * - its score is better than the score of the incumbent, with the Holm correction over the configs;
- * - no guard is worse against the incumbent, and each guard has values.
+ * - Each headline input has a value of the config and of the incumbent.
+ * - Its score is better than the score of the incumbent, with the Holm correction over the configs.
+ * - No guard is worse against the incumbent, and each guard has values.
+ * - Its gain is larger than the A/A spread of the score.
  */
 export function promoteConfigs(
   records: readonly LayoutRecord[],
@@ -143,6 +232,21 @@ export function promoteConfigs(
   const pairs = rows.map((row) => [incumbent, row.id] as const);
   const compares = compareAll(cell, headline, pairs);
   const stressCompares = compareAll(stressCell, stress, pairs);
+  const base = recordsOf(headlineRecords, incumbent);
+  const seedCount = new Set(headline.map((i) => i.seed)).size;
+  const aa: PromoteAa = {
+    pairs: (seedCount * (seedCount - 1)) / 2,
+    score: aaSpread(headline, (i) => (cell.values.get(i.id)?.has(incumbent) === true ? scoreOf(cell, i.id, incumbent) : undefined)),
+    units: Object.fromEntries(
+      USER_UNITS.map((unit) => {
+        const read = (i: AnalysisInput): number | undefined => {
+          const r = base.get(i.id);
+          return r === undefined ? undefined : unit.read(r);
+        };
+        return [unit.id, aaSpread(headline, read)];
+      }),
+    ),
+  };
   const out = rows.map((row, i): PromoteRow => {
     const compare = compares[i]!;
     const seedGains = seedGainsOf(cell, headline, incumbent, row.id);
@@ -150,6 +254,7 @@ export function promoteConfigs(
     const worse = worseGuards(headlineRecords, incumbent, row.id);
     const unreadGuards = CONFIRM_GUARDS.filter((g) => !guardRead(headlineRecords, g, incumbent, row.id)).map((g) => g.id);
     const config = nightConfig(row);
+    const overAa = compare.mean > aa.score;
     return {
       config: row.id,
       label: configLabel(config),
@@ -163,7 +268,9 @@ export function promoteConfigs(
       incomplete,
       worseGuards: worse,
       unreadGuards,
-      passed: incomplete === 0 && compare.better && worse.length === 0 && unreadGuards.length === 0,
+      units: unitsOf(headline, base, recordsOf(headlineRecords, row.id)),
+      overAa,
+      passed: incomplete === 0 && compare.better && worse.length === 0 && unreadGuards.length === 0 && overAa,
     };
   });
   return {
@@ -174,6 +281,7 @@ export function promoteConfigs(
     incumbent,
     headlineInputs: headline.length,
     stressInputs: stress.length,
+    aa,
     rows: out,
     passed: out.filter((r) => r.passed).map((r) => r.config),
   };
@@ -181,6 +289,12 @@ export function promoteConfigs(
 
 /** This function gives a number with 3 decimals and a sign. */
 const signed = (x: number): string => `${x >= 0 ? "+" : ""}${x.toFixed(3)}`;
+
+/** This function gives the cell of a user measure of a row. */
+const unitCell = (row: PromoteRow, id: string): string => {
+  const unit = row.units.find((u) => u.id === id);
+  return unit === undefined ? "n/a" : `${unit.config.toFixed(2)} (${unit.change >= 0 ? "+" : ""}${unit.change.toFixed(2)})`;
+};
 
 /** This function gives the text of the result. */
 export function promoteMarkdown(report: PromoteReport): string {
@@ -195,6 +309,17 @@ export function promoteMarkdown(report: PromoteReport): string {
       (r) =>
         `| \`${r.label}\` | ${signed(r.nightGain)} | ${signed(r.compare.mean)} | [${signed(r.compare.lo)}, ${signed(r.compare.hi)}] | ${signed(r.seedMean)} | ${r.seedSd.toFixed(3)} | ${r.compare.adjusted.toFixed(4)} | ${r.worseGuards.length} | ${r.incomplete} | ${r.passed ? "yes" : "no"} |`,
     ),
+    "",
+    `The A/A spread of the score is ${report.aa.score.toFixed(3)}, the largest difference of the incumbent with itself over ${report.aa.pairs} pairs of seeds. A gain under that spread is not a claim. The A/A pair of \`time-arms.yml\` gives the floor of the times.`,
+    "",
+    "## The gains in the units of a reader",
+    "",
+    "Each cell gives the mean for each layout, and the change against the incumbent.",
+    "",
+    `| Config | ${USER_UNITS.map((u) => u.label).join(" | ")} |`,
+    `|---${USER_UNITS.map(() => "|---:").join("")}|`,
+    `| The A/A spread | ${USER_UNITS.map((u) => (report.aa.units[u.id] ?? 0).toFixed(2)).join(" | ")} |`,
+    ...report.rows.map((r) => `| \`${r.label}\` | ${USER_UNITS.map((u) => unitCell(r, u.id)).join(" | ")} |`),
     "",
     "## The stress inputs",
     "",
