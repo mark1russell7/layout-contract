@@ -19,7 +19,7 @@ This file lists the items of the roadmap of this repository. The status page of 
 | ID | Status | Priority | Title |
 | --- | --- | --- | --- |
 | L36 | next | P1 | Efficacy maps |
-| L40 | next | P1 | Confirm the first joint default |
+| L40 | in progress | P1 | Confirm the first joint default |
 | L44 | next | P1 | The atlas of the joint space |
 | L61 | next | P2 | Promotion test of the 9 night-1 configs against the default lanes-sides |
 | L62 | next | P1 | Node layout by physics as a joint step |

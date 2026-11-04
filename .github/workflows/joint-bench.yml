@@ -38,6 +38,10 @@ on:
         description: "Add the iteration pairs of L11 (place, route, place again) to the run."
         type: boolean
         default: false
+      confirm:
+        description: "Run the confirmation of L40: 6 pairs on the fresh seeds 4 to 6. It replaces the options lanes and iterate."
+        type: boolean
+        default: false
   pull_request:
     types: [opened, synchronize, reopened, labeled]
 
@@ -144,9 +148,10 @@ jobs:
           CORPUS: ${{ needs.plan.outputs.corpus }}
           LANES: ${{ inputs.lanes && 'on' || '' }}
           ITERATE: ${{ inputs.iterate && 'on' || '' }}
+          CONFIRM: ${{ inputs.confirm && 'on' || '' }}
           # 7 inputs of 1000 boxes went above the default heap of approximately 4 GB with 195 pairs in run 40815928586. The runner has 16 GB.
           NODE_OPTIONS: --max-old-space-size=6144
-        run: node scripts/bench.mjs run --corpus "$CORPUS" --shards "$COUNT" --shard "$SHARD" --out records ${SLICE:+--slice "$SLICE"} ${LANES:+--lanes on} ${ITERATE:+--iterate on}
+        run: node scripts/bench.mjs run --corpus "$CORPUS" --shards "$COUNT" --shard "$SHARD" --out records ${SLICE:+--slice "$SLICE"} ${LANES:+--lanes on} ${ITERATE:+--iterate on} ${CONFIRM:+--confirm on}
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         if: ${{ !cancelled() }}
         with:
@@ -182,9 +187,15 @@ jobs:
         env:
           SLICE: ${{ needs.plan.outputs.slice }}
           CORPUS: ${{ needs.plan.outputs.corpus }}
+          CONFIRM: ${{ inputs.confirm && 'on' || '' }}
           GH_TOKEN: ${{ github.token }}
         run: |
           ls records | wc -l
+          if [ -n "$CONFIRM" ]; then
+            node scripts/bench.mjs confirm --confirm on --corpus "$CORPUS" --records records --out report
+            cat report/confirm.md >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
           subset=""
           if [ "$CORPUS" = joint-v2 ]; then subset=data/joint-v2-recorded.txt; fi
           jobs=jobs.json

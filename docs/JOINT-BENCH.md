@@ -16,6 +16,7 @@ The times in this file come from one process that runs many pairs in order. Earl
 - The cost model of the shard plan gives each new pair the mean time of the 130 pairs of the fit. The first full run of 195 pairs gives the data for a new fit.
 - The option `--lanes on` adds the 18 lane pairs of L13. Refer to "The lane pairs".
 - The option `--iterate on` adds the 18 iteration pairs of L11. Refer to "The iteration pairs".
+- The option `--confirm on` runs the 6 pairs of L40 on the seeds 4, 5 and 6. It replaces `--lanes` and `--iterate`. The command `confirm` then gives the decision. Refer to "The prediction for the first joint default (L40)".
 - The nightly sweep runs the same runner on configs of the joint strategy space. `docs/SWEEP.md` tells it.
 
 The portfolio router is `portfolioRouter()` with its defaults: the rule `collection`, the cap 1.5 and the order `fit`. Its default is deterministic. Above 40 nodes, it uses only `shared`.
@@ -1134,6 +1135,40 @@ In L32, 8 of 11 claims held. The claims from the code held, and the misses were 
 | H9 | `lanes[]` with the scope `stress`: `lane.broken` of `lanes-iter3` and of `lanes-iter1` | The lane pairs |
 | H10 | `compare` of the headline cell: the gain and its interval for `lanes-iter3.maxrects-cp.corners+corners` | The pairwise comparisons |
 | H11, H12 | `shardTimes`: the step `Run one shard` of each shard | The shard times |
+
+## The prediction for the first joint default (L40)
+
+This section comes before the run. L11 named `lanes-iter3.maxrects-cp.corners+corners` as the candidate, with `lanes-iter2` as a tie. L40 tests the two caps on fresh seeds.
+
+### The run
+
+- `--confirm on` runs 6 pairs on the seeds 4, 5 and 6 of `joint-v2`. Each earlier run has the seeds 1, 2 and 3.
+- The 6 pairs are the 2 candidates, `lanes-sides.maxrects-cp.corners+corners`, `maxrects-cp+corners`, `rows+portfolio` and `select+portfolio`.
+- The floor of each input comes from these 6 pairs, not from the 148 pairs of L11. Thus the misses of this run do not compare with the misses of L11. Each comparison in this run uses one floor, so the comparisons are fair.
+- The decision needs only these 6 pairs. The plan at 12 shards predicts 76.9 minutes of shards, and the full iteration run of L11 took 355.4 minutes.
+
+### The decision
+
+The rule is `confirmDefault`, and it does not change after the run.
+
+- The score of a pair on an input is its `joint.fill` when it reaches the floor, else 0. The cell is the headline cell: the rule `all` and the cap 1.25.
+- Each comparison uses the family verdict with the tie 0.005 and the level 0.05. The Holm correction covers the 9 comparisons.
+- The cap 3 stays only when it is better than the cap 2. A tie goes to the cap 2, which is faster.
+- The chosen cap is confirmed when all of these hold on the headline inputs:
+  - It is better than `rows+portfolio` and `select+portfolio`.
+  - It is not worse than `lanes-sides.maxrects-cp.corners+corners` or `maxrects-cp+corners`.
+  - Against `lanes-sides`, no guard is worse and each guard has values. The guards are the `joint.*` guards and the 4 `pack.*` guards.
+  - Each pair has a record on each headline input.
+- The stress inputs are a report only.
+- The guards leave out the `route.*` measures, because no table gives their directions until the registry of L65.
+
+### The predictions
+
+- The chosen cap beats both baselines.
+- The chosen cap beats `lanes-sides`. On the seeds 1 to 3, the gain was +0.013 [0.007, 0.020].
+- The gain over `maxrects-cp+corners` stays unproven. Its interval held 0 on 6 of 6 pairs in L11 (H10).
+- The cap 3 does not beat the cap 2, so the run chooses the cap 2.
+- No guard is worse against `lanes-sides`.
 
 ## The result of iteration pairs (L11)
 

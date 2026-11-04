@@ -256,9 +256,10 @@ export function jointInput(spec: JointSpec, seed: number, set: JointSet, registr
  * For each spec and seed, the family of `jointRegistry` gives the input: the generator of `packing`, then `edgeStep` with the same seed.
  * In `joint-v2`, `spacingStep` then sets the margins and the gap, and the part `.sp-<spacing>` ends the family.
  * The id is `<set>/<family>/s<seed>`. The family is the family of `packing` and the part of the edges.
+ * The option `seeds` replaces the seeds of each spec, for a run on fresh seeds. Without it, the corpus does not change.
  */
-export function jointCorpus(set: JointSet = SET): JointCorpus {
-  const specs = jointSpecs(set);
+export function jointCorpus(set: JointSet = SET, options: { readonly seeds?: readonly number[] } = {}): JointCorpus {
+  const specs = jointSpecs(set).map((spec) => (options.seeds === undefined ? spec : { ...spec, seeds: [...options.seeds] }));
   const inputs: LayoutInput[] = [];
   const entries: JointEntry[] = [];
   const ids = new Set<string>();

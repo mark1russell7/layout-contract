@@ -724,7 +724,7 @@ export function rankPacks(index: Pick<RecordIndex, "packs" | "pack">, inputs: re
 }
 
 /** The values of one cell: the pick values of each pair on each input, the floor of each input and the oracle. */
-interface CellValues {
+export interface CellValues {
   readonly values: ReadonlyMap<string, ReadonlyMap<string, Record<string, number>>>;
   /** The pairs that reach the floor of each input: the pairs that `selectBest` keeps after the overflow level. */
   readonly floor: ReadonlyMap<string, ReadonlySet<string>>;
@@ -733,7 +733,7 @@ interface CellValues {
 }
 
 /** This function gives the values of one cell. */
-function cellValues(index: RecordIndex, inputs: readonly AnalysisInput[], rule: "collection" | "all", cap: number): CellValues {
+export function cellValues(index: RecordIndex, inputs: readonly AnalysisInput[], rule: "collection" | "all", cap: number): CellValues {
   const values = new Map<string, Map<string, Record<string, number>>>();
   const floor = new Map<string, Set<string>>();
   const oracle = new Map<string, string>();
@@ -752,7 +752,7 @@ function cellValues(index: RecordIndex, inputs: readonly AnalysisInput[], rule: 
 }
 
 /** This function gives the score of a pair on an input: its `joint.fill` when it reaches the floor of the input, else 0. */
-function scoreOf(cell: CellValues, input: string, pair: string | undefined): number {
+export function scoreOf(cell: CellValues, input: string, pair: string | undefined): number {
   if (pair === undefined || !cell.floor.get(input)?.has(pair)) return 0;
   return cell.values.get(input)?.get(pair)?.["joint.fill"] ?? 0;
 }
