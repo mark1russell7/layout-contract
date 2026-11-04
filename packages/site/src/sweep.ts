@@ -1,5 +1,6 @@
 // The section "Sweep coverage": the trend of the coverage surrogate, read from the branch `sweep-data` when the page opens.
 // The build does not read the branch, so the page reads it at runtime. A failed read shows a link to the data.
+import { nightDue, nightVerdict } from "@layout-contract/joint/browser";
 import { checkSweepIndex, dayOf, FLAT_WEEK, mainLine, parseTrend, type SweepIndex, type TrendRecord, type WeekView, weekView } from "./coverage.ts";
 import { esc, pct } from "./ui.ts";
 
@@ -289,11 +290,23 @@ function table(line: readonly TrendRecord[]): string {
   </details>`;
 }
 
+/** This function gives the line about the result of the last night of the sweep. The rule is the rule of the job `night-check.yml`. */
+export function nightNote(index: SweepIndex, now: Date): string {
+  const v = nightVerdict(index.entry.last, index.entry.missing, nightDue(now));
+  const runs = `<a href="${REPO}/actions/workflows/sweep.yml">the runs of the sweep</a>`;
+  if (v.state === "late") {
+    const nights = v.lateNights === 1 ? "1 night has" : `${v.lateNights} nights have`;
+    return `<p class="week-note falling" role="status"><span class="badge bad">Late</span> <strong>${nights} no result.</strong> The last night is ${shortDate(v.last)}, and the night of ${shortDate(v.due)} is due. See ${runs}.</p>`;
+  }
+  if (v.state === "partial") return `<p class="week-note flat"><span class="badge warn">Partial</span> The last night is ${shortDate(v.last)}. ${v.missing} jobs of it have no record. See ${runs}.</p>`;
+  return `<p class="week-note rising"><span class="badge good">On time</span> The last night is ${shortDate(v.last)}.</p>`;
+}
+
 /** The width of the charts before the page measures the section, in pixels. */
 const START_WIDTH = 640;
 
 /** This function gives the HTML of the section for a state. The charts have the width `width`, in pixels. */
-export function sweepHtml(state: SweepState, width: number = START_WIDTH): string {
+export function sweepHtml(state: SweepState, width: number = START_WIDTH, now: Date = new Date()): string {
   if (state.kind === "loading")
     return `<p class="dataline"><span class="badge">Loading</span> The page reads the trend from the branch <code>sweep-data</code>.</p><div class="trend-wait" aria-hidden="true"></div>`;
   if (state.kind === "failed")
@@ -302,10 +315,12 @@ export function sweepHtml(state: SweepState, width: number = START_WIDTH): strin
   const latest = line.at(-1);
   const bads = bad > 0 ? `<p class="hint">${bad} ${bad === 1 ? "line" : "lines"} of the file did not pass the check. The page skips them.</p>` : "";
   const source = `<a href="${trendFileUrl(index.latest)}"><code>surrogate-trend.jsonl</code></a>`;
+  const night = nightNote(index, now);
   if (latest === undefined)
-    return `<p class="dataline"><span class="badge">L52</span> Data of ${source} · epoch <code>${esc(index.latest)}</code></p>${weekNote(week)}${bads}`;
+    return `<p class="dataline"><span class="badge">L52</span> Data of ${source} · epoch <code>${esc(index.latest)}</code></p>${night}${weekNote(week)}${bads}`;
   return `
     <p class="dataline"><span class="badge">L52</span> Data of ${source}, night ${esc(latest.night)} · <a href="${runUrl(latest.run)}">CI run ${esc(latest.run)}</a> · epoch <code>${esc(index.latest)}</code> · ${line.length} trend ${line.length === 1 ? "record" : "records"} in ${index.entry.nights} ${index.entry.nights === 1 ? "night" : "nights"}</p>
+    ${night}
     ${weekNote(week)}
     ${tiles(latest)}
     <div class="two trend-charts">

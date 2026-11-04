@@ -225,7 +225,7 @@ The dropped and halved configs lose their values in the state. Their rows stay i
 ### The branch `sweep-data`
 
 ```text
-index.json                         the epochs, with the latest epoch, its nights and its status counts
+index.json                         the epochs, with the latest epoch, its nights, the missing jobs of its last night and its status counts
 epochs/<epoch>/state.json          the configs, their status and the values of each input
 epochs/<epoch>/summary.json        the cumulative summary as a table
 epochs/<epoch>/nights/<date>.json  the facts of each night: the rounds, the race, the shards and the drift
@@ -247,6 +247,27 @@ The epoch is `<corpus>_packing-<version>_highways-<version>_space-<version>`, fo
 | `<baseline>.wins`, `.losses`, `.ties`, `.diff` | The paired counts and the sum of the score differences against each baseline config |
 
 `summaryRows` reads the table, and `summaryTable` writes it. The dropped configs keep their rows, so the atlas sees each config of each night.
+
+### The check of each night
+
+A night with no result is a failure that shows. From 2026-10-30 to 2026-11-04, six nights did not complete, and no check on main showed it.
+
+| Night | Run | Cause | Data |
+|---|---|---|---|
+| 2026-10-30 | 40997519572 | 4 shards passed the job limit of 2 hours | Lost: `publish` was skipped |
+| 2026-10-31 | 41165311993 | 1 shard passed the job limit | Lost: `publish` was skipped |
+| 2026-11-01 | 41270043640 | 2 shards passed the job limit | Published later by hand, 516 jobs missing |
+| 2026-11-02 | 41384329446 | `summarize` read a constant before its definition | Published by `sweep-summarize.yml` |
+| 2026-11-03 | 41573500756 | 1 shard passed the job limit | Published, 541 jobs missing |
+| 2026-11-04 | 41768478121 | One HTTP 502 in the budget step | Lost: no round ran |
+
+The check has three parts:
+
+- `night-check.yml` runs when a sweep on main ends, on each push to main and each day at 16:17 UTC. It fails when a due night is absent from the branch `sweep-data`. A night is due at 16:00 UTC of its date, or at the end of its scheduled sweep. A partial night gives a warning.
+- The section "Sweep coverage" of the site reads `index.json` when the page opens, and applies the same rule. It states the date of the last night, and a late or partial night has its own badge.
+- A failed read of the GitHub API in the plan of the sweep or the memory probe has 4 tries with a backoff. Then the plan states the failure and goes on. The budget uses a gate of 360 minutes, and the gate of the probe runs.
+
+A skipped gate is green only after a pass on the same commit. When the last nightly gate failed and main did not change, the plan of the memory probe fails at no heavy cost. A new commit or a rerun of the failed run ends it.
 
 ## The sensitivity
 

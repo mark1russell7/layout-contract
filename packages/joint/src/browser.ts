@@ -10,5 +10,6 @@ export * from "./joint-measures.ts";
 export * from "./runner.ts";
 export * from "./lanes.ts";
 export * from "./analysis.ts";
+export * from "./night-check.ts";
 export * from "./record-count.ts";
 export * from "./space.ts";
