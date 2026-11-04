@@ -177,6 +177,8 @@ button { cursor: pointer; }
 .table th { font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.04em; color: var(--ink-3); }
 .table .num { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
 .table tr.best td { background: var(--accent-soft); }
+/* The body breaks long words anywhere. A name in a table stays on one line, and the table scrolls. */
+.table code { overflow-wrap: normal; white-space: nowrap; }
 .filter { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; font-size: 0.9rem; color: var(--ink-2); }
 .filter button, .panel button { border: 1px solid var(--line); background: var(--surface); border-radius: 999px; padding: 3px 12px; font-size: 0.85rem; }
 
