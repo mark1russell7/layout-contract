@@ -5,9 +5,10 @@ import { coverEntries, PACK_ENTRIES } from "@layout-contract/joint/browser";
 import { siteKpi } from "@mark1russell7/site-pages/vite";
 import { defineConfig, type Plugin } from "vite";
 import { buildCatalog } from "./src/build-catalog.ts";
-import { checkDataFile, type JointData } from "./src/data.ts";
+import { checkDataFile, type JointData, latestJoint } from "./src/data.ts";
 import { siteKpiInput } from "./src/kpi.ts";
 import { withEngineLinks } from "./src/links.ts";
+import { readStamps, stampFaults, withDataStamp } from "./src/stamps.ts";
 
 // The Pages workflow sets SITE_BASE to "/layout-contract". A local build uses the root.
 const env = (globalThis as { process?: { env: Record<string, string | undefined> } }).process?.env ?? {};
@@ -40,6 +41,20 @@ function checkData(): Plugin {
 function hasCoverRun(): boolean {
   const dir = new URL("./data/joint/", import.meta.url);
   return readdirSync(dir).some((name) => name.endsWith(".json") && (JSON.parse(readFileSync(new URL(name, dir), "utf8")) as { cover?: boolean }).cover === true);
+}
+
+/** This plugin puts the stamp line of `data/stamps.json` in each measured page. A stamp that does not agree with the newest joint run stops the build. */
+function dataStamps(): Plugin {
+  const stamps = readStamps(readFileSync(new URL("./data/stamps.json", import.meta.url), "utf8"));
+  return {
+    name: "layout-contract-site:data-stamps",
+    buildStart() {
+      const latest = latestJoint(jointFiles());
+      const faults = latest === undefined ? [] : stampFaults(stamps, latest);
+      if (faults.length > 0) this.error(`The file data/stamps.json is not good:\n- ${faults.join("\n- ")}`);
+    },
+    transformIndexHtml: (html, ctx) => withDataStamp(html, ctx.filename, stamps),
+  };
 }
 
 /** The id of the virtual module of the catalog of the joint pages. */
@@ -103,5 +118,5 @@ export default defineConfig({
   define: {
     __BUILD__: JSON.stringify({ sha: (env["GITHUB_SHA"] ?? "local").slice(0, 7), date: new Date().toISOString().slice(0, 10) }),
   },
-  plugins: [checkData(), jointCatalog(), engineSites(), siteKpi(kpiInput, env)],
+  plugins: [checkData(), jointCatalog(), engineSites(), dataStamps(), siteKpi(kpiInput, env)],
 });
