@@ -1,7 +1,8 @@
 import { allStrategies } from "@mark1russell7/packing";
 import { listStrategies, MEMBER_FORMS, routerStrategies, STRATEGIES } from "@mark1russell7/highways";
 import { describe, expect, it } from "vitest";
-import { COVER_EXCEPTIONS, COVER_PACKS, COVER_ROUTERS, coverEntries, coverOptions, coverPairs, coverRouters, packStrategyIds } from "./cover.ts";
+import { BASELINE } from "./analysis.ts";
+import { chosenOptions, COVER_EXCEPTIONS, COVER_PACKS, COVER_ROUTERS, coverEntries, coverOptions, coverPairs, coverRouters, packStrategyIds } from "./cover.ts";
 import { jointInput, jointSpecs, SET_V2 } from "./corpus.ts";
 import { OPEN_ROUTERS, PACK_ENTRIES, pairId, pairRuns, ROUTERS } from "./runner.ts";
 
@@ -59,6 +60,26 @@ describe("the cover of the catalogs", () => {
   it("is far smaller than the full cross product", () => {
     const { packs, routers, pairs } = coverOptions();
     expect(pairs!.length).toBeLessThan((packs!.length * routers!.length) / 4);
+  });
+});
+
+describe("a run of chosen pairs of the cover", () => {
+  it("runs the chosen pairs and the baseline pair, each once", () => {
+    const pair = coverPairs()[0]!;
+    expect(chosenOptions([pair, pair]).pairs).toEqual([BASELINE, pair]);
+    expect(chosenOptions([BASELINE]).pairs).toEqual([BASELINE]);
+  });
+
+  it("keeps the entries and the routers of the cover, so each chosen pair can run", () => {
+    const { packs, routers } = coverOptions();
+    const chosen = chosenOptions([coverPairs()[0]!]);
+    expect(chosen.packs).toEqual(packs);
+    expect(chosen.routers).toEqual(routers);
+  });
+
+  it("stops on an id outside the cover, and on an empty list", () => {
+    expect(() => chosenOptions(["no-such+pair"])).toThrow("no-such+pair");
+    expect(() => chosenOptions([])).toThrow(RangeError);
   });
 });
 

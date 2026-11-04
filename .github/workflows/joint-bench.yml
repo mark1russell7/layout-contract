@@ -12,6 +12,7 @@
 # A manual run with the input lanes adds the lane pairs of L13 to each shard. The default plan does not change.
 # A manual run with the input iterate adds the iteration pairs of L11 to each shard. The default plan does not change.
 # A manual run with the input cover adds the pairs of each other strategy and each open router to each shard. The default plan does not change.
+# A manual run with the input pairs runs only those pairs of the cover and the baseline pair, so a new strategy needs no whole cover run.
 # Only the times of these jobs count. The benchmark does not run on a local computer.
 name: Joint bench
 
@@ -43,6 +44,10 @@ on:
         description: "Add the pairs of the cover: each other strategy of packing and each open router of highways."
         type: boolean
         default: false
+      pairs:
+        description: "Run only these pairs of the cover and the baseline pair, with commas. It replaces cover, lanes and iterate."
+        type: string
+        default: ""
       confirm:
         description: "Run the confirmation of L40: 6 pairs on the fresh seeds 4 to 6. It replaces the options lanes and iterate."
         type: boolean
@@ -154,10 +159,11 @@ jobs:
           LANES: ${{ inputs.lanes && 'on' || '' }}
           ITERATE: ${{ inputs.iterate && 'on' || '' }}
           COVER: ${{ inputs.cover && 'on' || '' }}
+          PAIRS: ${{ inputs.pairs }}
           CONFIRM: ${{ inputs.confirm && 'on' || '' }}
           # 7 inputs of 1000 boxes went above the default heap of approximately 4 GB with 195 pairs in run 40815928586. The runner has 16 GB.
           NODE_OPTIONS: --max-old-space-size=6144
-        run: node scripts/bench.mjs run --corpus "$CORPUS" --shards "$COUNT" --shard "$SHARD" --out records ${SLICE:+--slice "$SLICE"} ${LANES:+--lanes on} ${ITERATE:+--iterate on} ${CONFIRM:+--confirm on} ${COVER:+--cover on}
+        run: node scripts/bench.mjs run --corpus "$CORPUS" --shards "$COUNT" --shard "$SHARD" --out records ${SLICE:+--slice "$SLICE"} ${LANES:+--lanes on} ${ITERATE:+--iterate on} ${CONFIRM:+--confirm on} ${PAIRS:+--pairs "$PAIRS"} ${COVER:+--cover on}
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         if: ${{ !cancelled() }}
         with:

@@ -13,7 +13,7 @@ This file lists the items of the roadmap of this repository. The status page of 
 | L82 | in progress | P2 | The bench scripts in TypeScript (rule typed-scripts of conventions 0.5.0) |
 | L95 | done | P1 | Open size families in the joint corpus (`joint-v3`) |
 | L96 | in progress | P2 | Two named tables of the family `recorded` in `rigor-generators`, with source, license and date, as joint inputs and size choices of the site |
-| L98 | next | P2 | Bench: run only chosen rows of the cover |
+| L98 | done | P2 | Bench: run only chosen rows of the cover |
 | L100 | in progress | P1 | The step between two epochs: raw values of the baseline arm, with a marked step on the charts |
 | L99 | in progress | P1 | A night with no result shows: `night-check.yml`, a line on the site, retries on API reads, and no green skip after a failed gate |
 
