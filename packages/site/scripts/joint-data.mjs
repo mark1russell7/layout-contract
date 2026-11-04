@@ -1,10 +1,10 @@
 // This script makes the data file of the site from the report.json of one joint benchmark run (docs/SITE.md).
 //
 //   pnpm --filter @layout-contract/site run data:joint -- <report.json> --run <id> --date <YYYY-MM-DD> --item <id>
-//        --versions highways=<v>,packing=<v> [--corpus <set>]
+//        --versions highways=<v>,packing=<v> [--corpus <set>] [--cover on]
 //
 // It writes packages/site/data/joint/<run>.json, and it fails when the result does not pass checkJoint.
-// The corpus is joint-v2 by default. Each new result adds one file. The site shows the latest result.
+// The corpus is joint-v2 by default. Each new result adds one file. The site shows the latest default result, and it marks a cover run.
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -48,6 +48,7 @@ const data = jointData(report, {
   item: flags.get("item"),
   corpus: flags.get("corpus") ?? "joint-v2",
   versions,
+  ...(flags.get("cover") === "on" ? { cover: true } : {}),
 });
 const problems = checkJoint(data);
 if (problems.length > 0) fail(`the result is not good: ${problems.join("; ")}`);

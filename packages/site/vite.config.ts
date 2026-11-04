@@ -1,4 +1,4 @@
-import { readFileSync } from "node:fs";
+import { readdirSync, readFileSync } from "node:fs";
 import { createRequire } from "node:module";
 import { fileURLToPath } from "node:url";
 import { defineConfig, type Plugin } from "vite";
@@ -33,6 +33,12 @@ function checkData(): Plugin {
   };
 }
 
+/** This function tells if a result in `data/joint/` is a cover run. The text "waiting for the first cover run" goes when such a file lands. */
+function hasCoverRun(): boolean {
+  const dir = new URL("./data/joint/", import.meta.url);
+  return readdirSync(dir).some((name) => name.endsWith(".json") && (JSON.parse(readFileSync(new URL(name, dir), "utf8")) as { cover?: boolean }).cover === true);
+}
+
 /** The id of the virtual module of the catalog of the joint pages. */
 const CATALOG = "virtual:joint-catalog";
 
@@ -51,7 +57,7 @@ function jointCatalog(): Plugin {
       const require = createRequire(import.meta.url);
       const version = (name: string): string => (require(`${name}/package.json`) as { version: string }).version;
       const versions = { packing: version("@mark1russell7/packing"), highways: version("@mark1russell7/highways"), contract: version("@mark1russell7/layout-contract") };
-      return `export default ${JSON.stringify(buildCatalog(readFileSync(manifest, "utf8"), versions))};`;
+      return `export default ${JSON.stringify(buildCatalog(readFileSync(manifest, "utf8"), versions, hasCoverRun()))};`;
     },
   };
 }

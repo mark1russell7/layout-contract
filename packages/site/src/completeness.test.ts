@@ -24,6 +24,21 @@ describe("the lists of the joint pages", () => {
     for (const p of catalog.extraPacks) expect(shown.some((e) => e.strategy === p.strategy)).toBe(false);
   });
 
+  it("holds the waiting text until a cover run lands", () => {
+    expect(catalog.packWaiting.length).toBeGreaterThan(0);
+    for (const s of catalog.packWaiting) {
+      expect(packs.some((p) => p.strategy === s)).toBe(true);
+      expect(PACK_ENTRIES.some((e) => e.strategy === s)).toBe(false);
+      expect(s in catalog.packExceptions).toBe(false);
+    }
+    expect(buildCatalog(manifestText, versions, true).packWaiting).toEqual([]);
+  });
+
+  it("tags only the strategies of the closed list of exceptions", () => {
+    expect(Object.keys(catalog.packExceptions)).toEqual(["hole-degree"]);
+    expect(packs.some((p) => p.strategy === "hole-degree")).toBe(true);
+  });
+
   it("has each router of the registry of highways, as a router of the benchmark or an open router", () => {
     expect([...catalog.routers, ...catalog.openRouters].sort()).toEqual([...ids.highways].sort());
     expect(catalog.routers).toEqual([...ROUTERS]);

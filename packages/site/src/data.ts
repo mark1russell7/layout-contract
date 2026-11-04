@@ -104,6 +104,8 @@ export interface JointData {
   readonly versions: Readonly<Record<string, string>>;
   readonly records: number;
   readonly pairs: number;
+  /** This value is true for a run with `--cover on`. The floors of such a run do not compare with the floors of a default run. */
+  readonly cover?: boolean;
   /** The cells of the headline inputs, outside the stress cell. */
   readonly cells: readonly CellSummary[];
   /** The headline cell: the rule `all` with the cap 1.25. */
@@ -261,6 +263,7 @@ export function checkJoint(v: unknown): Problems {
   need(out, v, "versions", "object", "joint");
   need(out, v, "records", "number", "joint");
   need(out, v, "pairs", "number", "joint");
+  if (v["cover"] !== undefined && typeof v["cover"] !== "boolean") out.push("joint.cover is not a boolean");
   const cells = v["cells"];
   if (!Array.isArray(cells) || cells.length === 0) out.push("joint.cells is not a list with cells");
   else cells.forEach((c: unknown, i) => checkCell(out, c, `joint.cells[${i}]`));
@@ -340,7 +343,8 @@ export function checkDataFile(path: string, text: string): Problems {
   return [`the path ${path} is not a known data file`];
 }
 
-/** This function gives the latest joint result: the newest date, and then the largest run id. */
+/** This function gives the latest joint result: the newest date, and then the largest run id. A cover run comes first only when the files hold no default run, because its floors do not compare. */
 export function latestJoint(files: readonly JointData[]): JointData | undefined {
-  return [...files].sort((a, b) => (a.date === b.date ? b.run.localeCompare(a.run, "en", { numeric: true }) : b.date.localeCompare(a.date)))[0];
+  const defaults = files.filter((f) => f.cover !== true);
+  return [...(defaults.length > 0 ? defaults : files)].sort((a, b) => (a.date === b.date ? b.run.localeCompare(a.run, "en", { numeric: true }) : b.date.localeCompare(a.date)))[0];
 }

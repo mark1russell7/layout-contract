@@ -18,7 +18,16 @@ const spaces = Object.entries(import.meta.glob<SpaceFile>("../data/examples/*.js
 const news = Object.values(import.meta.glob<NewsData>("../data/news.json", { eager: true, import: "default" }))[0];
 
 describe("the sections", () => {
-  it("shows the headline cell with its run, its date and its versions", () => {
+  it("marks a cover run, and states that its floors do not compare", () => {
+    const root = fakeRoot();
+    renderJoint(asElement(root), [{ ...joint[0]!, cover: true }]);
+    expect(root.innerHTML).toContain("cover run");
+    expect(root.innerHTML).toContain("do not compare");
+    renderJoint(asElement(root), joint);
+    expect(root.innerHTML).not.toContain("cover run");
+  });
+
+  it(" with its run, its date and its versions", () => {
     const root = fakeRoot();
     renderJoint(asElement(root), joint);
     const d = joint[0]!;

@@ -12,6 +12,8 @@ export interface RunFacts {
   readonly item: string;
   readonly corpus: string;
   readonly versions: Readonly<Record<string, string>>;
+  /** This value is true for a run with `--cover on`. */
+  readonly cover?: boolean;
 }
 
 type Obj = Record<string, any>;
@@ -102,6 +104,7 @@ export function jointData(report: Obj, facts: RunFacts): JointData {
     date: facts.date,
     item: facts.item,
     corpus: facts.corpus,
+    ...(facts.cover === true ? { cover: true } : {}),
     versions: { ...facts.versions },
     records: report["records"],
     pairs: report["pairs"],
