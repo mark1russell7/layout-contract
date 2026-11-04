@@ -152,6 +152,11 @@ The 32 pack entries of the joint cover are points of `packSpace` of `packing` 0.
 - In the other 51 of the 544 cases, the strategy does not support the input. The point and the entry then both throw `UnsupportedCell`.
 - Each entry has at least 7 comparisons of a hash.
 
+The cover has 150 routers, and 75 of them are named points of `routeSpace` of `highways` 0.13.0. The test `route-points.test.ts` checks each of these points with `checkConfig`.
+It also compares the hash of the routes of the router and of `routeConfig` on 8 inputs of `joint-v1`. These inputs give one input for each container kind and obstacle case, and each hash is equal.
+
+**Gap:** the other 75 routers are `portfolio` and 74 member forms, for example `corners-side` and `w2a:shared-ways+stretch`. `routeSpace` does not name them, and `highways` gives no function from a member form to a config. So a joint space of `productSpace(packSpace, routeSpace)` reaches only the named routers of the cover at this time. The packing engine has `configOfStrategy` for this job.
+
 ## An example space
 
 The example has a packer and a router. The stage names are examples. Each engine gives its own names.
