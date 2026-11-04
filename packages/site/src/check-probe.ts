@@ -26,6 +26,7 @@ const tile = (label: string): string => $$("#pg-result .tile").find((el) => el.t
 
 // The page starts one run at load, with the first recipe on the first preset.
 check("the page has the recipes and the presets", await until(() => $$("[data-recipe]").length >= 6 && $$("[data-preset]").length >= 2), $$("[data-recipe]").length);
+check("a recipe card keeps its corners, so the text stays inside it", parseFloat(getComputedStyle($$("[data-recipe]")[0] as Element).borderTopLeftRadius) <= 12, getComputedStyle($$("[data-recipe]")[0] as Element).borderTopLeftRadius);
 check("the first run ends", await until(done, RUN_MS), text("#pg-status"));
 check("the run draws the layout", $("#pg-result .result-figure svg") !== null, text("#pg-result").slice(0, 200));
 check("the run gives a fill above 0", Number(tile("joint.fill")) > 0, tile("joint.fill"));
