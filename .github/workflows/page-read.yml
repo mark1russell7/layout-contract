@@ -1,5 +1,5 @@
 # This workflow reads pages of the live site in a browser, so a reading of a rendered page needs no local browser.
-# It keeps a screenshot of each page at 1280 and 390, light and dark, and the text of the tags, as the artifact page-read.
+# It keeps a screenshot of each page at 1280 and 390, light and dark, crops of each section at the native scale, and the text of the tags, as the artifact page-read.
 # Start it with: gh workflow run page-read.yml -R mark1russell7/layout-contract -f pages="compare.html"
 name: Page read
 

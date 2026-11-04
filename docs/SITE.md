@@ -196,3 +196,13 @@ J2, J5 and J8 are the risky claims. The size of `highways` is the risk of J2: it
 | J6 | held | Each declared option has a control. 103 of the 117 controls set a value (88%): 101 params and the 2 controls of the wrapped strategy. 14 controls show a fixed value: a function, a list or an object. |
 | J7 | held | The parity tests of `packages/joint` passed with no change. A new test compares `pairRuns` with `runInput`. |
 | J8 | open | CI starts after the push. |
+
+## Read a live page
+
+The workflow `page-read.yml` reads pages of the live site in a browser, so a reader does not use a local browser.
+
+- Start it with `gh workflow run page-read.yml -R mark1russell7/layout-contract -f pages="index.html compare.html"`.
+- The artifact `page-read` holds one full screenshot and one set of crops for each page, width and color scheme.
+- Read the crops. A full screenshot of a long page scales down too far to read. A crop has the native scale and is at most 1,000 pixels tall.
+- The name of a crop gives its page, width, scheme, section and number, for example `index-html-390-dark-spaces-01.png`.
+- `tags.txt` gives the counts of the tags, the overflow, the errors and the crops of each read.

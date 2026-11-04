@@ -1,16 +1,30 @@
 // This script reads pages of the live site in a browser. It writes a screenshot of each page at each width and color scheme,
-// and the text of the tags of each page. The workflow page-read.yml starts it and keeps the files as an artifact.
+// crops of each section at the native scale, and the text of the tags of each page. The workflow page-read.yml starts it and keeps the files as an artifact.
 //   node scripts/page-read.ts <base url> <out dir> <page>...
 import { mkdirSync, writeFileSync } from "node:fs";
 import { createRequire } from "node:module";
 import { join } from "node:path";
-import { type PageRead, pageUrl, READ_SCHEMES, READ_WIDTHS, type ReadScheme, readLine, type ReadTag, screenshotName } from "../src/page-read.ts";
+import {
+  type CropBox,
+  cropName,
+  cropTiles,
+  type PageRead,
+  pageUrl,
+  READ_SCHEMES,
+  READ_WIDTHS,
+  type ReadScheme,
+  type ReadSection,
+  readLine,
+  type ReadTag,
+  screenshotName,
+  sectionName,
+} from "../src/page-read.ts";
 
 /** The part of the API of Playwright that this script uses. The workflow installs the package outside the repository. */
 interface Tab {
   on(event: "pageerror", listener: (error: Error) => void): void;
   goto(url: string, options: { waitUntil: "networkidle" }): Promise<unknown>;
-  screenshot(options: { path: string; fullPage: boolean }): Promise<unknown>;
+  screenshot(options: { path: string; fullPage: boolean; clip?: CropBox }): Promise<unknown>;
   locator(selector: string): { evaluateAll<T>(read: (all: Element[]) => T): Promise<T> };
   evaluate<T>(read: () => T): Promise<T>;
 }
@@ -32,6 +46,12 @@ const { chromium } = createRequire(join(dir, "package.json"))("playwright") as {
 const tagsOf = (all: Element[]): ReadTag[] =>
   all.map((e) => ({ text: (e.textContent ?? "").trim(), title: e.getAttribute("title") ?? "", row: (e.parentElement?.textContent ?? "").trim().slice(0, 60) }));
 
+const sectionsOf = (all: Element[]): ReadSection[] =>
+  all.map((e) => {
+    const r = e.getBoundingClientRect();
+    return { id: e.id, box: { x: r.x + window.scrollX, y: r.y + window.scrollY, width: r.width, height: r.height } };
+  });
+
 mkdirSync(out, { recursive: true });
 const browser = await chromium.launch();
 const results: PageRead[] = [];
@@ -44,9 +64,18 @@ for (const page of pages) {
       tab.on("pageerror", (e) => errors.push(String(e)));
       await tab.goto(pageUrl(base, page), { waitUntil: "networkidle" });
       await tab.screenshot({ path: join(out, screenshotName(page, width, colorScheme)), fullPage: true });
+      const crops: string[] = [];
+      const sections = await tab.locator("section").evaluateAll(sectionsOf);
+      for (const [index, { id, box }] of sections.entries()) {
+        for (const [tile, clip] of cropTiles(box).entries()) {
+          const name = cropName(page, width, colorScheme, sectionName(id, index + 1), tile + 1);
+          await tab.screenshot({ path: join(out, name), fullPage: true, clip });
+          crops.push(name);
+        }
+      }
       const tags = await tab.locator(".tag").evaluateAll(tagsOf);
       const overflow = await tab.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
-      results.push({ page, width, colorScheme, tags, overflow, errors });
+      results.push({ page, width, colorScheme, tags, overflow, errors, crops });
       await context.close();
     }
   }
