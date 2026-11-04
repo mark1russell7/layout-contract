@@ -103,6 +103,8 @@ export interface SweepState {
   readonly corpus: string;
   /** The ids of the inputs, in the order of the corpus. The arrays of `values` and `reference` have this order. */
   readonly inputs: readonly string[];
+  /** The hash of each input, in the same order. A state of an epoch from before this field has none. */
+  readonly inputHashes?: readonly string[];
   readonly configs: Record<string, ConfigEntry>;
   /** The `sweep.score` of each config with the status `baseline`, `screened` or `alive` on each input. `null` is no run. */
   readonly values: Record<string, (number | null)[]>;
@@ -124,7 +126,8 @@ export function emptyState(epoch: string, corpus: string, inputs: readonly Sweep
     configs[id] = { config, status: "baseline", first: date };
     values[id] = inputs.map(() => null);
   }
-  return { schema: SWEEP_SCHEMA, epoch, corpus, inputs: inputs.map((i) => i.id), configs, values, reference: inputs.map(() => null), summary: [], nights: [] };
+  const hashes = inputs.flatMap((i) => (i.hash === undefined ? [] : [i.hash]));
+  return { schema: SWEEP_SCHEMA, epoch, corpus, inputs: inputs.map((i) => i.id), ...(hashes.length === inputs.length ? { inputHashes: hashes } : {}), configs, values, reference: inputs.map(() => null), summary: [], nights: [] };
 }
 
 /** The options of a plan of a round. */
@@ -353,11 +356,12 @@ export function applyRecords(state: SweepState, records: readonly LayoutRecord[]
     for (const [id, v] of values) {
       const arr = (state.values[id] ??= state.inputs.map(() => null));
       const old = arr[i];
+      const stored = Number(v.score.toFixed(6));
       if (old !== null && old !== undefined) {
-        if (state.configs[id]!.status === "baseline" && Math.abs(old - v.score) > 1e-9) drifted = true;
+        if (state.configs[id]!.status === "baseline" && Math.abs(old - stored) > 1e-9) drifted = true;
         continue;
       }
-      arr[i] = Number(v.score.toFixed(6));
+      arr[i] = stored;
       addToSummary(rows, id, input, v, baseline);
       added++;
     }

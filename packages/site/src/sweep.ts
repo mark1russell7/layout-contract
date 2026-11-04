@@ -1,7 +1,7 @@
 // The section "Sweep coverage": the trend of the coverage surrogate, read from the branch `sweep-data` when the page opens.
 // The build does not read the branch, so the page reads it at runtime. A failed read shows a link to the data.
 import { nightDue, nightVerdict } from "@layout-contract/joint/browser";
-import { checkSweepIndex, dayOf, FLAT_WEEK, mainLine, parseTrend, type SweepIndex, type TrendRecord, type WeekView, weekView } from "./coverage.ts";
+import { checkSweepIndex, dayOf, FLAT_WEEK, mainLine, parseTrend, type StepFacts, type SweepIndex, type TrendRecord, type WeekView, weekView } from "./coverage.ts";
 import { esc, pct } from "./ui.ts";
 
 const REPO = "https://github.com/mark1russell7/layout-contract";
@@ -14,7 +14,7 @@ const READ_LIMIT_MS = 15_000;
 export type SweepState =
   | { readonly kind: "loading" }
   | { readonly kind: "failed"; readonly message: string }
-  | { readonly kind: "ready"; readonly index: SweepIndex; readonly line: readonly TrendRecord[]; readonly bad: number; readonly week: WeekView };
+  | { readonly kind: "ready"; readonly index: SweepIndex; readonly line: readonly TrendRecord[]; readonly prior?: readonly TrendRecord[]; readonly bad: number; readonly week: WeekView };
 
 /** The part of `fetch` that the section uses. A test gives a fake. */
 export type Fetch = (url: string, init?: { readonly signal?: AbortSignal }) => Promise<{ readonly ok: boolean; readonly status: number; text(): Promise<string> }>;
@@ -47,10 +47,17 @@ export async function loadSweep(get: Fetch): Promise<SweepState> {
     if (!trend.ok) return { kind: "failed", message: `surrogate-trend.jsonl gave HTTP ${trend.status}` };
     const file = parseTrend(await trend.text());
     const line = mainLine(file.records.filter((r) => r.epoch === index.latest));
-    return { kind: "ready", index, line, bad: file.bad, week: weekView(line) };
+    return { kind: "ready", index, line, prior: await priorLine(get, index.entry.step?.from, init), bad: file.bad, week: weekView(line) };
   } catch (error) {
     return { kind: "failed", message: error instanceof Error ? error.message : String(error) };
   }
+}
+
+/** This function reads the line of the epoch before the step. With no such line the charts show only the latest epoch, so a failure here is no failure of the section. */
+async function priorLine(get: Fetch, epoch: string | undefined, init: Parameters<Fetch>[1]): Promise<readonly TrendRecord[]> {
+  if (epoch === undefined) return [];
+  const res = await get(`${SWEEP_RAW}/epochs/${segment(epoch)}/surrogate-trend.jsonl`, init);
+  return res.ok ? mainLine(parseTrend(await res.text()).records.filter((r) => r.epoch === epoch)) : [];
 }
 
 // The numbers and the dates of the section.
@@ -105,6 +112,8 @@ interface ChartSpec {
   readonly base?: number;
   /** The text of the hover note of each night. */
   readonly notes: readonly string[];
+  /** The index of the first night of the new epoch. The lines stop before it, and a marked line shows the step. */
+  readonly stepAt?: number;
 }
 
 /**
@@ -157,12 +166,17 @@ function lineChart(spec: ChartSpec): string {
     spec.band.forEach((b, i) => (b === null ? flush() : run.push(i)));
     flush();
   }
+  if (spec.stepAt !== undefined && spec.stepAt > 0 && spec.stepAt < nights.length) {
+    const at = (x(spec.stepAt - 1) + x(spec.stepAt)) / 2;
+    parts.push(`<line class="epoch-step" x1="${n(at)}" x2="${n(at)}" y1="${m.top}" y2="${m.top + ph}" />`, `<text class="axis" x="${n(at + 4)}" y="${m.top + 10}">new engines</text>`);
+  }
   // The lines, their points and their labels.
   const ends: { readonly cls: string; readonly text: string; readonly x: number; readonly y: number }[] = [];
   for (const s of spec.series) {
     let d = "";
     let pen = false;
     s.values.forEach((v, i) => {
+      if (i === spec.stepAt) pen = false;
       if (v === null) {
         pen = false;
         return;
@@ -194,12 +208,13 @@ function lineChart(spec: ChartSpec): string {
 }
 
 /** This function gives the chart of the held-out median skill, its q10 to q90 band and the in-sample median. */
-export function skillChart(line: readonly TrendRecord[], width: number): string {
+export function skillChart(line: readonly TrendRecord[], width: number, stepAt?: number): string {
   const vals = line.flatMap((r) => [r.skill?.q10, r.skill?.q90, r.inSampleSkill?.median].filter((v): v is number => v !== undefined));
   return lineChart({
     label: "The held-out median skill of each night, with the band from q10 to q90, and the in-sample median skill",
     width,
     height: 240,
+    ...(stepAt === undefined ? {} : { stepAt }),
     nights: line.map((r) => r.night),
     lo: Math.min(0, ...vals),
     hi: Math.max(0, ...vals),
@@ -219,12 +234,13 @@ export function skillChart(line: readonly TrendRecord[], width: number): string 
 }
 
 /** This function gives the chart of the guard lines: the cells with rows, the cells with 20 rows or more and the covered cells. */
-export function guardChart(line: readonly TrendRecord[], width: number): string {
+export function guardChart(line: readonly TrendRecord[], width: number, stepAt?: number): string {
   const count = (v: number): string => String(Math.round(v));
   return lineChart({
     label: "The count of the cells with rows, of the cells with 20 rows or more, and of the covered cells, for each night",
     width,
     height: 190,
+    ...(stepAt === undefined ? {} : { stepAt }),
     nights: line.map((r) => r.night),
     lo: 0,
     hi: Math.max(1, ...line.map((r) => r.withRows)),
@@ -302,6 +318,14 @@ export function nightNote(index: SweepIndex, now: Date): string {
   return `<p class="week-note rising"><span class="badge good">On time</span> The last night is ${shortDate(v.last)}.</p>`;
 }
 
+/** This function gives the line on the step between two epochs. The step is a measure of the engines, not a part of the skill line. */
+export function stepNote(step: StepFacts | null): string {
+  if (step === null) return "";
+  const ratio = (v: number): string => `×${v.toFixed(3)}`;
+  if (step.pairs === 0) return `<p class="week-note flat"><span class="badge warn">Step</span> The engines changed, and no pair passed the rule: ${step.dropped} pairs dropped.</p>`;
+  return `<p class="week-note"><span class="badge">Step</span> The engines changed. On the baseline arm, the median ratio of new to old is fill ${ratio(step.fill)}, hard constraints ${ratio(step.hard)} and crossings ${ratio(step.crossings)}, over ${step.pairs} pairs, with ${step.dropped} dropped.</p>`;
+}
+
 /** The width of the charts before the page measures the section, in pixels. */
 const START_WIDTH = 640;
 
@@ -312,10 +336,13 @@ export function sweepHtml(state: SweepState, width: number = START_WIDTH, now: D
   if (state.kind === "failed")
     return `<div class="note trend-failed" role="status"><strong>The page did not get the trend.</strong> ${esc(state.message)}. The data is on the branch <a href="${REPO}/tree/sweep-data"><code>sweep-data</code></a>.</div>`;
   const { index, line, bad, week } = state;
+  const prior = state.prior ?? [];
+  const joined = [...prior, ...line];
+  const stepAt = prior.length > 0 ? prior.length : undefined;
   const latest = line.at(-1);
   const bads = bad > 0 ? `<p class="hint">${bad} ${bad === 1 ? "line" : "lines"} of the file did not pass the check. The page skips them.</p>` : "";
   const source = `<a href="${trendFileUrl(index.latest)}"><code>surrogate-trend.jsonl</code></a>`;
-  const night = nightNote(index, now);
+  const night = `${nightNote(index, now)}${stepNote(index.entry.step)}`;
   if (latest === undefined)
     return `<p class="dataline"><span class="badge">L52</span> Data of ${source} · epoch <code>${esc(index.latest)}</code></p>${night}${weekNote(week)}${bads}`;
   return `
@@ -326,12 +353,12 @@ export function sweepHtml(state: SweepState, width: number = START_WIDTH, now: D
     <div class="two trend-charts">
       <figure class="chart"><figcaption>Skill inside the cells, each night</figcaption>
         <div class="legend"><span class="item"><span class="key s1"></span>Held-out median</span><span class="item"><span class="key band"></span>q10 to q90</span><span class="item"><span class="key s2"></span>In-sample median</span></div>
-        <div class="trend-plot" data-chart="skill">${skillChart(line, width)}</div>
+        <div class="trend-plot" data-chart="skill">${skillChart(joined, width, stepAt)}</div>
         <p class="hint">Higher is better. On the line 0, the model is as good as the mean of each cell. The gap between the two lines is the overfit.</p>
       </figure>
       <figure class="chart"><figcaption>The guard lines: the cells, each night</figcaption>
         <div class="legend"><span class="item"><span class="key s1"></span>Covered</span><span class="item"><span class="key s2"></span>20 rows or more</span><span class="item"><span class="key s0"></span>With rows</span></div>
-        <div class="trend-plot" data-chart="guard">${guardChart(line, width)}</div>
+        <div class="trend-plot" data-chart="guard">${guardChart(joined, width, stepAt)}</div>
         <p class="hint">A rise of the skill with a drop of the covered cells is no gain. The guard lines show such a drop.</p>
       </figure>
     </div>
@@ -340,12 +367,12 @@ export function sweepHtml(state: SweepState, width: number = START_WIDTH, now: D
 }
 
 /** This function draws the charts again at the width of their boxes. */
-function fit(root: HTMLElement, line: readonly TrendRecord[]): void {
+function fit(root: HTMLElement, line: readonly TrendRecord[], stepAt?: number): void {
   for (const box of root.querySelectorAll<HTMLElement>("[data-chart]")) {
     const width = Math.floor(box.clientWidth);
     if (width <= 0 || box.dataset["width"] === String(width)) continue;
     box.dataset["width"] = String(width);
-    box.innerHTML = box.dataset["chart"] === "skill" ? skillChart(line, width) : guardChart(line, width);
+    box.innerHTML = box.dataset["chart"] === "skill" ? skillChart(line, width, stepAt) : guardChart(line, width, stepAt);
   }
 }
 
@@ -355,6 +382,9 @@ export async function renderSweep(root: HTMLElement, get: Fetch): Promise<void> 
   const state = await loadSweep(get);
   root.innerHTML = sweepHtml(state);
   if (state.kind !== "ready" || state.line.length === 0) return;
-  fit(root, state.line);
-  new ResizeObserver(() => fit(root, state.line)).observe(root);
+  const prior = state.prior ?? [];
+  const joined = [...prior, ...state.line];
+  const stepAt = prior.length > 0 ? prior.length : undefined;
+  fit(root, joined, stepAt);
+  new ResizeObserver(() => fit(root, joined, stepAt)).observe(root);
 }

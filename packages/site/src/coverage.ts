@@ -52,6 +52,19 @@ export interface TrendFile {
 }
 
 /** The entry of one epoch in `index.json`. */
+export interface StepFacts {
+  /** The epoch before this epoch. */
+  readonly from: string;
+  readonly pairs: number;
+  /** The count of the pairs that the rule dropped. */
+  readonly dropped: number;
+  /** The median of new value over old value for the fill, the hard constraints and the crossings. */
+  readonly fill: number;
+  readonly hard: number;
+  readonly crossings: number;
+}
+
+/** The facts of one epoch in `index.json`. */
 export interface EpochEntry {
   readonly corpus: string;
   readonly nights: number;
@@ -59,6 +72,8 @@ export interface EpochEntry {
   readonly configs: number;
   /** The count of the jobs of the last night with no record, or `null` when the index does not state it. */
   readonly missing: number | null;
+  /** The step from the epoch before this epoch, or `null` with no step. */
+  readonly step: StepFacts | null;
 }
 
 /** The facts of `index.json` that the page uses. */
@@ -168,6 +183,19 @@ export function weekView(line: readonly TrendRecord[]): WeekView {
 }
 
 /** This function examines `index.json` of the branch `sweep-data`. It gives the latest epoch and its entry, or the problems. */
+function stepOf(v: unknown): StepFacts | null {
+  if (!isObject(v) || typeof v["from"] !== "string" || !isCount(v["pairs"]) || !isObject(v["dropped"]) || !isObject(v["metrics"])) return null;
+  const storedRatio = (name: string): number | null => {
+    const metric = (v["metrics"] as Record<string, unknown>)[name];
+    return isObject(metric) && typeof metric["median"] === "number" ? metric["median"] : null;
+  };
+  const [fill, hard, crossings] = [storedRatio("joint.fill"), storedRatio("hard"), storedRatio("joint.straight.crossings")];
+  if (fill === null || hard === null || crossings === null) return null;
+  const dropped = Object.values(v["dropped"]).reduce<number>((sum, n) => sum + (typeof n === "number" ? n : 0), 0);
+  return { from: v["from"], pairs: v["pairs"], dropped, fill, hard, crossings };
+}
+
+/** This function checks the value of `index.json`. It gives the facts of the latest epoch, or the list of the problems. */
 export function checkSweepIndex(v: unknown): SweepIndex | string[] {
   if (!isObject(v)) return ["index.json is not an object"];
   if (v["schema"] !== SWEEP_INDEX_SCHEMA) return [`schema is not ${SWEEP_INDEX_SCHEMA}`];
@@ -179,5 +207,5 @@ export function checkSweepIndex(v: unknown): SweepIndex | string[] {
   if (typeof entry["corpus"] !== "string" || !isCount(entry["nights"]) || typeof entry["last"] !== "string" || !isCount(entry["configs"]))
     return [`the entry of ${latest} has no corpus, nights, last or configs`];
   const missing = isCount(entry["missing"]) ? entry["missing"] : null;
-  return { latest, entry: { corpus: entry["corpus"], nights: entry["nights"], last: entry["last"], configs: entry["configs"], missing } };
+  return { latest, entry: { corpus: entry["corpus"], nights: entry["nights"], last: entry["last"], configs: entry["configs"], missing, step: stepOf(entry["step"]) } };
 }
