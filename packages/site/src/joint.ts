@@ -73,7 +73,7 @@ function ranking(v: CellView, s: State): string {
   return `<h3>The ranked pairs</h3>
     <p class="hint">The rank uses the misses first, and then the mean score. The pairs with the same output on each input are one group.</p>
     ${filter}
-    <div class="scroll"><table class="table"><thead><tr><th class="num">Rank</th><th>Pair (packer+router)</th><th class="num">Misses</th><th class="num">Score</th></tr></thead><tbody>${body}</tbody></table></div>`;
+    <div class="scroll scroll-cue" tabindex="0" aria-label="The ranked pairs"><table class="table"><thead><tr><th class="num">Rank</th><th>Pair (packer+router)</th><th class="num">Misses</th><th class="num">Score</th></tr></thead><tbody>${body}</tbody></table></div>`;
 }
 
 function baselines(v: CellView): string {
