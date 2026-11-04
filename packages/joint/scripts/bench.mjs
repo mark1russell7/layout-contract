@@ -4,6 +4,7 @@
 //   smoke [--corpus <set>]                                                  packs and routes 1 input of each value of spacing with corners
 //   run --shards <n> --shard <i> --out <dir> [--slice pr] [--corpus <set>] [--lanes on] [--iterate on] [--cover on]   writes <dir>/records-<i>.jsonl
 //   plan --shards <n> [--slice pr] [--corpus <set>] [--lanes on] [--iterate on] [--cover on]              prints the planned cost of each shard
+//   confirm --confirm on --records <dir> --out <dir>   writes the decision of L40: <dir>/confirm.json and <dir>/confirm.md
 //   analyze --records <dir> --out <dir> [--slice pr] [--corpus <set>] [--allow-missing <file>] [--subset <file>] [--baseline <pair[,pair]>]
 //           [--compare <a:b[,a:b]>] [--exclude-pack <id[,id]>] [--oracle-without <id[,id]>] [--times <spec[,spec]>] [--jobs <file>] [--rank-top <n>]
 //                                                                            writes <dir>/report.json and <dir>/report.md
@@ -40,6 +41,12 @@ import {
   BASELINE,
   DENSE_HUBS,
   checkCorpus,
+  CONFIRM_PLAIN_PAIRS,
+  CONFIRM_SEEDS,
+  confirmDefault,
+  confirmIterate,
+  confirmLanes,
+  confirmMarkdown,
   expectedProbes,
   familyProbeGroups,
   gateJobs,
@@ -87,17 +94,22 @@ const set = args.corpus ?? SET_V2;
 if (!SETS.includes(set)) throw new RangeError(`The corpus is one of ${SETS.join(", ")}, not "${set}".`);
 // The lane pairs of L13 run only with `--lanes on`. Thus the default plan and the default records do not change.
 if (args.lanes !== undefined && args.lanes !== "on" && args.lanes !== "off") throw new RangeError(`The option --lanes is on or off, not "${args.lanes}".`);
-const lanes = args.lanes === "on" ? laneEntries() : [];
+// `--confirm on` is the run of L40: the pairs of `CONFIRM_PAIRS` on the seeds of `CONFIRM_SEEDS`. It replaces `--lanes` and `--iterate`.
+if (args.confirm !== undefined && args.confirm !== "on" && args.confirm !== "off") throw new RangeError(`The option --confirm is on or off, not "${args.confirm}".`);
+const confirming = args.confirm === "on";
+if (confirming && (args.lanes !== undefined || args.iterate !== undefined)) throw new RangeError("The option --confirm replaces --lanes and --iterate.");
+const lanes = confirming ? confirmLanes() : args.lanes === "on" ? laneEntries() : [];
 // The iteration pairs of L11 run only with `--iterate on`, for the same reason.
 if (args.iterate !== undefined && args.iterate !== "on" && args.iterate !== "off") throw new RangeError(`The option --iterate is on or off, not "${args.iterate}".`);
-const iterate = args.iterate === "on" ? iterEntries() : [];
+const iterate = confirming ? confirmIterate() : args.iterate === "on" ? iterEntries() : [];
 // The pairs of the cover run only with `--cover on`, for the same reason.
 if (args.cover !== undefined && args.cover !== "on" && args.cover !== "off") throw new RangeError(`The option --cover is on or off, not "${args.cover}".`);
+if (confirming && args.cover === "on") throw new RangeError("The option --confirm replaces the option --cover.");
 const cover = args.cover === "on" ? coverOptions() : {};
 
 /** This function gives the inputs and their manifest entries, in the order of the corpus, for the slice of the arguments. */
 function corpusSlice() {
-  const { manifest, inputs } = jointCorpus(set);
+  const { manifest, inputs } = jointCorpus(set, confirming ? { seeds: CONFIRM_SEEDS } : {});
   const rows = inputs.map((input, i) => ({ input, entry: manifest.inputs[i] }));
   if (args.slice === undefined) return rows;
   if (args.slice !== "pr") throw new RangeError(`The slice is "pr", not "${args.slice}".`);
@@ -109,10 +121,30 @@ function shardPlan() {
   const shards = Number(args.shards ?? 1);
   const rows = corpusSlice();
   // The lane passes use the lane term of the cost model. The rounds of the iteration pairs have no fit yet, so they cost `LANE_PASS_COST` pairs.
-  const pairs = (cover.pairs?.length ?? PACK_ENTRIES.length * ROUTERS.length) + iterPlanPairs(iterate);
+  const pairs = (confirming ? CONFIRM_PLAIN_PAIRS.length : (cover.pairs?.length ?? PACK_ENTRIES.length * ROUTERS.length)) + iterPlanPairs(iterate);
   const passes = lanePasses(lanes);
   const items = costedRows(rows, pairs, passes);
   return { rows, shards, plan: planShards(items, shards) };
+}
+
+/** This function reads the records of a folder. The files can be in folders: `gh run download` writes each artifact into a folder of its name. */
+function readRecords(dir) {
+  const records = [];
+  for (const name of readdirSync(dir, { recursive: true }).map(String).filter((n) => n.endsWith(".jsonl")).sort())
+    for (const line of readFileSync(join(dir, name), "utf8").split("\n")) if (line.trim() !== "") records.push(JSON.parse(line));
+  return records;
+}
+
+/** This function gives the facts of the inputs of a slice for the analysis. */
+function analysisInputs(slice) {
+  return slice.map(({ entry }) => ({
+    id: entry.id,
+    seed: Number(/\/s(\d+)$/.exec(entry.id)[1]),
+    spec: entry.id.replace(/\/s\d+$/, ""),
+    kind: entry.id.split("/")[1].split(".")[0],
+    cell: entry.cell,
+    ...(entry.stress === true ? { stress: true } : {}),
+  }));
 }
 
 /** This function gives the id, the spec and the planned cost of each row. */
@@ -214,7 +246,7 @@ if (command === "check") {
     const records = [];
     let last = t0;
     // freeRoutes frees the routes that no lane pair and no iteration pair reads, so a large input fits in the heap (L63).
-    for (const run of pairRuns(input, entry.cell, { env, corpus: set, lanes, iterate, freeRoutes: true, ...cover, ...(commit === undefined ? {} : { commit }) })) {
+    for (const run of pairRuns(input, entry.cell, { env, corpus: set, lanes, iterate, freeRoutes: true, ...cover, ...(confirming ? { pairs: CONFIRM_PLAIN_PAIRS } : {}), ...(commit === undefined ? {} : { commit }) })) {
       records.push(run.record);
       const now = performance.now();
       if (now - last > SLOW_PAIR_MS) console.log(`  pair ${run.record.strategy}: ${Math.round(now - last)} ms, heap ${mb(process.memoryUsage().heapUsed)} MB`);
@@ -388,22 +420,22 @@ if (command === "check") {
   writeFileSync(join(dir, "gate.md"), gateMarkdown(gate));
   console.log(`gate: ${gate.pass ? "pass" : "fail"}, ${gate.rows.filter((r) => r.reason !== "").length} of ${gate.rows.length} probes failed.`);
   if (!gate.pass) process.exitCode = 1;
+} else if (command === "confirm") {
+  // The decision of L40, from the records of a run with `--confirm on`.
+  if (!confirming) throw new RangeError("The command confirm needs --confirm on.");
+  const dir = args.records ?? "bench-out";
+  const out = args.out ?? dir;
+  const report = confirmDefault(readRecords(dir), analysisInputs(corpusSlice()));
+  mkdirSync(out, { recursive: true });
+  writeFileSync(join(out, "confirm.json"), JSON.stringify(report, null, 2) + "\n");
+  writeFileSync(join(out, "confirm.md"), confirmMarkdown(report));
+  console.log(`The confirmation: ${report.confirmed ? "confirmed" : "not confirmed"}, the chosen cap ${report.chosen}.`);
 } else if (command === "analyze") {
   const dir = args.records ?? "bench-out";
   const out = args.out ?? dir;
-  const records = [];
-  // The files can be in folders: `gh run download` writes each artifact into a folder of its name.
-  for (const name of readdirSync(dir, { recursive: true }).map(String).filter((n) => n.endsWith(".jsonl")).sort())
-    for (const line of readFileSync(join(dir, name), "utf8").split("\n")) if (line.trim() !== "") records.push(JSON.parse(line));
+  const records = readRecords(dir);
   const slice = corpusSlice();
-  const inputs = slice.map(({ entry }) => ({
-    id: entry.id,
-    seed: Number(/\/s(\d+)$/.exec(entry.id)[1]),
-    spec: entry.id.replace(/\/s\d+$/, ""),
-    kind: entry.id.split("/")[1].split(".")[0],
-    cell: entry.cell,
-    ...(entry.stress === true ? { stress: true } : {}),
-  }));
+  const inputs = analysisInputs(slice);
   /** This function reads a list of ids with commas. The value `none` gives an empty list, and no value gives `undefined`. */
   const list = (value) => (value === undefined ? undefined : value === "none" ? [] : value.split(",").map((v) => v.trim()).filter((v) => v !== ""));
   const exclude = list(args["exclude-pack"]) ?? [];

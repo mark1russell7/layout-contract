@@ -269,6 +269,9 @@ export function inForms(entry: { readonly strategy: string; readonly options: Re
 /** The site uses `packSpace` of `packing` when this value is true. Roadmap item L80 changes the forms for its stages, and then sets it. */
 const USE_PACK_SPACE = false;
 
+/** The site uses `routeSpace` of `highways` when this value is true. `highways` 0.13.0 has 7 stages and no stage `router`. Roadmap item L80 changes the forms for them, and then sets it. */
+const USE_ROUTE_SPACE = false;
+
 /** This function gives the pack entry of a strategy of `packing` that no entry of the benchmark uses. A wrapper wraps `DEFAULT_STRATEGY`. */
 function extraPack(f: StrategyFacts): PackChoice {
   return f.wraps === undefined ? { id: f.id, strategy: f.id, options: {} } : { id: `${f.id}(${packing.DEFAULT_STRATEGY})`, strategy: f.id, options: { strategy: packing.DEFAULT_STRATEGY, options: {} } };
@@ -293,7 +296,7 @@ export function engineCatalog(versions: Readonly<Record<string, string>>, coverR
   const derivedRoute = spaceOf("highways", versions["highways"] ?? "", ROUTE_STAGE, rf);
   // `packing` 0.3.0 has `packSpace`, with stages that the forms of the site do not read yet (roadmap item L80). Until then, the site derives the pack space from the registry.
   const fromPack = USE_PACK_SPACE ? engineSpace(packing as unknown as Record<string, unknown>, "packSpace") : undefined;
-  const fromRoute = engineSpace(highways as unknown as Record<string, unknown>, "routeSpace");
+  const fromRoute = USE_ROUTE_SPACE ? engineSpace(highways as unknown as Record<string, unknown>, "routeSpace") : undefined;
   const shown = PACK_ENTRIES.filter(inForms);
   const used = new Set(shown.map((e) => e.strategy));
   const benchPacks: PackChoice[] = shown.map((e) => ({ id: e.id, strategy: e.strategy, options: e.options }));
