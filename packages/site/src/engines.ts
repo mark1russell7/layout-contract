@@ -1,6 +1,6 @@
 // This file makes the catalog of the joint pages from the registries of the two engines. The build imports it, so the pages get the catalog as data.
 // When an engine exports a strategy space (`packSpace` of `packing`, `routeSpace` of `highways`), the catalog uses it. Else it derives a space from the registry.
-import { COVER_EXCEPTIONS, HIGHWAY_ROUTERS, highwayRouterOf, iterEntries, jointSpace, laneEntries, laneSpace, OPEN_ROUTERS, openRouterOf, PACK_ENTRIES, pairId, PORTFOLIO_ROUTER, ROUTERS } from "@layout-contract/joint/browser";
+import { COVER_EXCEPTIONS, coverEntries, HIGHWAY_ROUTERS, highwayRouterOf, iterEntries, jointSpace, laneEntries, laneSpace, OPEN_ROUTERS, openRouterOf, PACK_ENTRIES, pairId, PORTFOLIO_ROUTER, ROUTERS } from "@layout-contract/joint/browser";
 import {
   checkSpace,
   STRATEGY_SPACE_SCHEMA,
@@ -286,7 +286,7 @@ function jointPairs(): JointPair[] {
  * This function gives the catalog of the joint pages from the registries of `packing` and `highways`.
  * The named configs of the pack space are the pack entries of the benchmark and the extra entries. The named configs of the route space are the routers.
  */
-export function engineCatalog(versions: Readonly<Record<string, string>>): EngineCatalog {
+export function engineCatalog(versions: Readonly<Record<string, string>>, coverRun = false): EngineCatalog {
   const pf = packFacts();
   const rf = routeFacts();
   const derivedPack = spaceOf("packing", versions["packing"] ?? "", PACK_STAGE, pf);
@@ -316,6 +316,7 @@ export function engineCatalog(versions: Readonly<Record<string, string>>): Engin
     benchPacks,
     extraPacks,
     packExceptions: COVER_EXCEPTIONS,
+    packWaiting: coverRun ? [] : coverEntries().map((e) => e.strategy),
     routers: [...ROUTERS],
     openRouters: [...OPEN_ROUTERS],
   };

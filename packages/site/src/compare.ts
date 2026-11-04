@@ -54,20 +54,22 @@ function writeHash(): void {
   history.replaceState(null, "", `#${h.toString()}`);
 }
 
-/** This function gives the tag of a strategy of the list of exceptions, or no text for each other strategy. */
-function exceptionTag(strategy: string): string {
+/** This function gives the tag of a strategy with no bench result: an exception, or a strategy that waits for the first cover run. Each other strategy has no tag. */
+function resultTag(strategy: string): string {
   const exception = catalog.packExceptions[strategy];
-  return exception === undefined ? "" : ` <span class="tag" title="${esc(exception.reason)}">no joint input</span>`;
+  if (exception !== undefined) return ` <span class="tag" title="${esc(exception.reason)}">no joint input</span>`;
+  if (catalog.packWaiting.includes(strategy)) return ` <span class="tag" title="This strategy has no bench result at this time. You can run it here on one input.">waiting for the first cover run</span>`;
+  return "";
 }
 
-/** This function gives the chips of the packers: one group for each strategy of `packing`. A strategy that no joint input can run has a tag with the reason. */
+/** This function gives the chips of the packers: one group for each strategy of `packing`. A strategy with no bench result has a tag. */
 function packChips(): string {
   const strategies = Object.keys(catalog.about.packing);
   return strategies
     .map((s) => {
       const entries = packs.filter((p) => p.strategy === s);
       const chips = entries
-        .map((p) => `<button type="button" class="chip${onPacks.has(p.id) ? " on" : ""}" data-pack="${esc(p.id)}" aria-pressed="${onPacks.has(p.id)}">${esc(p.id)}${exceptionTag(p.strategy)}</button>`)
+        .map((p) => `<button type="button" class="chip${onPacks.has(p.id) ? " on" : ""}" data-pack="${esc(p.id)}" aria-pressed="${onPacks.has(p.id)}">${esc(p.id)}${resultTag(p.strategy)}</button>`)
         .join("");
       return `<div class="strategy-row"><span class="strategy-name" title="${esc(catalog.about.packing[s] ?? "")}"><code>${esc(s)}</code></span><div class="chips">${chips}</div></div>`;
     })
