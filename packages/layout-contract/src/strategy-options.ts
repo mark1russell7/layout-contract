@@ -86,6 +86,8 @@ export interface ValueOption<V = unknown, S extends string = string> extends Opt
   readonly inlineOptions?: boolean;
   /** The value `false` leaves out the opt-in strategies, because the option finds only the default set of the engine. This field is for the type `strategy`. */
   readonly optIn?: boolean;
+  /** For each dimension of `supports`, the value that a chosen strategy must take. This field is for the type `strategy`, and also for an item of a list. */
+  readonly needs?: Readonly<Record<string, string>>;
   /** The declaration of each item, for the type `list`. */
   readonly of?: ListItem<S>;
   /** The smallest number of items, for the type `list`. */
@@ -108,13 +110,16 @@ export type ListItem<S extends string = string> = ItemOf<AnyOption<S>>;
 /**
  * The declaration that fits the type of an option value: numbers, booleans, string unions or other values.
  * A union of strings and other values takes an enum of the strings or a value declaration. An example is a rule or the name of a rule.
+ * A plain `string` takes an enum or a value declaration, because the value can be the key of a strategy.
  */
 export type OptionDeclaration<V, S extends string = string> = [V] extends [number]
   ? NumberOption
   : [V] extends [boolean]
     ? BooleanOption
     : [V] extends [string]
-      ? EnumOption<V>
+      ? string extends V
+        ? EnumOption<V> | ValueOption<V, S>
+        : EnumOption<V>
       : [Extract<V, string>] extends [never]
         ? ValueOption<V, S>
         : EnumOption<Extract<V, string>> | ValueOption<V, S>;

@@ -2,7 +2,7 @@
 import { canonicalJson } from "./hash.ts";
 import type { Supports } from "./record.ts";
 import { type AnyOption, declarationIssues, type ListItem, type NoDefaultReason, optionIssue, type OptionScale, type ValueOption } from "./strategy-options.ts";
-import type { StrategySpace } from "./strategy-space.ts";
+import type { ParamValue, StrategySpace } from "./strategy-space.ts";
 
 /** The schema of a strategy catalog. A new field is a new version of the schema. */
 export const STRATEGY_CATALOG_SCHEMA = "strategy-catalog/1";
@@ -95,10 +95,22 @@ export interface SupportProbe {
   readonly refuses: (key: string) => boolean | undefined;
 }
 
+/**
+ * The statement of how one place of a space reaches the options of an engine. The file of a catalog does not hold it, because a value can hold code.
+ *
+ * - `spaceOnly` tells that the place sets no option, with one sentence that tells why. A stage option without an entry can also have this statement.
+ * - `option` names the option of the param, when the option has another name. `value` gives the option value of one param value, and `undefined` when the param value sets no option.
+ */
+export type ParamRoute =
+  | { readonly spaceOnly: string }
+  | { readonly option?: string; readonly value?: (value: ParamValue) => unknown };
+
 /** The options of `checkCatalog`. */
 export interface CatalogCheckOptions {
   /** Each param of these spaces is examined against the declaration of its option. */
   readonly spaces?: readonly StrategySpace[];
+  /** The routes of the params of `spaces`. The key is `<stage>/<option>.<param>`, or `<stage>/<option>` for a stage option. A route that matches nothing is a fault. */
+  readonly paramRoutes?: Readonly<Record<string, ParamRoute>>;
   readonly probes?: readonly SupportProbe[];
   /** This function runs `owner` with `choice` in its option `option`. It gives `true` for a refusal, or `undefined` if the input cannot go to `owner`. */
   readonly refusesChoice?: (owner: string, option: string, choice: string) => boolean | undefined;
@@ -110,8 +122,10 @@ export interface CatalogCheck {
   readonly faults: readonly string[];
   /** The claims that no run examined, by key and with the reason. */
   readonly notRun: readonly string[];
-  /** The stage options and the params of a space that have no entry or no declaration in the catalog. */
+  /** The stage options and the params of a space that have no entry, no declaration and no route. */
   readonly notMatched: readonly string[];
+  /** The places of a space with a `spaceOnly` route, each with its reason. */
+  readonly spaceOnly: readonly string[];
 }
 
 /** The value of a strategy option that holds the options of the chosen strategy. A declaration with `inlineOptions` takes it. */
@@ -138,11 +152,11 @@ const ENTRY_FIELDS: readonly string[] = ["key", "id", "step", "family", "kind", 
 const COMMON_FIELDS: readonly string[] = ["type", "describe", "default", "noDefault", "when"];
 const NUMBER_FIELDS: readonly string[] = [...COMMON_FIELDS, "min", "max", "step", "scale", "special", "marks", "values"];
 const ENUM_FIELDS: readonly string[] = [...COMMON_FIELDS, "values", "custom"];
-const STRATEGY_FIELDS: readonly string[] = [...COMMON_FIELDS, "step", "kinds", "optionsKey", "inlineOptions", "optIn"];
+const STRATEGY_FIELDS: readonly string[] = [...COMMON_FIELDS, "step", "kinds", "optionsKey", "inlineOptions", "optIn", "needs"];
 const MEMBER_FIELDS: readonly string[] = ["strategy", "options", "id"];
 const LIST_FIELDS: readonly string[] = [...COMMON_FIELDS, "of", "min", "max"];
 /** The fields of a declaration, in the order of the file. */
-const OPTION_ORDER: readonly string[] = ["type", "describe", "min", "max", "step", "scale", "special", "marks", "values", "custom", "kinds", "optionsKey", "inlineOptions", "optIn", "of", "default", "noDefault", "when"];
+const OPTION_ORDER: readonly string[] = ["type", "describe", "min", "max", "step", "scale", "special", "marks", "values", "custom", "kinds", "optionsKey", "inlineOptions", "optIn", "needs", "of", "default", "noDefault", "when"];
 
 type Fields = Readonly<Record<string, unknown>>;
 
@@ -261,6 +275,10 @@ function readStrategyFields(at: string, raw: Fields, faults: string[]): Fields {
     if (raw[f] === undefined) continue;
     if (typeof raw[f] === "boolean") out[f] = raw[f];
     else faults.push(`${at}: "${f}" is not true or false.`);
+  }
+  if (raw["needs"] !== undefined) {
+    if (isFields(raw["needs"]) && Object.values(raw["needs"]).every(isText)) out["needs"] = raw["needs"];
+    else faults.push(`${at}: "needs" is not a record of texts.`);
   }
   if (raw["inlineOptions"] === true && raw["optionsKey"] !== undefined) faults.push(`${at}: "inlineOptions" and "optionsKey" give two places for the options.`);
   if (raw["default"] !== undefined) {
@@ -430,8 +448,9 @@ function readEntry(at: string, raw: unknown, faults: string[]): CatalogEntry | u
 }
 
 /**
- * This function gives the strategies that a chooser offers, by the `step`, `kinds` and `optIn` of an option. Thus no chooser keeps a copy of this rule.
+ * This function gives the strategies that a chooser offers, by the `step`, `kinds`, `optIn` and `needs` of an option. Thus no chooser keeps a copy of this rule.
  * A baseline is not in the result. A list gives the strategies of its items. An option of each other type gives nothing.
+ * A strategy that does not list a dimension of `needs` has no declared limit there, so the option offers it.
  * Without a declaration, the function gives each strategy that is not a baseline.
  */
 export function catalogChoices(strategies: readonly CatalogEntry[], declaration?: AnyOption | ListItem): readonly CatalogEntry[] {
@@ -439,7 +458,14 @@ export function catalogChoices(strategies: readonly CatalogEntry[], declaration?
   if (declaration === undefined) return offered;
   const d = (declaration.type === "list" ? declaration.of : declaration) as ValueOption | undefined;
   if (d?.type !== "strategy") return [];
-  return offered.filter((e) => (d.step === undefined || e.step === d.step) && (d.kinds === undefined || d.kinds.includes(e.kind)) && (d.optIn === undefined || d.optIn === e.optIn));
+  const needs = Object.entries(d.needs ?? {});
+  return offered.filter(
+    (e) =>
+      (d.step === undefined || e.step === d.step) &&
+      (d.kinds === undefined || d.kinds.includes(e.kind)) &&
+      (d.optIn === undefined || d.optIn === e.optIn) &&
+      needs.every(([dimension, value]) => e.supports[dimension]?.includes(value) !== false),
+  );
 }
 
 /** This function adds one fault for each option of a member that its chosen strategy does not take. */
@@ -691,28 +717,82 @@ function checkChoices(entry: CatalogEntry, strategies: readonly CatalogEntry[], 
   }
 }
 
-/** This function examines each param of a space against the declaration of its option. */
-function checkSpaceParams(space: StrategySpace, entries: ReadonlyMap<string, CatalogEntry>, faults: string[], notMatched: string[]): void {
+/** The lists that the check of the spaces writes, and the routes that it reads. */
+interface SpaceCheck {
+  readonly routes: Readonly<Record<string, ParamRoute>>;
+  /** The keys of the routes that matched a place. */
+  readonly used: Set<string>;
+  readonly faults: string[];
+  readonly notMatched: string[];
+  readonly spaceOnly: string[];
+}
+
+/** This function examines each value of one param against the declaration of its option, through the route of the param. */
+function checkParamValues(entry: CatalogEntry, engine: string, place: string, option: string, values: readonly ParamValue[], route: ParamRoute | undefined, check: SpaceCheck): void {
+  const declaration = entry.options[option]!;
+  const toOption = route !== undefined && "value" in route ? route.value : undefined;
+  for (const value of values) {
+    let mapped: unknown = value;
+    try {
+      if (toOption !== undefined) mapped = toOption(value);
+    } catch (error) {
+      check.faults.push(`${entry.key}: the route "${place}" fails on ${String(value)}: ${error instanceof Error ? error.message : String(error)}`);
+      continue;
+    }
+    if (mapped === undefined) continue;
+    const issue = optionIssue(option, mapped, declaration);
+    if (issue !== undefined) check.faults.push(`${entry.key}: the space ${engine} is outside the declaration. ${issue.message}`);
+  }
+}
+
+/** This function examines each param of a space against the declaration of its option, with the routes of the engine. */
+function checkSpaceParams(space: StrategySpace, entries: ReadonlyMap<string, CatalogEntry>, check: SpaceCheck): void {
+  const { routes, used, faults, notMatched, spaceOnly } = check;
+  const routeOf = (place: string): ParamRoute | undefined => {
+    const route = routes[place];
+    if (route !== undefined) used.add(place);
+    return route;
+  };
   for (const stage of space.stages) {
     for (const option of stage.options) {
-      const entry = entries.get(`${stage.name}/${option.id}`) ?? entries.get(option.id);
+      const name = `${stage.name}/${option.id}`;
+      const entry = entries.get(name) ?? entries.get(option.id);
       if (entry === undefined) {
-        notMatched.push(`${stage.name}/${option.id}`);
+        const reason = routes[name];
+        if (reason !== undefined && "spaceOnly" in reason) {
+          used.add(name);
+          spaceOnly.push(`${name}: ${reason.spaceOnly}`);
+        } else {
+          notMatched.push(name);
+        }
         continue;
       }
       for (const param of option.params) {
-        const declaration = entry.options[param.name];
-        if (declaration === undefined) {
-          notMatched.push(`${stage.name}/${option.id}.${param.name}`);
+        const place = `${name}.${param.name}`;
+        const route = routeOf(place);
+        if (route !== undefined && "spaceOnly" in route) {
+          if (entry.options[param.name] === undefined) spaceOnly.push(`${place}: ${route.spaceOnly}`);
+          else faults.push(`${entry.key}: the route "${place}" says that the param is only in the space, and the strategy has this option.`);
           continue;
         }
-        const values = [param.min, param.max, ...(param.values ?? []), param.default].filter((v) => v !== undefined);
-        for (const value of values) {
-          const issue = optionIssue(param.name, value, declaration);
-          if (issue !== undefined) faults.push(`${entry.key}: the space ${space.engine} is outside the declaration. ${issue.message}`);
+        const target = route?.option ?? param.name;
+        if (entry.options[target] === undefined) {
+          if (route === undefined) notMatched.push(place);
+          else faults.push(`${entry.key}: the route "${place}" names "${target}", and the strategy has no such option.`);
+          continue;
         }
+        const values = [param.min, param.max, ...(param.values ?? []), param.default].filter((v): v is ParamValue => v !== undefined);
+        checkParamValues(entry, space.engine, place, target, values, route, check);
       }
     }
+  }
+}
+
+/** This function adds one fault for each route that matched nothing, and for each `spaceOnly` route with no reason. */
+function checkRoutes({ routes, used, faults }: SpaceCheck): void {
+  for (const [place, route] of Object.entries(routes)) {
+    if (!used.has(place)) faults.push(`The route "${place}" matches nothing in the spaces.`);
+    if ("spaceOnly" in route && !isText(route.spaceOnly)) faults.push(`The route "${place}" has no reason.`);
   }
 }
 
@@ -725,6 +805,7 @@ export function checkCatalog(source: StrategyCatalogSource, registry: readonly R
   const faults: string[] = [];
   const notRun: string[] = [];
   const notMatched: string[] = [];
+  const spaceOnly: string[] = [];
   let text: string | undefined;
   try {
     text = writeStrategyCatalog(source, "0.0.0");
@@ -747,6 +828,8 @@ export function checkCatalog(source: StrategyCatalogSource, registry: readonly R
     checkProbes(entry, options.probes ?? [], faults, notRun);
     if (options.refusesChoice !== undefined) checkChoices(entry, source.strategies, options.refusesChoice, faults, notRun);
   }
-  for (const space of options.spaces ?? []) checkSpaceParams(space, entries, faults, notMatched);
-  return { faults, notRun, notMatched };
+  const spaceCheck: SpaceCheck = { routes: options.paramRoutes ?? {}, used: new Set(), faults, notMatched, spaceOnly };
+  for (const space of options.spaces ?? []) checkSpaceParams(space, entries, spaceCheck);
+  checkRoutes(spaceCheck);
+  return { faults, notRun, notMatched, spaceOnly };
 }
