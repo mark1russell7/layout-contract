@@ -127,6 +127,8 @@ export interface JointCatalog {
   readonly packExceptions: Readonly<Record<string, { readonly reason: string }>>;
   /** The strategies that have no bench result until the first cover run ends. This list is empty when `data/joint/` holds a cover run. */
   readonly packWaiting: readonly string[];
+  /** The ids of the pack chips of the compare page with no result in the newest run of `data/joint/`. A new run moves this list. */
+  readonly packNoResult: readonly string[];
   /** The routers of the joint benchmark (`ROUTERS`). */
   readonly routers: readonly string[];
   /** The open routers of the playground (`OPEN_ROUTERS`): the other highway strategies and the member forms of the portfolio. */

@@ -43,6 +43,12 @@ function hasCoverRun(): boolean {
   return readdirSync(dir).some((name) => name.endsWith(".json") && (JSON.parse(readFileSync(new URL(name, dir), "utf8")) as { cover?: boolean }).cover === true);
 }
 
+/** This function gives the catalog of the joint pages. The packers of the newest run decide which entries have no result. */
+function catalogOfTheRuns(): ReturnType<typeof buildCatalog> {
+  const measured = latestJoint(jointFiles())?.stress.byPacker.map((p) => p.id);
+  return buildCatalog(readFileSync(MANIFEST, "utf8"), engineVersions(), hasCoverRun(), measured);
+}
+
 /** This plugin puts the stamp line of `data/stamps.json` in each measured page. A stamp that does not agree with the newest joint run stops the build. */
 function dataStamps(): Plugin {
   const stamps = readStamps(readFileSync(new URL("./data/stamps.json", import.meta.url), "utf8"));
@@ -80,7 +86,7 @@ function jointFiles(): JointData[] {
 
 /** This function gives the input of `kpi.json`. A build without a joint run has no data to report, so it stops. */
 function kpiInput(): NonNullable<ReturnType<typeof siteKpiInput>> {
-  const input = siteKpiInput(jointFiles(), buildCatalog(readFileSync(MANIFEST, "utf8"), engineVersions(), hasCoverRun()), engineVersions(), [...PACK_ENTRIES, ...coverEntries()]);
+  const input = siteKpiInput(jointFiles(), catalogOfTheRuns(), engineVersions(), [...PACK_ENTRIES, ...coverEntries()]);
   if (input === undefined) throw new Error("data/joint/ has no run, so kpi.json has no time of the data.");
   return input;
 }
@@ -96,7 +102,7 @@ function jointCatalog(): Plugin {
     load(id) {
       if (id !== `\0${CATALOG}`) return null;
       this.addWatchFile(MANIFEST);
-      return `export default ${JSON.stringify(buildCatalog(readFileSync(MANIFEST, "utf8"), engineVersions(), hasCoverRun()))};`;
+      return `export default ${JSON.stringify(catalogOfTheRuns())};`;
     },
   };
 }

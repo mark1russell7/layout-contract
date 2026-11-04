@@ -278,7 +278,7 @@ function extraPack(f: StrategyFacts): PackChoice {
 }
 
 /** The facts of the catalog that come from the engines, without the inputs. */
-export type EngineCatalog = Omit<JointCatalog, "inputs" | "grid" | "compareMaxBoxes">;
+export type EngineCatalog = Omit<JointCatalog, "inputs" | "grid" | "compareMaxBoxes" | "packNoResult">;
 
 /** This function gives the lane pairs of L13 and the iteration pairs of L11, as the joint space names them. */
 function jointPairs(): JointPair[] {
