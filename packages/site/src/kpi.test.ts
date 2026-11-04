@@ -2,13 +2,10 @@ import { describe, expect, it } from "vitest";
 import type { JointData } from "./data.ts";
 import { enginesCurrent, type KpiCatalog, siteKpiInput } from "./kpi.ts";
 
-const run = (date: string, pairs: number, versions: Record<string, string>): JointData => ({ run: "1", date, pairs, versions }) as unknown as JointData;
+const run = (date: string, pairs: number, versions: Record<string, string>, packers: readonly string[] = ["shelf", "rows"]): JointData =>
+  ({ run: "1", date, pairs, versions, stress: { byPacker: packers.map((id) => ({ id })) } }) as unknown as JointData;
 
-const catalog: KpiCatalog = {
-  about: { packing: { shelf: "a", maxrects: "b", skyline: "c" }, highways: {} },
-  packWaiting: ["skyline"],
-  routers: ["corners", "trunks"],
-} as unknown as KpiCatalog;
+const catalog: KpiCatalog = { routers: ["corners", "trunks"] };
 
 describe("enginesCurrent", () => {
   it("counts only the engines with the version of the build", () => {
@@ -31,9 +28,9 @@ describe("siteKpiInput", () => {
     expect(input?.measures.find((m) => m.id === "pairs-in-run")?.value).toBe(130);
   });
 
-  it("does not count a packer that waits for its bench result", () => {
-    const input = siteKpiInput([run("2026-10-28", 130, {})], catalog, {});
-    expect(input?.measures.find((m) => m.id === "packers-measured")?.value).toBe(2);
+  it("counts only the packers of the latest run, not the packers of the catalog", () => {
+    const input = siteKpiInput([run("2026-10-20", 90, {}, ["shelf", "rows", "skyline"]), run("2026-10-28", 130, {}, ["shelf"])], catalog, {});
+    expect(input?.measures.find((m) => m.id === "packers-measured")?.value).toBe(1);
     expect(input?.measures.find((m) => m.id === "routers-on-compare")?.value).toBe(2);
   });
 });

@@ -22,7 +22,7 @@ export interface SiteKpi {
 }
 
 /** The parts of the catalog that the measures read. */
-export type KpiCatalog = Pick<JointCatalog, "about" | "packWaiting" | "routers">;
+export type KpiCatalog = Pick<JointCatalog, "routers">;
 
 /** This function counts the engines of the run that have the version of the build of the site. */
 export function enginesCurrent(run: Readonly<Record<string, string>>, built: Readonly<Record<string, string>>): number {
@@ -31,6 +31,8 @@ export function enginesCurrent(run: Readonly<Record<string, string>>, built: Rea
 
 /**
  * This function gives the input of the writer. It gives undefined when no joint run exists, because the time of the data is then not known.
+ *
+ * The measure `packers-measured` counts the packers of the run. A packer of the catalog with no row in the run has no result.
  *
  * @param files - The data files of `data/joint/`.
  * @param catalog - The catalog of the build.
@@ -44,7 +46,7 @@ export function siteKpiInput(files: readonly JointData[], catalog: KpiCatalog, b
     at: `${run.date}T00:00:00Z`,
     measures: [
       { id: "pairs-in-run", value: run.pairs, unit: "pairs" },
-      { id: "packers-measured", value: Object.keys(catalog.about.packing).length - catalog.packWaiting.length, unit: "packers" },
+      { id: "packers-measured", value: run.stress.byPacker.length, unit: "packers" },
       { id: "routers-on-compare", value: catalog.routers.length, unit: "routers" },
       { id: "engines-current", value: enginesCurrent(run.versions, built), unit: "engines" },
     ],
