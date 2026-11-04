@@ -9,7 +9,6 @@ This file lists the items of the roadmap of this repository. The status page of 
 | L5 | in progress | P1 | highways reads the contract |
 | L34 | in progress | P1 | The strategy space as data |
 | L52 | in progress | P1 | Measure joint space coverage, with a weekly trend that rises |
-| L71 | in progress | P2 | A bound-first fast path for labels from a declared character set |
 | L81 | in progress | P1 | Memory gate over each family of the bench, then the dense-hubs peak (3.4-4.3 GB) |
 | L82 | in progress | P2 | The bench scripts in TypeScript (rule typed-scripts of conventions 0.5.0) |
 | L84 | in progress | P1 | A paired-time A/A arm in the joint bench, for the new Time row |
@@ -55,6 +54,7 @@ This file lists the items of the roadmap of this repository. The status page of 
 | L91 | later | P3 | Align linked boxes so that the edges are straight |
 | L92 | later | P3 | A learned route proxy for the placer |
 | L93 | later | P3 | An exact joint reference for small inputs |
+| L94 | later | P2 | Route around circle items in the joint bench |
 
 ## Done
 
@@ -106,6 +106,7 @@ This file lists the items of the roadmap of this repository. The status page of 
 | L63 | done | P1 | Bound the memory of the joint runner before bench-4 |
 | L64 | done | P1 | Balance and stability measures in the contract (0.2.19) |
 | L70 | done | P2 | A layout cache per text and options in /text |
+| L71 | done | P2 | A bound-first fast path for labels from a declared character set |
 | L77 | done | P1 | Find and bound what fills 6 GB on the 1000-box inputs |
 | L78 | done | P2 | An open playground |
 | L79 | done | P2 | bench-4: the next version of the joint space |
