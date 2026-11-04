@@ -256,14 +256,18 @@ turnRegion: build/index.d.ts#turnRegion
 turnSide: build/index.d.ts#turnSide
 verdict: build/index.d.ts#verdict
 
-## ./text (build/text.d.ts): 20 names
+## ./text (build/text.d.ts): 26 names
 
 AdvanceFn: build/text.d.ts#AdvanceFn
 CanvasTextContext: build/text.d.ts#CanvasTextContext
+DIGITS: build/text.d.ts#DIGITS
 MeasurerOptions: build/text.d.ts#MeasurerOptions
 MeasurerStats: build/text.d.ts#MeasurerStats
+PRINTABLE_ASCII: build/text.d.ts#PRINTABLE_ASCII
 TEXT_MEASURES: build/text.d.ts#TEXT_MEASURES
 TEXT_UNITS: build/text.d.ts#TEXT_UNITS
+TextCharset: build/text.d.ts#TextCharset
+TextCharsetOptions: build/text.d.ts#TextCharsetOptions
 TextLayout: build/text.d.ts#TextLayout
 TextLayoutCache: build/text.d.ts#TextLayoutCache
 TextLayoutCacheOptions: build/text.d.ts#TextLayoutCacheOptions
@@ -271,8 +275,10 @@ TextLayoutCacheStats: build/text.d.ts#TextLayoutCacheStats
 TextLayoutOptions: build/text.d.ts#TextLayoutOptions
 TextMeasureId: build/text.d.ts#TextMeasureId
 TextMeasurer: build/text.d.ts#TextMeasurer
+TextSizing: build/text.d.ts#TextSizing
 canvasAdvance: build/text.d.ts#canvasAdvance
 createMeasurer: build/text.d.ts#createMeasurer
+createTextCharset: build/text.d.ts#createTextCharset
 createTextLayoutCache: build/text.d.ts#createTextLayoutCache
 fontKey: build/text.d.ts#fontKey
 graphemesOf: build/text.d.ts#graphemesOf
@@ -1582,6 +1588,9 @@ export interface CanvasTextContext {
   };
 }
 
+### build/text.d.ts#DIGITS
+export declare const DIGITS = "0123456789";
+
 ### build/text.d.ts#MeasurerOptions
 export interface MeasurerOptions {
   readonly maxEntries?: number;
@@ -1594,11 +1603,26 @@ export interface MeasurerStats {
   readonly calls: number;
 }
 
+### build/text.d.ts#PRINTABLE_ASCII
+export declare const PRINTABLE_ASCII = " !\"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~";
+
 ### build/text.d.ts#TEXT_MEASURES
 export declare const TEXT_MEASURES: readonly MeasureSpec<TextMeasureId>[];
 
 ### build/text.d.ts#TEXT_UNITS
 export declare const TEXT_UNITS = 64;
+
+### build/text.d.ts#TextCharset
+export interface TextCharset {
+  readonly characters: string;
+  covers(text: string): boolean;
+  unit(font: string, measurer: TextMeasurer): number | undefined;
+}
+
+### build/text.d.ts#TextCharsetOptions
+export interface TextCharsetOptions {
+  readonly pairMargin?: number;
+}
 
 ### build/text.d.ts#TextLayout
 export interface TextLayout {
@@ -1609,6 +1633,7 @@ export interface TextLayout {
   readonly height: number;
   readonly wrapWidth?: number;
   readonly truncated: boolean;
+  readonly bounded?: true;
 }
 
 ### build/text.d.ts#TextLayoutCache
@@ -1642,6 +1667,8 @@ export interface TextLayoutOptions {
   readonly maxWidth?: number;
   readonly wordBreak?: "keep" | "anywhere";
   readonly breaker?: "greedy" | "total-fit" | "balanced";
+  readonly sizing?: TextSizing;
+  readonly charset?: TextCharset;
 }
 
 ### build/text.d.ts#TextMeasureId
@@ -1655,11 +1682,17 @@ export interface TextMeasurer {
   generation?(): number;
 }
 
+### build/text.d.ts#TextSizing
+export type TextSizing = "exact" | "bound-first" | "bound";
+
 ### build/text.d.ts#canvasAdvance
 export declare function canvasAdvance(context: CanvasTextContext): AdvanceFn;
 
 ### build/text.d.ts#createMeasurer
 export declare function createMeasurer(measure: AdvanceFn, options?: MeasurerOptions): TextMeasurer;
+
+### build/text.d.ts#createTextCharset
+export declare function createTextCharset(characters: string, options?: TextCharsetOptions): TextCharset;
 
 ### build/text.d.ts#createTextLayoutCache
 export declare function createTextLayoutCache(options?: TextLayoutCacheOptions): TextLayoutCache;

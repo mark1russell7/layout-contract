@@ -162,12 +162,17 @@ function orient(a: Point, b: Point, c: Point): number {
   return (b.x - a.x) * (c.y - a.y) - (b.y - a.y) * (c.x - a.x);
 }
 
+/** This function tells if two numbers have opposite signs. Zero and NaN give false, so a touch at an end does not count. */
+function opposite(p: number, q: number): boolean {
+  return (p < 0 && q > 0) || (p > 0 && q < 0);
+}
+
 /**
  * This function tells if the segments `ab` and `cd` cross at one point inside both of them.
  * Segments that only touch at an end, or that are collinear, do not cross. The test has no tolerance.
  */
 export function segmentsCross(a: Point, b: Point, c: Point, d: Point): boolean {
-  return orient(c, d, a) * orient(c, d, b) < 0 && orient(a, b, c) * orient(a, b, d) < 0;
+  return opposite(orient(c, d, a), orient(c, d, b)) && opposite(orient(a, b, c), orient(a, b, d));
 }
 
 /** This function gives the shortest distance from `p` to the segment `ab`. A segment of length 0 is the point `a`. */

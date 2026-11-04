@@ -168,6 +168,95 @@ export function graphemesOf(text: string): string[] {
   return Array.from(text);
 }
 
+/** The digits, as a value for `createTextCharset`. */
+export const DIGITS = "0123456789";
+
+/** The printable characters of ASCII with the space, as a value for `createTextCharset`. */
+export const PRINTABLE_ASCII = " !\"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~";
+
+/** The scripts of a member of a character set. The characters of other scripts can join or change their shape, so their advances do not add. */
+const SIMPLE_SCRIPT = /^[\p{Script=Common}\p{Script=Latin}\p{Script=Greek}\p{Script=Cyrillic}\p{Script=Han}\p{Script=Hiragana}\p{Script=Katakana}]$/u;
+
+/** The characters that are not plain advances: marks, control and format characters, emoji parts, and each white space but the space. */
+const NOT_AN_ADVANCE = /[\p{M}\p{C}\p{Extended_Pictographic}\p{Emoji_Modifier}\p{Regional_Indicator}]|[^\S ]/u;
+
+/** The largest count of fonts in the memo of a character set for one measurer. */
+const CHARSET_FONTS = 64;
+
+/** The options of `createTextCharset`. */
+export interface TextCharsetOptions {
+  /**
+   * The largest width that two neighbor characters add to the sum of their advances, as a share of the largest advance. The default is 0.
+   * A kerning pair that is narrower adds no width. Give a value for a font with kerning pairs or ligatures that are wider.
+   */
+  readonly pairMargin?: number;
+}
+
+/** A declared character set. A caller asks for it with `createTextCharset`. It is frozen, so `createTextLayoutCache` can use its identity as a key. */
+export interface TextCharset {
+  readonly characters: string;
+  /** This function tells if each code point of the text is a member of the set. */
+  covers(text: string): boolean;
+  /**
+   * This function gives the bound of one UTF-16 code unit of a member in the font, in units of 1/`TEXT_UNITS` pixel.
+   * It measures each member once for a measurer with `generation`, and again after a `reset`. It measures on each call for a different measurer.
+   * It gives `undefined` when a member has no positive finite advance: that is a gap in the font.
+   */
+  unit(font: string, measurer: TextMeasurer): number | undefined;
+}
+
+/**
+ * This function gives a declared character set. A member is one code point with a plain advance.
+ * A tab, a line break, a soft hyphen, a zero-width character, a combining mark, an emoji part or a bidirectional control gives a `RangeError`.
+ * A letter of a script that joins or changes its shape, for example Arabic or Devanagari, also gives a `RangeError`. A label with this letter gets a measure.
+ */
+export function createTextCharset(characters: string, options: TextCharsetOptions = {}): TextCharset {
+  const pairMargin = options.pairMargin ?? 0;
+  if (!(Number.isFinite(pairMargin) && pairMargin >= 0)) throw new RangeError(`createTextCharset: pairMargin is a finite number of 0 or more, not ${pairMargin}.`);
+  const members = new Set(characters);
+  if (members.size === 0) throw new RangeError("createTextCharset: the set has no character.");
+  for (const c of members) {
+    if (NOT_AN_ADVANCE.test(c) || !SIMPLE_SCRIPT.test(c)) throw new RangeError(`createTextCharset: U+${c.codePointAt(0)!.toString(16).toUpperCase()} is not a plain advance.`);
+  }
+  /** This function gives the bound of one character. The added unit holds the rounding of each advance, so a sum of rounded segments stays under the bound. */
+  const scan = (font: string, measurer: TextMeasurer): number | undefined => {
+    let largest = 0;
+    for (const c of members) {
+      const units = measurer.advance(c, font);
+      if (!(Number.isFinite(units) && units > 0)) return undefined;
+      largest = Math.max(largest, units);
+    }
+    return Math.ceil((largest + 1) * (1 + pairMargin));
+  };
+  const memo = new WeakMap<TextMeasurer, Map<string, { readonly generation: number; readonly unit: number | undefined }>>();
+  return Object.freeze({
+    characters,
+    covers(text: string): boolean {
+      for (const c of text) if (!members.has(c)) return false;
+      return true;
+    },
+    unit(font: string, measurer: TextMeasurer): number | undefined {
+      const generation = measurer.generation?.();
+      // A measurer without `generation` does not tell of a change of its advances, so a memo can keep a low bound.
+      if (generation === undefined) return scan(font, measurer);
+      let fonts = memo.get(measurer);
+      if (fonts === undefined) {
+        fonts = new Map();
+        memo.set(measurer, fonts);
+      }
+      const known = fonts.get(font);
+      if (known?.generation === generation) return known.unit;
+      const unit = scan(font, measurer);
+      if (fonts.size >= CHARSET_FONTS) fonts.delete(fonts.keys().next().value!);
+      fonts.set(font, { generation, unit });
+      return unit;
+    },
+  });
+}
+
+/** The source of the width of a label. The option `sizing` of `layoutText` tells each value. */
+export type TextSizing = "exact" | "bound-first" | "bound";
+
 /** The options of `layoutText`. All lengths are in pixels. */
 export interface TextLayoutOptions {
   readonly font: string;
@@ -198,6 +287,14 @@ export interface TextLayoutOptions {
    * makes the lines more equal. `balanced` keeps the greedy line count with the least width.
    */
   readonly breaker?: "greedy" | "total-fit" | "balanced";
+  /**
+   * The source of the width of a label. `exact` (the default) measures each label.
+   * `bound-first` keeps a label of `charset` on one line with no measure when its bound fits. It measures each other label.
+   * `bound` sizes each label of `charset` from its bound, also when the label wraps. A label that has a character out of `charset` gets a measure in all modes.
+   */
+  readonly sizing?: TextSizing;
+  /** The declared character set of `sizing`. `bound-first` and `bound` need it, and `exact` does not read it. */
+  readonly charset?: TextCharset;
 }
 
 /** The layout of a text: its lines and its box. */
@@ -213,12 +310,19 @@ export interface TextLayout {
   readonly wrapWidth?: number;
   /** `true` when `maxChars` or `maxLines` cut the text. */
   readonly truncated: boolean;
+  /** `true` when the widths and the box come from the bound of a character set. Each width is then at or above the measured width. A measured layout does not have this field. */
+  readonly bounded?: true;
 }
 
 /** A forced break: a penalty with no text, no width and the cost `-Infinity`. */
 const FORCED: Penalty = { type: "penalty", text: "", width: 0, cost: -Infinity, flagged: false };
 
 /** This function gives the box of a part of a word. */
+/** This function gives the units of a segment: the bound for one character times the length, or a measure when there is no bound. */
+function advanceOf(segment: string, font: string, measurer: TextMeasurer, bound: number | undefined): number {
+  return bound === undefined ? measurer.advance(segment, font) : segment.length * bound;
+}
+
 function boxOf(part: { readonly text: string; readonly width: number }): Box {
   return { type: "box", text: part.text, width: part.width };
 }
@@ -235,6 +339,8 @@ interface Line {
  * The breaker comes from `@mark1russell7/typeset`. The default is greedy, as a browser with `white-space: normal`.
  * It collapses each run of white space to one space, and a line does not count its last space.
  * The width of a word is the sum of the advances of its segments. `docs/TEXT.md` gives the rules and the error of this sum.
+ *
+ * The option `sizing` replaces a measure with the bound of a declared character set. A caller that does not set it gets each measured result.
  */
 export function layoutText(text: string, options: TextLayoutOptions): TextLayout {
   const { font, measurer, lineHeight } = options;
@@ -245,6 +351,10 @@ export function layoutText(text: string, options: TextLayoutOptions): TextLayout
   const name = options.breaker ?? "greedy";
   if (!Object.hasOwn(breakers, name)) throw new RangeError(`layoutText: breaker is "greedy", "total-fit" or "balanced", not ${String(name)}.`);
   const breaker = breakers[name];
+  const sizing = options.sizing ?? "exact";
+  if (sizing !== "exact" && sizing !== "bound-first" && sizing !== "bound") throw new RangeError(`layoutText: sizing is "exact", "bound-first" or "bound", not ${String(sizing)}.`);
+  const charset = sizing === "exact" ? undefined : options.charset;
+  if (sizing !== "exact" && charset === undefined) throw new RangeError(`layoutText: sizing "${sizing}" needs a charset from createTextCharset.`);
   let truncated = false;
 
   let source = text;
@@ -258,8 +368,24 @@ export function layoutText(text: string, options: TextLayoutOptions): TextLayout
   }
 
   const words = wordsOf(source);
-  const space = measurer.advance(" ", font);
-  const width = (w: Word): number => w.parts.reduce((s, p) => s + measurer.advance(p, font), 0);
+  const maxWidth = options.maxWidth ?? (options.wrapWidth === undefined ? Infinity : options.wrapWidth + padding);
+  const oneLine = (natural: number, bounded: boolean): TextLayout => {
+    const one = words.map((w) => w.text).join(" ");
+    const px = natural / TEXT_UNITS;
+    const box = Math.min(maxWidth, Math.max(options.minWidth ?? 0, px + padding));
+    const layout: TextLayout = { lines: [one], widths: [px], lineCount: 1, width: box, height: lineHeight, truncated };
+    return bounded ? { ...layout, bounded } : layout;
+  };
+
+  // The raw text, not its words: the check sees a tab or a line break before they collapse.
+  const unit = charset?.covers(source) === true ? charset.unit(font, measurer) : undefined;
+  if (sizing === "bound-first" && unit !== undefined) {
+    const natural = words.reduce((s, w) => s + w.text.length, Math.max(0, words.length - 1)) * unit;
+    if (options.wrapWidth === undefined || natural / TEXT_UNITS + padding <= maxWidth) return oneLine(natural, true);
+  }
+  const bound = sizing === "bound" ? unit : undefined;
+  const space = advanceOf(" ", font, measurer, bound);
+  const width = (w: Word): number => w.parts.reduce((s, p) => s + advanceOf(p, font, measurer, bound), 0);
   const lineUnits = (line: string): number => {
     const ws = wordsOf(line);
     return ws.reduce((s, w) => s + width(w), 0) + space * Math.max(0, ws.length - 1);
@@ -267,14 +393,8 @@ export function layoutText(text: string, options: TextLayoutOptions): TextLayout
   const widths = words.map(width);
   const natural = widths.reduce((s, w) => s + w, 0) + space * Math.max(0, words.length - 1);
 
-  const maxWidth = options.maxWidth ?? (options.wrapWidth === undefined ? Infinity : options.wrapWidth + padding);
   const fits = natural / TEXT_UNITS + padding <= maxWidth;
-  if (options.wrapWidth === undefined || fits) {
-    const one = words.map((w) => w.text).join(" ");
-    const px = natural / TEXT_UNITS;
-    const box = Math.min(maxWidth, Math.max(options.minWidth ?? 0, px + padding));
-    return { lines: [one], widths: [px], lineCount: 1, width: box, height: lineHeight, truncated };
-  }
+  if (options.wrapWidth === undefined || fits) return oneLine(natural, bound !== undefined);
 
   const limit = Math.round(options.wrapWidth * TEXT_UNITS);
   // The items of the breaker: a box for each word, and glue of one space between two words.
@@ -284,7 +404,7 @@ export function layoutText(text: string, options: TextLayoutOptions): TextLayout
     if (items.length > 0) items.push(FORCED);
     let cur: { text: string; width: number } | undefined;
     for (const g of graphemesOf(word.text)) {
-      const w = measurer.advance(g, font);
+      const w = advanceOf(g, font, measurer, bound);
       if (cur !== undefined && cur.width + w > limit) {
         items.push(boxOf(cur), FORCED);
         cur = undefined;
@@ -322,7 +442,7 @@ export function layoutText(text: string, options: TextLayoutOptions): TextLayout
     truncated = true;
   }
 
-  return {
+  const layout: TextLayout = {
     lines: lines.map((l) => l.text),
     widths: lines.map((l) => l.units / TEXT_UNITS),
     lineCount: lines.length,
@@ -331,6 +451,7 @@ export function layoutText(text: string, options: TextLayoutOptions): TextLayout
     wrapWidth: options.wrapWidth,
     truncated,
   };
+  return bound === undefined ? layout : { ...layout, bounded: true };
 }
 
 /** The counts of a `TextLayoutCache`. `calls` is the count of the `layoutText` calls, and `size` is the count of the entries. */
@@ -368,7 +489,7 @@ function numberKey(value: number | undefined): string {
  */
 function optionsKey(o: TextLayoutOptions): string {
   const numbers = `${numberKey(o.lineHeight)},${numberKey(o.wrapWidth)},${numberKey(o.maxLines)},${numberKey(o.maxChars)},${numberKey(o.padding)},${numberKey(o.minWidth)},${numberKey(o.maxWidth)}`;
-  return `${numbers},${(o.wordBreak ?? "keep") === "keep"},${o.breaker},${o.font.length},${o.ellipsis?.length},${o.font}${o.ellipsis ?? ""}`;
+  return `${numbers},${(o.wordBreak ?? "keep") === "keep"},${o.breaker},${o.sizing ?? "exact"},${o.font.length},${o.ellipsis?.length},${o.font}${o.ellipsis ?? ""}`;
 }
 
 /** This function tells if two sets of options are the same. It uses `Object.is`, so 0 and -0 are different. It makes no string, so it is cheap on each hit. */
@@ -385,7 +506,9 @@ function sameOptions(a: TextLayoutOptions, b: TextLayoutOptions): boolean {
     Object.is(a.maxWidth, b.maxWidth) &&
     a.ellipsis === b.ellipsis &&
     a.wordBreak === b.wordBreak &&
-    a.breaker === b.breaker
+    a.breaker === b.breaker &&
+    a.sizing === b.sizing &&
+    a.charset === b.charset
   );
 }
 
@@ -399,7 +522,7 @@ interface CurrentOptions {
 }
 
 /**
- * This function gives a bounded cache of `layoutText` results, keyed by the text, the options and the measurer.
+ * This function gives a bounded cache of `layoutText` results, keyed by the text, the options, the measurer and the character set.
  * A full cache removes one entry. It takes the set of options that a caller used least recently, and in it the text that a caller used least recently.
  * The key holds the raw font string, because a host can give two spellings of a font two different advances.
  * A measurer with `generation` starts a new set of keys after each `reset`. For a different measurer, start `reset` of the cache after a change of the advances.
@@ -409,25 +532,26 @@ export function createTextLayoutCache(options: TextLayoutCacheOptions = {}): Tex
   if (!(Number.isInteger(max) && max >= 0)) throw new RangeError(`createTextLayoutCache: maxEntries is an integer of 0 or more, not ${max}.`);
   // Each Map keeps the order of insertion, so its first key is the least recently used. A set of options is here only while it has an entry.
   const groups = new Map<string, Map<string, TextLayout>>();
-  // A measurer is an object. It gets a number here, so a key does not keep the measurer alive.
-  const ids = new WeakMap<TextMeasurer, number>();
+  // A measurer and a character set are objects. Each gets a number here, so a key does not keep it alive.
+  const ids = new WeakMap<object, number>();
   let nextId = 0;
   let current: CurrentOptions | undefined;
   let size = 0;
   let requests = 0;
   let hits = 0;
   let calls = 0;
-  const idOf = (measurer: TextMeasurer): number => {
-    let id = ids.get(measurer);
+  const idOf = (item: object): number => {
+    let id = ids.get(item);
     if (id === undefined) {
       id = nextId++;
-      ids.set(measurer, id);
+      ids.set(item, id);
     }
     return id;
   };
   /** This function finds the layouts of a set of options, and it makes that set the most recently used. */
   const open = (layoutOptions: TextLayoutOptions, generation: number | undefined): CurrentOptions => {
-    const key = `${idOf(layoutOptions.measurer)},${generation},${optionsKey(layoutOptions)}`;
+    const charset = layoutOptions.charset === undefined ? "" : idOf(layoutOptions.charset);
+    const key = `${idOf(layoutOptions.measurer)},${generation},${charset},${optionsKey(layoutOptions)}`;
     const layouts = groups.get(key) ?? new Map<string, TextLayout>();
     if (groups.delete(key)) groups.set(key, layouts);
     return { options: { ...layoutOptions }, generation, key, layouts };

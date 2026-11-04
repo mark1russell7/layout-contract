@@ -25,6 +25,21 @@ describe("segmentsCross", () => {
     expect(segmentsCross(p(0, 0), p(1e-9, 1e-9), p(0, 1e-9), p(1e-9, 0))).toBe(true);
   });
 
+  it("finds a crossing at a scale where a product of two turns underflows", () => {
+    const s = 1e-100;
+    expect(segmentsCross(p(0, 0), p(s, s), p(0, s), p(s, 0))).toBe(true);
+  });
+
+  it("is false for a turn of 0 on one side and of either sign on the other", () => {
+    expect(segmentsCross(p(0, 0), p(10, 0), p(5, 0), p(5, 10))).toBe(false);
+    expect(segmentsCross(p(0, 0), p(10, 0), p(5, -10), p(5, 0))).toBe(false);
+  });
+
+  it("is false for a coordinate that is not a number", () => {
+    expect(segmentsCross(p(Number.NaN, 0), p(10, 10), p(0, 10), p(10, 0))).toBe(false);
+    expect(segmentsCross(p(0, 0), p(10, 10), p(0, 10), p(10, Number.NaN))).toBe(false);
+  });
+
   it("gives the same answer when the segments change places or direction", () => {
     const [a, b, c, d] = [p(0, 0), p(10, 3), p(2, 9), p(7, -4)];
     const answer = segmentsCross(a, b, c, d);

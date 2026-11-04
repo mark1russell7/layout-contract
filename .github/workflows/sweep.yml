@@ -104,7 +104,7 @@ jobs:
           if [ "$EVENT" != schedule ]; then echo "A dispatch with no budget-minutes has no budget."; exit 0; fi
           last=""; mins=""; count=0
           for id in $(gh run list -R "$REPO" --workflow memory-probe.yml --branch main --status completed --limit 20 --json databaseId,event --jq '.[] | select(.event == "schedule" or .event == "workflow_run") | .databaseId'); do
-            row="$(gh run view "$id" -R "$REPO" --json jobs,headSha,startedAt,updatedAt --jq 'if ([.jobs[] | select(.name == "gate" and (.conclusion == "success" or .conclusion == "failure"))] | length) > 0 then "\(.headSha) \((((.updatedAt | fromdate) - (.startedAt | fromdate)) / 60) | floor)" else "" end')"
+            row="$(gh run view "$id" -R "$REPO" --json jobs,headSha,startedAt,updatedAt --jq 'if ([.jobs[] | select(.name == "gate" and (.conclusion == "success" or .conclusion == "failure"))] | length) > 0 then "\(.headSha) \((((.updatedAt | fromdate) - (.startedAt | fromdate)) / 60) | floor)" else "" end')" || { echo "::warning::The read of the run $id failed, so this plan skips that run."; continue; }
             if [ -z "$row" ]; then continue; fi
             if [ -z "$last" ]; then last="${row%% *}"; fi
             mins="$mins ${row##* }"; count=$((count + 1))

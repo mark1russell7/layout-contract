@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { createMeasurer, createTextLayoutCache, fontKey, layoutText, textMeasures, type AdvanceFn, type TextLayout, type TextLayoutCache, type TextLayoutOptions, type TextMeasurer } from "./text.ts";
+import { createMeasurer, createTextCharset, createTextLayoutCache, fontKey, layoutText, textMeasures, type AdvanceFn, type TextLayout, type TextLayoutCache, type TextLayoutOptions, type TextMeasurer } from "./text.ts";
 
 /** A fake font: each code point has a width of 7.3 px and a space 3.1 px. A font that starts with "24px" is two times as wide. */
 const fake: AdvanceFn = (text, font) => Array.from(text).reduce((s, c) => s + (c === " " ? 3.1 : 7.3), 0) * (font.startsWith("24px") ? 2 : 1);
@@ -141,6 +141,8 @@ describe("createTextLayoutCache: two different options do not share an entry", (
     maxWidth: { text: WORDS, a: { maxWidth: 1000 }, b: { maxWidth: 10 } },
     wordBreak: { text: "a".repeat(30), a: { wrapWidth: 50, wordBreak: "keep" }, b: { wrapWidth: 50, wordBreak: "anywhere" } },
     breaker: { text: "aaa aaa aaa aaa a", a: { wrapWidth: 100, breaker: "greedy" }, b: { wrapWidth: 100, breaker: "balanced" } },
+    sizing: { text: "aaaa", a: { sizing: "exact", charset: createTextCharset("a") }, b: { sizing: "bound", charset: createTextCharset("a") } },
+    charset: { text: "aaaa", a: { sizing: "bound", charset: createTextCharset("a") }, b: { sizing: "bound", charset: createTextCharset("a", { pairMargin: 0.5 }) } },
   };
 
   for (const [field, { text, a, b }] of Object.entries(CASES)) {
