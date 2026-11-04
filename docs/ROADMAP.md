@@ -11,7 +11,6 @@ This file lists the items of the roadmap of this repository. The status page of 
 | L52 | in progress | P1 | Measure joint space coverage, with a weekly trend that rises |
 | L81 | in progress | P1 | Memory gate over each family of the bench, then the dense-hubs peak (3.4-4.3 GB) |
 | L82 | in progress | P2 | The bench scripts in TypeScript (rule typed-scripts of conventions 0.5.0) |
-| L70 | in progress | P2 | A layout cache per text and options in /text |
 | L84 | in progress | P1 | A paired-time A/A arm in the joint bench, for the new Time row |
 
 ## Next
@@ -42,7 +41,6 @@ This file lists the items of the roadmap of this repository. The status page of 
 | L48 | later | P1 | Route-first skeleton |
 | L50 | later | P1 | Force-directed refinement after pack |
 | L53 | later | P1 | Mark solved regions in the atlas |
-| L55 | later | P2 | Survey joint place-and-route methods as data |
 | L67 | later | P2 | Any objective, answered post hoc by the atlas |
 | L68 | later | P2 | One optimizer with pluggable energy terms |
 | L69 | later | P3 | Learned preferences from pairwise choices |
@@ -50,6 +48,13 @@ This file lists the items of the roadmap of this repository. The status page of 
 | L75 | later | P2 | Objectives under an interaction |
 | L76 | later | P2 | The orbit of a node: a soft keep-out margin |
 | L80 | later | P3 | Site forms for packSpace of packing, then drop PACK_EXTRAS |
+| L87 | later | P3 | Move the boxes and the bend points in one pass |
+| L88 | later | P3 | Compact the layout after the route |
+| L89 | later | P3 | A route demand map in the cost of the packer |
+| L90 | later | P3 | Search the objective against real routes |
+| L91 | later | P3 | Align linked boxes so that the edges are straight |
+| L92 | later | P3 | A learned route proxy for the placer |
+| L93 | later | P3 | An exact joint reference for small inputs |
 
 ## Done
 
@@ -93,12 +98,14 @@ This file lists the items of the roadmap of this repository. The status page of 
 | L49 | done | P1 | Spacing per channel |
 | L51 | done | P2 | Close the 3 corpus API gaps that packing found in k73 |
 | L54 | done | P1 | Grow the joint input families every week |
+| L55 | done | P2 | Survey joint place-and-route methods as data |
 | L56 | done | P2 | A port position relative to its side (Port.along) |
 | L57 | done | P2 | Close the 3 shape gaps that packing found in k91 |
 | L59 | done | P1 | Measure the 5 wave-3 highway routers in the joint bench |
 | L60 | done | P1 | Text measuring and line breaking as a layout step |
 | L63 | done | P1 | Bound the memory of the joint runner before bench-4 |
 | L64 | done | P1 | Balance and stability measures in the contract (0.2.19) |
+| L70 | done | P2 | A layout cache per text and options in /text |
 | L77 | done | P1 | Find and bound what fills 6 GB on the 1000-box inputs |
 | L78 | done | P2 | An open playground |
 | L79 | done | P2 | bench-4: the next version of the joint space |
