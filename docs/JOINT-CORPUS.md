@@ -201,7 +201,7 @@ Thus the corpus has 95 specs (55, 37 and 3) and 285 inputs.
 - The function `pairwise` makes each array again, with the same seed. The test gets a share of 1 for each array.
 - A row with an open name uses the generator `rect-grid` with the name `uniform`. Then the step `open-sizes` gives each box a new area.
 - The value `sizes` of the cell of such a row is the open name.
-- The corpus has no family of recorded sizes, because no public recorded set exists.
+- The corpus has no family of recorded sizes at this time. L96 adds a family `recorded`, and `joint-v4` takes it.
 - The bench runs `joint-v3` only on a dispatch. The default stays `joint-v2`, and the nightly sweep does not change.
 
 | Array | Rows |
