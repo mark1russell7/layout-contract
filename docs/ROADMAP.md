@@ -9,6 +9,7 @@ This file lists the items of the roadmap of this repository. The status page of 
 | L5 | in progress | P1 | highways reads the contract |
 | L34 | in progress | P1 | The strategy space as data |
 | L52 | in progress | P1 | Measure joint space coverage, with a weekly trend that rises |
+| L71 | in progress | P2 | A bound-first fast path for labels from a declared character set |
 | L81 | in progress | P1 | Memory gate over each family of the bench, then the dense-hubs peak (3.4-4.3 GB) |
 | L82 | in progress | P2 | The bench scripts in TypeScript (rule typed-scripts of conventions 0.5.0) |
 | L84 | in progress | P1 | A paired-time A/A arm in the joint bench, for the new Time row |
@@ -24,7 +25,6 @@ This file lists the items of the roadmap of this repository. The status page of 
 | L62 | next | P1 | Node layout by physics as a joint step |
 | L65 | next | P1 | One measure registry in layout-contract |
 | L66 | next | P1 | An objective spec with one evaluator |
-| L71 | next | P2 | A bound-first fast path for labels from a declared character set |
 | L72 | next | P1 | Neat is a family of objectives, not one |
 | L73 | next | P1 | Clarity of structure: macro and micro measures |
 
