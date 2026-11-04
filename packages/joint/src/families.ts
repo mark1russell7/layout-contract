@@ -19,7 +19,7 @@ import {
 } from "@mark1russell7/layout-contract";
 import { graphInput, HIGHWAYS_FAMILIES, type HighwaysFamily } from "@mark1russell7/highways";
 import { generator, type CorpusGenerator } from "@mark1russell7/packing";
-import { NO_OPEN_SIZE, OPEN_SIZE_NAMES, OPEN_SIZES_STEP_VERSION, openSizesStep } from "./open-sizes.ts";
+import { NO_OPEN_SIZE, OPEN_SIZE_NAMES, OPEN_SIZES_STEP_VERSION, openSizesStep, RECORDED_SIZE_NAMES } from "./open-sizes.ts";
 import { spacingStep, SPACING_STEP_VERSION, type Spacing } from "./spacing.ts";
 
 /** The names of the generators of `packing` that the joint corpus uses. */
@@ -91,7 +91,7 @@ export const OPEN_SIZES_STEP: CorpusStep = Object.freeze({
     Object.freeze({
       name: "openSize",
       kind: "enum",
-      values: Object.freeze([NO_OPEN_SIZE, ...OPEN_SIZE_NAMES]),
+      values: Object.freeze([NO_OPEN_SIZE, ...OPEN_SIZE_NAMES, ...RECORDED_SIZE_NAMES]),
       default: NO_OPEN_SIZE,
       meaning: "The open point of the areas of the boxes, or `none` for the sizes of the generator.",
       engines: Object.freeze(["joint"]),

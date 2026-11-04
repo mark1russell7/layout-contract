@@ -7,7 +7,7 @@ import { LANE_STAGE, laneFormSpace, LANE_NONE, OMIT, PACK_STAGE, pairOfConfigs, 
 import { pairSvg } from "./draw.ts";
 import { configOfState, formHtml, parseValue, stateOfConfig } from "./form.ts";
 import { boxesOf, parsePicked, pickedText, pickerHtml, PRESETS, refOf, type Picked } from "./inputs.ts";
-import { laneRuns, operate } from "./jobs.ts";
+import { inputOf, laneRuns, operate } from "./jobs.ts";
 import type { WorkerMessage } from "./protocol.ts";
 
 const catalog = buildCatalog(manifestText, { packing: "test", highways: "test", contract: "test" });
@@ -84,6 +84,27 @@ describe("the input picker", () => {
     const html = pickerHtml(catalog, { kind: "preset", id: "quick" }, catalog.compareMaxBoxes);
     const big = catalog.inputs.find((i) => i.boxes > catalog.compareMaxBoxes)!;
     expect(html).toContain(`value="${big.id}" disabled`);
+  });
+
+  it("offers the recorded sizes with a label that they have no bench result, and the source and notice of each table", () => {
+    const html = pickerHtml(catalog, { kind: "build", dims: Object.fromEntries(Object.entries(catalog.grid).map(([k, v]) => [k, v[0]!])), count: 40, seed: 1 }, catalog.compareMaxBoxes);
+    expect(html).toContain(">recorded-diagram-boxes (no bench result)<");
+    expect(html).toContain(">recorded-git-blobs (no bench result)<");
+    expect(html).toContain("https://github.com/eclipse-elk/elk-models/");
+    expect(html).toContain("Regents of the University of California");
+  });
+
+  it("builds an input of each recorded size, and names the size in its cell", () => {
+    const dims = Object.fromEntries(Object.entries(catalog.grid).map(([k, v]) => [k, v[0]!]));
+    const areas = (sizes: string) => {
+      const { input, cell } = inputOf({ kind: "build", dims: { ...dims, sizes }, count: 40, seed: 2 });
+      expect(cell["sizes"]).toBe(sizes);
+      return input.boxes.map((b) => b.w * b.h);
+    };
+    const [diagram, blobs] = [areas("recorded-diagram-boxes"), areas("recorded-git-blobs")];
+    expect(new Set(diagram).size).toBeGreaterThan(5);
+    expect(blobs).not.toEqual(diagram);
+    expect(inputOf({ kind: "build", dims: { ...dims, sizes: "uniform" }, count: 40, seed: 2 }).cell["sizes"]).toBe("uniform");
   });
 
   it("gives the reference and the count of boxes of a choice", () => {

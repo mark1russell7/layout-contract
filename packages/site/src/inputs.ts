@@ -1,4 +1,5 @@
 // The input picker of the joint pages: an input of the corpus `joint-v2`, a preset, or an input that the page builds from one value of each dimension.
+import { RECORDED_SIZE_NAMES, RECORDED_SIZE_TABLES } from "@layout-contract/joint/browser";
 import type { InputRow, JointCatalog } from "./catalog.ts";
 import type { InputRef } from "./protocol.ts";
 import { esc } from "./ui.ts";
@@ -88,7 +89,7 @@ export function pickerHtml(catalog: Pick<JointCatalog, "inputs" | "grid">, picke
     .map(
       ([name, values]) =>
         `<label class="field"><span class="field-name"><code>${esc(name)}</code></span><select data-dim="${esc(name)}">${values
-          .map((v) => `<option value="${esc(v)}"${build.dims[name] === v ? " selected" : ""}>${esc(v)}</option>`)
+          .map((v) => `<option value="${esc(v)}"${build.dims[name] === v ? " selected" : ""}>${esc(v)}${RECORDED_SIZE_NAMES.includes(v) ? " (no bench result)" : ""}</option>`)
           .join("")}</select></label>`,
     )
     .join("");
@@ -100,7 +101,16 @@ export function pickerHtml(catalog: Pick<JointCatalog, "inputs" | "grid">, picke
     <div class="picker-part" data-part="build"${mode === "build" ? "" : " hidden"}><div class="fields grid-dims">${dims}
       <label class="field"><span class="field-name"><code>count</code></span><select data-count>${counts}</select></label>
       <label class="field"><span class="field-name"><code>seed</code></span><input type="number" data-seed min="1" max="999" step="1" value="${build.seed}" inputmode="numeric" /></label></div>
-      <p class="hint">The generator <code>rect-grid</code> of <code>packing</code> makes the boxes, and the edge step of the contract adds the edges.</p></div>`;
+      <p class="hint">The generator <code>rect-grid</code> of <code>packing</code> makes the boxes, and the edge step of the contract adds the edges.</p>
+      ${recordedHint()}</div>`;
+}
+
+/** This function gives the note on the recorded sizes: what each table measures, its source, its license and its notice. These sizes have no bench result at this time. */
+export function recordedHint(): string {
+  const rows = Object.entries(RECORDED_SIZE_TABLES).map(
+    ([name, t]) => `<li><code>${esc(name)}</code>: ${esc(t.measure)}. ${t.count.toLocaleString("en-US")} values, median ${t.median.toLocaleString("en-US")}, read on ${esc(t.date)}. <a href="${esc(t.source)}">The source</a>. License: ${esc(t.license)}.${t.notice === "" ? "" : `<pre class="hint">${esc(t.notice)}</pre>`}</li>`,
+  );
+  return `<details class="more"><summary>The recorded sizes have no bench result at this time</summary><p class="hint">Each value is the relative area of one box. A value comes from real data, not from a formula.</p><ul class="hint">${rows.join("")}</ul></details>`;
 }
 
 /** This function gives the reference of a choice for the worker, or `undefined` for an unknown id. */
