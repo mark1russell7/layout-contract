@@ -1,3 +1,5 @@
+@import "@mark1russell7/site-pages/scroll-cue.css";
+
 /* The site of layout-contract. Light and dark tokens. The system setting picks one, and the theme button overrides it. */
 :root {
   color-scheme: light;
@@ -131,6 +133,9 @@ button { cursor: pointer; }
 .more summary { cursor: pointer; font-weight: 600; }
 .more.about { margin: 0 0 18px; }
 .scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+/* The class scroll-cue of site-pages shows a shade at each edge that has more columns. The cue is the background of the box, so the table has none. */
+.scroll.scroll-cue { --scroll-cue-bg: var(--surface); }
+.scroll-cue .table { background: none; }
 
 /* The segmented control */
 .seg { display: inline-flex; flex-wrap: wrap; background: var(--surface-2); border-radius: 10px; padding: 3px; gap: 3px; margin-bottom: 14px; }

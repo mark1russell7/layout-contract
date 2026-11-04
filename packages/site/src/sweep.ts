@@ -285,7 +285,7 @@ function table(line: readonly TrendRecord[]): string {
     )
     .join("");
   return `<details class="more"><summary>The numbers of each night (${line.length})</summary>
-    <div class="scroll"><table class="table"><thead><tr><th>Night</th><th class="num">Held-out skill [q10, q90]</th><th class="num">In-sample</th><th class="num">Covered</th><th class="num">20+ rows</th><th class="num">λ</th><th class="num">Rows</th><th class="num">CI run</th></tr></thead><tbody>${rows}</tbody></table></div>
+    <div class="scroll scroll-cue" tabindex="0" aria-label="The numbers of each night"><table class="table"><thead><tr><th>Night</th><th class="num">Held-out skill [q10, q90]</th><th class="num">In-sample</th><th class="num">Covered</th><th class="num">20+ rows</th><th class="num">λ</th><th class="num">Rows</th><th class="num">CI run</th></tr></thead><tbody>${rows}</tbody></table></div>
   </details>`;
 }
 
