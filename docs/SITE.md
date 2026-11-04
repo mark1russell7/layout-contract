@@ -57,7 +57,7 @@ The records of a run are CI artifacts, and the repository does not keep them. Th
    pnpm --filter @layout-contract/site run data:joint -- <dir>/report.json --run <run> --date <YYYY-MM-DD> --item <id> --versions highways=<v>,packing=<v>
    ```
 
-3. Commit `packages/site/data/joint/<run>.json`. The site shows the latest result first, and a list gives the earlier results.
+3. Commit `packages/site/data/joint/<run>.json`. The site shows the latest default result first, and a list gives the other results. Give `--cover on` for a cover run: the site marks that result, and it does not show that result first.
 
 The script `scripts/joint-data.mjs` keeps the headline cell (the rule `all` with the cap 1.25) and the same cell on the stress inputs. It also keeps the 6 cells of the headline inputs and the predictions of the run. The corpus is `joint-v2` by default. The option `--corpus` changes it.
 

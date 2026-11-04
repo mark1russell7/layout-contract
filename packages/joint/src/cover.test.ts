@@ -1,4 +1,5 @@
 import { composites, shapeStrategies, strategies } from "@mark1russell7/packing";
+import { listStrategies, MEMBER_FORMS, routerStrategies, STRATEGIES } from "@mark1russell7/highways";
 import { describe, expect, it } from "vitest";
 import { COVER_EXCEPTIONS, COVER_PACKS, COVER_ROUTERS, coverEntries, coverOptions, coverPairs, coverRouters, packStrategyIds } from "./cover.ts";
 import { jointInput, jointSpecs, SET_V2 } from "./corpus.ts";
@@ -26,6 +27,12 @@ describe("the cover of the catalogs", () => {
       expect(e.reason).not.toBe("");
       expect(e.removedBy).toMatch(/^L\d+$/);
     }
+  });
+
+  it("fails on a router of the registry of highways that no list holds", () => {
+    const held = new Set([...ROUTERS, ...coverRouters()]);
+    const names = [...Object.keys(routerStrategies), ...listStrategies(STRATEGIES, "highway").map((s) => s.name), ...Object.keys(MEMBER_FORMS)];
+    expect(names.filter((name) => !held.has(name))).toEqual([]);
   });
 
   it("gives no pair of the product, and each pair once", () => {

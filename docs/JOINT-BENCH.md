@@ -1150,6 +1150,8 @@ The hand lists of the bench missed strategies and routers. `packages/joint/src/c
 
 The default plan does not change, so the earlier reports stay comparable. A run with `--cover on` has more pairs, so the floors of that run do not compare with the floors of a default run.
 
+The cover run costs approximately twice the default run, so it does not start on each merge. It starts when `packing` or `highways` changes its MINOR version, at most once each week. The site marks its result as a cover run, and the default run stays the first result.
+
 ## The result of iteration pairs (L11)
 
 In the run [40770430229](https://github.com/mark1russell7/layout-contract/actions/runs/40770430229), the runner used the 148 pairs on the 303 inputs of `joint-v2`, with `iterate` on. The run had 64 shards, on the commit `d85a642`. 10 of the 12 claims held. The Brier score is 0.126.
