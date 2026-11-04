@@ -263,7 +263,7 @@ A night with no result is a failure that shows. From 2026-10-30 to 2026-11-04, s
 
 The check has three parts:
 
-- `night-check.yml` runs when a sweep on main ends, on each push to main and each day at 16:11 UTC. It fails when a due night is absent from the branch `sweep-data`. A night is due at 16:00 UTC of its date, or at the end of its scheduled sweep. A partial night gives a warning.
+- `night-check.yml` runs when a sweep on main ends, on each push to main and each day at 16:17 UTC. It fails when a due night is absent from the branch `sweep-data`. A night is due at 16:00 UTC of its date, or at the end of its scheduled sweep. A partial night gives a warning.
 - The section "Sweep coverage" of the site reads `index.json` when the page opens, and applies the same rule. It states the date of the last night, and a late or partial night has its own badge.
 - A failed read of the GitHub API in the plan of the sweep or the memory probe has 4 tries with a backoff. Then the plan states the failure and goes on. The budget uses a gate of 360 minutes, and the gate of the probe runs.
 

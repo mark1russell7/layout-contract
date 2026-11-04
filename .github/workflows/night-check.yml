@@ -12,13 +12,13 @@ on:
     branches: [main]
   schedule:
     # Each scheduled heavy run of the fleet has its own minute (the rule of 2026-10-30). This run is light, and it comes after the hour of the rule.
-    - cron: "11 16 * * *"
+    - cron: "17 16 * * *"
   workflow_dispatch:
 
-# The check reads the branch when it runs, so a new run replaces a waiting run.
+# Each commit of main has its own group, so each run of main ends with a result.
 concurrency:
-  group: night-check-${{ github.ref }}
-  cancel-in-progress: true
+  group: night-check-${{ github.event_name == 'pull_request' && github.ref || github.sha }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 permissions:
   contents: read
