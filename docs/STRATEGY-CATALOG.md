@@ -37,6 +37,7 @@ Each engine exports the file `./strategy-catalog.json` at a package path. The fi
 | `deterministic` | A claim for the default options: the result depends only on the input, the options and the seed. It has no unknown value. |
 | `determinismNote` | Optional: one sentence on what can change the claim, for example a clock. |
 | `optIn` | `true` when the strategy is outside the default set of the engine, and a caller asks for it by name. |
+| `baseline` | Optional, and only the value `true`: the strategy is a baseline of a bench, and a screen compares with it. It has `optIn: true`, and a chooser does not offer it. |
 | `options` | The declarations. |
 
 The entry has no `defaults` field, because two places can disagree. The default is on the declaration, and `catalogDefaults(entry)` gives the record.
@@ -46,6 +47,8 @@ A limit has the form `{ "max": 10000, "describe": "..." }`, under the name of th
 ### Who owns the positions of the nodes
 
 `supports` has the dimension `nodePositions` (`NODE_POSITIONS_DIMENSION`) for a strategy that takes nodes. The value `host` means that the strategy keeps the positions of the host. The value `engine` means that the strategy can set them. A strategy that moves nodes has only `engine`, and a host that owns the positions does not offer it. A `SupportProbe` tests the claim with a run.
+
+The claim is for the default options, as `deterministic` is, so an entry has one value here. An option of the type `strategy` can change the answer. The chosen entry has its own claim, so a host that owns the positions also leaves out those choices.
 
 ## The declaration
 
@@ -90,7 +93,7 @@ JSON has no form for `Infinity`, and `JSON.stringify(Infinity)` gives `null` wit
 ```
 
 - The value is the `key` of an entry of the same catalog. A reference does not go to another engine.
-- `step`, `kinds` and `optIn` limit the choice. `optIn: false` leaves out the opt-in strategies, for an engine that finds a member only in its default set. `catalogChoices(strategies, declaration)` gives the strategies that an option offers, so no chooser keeps a copy of this rule.
+- `step`, `kinds` and `optIn` limit the choice. `optIn: false` leaves out the opt-in strategies, for an engine that finds a member only in its default set. `catalogChoices(strategies, declaration)` gives the strategies that an option offers, so no chooser keeps a copy of this rule. It does not give a baseline. Without a declaration, it gives each strategy that a chooser offers.
 - `optionsKey` names the option that holds the options of the chosen strategy. A form renders that option from the chosen entry.
 - `inlineOptions: true` is the other form: the value holds its options. The value is a key or an object `{ "strategy": "maxrects", "options": { "rule": "bl" }, "id": "maxrects-bl" }`, and `options` and `id` are optional. The options of the value have the JSON form of the declarations of the chosen entry. A declaration does not have both forms.
 - A list of members is a `list` with `of`: `{ "type": "list", "of": { "type": "strategy", "kinds": ["single"], "inlineOptions": true }, "min": 2, "max": 8 }`. An item has no sibling option, so `of` does not have `optionsKey`.

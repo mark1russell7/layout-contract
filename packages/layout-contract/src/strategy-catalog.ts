@@ -49,6 +49,8 @@ export interface CatalogEntry {
   readonly determinismNote?: string;
   /** The value is `true` when the strategy is outside the default set of the engine, and a caller asks for it by name. */
   readonly optIn: boolean;
+  /** The value `true` tells that the strategy is a baseline of a bench. It has `optIn` true, and a chooser does not offer it. */
+  readonly baseline?: true;
   /** The declarations of the options, in the order of a form. */
   readonly options: Readonly<Record<string, AnyOption>>;
 }
@@ -76,6 +78,8 @@ export interface RegistryEntry {
   /** The live defaults of the strategy. */
   readonly defaults: Readonly<Record<string, unknown>>;
   readonly optIn: boolean;
+  /** The value `true` tells that the strategy is a baseline of a bench. */
+  readonly baseline?: boolean;
   /** The limits in the code of the engine. Without them, the engine has no limits. */
   readonly limits?: Readonly<Record<string, { readonly min?: number; readonly max?: number }>>;
   /** This function runs the strategy on a small fixture and gives its output as text. The text does not hold times. */
@@ -130,7 +134,7 @@ const STRATEGY_KINDS: readonly string[] = ["single", "composite", "shape"];
 const NO_DEFAULT_REASONS: readonly NoDefaultReason[] = ["unset", "required", "derived", "function"];
 const SCALES: readonly OptionScale[] = ["linear", "log"];
 const TOP_FIELDS: readonly string[] = ["schema", "engine", "version", "strategies"];
-const ENTRY_FIELDS: readonly string[] = ["key", "id", "step", "family", "kind", "describe", "supports", "limits", "deterministic", "determinismNote", "optIn", "options"];
+const ENTRY_FIELDS: readonly string[] = ["key", "id", "step", "family", "kind", "describe", "supports", "limits", "deterministic", "determinismNote", "optIn", "baseline", "options"];
 const COMMON_FIELDS: readonly string[] = ["type", "describe", "default", "noDefault", "when"];
 const NUMBER_FIELDS: readonly string[] = [...COMMON_FIELDS, "min", "max", "step", "scale", "special", "marks", "values"];
 const ENUM_FIELDS: readonly string[] = [...COMMON_FIELDS, "values", "custom"];
@@ -385,6 +389,8 @@ function readEntry(at: string, raw: unknown, faults: string[]): CatalogEntry | u
   if (raw["determinismNote"] !== undefined && !isText(raw["determinismNote"])) faults.push(`${at}: "determinismNote" is not a text.`);
   if (!STRATEGY_KINDS.includes(raw["kind"] as string)) faults.push(`${at}: "kind" is unknown.`);
   for (const f of ["deterministic", "optIn"]) if (typeof raw[f] !== "boolean") faults.push(`${at}: "${f}" is not true or false.`);
+  if (raw["baseline"] !== undefined && raw["baseline"] !== true) faults.push(`${at}: "baseline" is not true.`);
+  if (raw["baseline"] === true && raw["optIn"] !== true) faults.push(`${at}: a baseline has "optIn" true.`);
   if (!isFields(raw["supports"]) || !Object.values(raw["supports"]).every(isTextList)) faults.push(`${at}: "supports" is not a record of text lists.`);
   checkLimits(at, raw["limits"], faults);
   if (isText(raw["id"]) && raw["key"] !== catalogKey(raw["id"], raw["step"] as string | undefined)) faults.push(`${at}: the key does not follow from "step" and "id".`);
@@ -418,18 +424,22 @@ function readEntry(at: string, raw: unknown, faults: string[]): CatalogEntry | u
     deterministic: raw["deterministic"] as boolean,
     ...(determinismNote === undefined ? {} : { determinismNote }),
     optIn: raw["optIn"] as boolean,
+    ...(raw["baseline"] === true ? { baseline: true as const } : {}),
     options,
   };
 }
 
 /**
- * This function gives the strategies that an option offers, by its `step`, `kinds` and `optIn`. Thus no chooser keeps a copy of this rule.
- * A list gives the strategies of its items. An option of each other type gives nothing.
+ * This function gives the strategies that a chooser offers, by the `step`, `kinds` and `optIn` of an option. Thus no chooser keeps a copy of this rule.
+ * A baseline is not in the result. A list gives the strategies of its items. An option of each other type gives nothing.
+ * Without a declaration, the function gives each strategy that is not a baseline.
  */
-export function catalogChoices(strategies: readonly CatalogEntry[], declaration: AnyOption | ListItem): readonly CatalogEntry[] {
+export function catalogChoices(strategies: readonly CatalogEntry[], declaration?: AnyOption | ListItem): readonly CatalogEntry[] {
+  const offered = strategies.filter((e) => e.baseline !== true);
+  if (declaration === undefined) return offered;
   const d = (declaration.type === "list" ? declaration.of : declaration) as ValueOption | undefined;
   if (d?.type !== "strategy") return [];
-  return strategies.filter((e) => (d.step === undefined || e.step === d.step) && (d.kinds === undefined || d.kinds.includes(e.kind)) && (d.optIn === undefined || d.optIn === e.optIn));
+  return offered.filter((e) => (d.step === undefined || e.step === d.step) && (d.kinds === undefined || d.kinds.includes(e.kind)) && (d.optIn === undefined || d.optIn === e.optIn));
 }
 
 /** This function adds one fault for each option of a member that its chosen strategy does not take. */
@@ -561,6 +571,7 @@ function writeEntry(e: CatalogEntry): Fields {
     deterministic: e.deterministic,
     ...(e.determinismNote === undefined ? {} : { determinismNote: e.determinismNote }),
     optIn: e.optIn,
+    ...(e.baseline === true ? { baseline: true } : {}),
     options,
   };
 }
@@ -614,6 +625,7 @@ export function catalogOptions(defaults: Readonly<Record<string, unknown>>, sche
 function checkLive(entry: CatalogEntry, live: RegistryEntry, faults: string[]): void {
   const defaults = catalogDefaults(entry);
   if (entry.optIn !== live.optIn) faults.push(`${entry.key}: "optIn" is ${entry.optIn}, and the engine gives ${live.optIn}.`);
+  if ((entry.baseline === true) !== (live.baseline === true)) faults.push(`${entry.key}: "baseline" differs from the engine.`);
   const limits = Object.fromEntries(Object.entries(entry.limits).map(([name, { min, max }]) => [name, { min, max }]));
   if (canonicalJson(limits) !== canonicalJson(live.limits ?? {})) faults.push(`${entry.key}: "limits" differ from the limits of the engine.`);
   for (const [key, value] of Object.entries(live.defaults)) {

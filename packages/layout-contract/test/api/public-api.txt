@@ -391,6 +391,7 @@ export interface CatalogEntry {
   readonly deterministic: boolean;
   readonly determinismNote?: string;
   readonly optIn: boolean;
+  readonly baseline?: true;
   readonly options: Readonly<Record<string, AnyOption>>;
 }
 
@@ -835,6 +836,7 @@ export interface RegistryEntry {
   readonly key: string;
   readonly defaults: Readonly<Record<string, unknown>>;
   readonly optIn: boolean;
+  readonly baseline?: boolean;
   readonly limits?: Readonly<Record<string, {
     readonly min?: number;
     readonly max?: number;
@@ -1178,7 +1180,7 @@ export declare function canonicalConfig(space: StrategySpace, config: StrategyCo
 export declare function canonicalJson(value: unknown): string;
 
 ### build/index.d.ts#catalogChoices
-export declare function catalogChoices(strategies: readonly CatalogEntry[], declaration: AnyOption | ListItem): readonly CatalogEntry[];
+export declare function catalogChoices(strategies: readonly CatalogEntry[], declaration?: AnyOption | ListItem): readonly CatalogEntry[];
 
 ### build/index.d.ts#catalogDefaults
 export declare function catalogDefaults(entry: CatalogEntry): Record<string, unknown>;

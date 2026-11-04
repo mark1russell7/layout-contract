@@ -218,6 +218,7 @@ describe("the options inside a value", () => {
   const wide: CatalogEntry = { ...shelf, key: "wide", id: "wide", optIn: true, options: {} };
   const member = { strategy: "shelf", options: { fit: "best", gap: "Infinity" }, id: "shelf-best" };
   const outer = (options: CatalogEntry["options"]): CatalogEntry => ({ ...wrap, key: "outer", id: "outer", options });
+  const outerBase = (base: CatalogEntry): CatalogEntry => outer({ member: { type: "strategy", describe: "x", default: base.key } });
 
   it("takes a member as a default, alone and in a list, and keeps its bytes", () => {
     const entry = outer({
@@ -258,6 +259,31 @@ describe("the options inside a value", () => {
     expect(catalogChoices(strategies, { type: "list", describe: "x" })).toEqual([]);
     const bad = outer({ member: { type: "strategy", describe: "x", optIn: false, default: "wide" } });
     expect(() => writeStrategyCatalog({ engine: "packing", strategies: [bad, shelf, wide] }, "1.0.0")).toThrow(/"wide" is not a strategy/);
+  });
+
+  it("keeps a baseline out of each choice, and compares it with the engine", () => {
+    const base: CatalogEntry = { ...wide, key: "base", id: "base", baseline: true };
+    const strategies = [shelf, wide, base];
+    expect(catalogChoices(strategies).map((e) => e.key)).toEqual(["shelf", "wide"]);
+    expect(catalogChoices(strategies, { type: "strategy", describe: "x" }).map((e) => e.key)).toEqual(["shelf", "wide"]);
+    expect(catalogChoices(strategies, { type: "strategy", describe: "x", optIn: true }).map((e) => e.key)).toEqual(["wide"]);
+    const s: StrategyCatalogSource = { engine: "packing", strategies: [base, shelf] };
+    const text = writeStrategyCatalog(s, "1.0.0");
+    expect(text).toContain('"baseline": true');
+    expect(text.indexOf('"baseline"')).toBeGreaterThan(text.indexOf('"optIn"'));
+    const parsed = parseStrategyCatalog(JSON.parse(text));
+    expect(parsed.ok && parsed.catalog.strategies[0]?.baseline).toBe(true);
+    const limits = { nodes: { max: 10000 } };
+    expect(checkCatalog(s, [{ key: "base", defaults: {}, optIn: true, baseline: true, limits, run: () => "a" }, registry[0]!]).faults).toEqual([]);
+    expect(checkCatalog(s, [{ key: "base", defaults: {}, optIn: true, limits, run: () => "a" }, registry[0]!]).faults[0]).toContain('"baseline" differs');
+    const bad = (e: CatalogEntry): (() => string) => () => writeStrategyCatalog({ engine: "packing", strategies: [e] }, "1.0.0");
+    expect(bad({ ...base, optIn: false })).toThrow(/a baseline has "optIn" true/);
+    const file = JSON.parse(text) as { strategies: Record<string, unknown>[] };
+    file.strategies[0]!["baseline"] = false;
+    const refused = parseStrategyCatalog(file);
+    expect(!refused.ok && refused.faults[0]).toContain('"baseline" is not true');
+    const inner = outerBase(base);
+    expect(() => writeStrategyCatalog({ engine: "packing", strategies: [inner, base, shelf] }, "1.0.0")).toThrow(/"base" is not a strategy/);
   });
 
   it("keeps a live member on the declaration, and compares it", () => {
