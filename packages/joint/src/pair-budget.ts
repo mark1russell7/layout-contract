@@ -3,7 +3,7 @@
 import type { SupervisedCase, SupervisedEnd } from "@mark1russell7/rigor-bench/supervise";
 import { packOf, routerOfPair } from "./analysis.ts";
 import type { PairPhase, PairTag } from "./runner.ts";
-import { doneKey } from "./shard-run.ts";
+import { doneKey, type PairLine } from "./shard-run.ts";
 
 /** The reason of a pair that passed its budget. Its time is a lower bound: the pair ran for at least the budget. */
 export const OVER_BUDGET = "over budget";
@@ -57,16 +57,23 @@ export function pairBudgetMs(budget: PairBudget, boxes: number): number {
 }
 
 /**
- * This function gives the supervised cases of a shard: each pair of each input that `done` does not hold.
+ * This function gives the supervised cases of a shard: each pair of each input. The cases of a resume hold the done pairs, because an earlier overrun finds its group in its case.
  * An overrun in the stage `pack` counts for the pack entry on that input. An overrun in the stage `route` counts for the router on that input.
  */
-export function budgetCases(inputs: readonly BudgetInput[], pairs: readonly string[], done: ReadonlySet<string>, budget: PairBudget): SupervisedCase[] {
+export function budgetCases(inputs: readonly BudgetInput[], pairs: readonly string[], budget: PairBudget): SupervisedCase[] {
   const stages = (input: string, pair: string): Readonly<Record<PairPhase, string>> => ({ pack: `${input}\npack\n${packOf(pair)}`, route: `${input}\nroute\n${routerOfPair(pair)}` });
-  return inputs.flatMap((input) =>
-    pairs
-      .filter((pair) => !done.has(doneKey(input.id, pair)))
-      .map((pair) => ({ id: doneKey(input.id, pair), budgetMs: pairBudgetMs(budget, input.boxes), groups: stages(input.id, pair) })),
-  );
+  return inputs.flatMap((input) => pairs.map((pair) => ({ id: doneKey(input.id, pair), budgetMs: pairBudgetMs(budget, input.boxes), groups: stages(input.id, pair) })));
+}
+
+/** This function gives the overruns of an earlier run on `inputs`, in the order of the lines. A resume gives them to the supervisor, so the rule of 2 overruns does not depend on where a shard stopped. */
+export function earlierOverruns(lines: readonly PairLine[], inputs: readonly BudgetInput[]): SupervisedEnd[] {
+  const ids = new Set(inputs.map((input) => input.id));
+  return lines
+    .filter((line) => line.tag === "over-budget" && ids.has(line.input))
+    .map((line) => {
+      if (line.stage === undefined) throw new RangeError(`The overrun of the pair "${line.strategy}" on the input "${line.input}" has no stage.`);
+      return { kind: "over-budget", id: doneKey(line.input, line.strategy), budgetMs: line.wallMs, stage: line.stage };
+    });
 }
 
 /** This function gives the input and the pair of a key of `doneKey`. */

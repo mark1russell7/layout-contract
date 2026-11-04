@@ -1175,6 +1175,7 @@ Routers run in the process of the runner and do not yield, so only a hard stop e
 - After 2 pairs of one router pass the budget on one input, the other pairs of that router on that input get the reason `not run: over budget on this input`. These records name the 2 pairs. The same rule holds for 2 pack stages of one pack entry. An overrun is measured, and a skip is not.
 - An overrun in a pack stage counts for the pack entry, and an overrun in a route stage counts for the router. A slow router thus does not count against a packer.
 - A tagged pair is a result, so a resume does not run it again. Its time does not go into the costs of the plan. A run with a larger budget has another stamp, and that run can fill these rows.
+- A resume counts the overruns of the earlier run, so a stop does not change the rows. A group with 1 overrun before a stop reaches its limit at the next overrun.
 
 ## The cover of the catalogs
 

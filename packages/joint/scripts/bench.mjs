@@ -47,6 +47,7 @@ import {
   BASELINE,
   budgetCases,
   budgetTag,
+  earlierOverruns,
   DENSE_HUBS,
   checkCorpus,
   CONFIRM_PLAIN_PAIRS,
@@ -185,21 +186,21 @@ function shardPlan() {
   const pairs = expectedPairs.length + iterPlanPairs(iterate);
   const passes = lanePasses(lanes);
   const prior = priorLines(rows);
-  if (prior === undefined) return { rows, shards, plan: planShards(costedRows(rows, pairs, passes), shards), done: new Set() };
+  if (prior === undefined) return { rows, shards, plan: planShards(costedRows(rows, pairs, passes), shards), done: new Set(), prior: [] };
   // With a prior run, each input costs only its missing pairs, and each pair costs its measured time against the plan.
   const done = new Set(prior.map((line) => doneKey(line.input, line.strategy)));
   const units = costedRows(rows, 1, 0);
   const unitOf = new Map(units.map((item) => [item.id, item.cost]));
   const factors = pairFactors(prior, (id) => unitOf.get(id));
   const items = units.map((item) => ({ ...item, cost: measuredCost(item.cost, expectedPairs.filter((pair) => !done.has(doneKey(item.id, pair))), factors) }));
-  return { rows, shards, plan: planShards(items, shards), done };
+  return { rows, shards, plan: planShards(items, shards), done, prior };
 }
 
 /**
  * This function runs one shard under the time budget. A child runs the pairs, and the supervisor writes the tagged record of each pair that did not finish.
  * A stop can cut the last line of a file, so the supervisor repairs the files before each child and each tag. A resume thus runs no pair two times.
  */
-async function superviseShard({ rows, done, file, pairFile, progressFile, stamp, deadlineMinutes, shard, env, commit }) {
+async function superviseShard({ rows, done, prior, file, pairFile, progressFile, stamp, deadlineMinutes, shard, env, commit }) {
   const started = Date.now();
   const byId = new Map(rows.map((row) => [row.entry.id, row]));
   const repair = () => {
@@ -212,7 +213,9 @@ async function superviseShard({ rows, done, file, pairFile, progressFile, stamp,
   };
   const inputs = rows.map((row) => ({ id: row.entry.id, boxes: row.input.boxes.length }));
   const result = await superviseCases({
-    cases: budgetCases(inputs, expectedPairs, done, pairBudget),
+    cases: budgetCases(inputs, expectedPairs, pairBudget),
+    done,
+    earlier: earlierOverruns(prior, inputs),
     progressFile,
     start: () => {
       repair();
@@ -227,7 +230,7 @@ async function superviseShard({ rows, done, file, pairFile, progressFile, stamp,
       const tag = budgetTag(ended, pairBudget);
       const { record } = pairRuns(input, entry.cell, { env, corpus: set, ...cover, pairs: [pair], tags: new Map([[pair, tag]]), ...(commit === undefined ? {} : { commit }) }).next().value;
       appendFileSync(file, JSON.stringify(record) + "\n");
-      appendFileSync(pairFile, JSON.stringify({ stamp, input: id, inputHash: input.hash ?? "", strategy: pair, wallMs: ended.kind === "over-budget" ? ended.budgetMs : 0, tag: ended.kind }) + "\n");
+      appendFileSync(pairFile, JSON.stringify({ stamp, input: id, inputHash: input.hash ?? "", strategy: pair, wallMs: ended.kind === "over-budget" ? ended.budgetMs : 0, tag: ended.kind, ...(ended.kind === "over-budget" ? { stage: ended.stage } : {}) }) + "\n");
       console.log(`  pair ${pair} on ${id}: ${tag.reason}, budget ${pairBudget.text} min`);
     },
   });
@@ -356,7 +359,7 @@ if (command === "check") {
   if (!(Number.isFinite(deadlineMinutes) && deadlineMinutes >= 0)) throw new RangeError(`The option --deadline-minutes is a number of 0 or more, not "${args["deadline-minutes"]}".`);
   const env = runEnv();
   const commit = process.env.GITHUB_SHA;
-  const { rows: all, shards, plan, done } = shardPlan();
+  const { rows: all, shards, plan, done, prior } = shardPlan();
   if (!(Number.isInteger(shard) && shard >= 0 && shard < shards)) throw new RangeError(`The shard is an integer from 0 to ${shards - 1}, not ${shard}.`);
   // The plan gives the inputs of this shard from the least predicted cost to the most.
   const byId = new Map(all.map((row) => [row.entry.id, row]));
@@ -368,7 +371,7 @@ if (command === "check") {
   const mb = (bytes) => Math.round(bytes / 2 ** 20);
   const stamp = benchStamp();
   if (pairBudget !== undefined && !supervised) {
-    await superviseShard({ rows, done, file, pairFile, progressFile, stamp, deadlineMinutes, shard, env, commit });
+    await superviseShard({ rows, done, prior, file, pairFile, progressFile, stamp, deadlineMinutes, shard, env, commit });
     process.exit(0);
   }
   const progress = supervised ? caseProgress(progressFile) : undefined;

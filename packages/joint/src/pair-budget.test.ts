@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
-import { budgetCases, budgetTag, keyParts, NOT_RUN_OVER_BUDGET, OVER_BUDGET, pairBudgetMs, parsePairBudget } from "./pair-budget.ts";
+import { budgetCases, budgetTag, earlierOverruns, keyParts, NOT_RUN_OVER_BUDGET, OVER_BUDGET, pairBudgetMs, parsePairBudget } from "./pair-budget.ts";
 import { pairRuns, PACK_ENTRIES } from "./runner.ts";
-import { doneKey } from "./shard-run.ts";
+import { doneKey, type PairLine } from "./shard-run.ts";
 
 describe("parsePairBudget", () => {
   it("reads one number as the budget of each input", () => {
@@ -24,19 +24,41 @@ describe("parsePairBudget", () => {
 });
 
 describe("budgetCases", () => {
-  it("gives each pair that is not done, with a group for the pack entry and for the router of each input", () => {
-    const cases = budgetCases([{ id: "i", boxes: 10 }, { id: "j", boxes: 1000 }], ["p+r", "q+r"], new Set([doneKey("i", "q+r")]), parsePairBudget("100:1,5"));
-    expect(cases.map((c) => c.id)).toEqual([doneKey("i", "p+r"), doneKey("j", "p+r"), doneKey("j", "q+r")]);
-    expect(cases.map((c) => c.budgetMs)).toEqual([60_000, 300_000, 300_000]);
-    expect(cases[1]!.groups!["route"]).toBe(cases[2]!.groups!["route"]);
-    expect(cases[1]!.groups!["pack"]).not.toBe(cases[2]!.groups!["pack"]);
-    expect(cases[0]!.groups!["route"]).not.toBe(cases[1]!.groups!["route"]);
+  it("gives each pair, with a group for the pack entry and for the router of each input", () => {
+    const cases = budgetCases([{ id: "i", boxes: 10 }, { id: "j", boxes: 1000 }], ["p+r", "q+r"], parsePairBudget("100:1,5"));
+    expect(cases.map((c) => c.id)).toEqual([doneKey("i", "p+r"), doneKey("i", "q+r"), doneKey("j", "p+r"), doneKey("j", "q+r")]);
+    expect(cases.map((c) => c.budgetMs)).toEqual([60_000, 60_000, 300_000, 300_000]);
+    expect(cases[2]!.groups!["route"]).toBe(cases[3]!.groups!["route"]);
+    expect(cases[2]!.groups!["pack"]).not.toBe(cases[3]!.groups!["pack"]);
+    expect(cases[0]!.groups!["route"]).not.toBe(cases[2]!.groups!["route"]);
   });
 
   it("keeps the router of a pair whole when the router has the separator", () => {
-    const [one] = budgetCases([{ id: "i", boxes: 1 }], ["p+a+b"], new Set(), parsePairBudget("5"));
+    const [one] = budgetCases([{ id: "i", boxes: 1 }], ["p+a+b"], parsePairBudget("5"));
     expect(one!.groups!["route"]).toBe("i\nroute\na+b");
     expect(keyParts(one!.id)).toEqual({ input: "i", pair: "p+a+b" });
+  });
+});
+
+describe("earlierOverruns", () => {
+  const line = (input: string, strategy: string, rest: Partial<PairLine>): PairLine => ({ stamp: "s", input, inputHash: "h", strategy, wallMs: 300_000, ...rest });
+
+  it("gives the overruns of the inputs of the shard, in the order of the lines", () => {
+    const lines = [
+      line("i", "p+r", { tag: "over-budget", stage: "route" }),
+      line("i", "q+r", {}),
+      line("i", "s+r", { tag: "not-run", wallMs: 0 }),
+      line("j", "p+r", { tag: "over-budget", stage: "route" }),
+      line("i", "p+t", { tag: "over-budget", stage: "pack" }),
+    ];
+    expect(earlierOverruns(lines, [{ id: "i", boxes: 1 }])).toEqual([
+      { kind: "over-budget", id: doneKey("i", "p+r"), budgetMs: 300_000, stage: "route" },
+      { kind: "over-budget", id: doneKey("i", "p+t"), budgetMs: 300_000, stage: "pack" },
+    ]);
+  });
+
+  it("refuses an overrun with no stage, because a resume cannot count it", () => {
+    expect(() => earlierOverruns([line("i", "p+r", { tag: "over-budget" })], [{ id: "i", boxes: 1 }])).toThrow(RangeError);
   });
 });
 

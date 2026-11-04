@@ -17,6 +17,8 @@ export interface PairLine {
   readonly wallMs: number;
   /** The kind of a pair that did not finish. Its `wallMs` is no measurement of the pair, so the costs leave it out. */
   readonly tag?: "over-budget" | "not-run";
+  /** The stage of a pair with the tag `over-budget`. A resume counts the overrun for the group of this stage. */
+  readonly stage?: string;
 }
 
 /** The counts of one shard. `stopped` is true when the deadline stopped the shard. */
@@ -166,7 +168,7 @@ export interface RepairedShard {
   readonly keys: ReadonlySet<string>;
 }
 
-/** This function gives the files of a shard after a stop: a pair with a whole record and a whole pair line stays, and each other line goes out. */
+/** This function gives the files of a shard after a stop. A pair with a whole record and a whole pair line stays, and each other line goes out. */
 export function repairShard(recordText: string, pairText: string, stamp: string): RepairedShard {
   const { lines } = parsePairLines(pairText, stamp);
   const keys = new Set<string>();
