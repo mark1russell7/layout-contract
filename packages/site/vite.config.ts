@@ -1,6 +1,7 @@
 import { readdirSync, readFileSync } from "node:fs";
 import { createRequire } from "node:module";
 import { fileURLToPath } from "node:url";
+import { coverEntries, PACK_ENTRIES } from "@layout-contract/joint/browser";
 import { siteKpi } from "@mark1russell7/site-pages/vite";
 import { defineConfig, type Plugin } from "vite";
 import { buildCatalog } from "./src/build-catalog.ts";
@@ -64,7 +65,7 @@ function jointFiles(): JointData[] {
 
 /** This function gives the input of `kpi.json`. A build without a joint run has no data to report, so it stops. */
 function kpiInput(): NonNullable<ReturnType<typeof siteKpiInput>> {
-  const input = siteKpiInput(jointFiles(), buildCatalog(readFileSync(MANIFEST, "utf8"), engineVersions(), hasCoverRun()), engineVersions());
+  const input = siteKpiInput(jointFiles(), buildCatalog(readFileSync(MANIFEST, "utf8"), engineVersions(), hasCoverRun()), engineVersions(), [...PACK_ENTRIES, ...coverEntries()]);
   if (input === undefined) throw new Error("data/joint/ has no run, so kpi.json has no time of the data.");
   return input;
 }
