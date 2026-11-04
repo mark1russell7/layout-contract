@@ -240,7 +240,7 @@ function renderResult(view: PairView, record: LayoutRecord): void {
       </div>
       <p class="hint">The floor and the score compare a pair with the other pairs of the input. <a href="compare.html#${esc(new URLSearchParams({ input: pickedText(picked) }).toString())}">Compare each pair</a> to see them.</p>
       ${Object.keys(view.breaks).length === 0 ? `<p class="dataline"><span class="badge good">No hard breaks</span></p>` : `<h3>The hard breaks</h3><table class="table"><tbody>${rows(view.breaks, Object.keys(view.breaks))}</tbody></table>`}
-      <details class="more"><summary>Each measure (${joint.length + others.length})</summary><div class="scroll"><table class="table"><tbody>${rows(m, [...joint, ...others])}</tbody></table></div></details>
+      <details class="more"><summary>Each measure (${joint.length + others.length})</summary><div class="scroll scroll-cue" tabindex="0" aria-label="Each measure"><table class="table"><tbody>${rows(m, [...joint, ...others])}</tbody></table></div></details>
       <details class="more"><summary>The record (<code>layout-record/1</code>)</summary><pre class="code">${esc(JSON.stringify(record, null, 2))}</pre></details>
     </div>`;
 }
