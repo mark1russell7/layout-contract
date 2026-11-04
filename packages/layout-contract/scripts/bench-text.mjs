@@ -82,6 +82,16 @@ const families =
         { name: "digit labels, digit set", labels: DIGIT_LABELS, charset: head.createTextCharset(head.DIGITS) },
       ]
     : [];
+
+/** This function runs the rounds of some arms, with the order swapped in each round. */
+function roundsOf(names) {
+  for (let k = 0; k < rounds; k++) for (const name of k % 2 === 0 ? names : [...names].reverse()) builds[name].times.push(builds[name].run(builds[name].text));
+}
+
+const compared = Object.keys(builds);
+roundsOf(compared);
+
+// The L71 arms run after those rounds. They give `layoutText` of the head other option shapes, and in the same rounds that slows the head only.
 for (const family of families) {
   for (const [label, sizing] of [["exact", "exact"], ["exact again", "exact"], ["bound-first", "bound-first"]]) {
     const run = (text) => coldRound(text, family, sizing);
@@ -90,7 +100,7 @@ for (const family of families) {
   }
 }
 const arms = Object.keys(builds);
-for (let k = 0; k < rounds; k++) for (const name of k % 2 === 0 ? arms : [...arms].reverse()) builds[name].times.push(builds[name].run(builds[name].text));
+roundsOf(arms.filter((name) => !compared.includes(name)));
 
 const median = (v) => [...v].sort((a, b) => a - b)[Math.floor(v.length / 2)];
 const baseMs = median(builds.base.times);

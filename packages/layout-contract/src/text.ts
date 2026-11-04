@@ -318,6 +318,11 @@ export interface TextLayout {
 const FORCED: Penalty = { type: "penalty", text: "", width: 0, cost: -Infinity, flagged: false };
 
 /** This function gives the box of a part of a word. */
+/** This function gives the units of a segment: the bound for one character times the length, or a measure when there is no bound. */
+function advanceOf(segment: string, font: string, measurer: TextMeasurer, bound: number | undefined): number {
+  return bound === undefined ? measurer.advance(segment, font) : segment.length * bound;
+}
+
 function boxOf(part: { readonly text: string; readonly width: number }): Box {
   return { type: "box", text: part.text, width: part.width };
 }
@@ -364,12 +369,12 @@ export function layoutText(text: string, options: TextLayoutOptions): TextLayout
 
   const words = wordsOf(source);
   const maxWidth = options.maxWidth ?? (options.wrapWidth === undefined ? Infinity : options.wrapWidth + padding);
-  const flag = (bounded: boolean): { readonly bounded?: true } => (bounded ? { bounded } : {});
   const oneLine = (natural: number, bounded: boolean): TextLayout => {
     const one = words.map((w) => w.text).join(" ");
     const px = natural / TEXT_UNITS;
     const box = Math.min(maxWidth, Math.max(options.minWidth ?? 0, px + padding));
-    return { lines: [one], widths: [px], lineCount: 1, width: box, height: lineHeight, truncated, ...flag(bounded) };
+    const layout: TextLayout = { lines: [one], widths: [px], lineCount: 1, width: box, height: lineHeight, truncated };
+    return bounded ? { ...layout, bounded } : layout;
   };
 
   // The raw text, not its words: the check sees a tab or a line break before they collapse.
@@ -379,9 +384,8 @@ export function layoutText(text: string, options: TextLayoutOptions): TextLayout
     if (options.wrapWidth === undefined || natural / TEXT_UNITS + padding <= maxWidth) return oneLine(natural, true);
   }
   const bound = sizing === "bound" ? unit : undefined;
-  const advance = (segment: string): number => (bound === undefined ? measurer.advance(segment, font) : segment.length * bound);
-  const space = advance(" ");
-  const width = (w: Word): number => w.parts.reduce((s, p) => s + advance(p), 0);
+  const space = advanceOf(" ", font, measurer, bound);
+  const width = (w: Word): number => w.parts.reduce((s, p) => s + advanceOf(p, font, measurer, bound), 0);
   const lineUnits = (line: string): number => {
     const ws = wordsOf(line);
     return ws.reduce((s, w) => s + width(w), 0) + space * Math.max(0, ws.length - 1);
@@ -400,7 +404,7 @@ export function layoutText(text: string, options: TextLayoutOptions): TextLayout
     if (items.length > 0) items.push(FORCED);
     let cur: { text: string; width: number } | undefined;
     for (const g of graphemesOf(word.text)) {
-      const w = advance(g);
+      const w = advanceOf(g, font, measurer, bound);
       if (cur !== undefined && cur.width + w > limit) {
         items.push(boxOf(cur), FORCED);
         cur = undefined;
@@ -438,7 +442,7 @@ export function layoutText(text: string, options: TextLayoutOptions): TextLayout
     truncated = true;
   }
 
-  return {
+  const layout: TextLayout = {
     lines: lines.map((l) => l.text),
     widths: lines.map((l) => l.units / TEXT_UNITS),
     lineCount: lines.length,
@@ -446,8 +450,8 @@ export function layoutText(text: string, options: TextLayoutOptions): TextLayout
     height: lines.length * lineHeight,
     wrapWidth: options.wrapWidth,
     truncated,
-    ...flag(bound !== undefined),
   };
+  return bound === undefined ? layout : { ...layout, bounded: true };
 }
 
 /** The counts of a `TextLayoutCache`. `calls` is the count of the `layoutText` calls, and `size` is the count of the entries. */
