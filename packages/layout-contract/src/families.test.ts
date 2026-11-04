@@ -293,6 +293,31 @@ function closure(entry: URL): { files: string[]; external: string[] } {
   return { files, external: [...external] };
 }
 
+/** This function gives the imports that are not on the list of runtime dependencies. A module of Node is not on the list. */
+function unlisted(external: readonly string[]): string[] {
+  return external.filter((s) => !RUNTIME_DEPENDENCIES.includes(s));
+}
+
+/**
+ * This function examines the build of a dependency, and then the build of each package that it imports.
+ * Each import resolves from its importer, so the test examines the copy that the importer loads.
+ */
+function examineBuild(dep: string, from: NodeRequire, seen: Set<string>): void {
+  const manifest = from.resolve(`${dep}/package.json`);
+  if (seen.has(manifest)) return;
+  seen.add(manifest);
+  const main = (JSON.parse(readFileSync(manifest, "utf8")) as { main: string }).main;
+  // A build can have chunks: the closure of its local imports imports only the packages of the list.
+  const { files, external } = closure(new URL(main, pathToFileURL(manifest)));
+  expect(unlisted(external), dep).toEqual([]);
+  for (const f of files) {
+    const code = readFileSync(new URL(f), "utf8").replace(/\/\/.*|\/\*[\s\S]*?\*\//g, "");
+    expect(NODE_GLOBAL.test(code), f).toBe(false);
+  }
+  const own = createRequire(manifest);
+  for (const next of external) examineBuild(next, own, seen);
+}
+
 describe("browser safety", () => {
   it("has no API of Node in the import closure of families.ts and of the package root", () => {
     for (const entry of ["./families.ts", "./index.ts"]) {
@@ -311,17 +336,13 @@ describe("browser safety", () => {
     const pkg = JSON.parse(readFileSync(new URL("../package.json", import.meta.url), "utf8")) as { dependencies?: Record<string, string> };
     expect(Object.keys(pkg.dependencies ?? {})).toEqual(RUNTIME_DEPENDENCIES);
     const require = createRequire(import.meta.url);
-    for (const dep of RUNTIME_DEPENDENCIES) {
-      const manifest = require.resolve(`${dep}/package.json`);
-      const main = (JSON.parse(readFileSync(manifest, "utf8")) as { main: string }).main;
-      // A build can have chunks: the closure of its local imports imports no other package.
-      const { files, external } = closure(new URL(main, pathToFileURL(manifest)));
-      expect(external, dep).toEqual([]);
-      for (const f of files) {
-        const code = readFileSync(new URL(f), "utf8").replace(/\/\/.*|\/\*[\s\S]*?\*\//g, "");
-        expect(NODE_GLOBAL.test(code), f).toBe(false);
-      }
-    }
+    const seen = new Set<string>();
+    for (const dep of RUNTIME_DEPENDENCIES) examineBuild(dep, require, seen);
+    expect(seen.size).toBeGreaterThanOrEqual(RUNTIME_DEPENDENCIES.length);
+  });
+
+  it("refuses a module of Node and a package outside the list in a build", () => {
+    expect(unlisted(["node:fs", "fs", "left-pad", ...RUNTIME_DEPENDENCIES])).toEqual(["node:fs", "fs", "left-pad"]);
   });
 });
 

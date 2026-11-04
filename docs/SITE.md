@@ -118,7 +118,7 @@ The Vite plugin `jointCatalog` makes the module `virtual:joint-catalog` at build
 | List | Source |
 |---|---|
 | The packers | `strategies`, `composites` and `shapeStrategies` of `@mark1russell7/packing`. The entries are `PACK_ENTRIES` of `@layout-contract/joint`. Each other strategy gets one entry. |
-| The routers | `listStrategies(STRATEGIES, "router")` of `@mark1russell7/highways`, then `portfolio`. They are `ROUTERS` of the joint benchmark. |
+| The routers | `listStrategies(STRATEGIES, "router")` of `@mark1russell7/highways`, the highway strategies of `HIGHWAY_ROUTERS`, then `portfolio`. They are `ROUTERS` of the joint benchmark. The list then has the open routers of `OPEN_ROUTERS`. The benchmark does not race those routers, and only the playground uses them. |
 | The options of a router | The field `schema` of each strategy, with `optionDefaults`. `portfolio` has no schema, so the site makes one from `PORTFOLIO_RULES`, `PORTFOLIO_CAPS`, `PORTFOLIO_KS_API` and `PORTFOLIO_HASHES`. |
 | The options of a packer | The field `defaults` of each strategy. `packing` declares no schema, so the site makes a range from each default and tags it "site range". `PACK_EXTRAS` in `src/engines.ts` lists the options without a default. |
 | The joint pairs | `laneEntries()` and `iterEntries()` of `@layout-contract/joint`: 18 lane pairs and 18 iteration pairs. They are the named configs of `JOINT_SPACE` after the pairs of the product. |
@@ -127,7 +127,7 @@ The Vite plugin `jointCatalog` makes the module `virtual:joint-catalog` at build
 
 The spaces come from `packSpace` and `routeSpace` when an engine exports them. Until then, the site makes the two spaces from the lists.
 
-The joint space is `jointSpace(pack, route)` of `@layout-contract/joint`, the function that also makes `JOINT_SPACE`. Thus the site and the benchmark have one joint space. It has 196 named pairs: 16 pack entries × 10 routers, then the 36 joint pairs.
+The joint space is `jointSpace(pack, route)` of `@layout-contract/joint`, the function that also makes `JOINT_SPACE`. Thus the site and the benchmark have one joint space. Its named pairs are each pack entry of the site with each router of `ROUTERS`, then the joint pairs. The playground gives the current counts.
 
 The worker gives the joint pairs to `pairRuns` as `lanes` and `iterate`. For a lane choice of the playground, `configRun` gives the lane entry or the iteration entry.
 
