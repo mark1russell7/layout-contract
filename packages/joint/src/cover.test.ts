@@ -23,7 +23,7 @@ describe("the cover of the catalogs", () => {
   });
 
   it("keeps the list of exceptions closed", () => {
-    expect(Object.keys(COVER_EXCEPTIONS)).toEqual(["hole-degree"]);
+    expect(Object.keys(COVER_EXCEPTIONS)).toEqual(["hole-degree", "circle-quasi-physical", "exact-strip"]);
     for (const e of Object.values(COVER_EXCEPTIONS)) {
       expect(e.reason).not.toBe("");
       expect(e.removedBy).toMatch(/^L\d+$/);
@@ -84,8 +84,9 @@ describe("a run of chosen pairs of the cover", () => {
 });
 
 describe("the entries of the cover on the corpus", () => {
-  // The small inputs of the corpus, with each container size, because a strategy can support only some sizes.
-  const specs = jointSpecs(SET_V2).map((spec) => jointInput(spec, 1, SET_V2)).filter((made) => made.input.boxes.length > 0 && made.input.boxes.length < 50 && (made.input.edges?.length ?? 0) > 0);
+  // The inputs of the corpus with at most 120 items, with each container size, because a strategy can support only some sizes.
+  // The strip strategies refuse a gap and a margin, and the only strip inputs without them have more than 50 items.
+  const specs = jointSpecs(SET_V2).map((spec) => jointInput(spec, 1, SET_V2)).filter((made) => made.input.boxes.length > 0 && made.input.boxes.length <= 120 && (made.input.edges?.length ?? 0) > 0);
 
   it("runs each new entry on some input, and an exception on no input", () => {
     const entries = coverEntries();

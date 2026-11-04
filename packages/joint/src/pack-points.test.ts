@@ -9,6 +9,9 @@ import { PACK_ENTRIES, packInputOf, readsLinks, type PackEntry } from "./runner.
 /** The strategy space of `packing`, with the type of `layout-contract`. */
 const SPACE = packSpace as unknown as StrategySpace;
 
+/** The strategies of the cover that `packSpace` does not hold. `packing` lists them apart from its registry, and each one wraps one standalone function. */
+const OUTSIDE_SPACE: readonly string[] = ["sleator", "beam", "binary-height", "near-rects", "raster-nofit", "masonry", "treemap", "side-anchors"];
+
 /** The largest count of boxes of an input of the set. */
 const MAX_BOXES = 100;
 
@@ -45,9 +48,17 @@ function hashOf(run: () => PackOutput): string {
 }
 
 describe("the pack entries of the cover as points of packSpace", () => {
-  const entries: readonly PackEntry[] = [...PACK_ENTRIES, ...coverEntries()];
+  const entries: readonly PackEntry[] = [...PACK_ENTRIES, ...coverEntries()].filter((entry) => !OUTSIDE_SPACE.includes(entry.strategy));
   const points = entries.map((entry) => ({ entry, point: configOfStrategy(entry.strategy, entry.options) }));
   const inputs = testInputs();
+
+  it("keeps the closed list of the strategies outside the space, and fails when one of them joins it", () => {
+    const cover = coverEntries().map((entry) => entry.strategy);
+    for (const id of OUTSIDE_SPACE) {
+      expect(cover, id).toContain(id);
+      expect(configOfStrategy(id, {}), id).toMatchObject({ ok: false });
+    }
+  });
 
   it("gives a point for each entry", () => {
     expect(entries.length).toBeGreaterThanOrEqual(32);

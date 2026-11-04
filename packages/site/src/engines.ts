@@ -123,7 +123,7 @@ const PACK_ABOUT: Readonly<Record<string, string>> = {
 /** This function gives the facts of each strategy of `packing`: the base strategies, then the composites. */
 function packFacts(): StrategyFacts[] {
   const all = stringLists(packing as unknown as Record<string, unknown>);
-  return [...packing.strategies, ...packing.composites, ...packing.shapeStrategies].map((s) => {
+  return packing.allStrategies.map((listing) => packing.strategy(listing.id)).map((s) => {
     const defaults = (s.defaults ?? {}) as Readonly<Record<string, unknown>>;
     const lists = ITEM_ORDER_STRATEGIES.has(s.id) ? [ITEM_ORDERS, ...listsOf(all, s.id)] : listsOf(all, s.id);
     const options: OptionSpec[] = Object.entries(defaults).map(([key, value]) => ({ key, schema: schemaOfDefault(value, lists), value, derived: true }));
