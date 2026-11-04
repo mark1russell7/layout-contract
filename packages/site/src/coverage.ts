@@ -185,11 +185,11 @@ export function weekView(line: readonly TrendRecord[]): WeekView {
 /** This function examines `index.json` of the branch `sweep-data`. It gives the latest epoch and its entry, or the problems. */
 function stepOf(v: unknown): StepFacts | null {
   if (!isObject(v) || typeof v["from"] !== "string" || !isCount(v["pairs"]) || !isObject(v["dropped"]) || !isObject(v["metrics"])) return null;
-  const medianOf = (name: string): number | null => {
+  const storedRatio = (name: string): number | null => {
     const metric = (v["metrics"] as Record<string, unknown>)[name];
     return isObject(metric) && typeof metric["median"] === "number" ? metric["median"] : null;
   };
-  const [fill, hard, crossings] = [medianOf("joint.fill"), medianOf("hard"), medianOf("joint.straight.crossings")];
+  const [fill, hard, crossings] = [storedRatio("joint.fill"), storedRatio("hard"), storedRatio("joint.straight.crossings")];
   if (fill === null || hard === null || crossings === null) return null;
   const dropped = Object.values(v["dropped"]).reduce<number>((sum, n) => sum + (typeof n === "number" ? n : 0), 0);
   return { from: v["from"], pairs: v["pairs"], dropped, fill, hard, crossings };
