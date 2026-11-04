@@ -112,9 +112,9 @@ describe("the limits of input F", () => {
     expect(gate.pass).toBe(true);
   });
 
-  it("are the worst value of run 41408115284 plus the spread, with one step of 1 MB at least", () => {
+  it("are the worst value of run 41654875543 plus the spread, with one step of 1 MB at least", () => {
     // The values of the 5 probes of each seed: [min, max] of allocMb and of liveMaxMb.
-    const run = { s1: [2178050, 2181901, 368, 368], s2: [2881221, 2886809, 368, 369], s3: [3169679, 3175543, 450, 450] };
+    const run = { s1: [2528117, 2531692, 393, 393], s2: [3306532, 3307620, 420, 420], s3: [3559272, 3566522, 502, 502] };
     for (const [seed, [aMin, aMax, lMin, lMax]] of Object.entries(run)) {
       const limit = MEMORY_LIMITS[`${DENSE_HUBS_FAMILY}/${seed}`]!;
       expect(limit.allocMb).toBe(aMax! + Math.max(aMax! - aMin!, 1));

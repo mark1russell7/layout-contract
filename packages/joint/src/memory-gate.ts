@@ -28,14 +28,14 @@ export interface MemoryLimit {
 
 /**
  * The limits of the inputs that have 5 or more probes on `main` (`docs/JOINT-BENCH.md`, "The limits of the memory gate").
- * Each limit is the worst value of the 5 probes of the run 41408115284 plus their spread, rounded up to 1 MB.
+ * Each limit is the worst value of the 5 probes of the run 41654875543 plus their spread, rounded up to 1 MB.
  * The margin is at least one step of the measure, so the step of `liveMaxMb` is 1 MB.
- * The probes of all CPU models count together. The CPU models change the allocation by at most 0.16%, less than the spread of the runs.
+ * The probes of all CPU models count together. In the run 41408115284, the CPU models changed the allocation by at most 0.16%, less than the spread of that run.
  */
 export const MEMORY_LIMITS: Readonly<Record<string, MemoryLimit>> = {
-  "joint-v2/rect-grid.freeHeight.holes.none.bimodal.n1000.e-dense.hubs.none.free.sp-gap/s1": { allocMb: 2185752, liveMaxMb: 369 },
-  "joint-v2/rect-grid.freeHeight.holes.none.bimodal.n1000.e-dense.hubs.none.free.sp-gap/s2": { allocMb: 2892397, liveMaxMb: 370 },
-  "joint-v2/rect-grid.freeHeight.holes.none.bimodal.n1000.e-dense.hubs.none.free.sp-gap/s3": { allocMb: 3181407, liveMaxMb: 451 },
+  "joint-v2/rect-grid.freeHeight.holes.none.bimodal.n1000.e-dense.hubs.none.free.sp-gap/s1": { allocMb: 2535267, liveMaxMb: 394 },
+  "joint-v2/rect-grid.freeHeight.holes.none.bimodal.n1000.e-dense.hubs.none.free.sp-gap/s2": { allocMb: 3308708, liveMaxMb: 421 },
+  "joint-v2/rect-grid.freeHeight.holes.none.bimodal.n1000.e-dense.hubs.none.free.sp-gap/s3": { allocMb: 3573772, liveMaxMb: 503 },
 };
 
 /** One job of the gate: a group of inputs with commas, one heap mode, and the number of the repeat. */
