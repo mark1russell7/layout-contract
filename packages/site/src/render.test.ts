@@ -15,6 +15,7 @@ const asElement = (root: FakeRoot): HTMLElement => root as unknown as HTMLElemen
 
 const joint = Object.values(import.meta.glob<JointData>("../data/joint/*.json", { eager: true, import: "default" }));
 const spaces = Object.entries(import.meta.glob<SpaceFile>("../data/examples/*.json", { eager: true, import: "default" }));
+const engineSpaces = Object.entries(import.meta.glob<SpaceFile>("../data/spaces/*.json", { eager: true, import: "default" }));
 const news = Object.values(import.meta.glob<NewsData>("../data/news.json", { eager: true, import: "default" }))[0];
 
 describe("the sections", () => {
@@ -45,6 +46,15 @@ describe("the sections", () => {
     expect(root.innerHTML).toContain("finds no problems");
     expect(root.innerHTML).toContain("Base configs");
     expect(root.innerHTML).toContain("2026-10-28");
+  });
+
+  it("shows an engine space before the example, with its source", () => {
+    const root = fakeRoot();
+    renderSpace(asElement(root), [...spaces, ...engineSpaces].map(([path, file]) => ({ path, file })), "0.0.0");
+    expect(root.innerHTML).toContain("Engine");
+    expect(root.innerHTML).toContain("finds no problems");
+    expect(root.innerHTML).toContain("highways");
+    expect(root.innerHTML).toContain("(example)");
   });
 
   it("shows the news with a link for each pull request", () => {

@@ -150,10 +150,8 @@ function draw(root: HTMLElement, entries: readonly SpaceEntry[], s: State, versi
           .map((e) => `<option value="${esc(e.path)}"${e.path === entry.path ? " selected" : ""}>${esc((e.file.space as StrategySpace).engine)}${e.file.example ? " (example)" : ""} · ${esc(e.file.source)}</option>`)
           .join("")}</select></label>`
       : "";
-  const engines = entries.filter((e) => !e.file.example).length;
   root.innerHTML = `
     <p class="dataline"><span class="badge${entry.file.example ? " warn" : ""}">${entry.file.example ? "Example" : "Engine"}</span> The space <code>${esc(space.engine)}</code> ${esc(space.version)}, from ${esc(entry.file.source)}, ${esc(entry.file.date)} · <a href="https://www.npmjs.com/package/@mark1russell7/layout-contract/v/${esc(version)}">layout-contract ${esc(version)}</a></p>
-    ${engines === 0 ? `<p class="note">No engine has published its space yet. The space <code>packSpace</code> of packing and <code>routeSpace</code> of highways come later. Until then, this view shows an example space.</p>` : ""}
     ${entry.file.note ? `<p>${esc(entry.file.note)}</p>` : ""}
     ${picker}
     ${check}

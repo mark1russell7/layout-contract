@@ -1,5 +1,6 @@
 import { checkSpace, spaceSize, type StrategySpace } from "@mark1russell7/layout-contract";
 import { describe, expect, it } from "vitest";
+import { ENGINE_SPACES } from "./engine-spaces.ts";
 import { checkDataFile, checkJoint, checkNews, checkSpaceFile, latestJoint, type JointData, type SpaceFile } from "./data.ts";
 import { HEADLINE, jointData } from "./joint-data.ts";
 
@@ -39,6 +40,16 @@ describe("the data files", () => {
       expect(d.headline.byPacker[0]?.pair).toBe(pair);
       expect(d.cells.some((c) => c.rule === HEADLINE.rule && c.cap === HEADLINE.cap)).toBe(true);
     }
+  });
+});
+
+describe("the spaces of the engines", () => {
+  it.each(ENGINE_SPACES.map((engine) => [engine.file, engine] as const))("data/%s holds the space that the engine publishes", (file, engine) => {
+    const text = files.find(([path]) => path === file)?.[1];
+    expect(text, "Write the file with the script data:spaces.").toBeDefined();
+    const data = JSON.parse(text!) as SpaceFile;
+    expect(data.example, file).toBeUndefined();
+    expect(data.space, "Write the file again with the script data:spaces.").toEqual(JSON.parse(JSON.stringify(engine.space)));
   });
 });
 

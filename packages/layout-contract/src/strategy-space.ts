@@ -690,6 +690,20 @@ interface Combo {
 const optionIds = (choices: Choices): Map<string, string | null> => new Map([...choices].map(([k, o]) => [k, o?.id ?? null]));
 const keeps = (space: StrategySpace, choices: Choices): boolean => (space.constraints ?? []).every((c) => holds(c, optionIds(choices)));
 
+/**
+ * This function gives the constraints of a space for each stage: a constraint goes to the last stage that it names.
+ * The last list holds each constraint that names a stage outside the space, so a walk examines it at the end.
+ */
+function constraintsByStage(space: StrategySpace): readonly (readonly SpaceConstraint[])[] {
+  const place = new Map(space.stages.map((s, i) => [s.name, i]));
+  const lists: SpaceConstraint[][] = Array.from({ length: space.stages.length + 1 }, () => []);
+  for (const c of space.constraints ?? []) {
+    const named = [c.if.stage, "not" in c.then ? c.then.not.stage : c.then.stage];
+    lists[Math.max(...named.map((name) => place.get(name) ?? space.stages.length))]!.push(c);
+  }
+  return lists;
+}
+
 /** This function gives the count of the member lists of a meta option without a pool from `base` base configs, or `null` above `limit`. */
 function memberLists(base: bigint, rule: MemberRule, limit: bigint): bigint | null {
   let sum = 0n;
@@ -738,9 +752,12 @@ function combos(space: StrategySpace, levels: number, meta: boolean, limit: bigi
   };
   const out: Combo[] = [];
   const stages = space.stages;
+  // A space can have hundreds of constraints. Each one is examined at its last stage, so the walk leaves a branch at the first break.
+  const checks = constraintsByStage(space);
+  const ids = new Map<string, string | null>();
   const walk = (i: number, choices: Map<string, StageOption | null>, weight: bigint): void => {
     if (i === stages.length) {
-      if (keeps(space, choices)) out.push({ choices: new Map(choices), base: true, weight });
+      if (checks[i]!.every((c) => holds(c, ids))) out.push({ choices: new Map(choices), base: true, weight });
       return;
     }
     const s = stages[i]!;
@@ -748,9 +765,11 @@ function combos(space: StrategySpace, levels: number, meta: boolean, limit: bigi
     if (s.optional) list.push(null);
     for (const o of list) {
       choices.set(s.name, o);
-      walk(i + 1, choices, o === null ? weight : weight * countOf(o));
+      ids.set(s.name, o?.id ?? null);
+      if (checks[i]!.every((c) => holds(c, ids))) walk(i + 1, choices, o === null ? weight : weight * countOf(o));
     }
     choices.delete(s.name);
+    ids.delete(s.name);
   };
   walk(0, new Map(), 1n);
   if (!meta) return out;
