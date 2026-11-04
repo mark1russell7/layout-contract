@@ -1,3 +1,4 @@
+import { execFileSync } from "node:child_process";
 import { readdirSync, readFileSync } from "node:fs";
 import { createRequire } from "node:module";
 import { fileURLToPath } from "node:url";
@@ -84,9 +85,15 @@ function jointFiles(): JointData[] {
     .map((name) => JSON.parse(readFileSync(new URL(name, dir), "utf8")) as JointData);
 }
 
+/** This function gives the time of the commit of the build, in UTC. Two builds of one commit give the same time, so a rebuild does not make old data look new. */
+function commitTime(): string {
+  const seconds = Number(execFileSync("git", ["log", "-1", "--format=%ct"], { encoding: "utf8" }).trim());
+  return `${new Date(seconds * 1000).toISOString().slice(0, 19)}Z`;
+}
+
 /** This function gives the input of `kpi.json`. A build without a joint run has no data to report, so it stops. */
 function kpiInput(): NonNullable<ReturnType<typeof siteKpiInput>> {
-  const input = siteKpiInput(jointFiles(), catalogOfTheRuns(), engineVersions(), [...PACK_ENTRIES, ...coverEntries()]);
+  const input = siteKpiInput(jointFiles(), catalogOfTheRuns(), engineVersions(), [...PACK_ENTRIES, ...coverEntries()], commitTime());
   if (input === undefined) throw new Error("data/joint/ has no run, so kpi.json has no time of the data.");
   return input;
 }
