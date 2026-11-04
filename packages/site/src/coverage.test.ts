@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { addDays, checkSweepIndex, checkTrendRecord, FLAT_WEEK, mainLine, parseTrend, type TrendRecord, weekView } from "./coverage.ts";
-import { type Fetch, guardChart, loadSweep, nightNote, runUrl, skillChart, SWEEP_RAW, sweepHtml, trendFileUrl } from "./sweep.ts";
+import { type Fetch, guardChart, loadSweep, nightNote, runUrl, skillChart, stepNote, SWEEP_RAW, sweepHtml, trendFileUrl } from "./sweep.ts";
 
 const EPOCH = "joint-v2_packing-0.4.1_highways-0.10.0_space-bench-3";
 // The first record of the branch `sweep-data`, as the nightly sweep wrote it.
@@ -93,7 +93,7 @@ describe("the week view", () => {
 
 describe("the index of sweep-data", () => {
   it("gives the latest epoch and its entry", () => {
-    expect(checkSweepIndex(INDEX)).toEqual({ latest: EPOCH, entry: { corpus: "joint-v2", nights: 3, last: "2026-11-03", configs: 219, missing: null } });
+    expect(checkSweepIndex(INDEX)).toEqual({ latest: EPOCH, entry: { corpus: "joint-v2", nights: 3, last: "2026-11-03", configs: 219, missing: null, step: null } });
   });
 
   it("gives the problems of a bad index", () => {
@@ -129,7 +129,7 @@ describe("the section", () => {
 
   it("marks a lambda at the edge, and a flat week", () => {
     const line = [rec("2026-11-03", 0.1), rec("2026-11-10", 0.104, { lambdaAtEdge: true, lambda: 10000 })];
-    const html = sweepHtml({ kind: "ready", index: { latest: EPOCH, entry: { corpus: "joint-v2", nights: 8, last: "2026-11-10", configs: 9, missing: null } }, line, bad: 1, week: weekView(line) }, 500);
+    const html = sweepHtml({ kind: "ready", index: { latest: EPOCH, entry: { corpus: "joint-v2", nights: 8, last: "2026-11-10", configs: 9, missing: null, step: null } }, line, bad: 1, week: weekView(line) }, 500);
     expect(html).toContain("at the edge");
     expect(html).toContain("Flat week: a finding to explain.");
     expect(html).toContain("+0.004");
@@ -170,8 +170,46 @@ describe("the section", () => {
   });
 });
 
+describe("the step between two epochs", () => {
+  const step = {
+    from: "old-epoch",
+    to: EPOCH,
+    pairs: 909,
+    dropped: { space: 0, input: 0, hash: 3, config: 0, missing: 0 },
+    metrics: {
+      "joint.fill": { n: 909, median: 1.002, q10: 1, q90: 1.01 },
+      hard: { n: 909, median: 1, q10: 1, q90: 1 },
+      "joint.straight.crossings": { n: 909, median: 0.98, q10: 0.9, q90: 1 },
+    },
+  };
+
+  it("reads the step of the index, and gives null for a step with no metrics", () => {
+    const entry = { corpus: "joint-v2", nights: 1, last: "2026-11-05", configs: 9, step };
+    const read = checkSweepIndex({ schema: "sweep-index/1", latest: EPOCH, epochs: { [EPOCH]: entry } });
+    expect(read).toMatchObject({ entry: { step: { from: "old-epoch", pairs: 909, dropped: 3, fill: 1.002, hard: 1, crossings: 0.98 } } });
+    const bad = checkSweepIndex({ schema: "sweep-index/1", latest: EPOCH, epochs: { [EPOCH]: { ...entry, step: { ...step, metrics: {} } } } });
+    expect(bad).toMatchObject({ entry: { step: null } });
+  });
+
+  it("states the ratios and the dropped pairs, or that no pair passed", () => {
+    const facts = { from: "old-epoch", pairs: 909, dropped: 3, fill: 1.002, hard: 1, crossings: 0.98 };
+    expect(stepNote(facts)).toContain("fill ×1.002, hard constraints ×1.000 and crossings ×0.980, over 909 pairs, with 3 dropped");
+    expect(stepNote({ ...facts, pairs: 0 })).toContain("no pair passed the rule");
+    expect(stepNote(null)).toBe("");
+  });
+
+  it("marks the step on the chart and stops the line there", () => {
+    const line = [rec("2026-11-02", 0.1), rec("2026-11-03", 0.12), rec("2026-11-05", 0.2), rec("2026-11-06", 0.21)];
+    const held = (html: string): string => /<path class="line s1" d="([^"]+)"/.exec(html)![1]!;
+    const marked = skillChart(line, 640, 2);
+    expect(marked).toContain("epoch-step");
+    expect(held(marked).match(/M/g)).toHaveLength(2);
+    expect(held(skillChart(line, 640)).match(/M/g)).toHaveLength(1);
+  });
+});
+
 describe("the line of the last night", () => {
-  const index = (last: string, missing: number | null) => ({ latest: EPOCH, entry: { corpus: "joint-v2", nights: 3, last, configs: 9, missing } });
+  const index = (last: string, missing: number | null) => ({ latest: EPOCH, entry: { corpus: "joint-v2", nights: 3, last, configs: 9, missing, step: null } });
 
   it("states the date of a night on time", () => {
     const html = nightNote(index("2026-11-03", 0), new Date("2026-11-04T10:00:00Z"));

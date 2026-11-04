@@ -1,5 +1,6 @@
 export * from "./browser.ts";
 export * from "./env.ts";
+export * from "./epoch-step.ts";
 export * from "./memory-gate.ts";
 export * from "./config-cost.ts";
 export * from "./plan.ts";

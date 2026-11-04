@@ -248,6 +248,16 @@ The epoch is `<corpus>_packing-<version>_highways-<version>_space-<version>`, fo
 
 `summaryRows` reads the table, and `summaryTable` writes it. The dropped configs keep their rows, so the atlas sees each config of each night.
 
+### The step between two epochs
+
+A new engine version starts a new epoch, and the trend of each epoch starts again. The first night of an epoch thus measures the step from the epoch before it. That step goes to `index.json`, and the site marks it on the charts.
+
+- The step needs no extra run. Round 1 of each night runs the baseline arm on each input.
+- The step compares raw values: the fill, the hard constraints and the crossings of the baseline pick. A `sweep.score` does not pair across epochs, because it depends on the reference of its epoch.
+- A pair counts only when the input id, the input hash, the config id and `BENCH_SPACE_VERSION` are equal. Each other pair drops, and the step states the count.
+- The field `inputHashes` of a state has the hash of each input. An older state has no such field, so `LEGACY_INPUT_LISTS` has the hash of its list, from the manifest at its last night.
+- The step is a measure of the engines. It does not extend the skill line, and the charts stop that line at the step.
+
 ### The check of each night
 
 A night with no result is a failure that shows. From 2026-10-30 to 2026-11-04, six nights did not complete, and no check on main showed it.

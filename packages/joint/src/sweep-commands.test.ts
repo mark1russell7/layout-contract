@@ -3,11 +3,12 @@
 // `fit-cost.mjs` needs the logs of a full run, so it is not here.
 // A crash at load time or in a command then fails the pull request, not the night. The night of 2026-11-02 failed in summarize on such a crash.
 import { execFileSync } from "node:child_process";
-import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { cpSync, existsSync, mkdtempSync, readFileSync, renameSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterAll, describe, expect, it } from "vitest";
 import { CONFIG_COST, CONFIG_COST_ID } from "./config-cost.ts";
+import type { EpochStep } from "./epoch-step.ts";
 
 const root = join(import.meta.dirname, "..");
 const dir = mkdtempSync(join(tmpdir(), "sweep-commands-"));
@@ -84,6 +85,22 @@ describe("the commands of the sweep script", () => {
     // The sensitivity script reads the state of an epoch of the data branch.
     const state = join(dir, "2026-01-02", "out", "epochs", index.latest, "state.json");
     expect(start("sensitivity.mjs", ["--state", state, "--draws", "20", "--seed", "1"])).toContain("|");
+
+    // The first night of a new epoch measures the step. Here the old epoch has the same engines, so each ratio is 1.
+    const old = index.latest.replace("packing-", "packing-old-");
+    const data = join(dir, "old-tree");
+    cpSync(join(dir, "2026-01-02", "out"), data, { recursive: true });
+    renameSync(join(data, "epochs", index.latest), join(data, "epochs", old));
+    const oldState = join(data, "epochs", old, "state.json");
+    writeFileSync(oldState, JSON.stringify({ ...JSON.parse(readFileSync(oldState, "utf8")), epoch: old }));
+    writeFileSync(join(data, "index.json"), JSON.stringify({ ...index, latest: old, epochs: { [old]: index.epochs[index.latest] } }));
+    const out = join(dir, "step-out");
+    start("sweep.mjs", ["summarize", "--night", join(dir, "2026-01-02", "night2"), "--records", join(dir, "2026-01-02", "records2"), "--data", data, "--out", out, "--run", "1"]);
+    const stepped = JSON.parse(readFileSync(join(out, "index.json"), "utf8")) as { epochs: Record<string, { step: EpochStep }> };
+    const step = stepped.epochs[index.latest]!.step;
+    expect(step).toMatchObject({ from: old, dropped: { space: 0, input: 0, hash: 0, config: 0 } });
+    expect(step.pairs).toBeGreaterThan(0);
+    expect(step.metrics["joint.fill"]).toMatchObject({ median: 1, q10: 1, q90: 1 });
   });
 });
 

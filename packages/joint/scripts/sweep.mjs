@@ -29,6 +29,8 @@ import {
   CONFIG_COST_ID,
   configLabel,
   emptyState,
+  epochStep,
+  hashesOfState,
   INCUMBENT,
   iterPlanPairs,
   jointCorpus,
@@ -77,6 +79,7 @@ function corpusOf(set, seeds) {
   const rows = inputs.map((input, i) => ({ input, entry: manifest.inputs[i] }));
   const sweep = rows.map(({ input, entry }) => ({
     id: entry.id,
+    hash: entry.hash,
     spec: entry.id.replace(/\/s\d+$/, ""),
     kind: entry.id.split("/")[1].split(".")[0],
     seed: Number(/\/s(\d+)$/.exec(entry.id)[1]),
@@ -344,13 +347,27 @@ if (command === "plan") {
   writeJson(join(epochDir, "nights", `${plan.date}.json`), { ...night, counts, facts });
   const indexFile = join(out, "index.json");
   const index = existsSync(indexFile) ? readJson(indexFile) : { schema: "sweep-index/1", epochs: {} };
+  // The first night of an epoch measures the step from the epoch before it. Later nights keep that step.
+  const step = index.epochs[state.epoch]?.step ?? (index.latest === undefined || index.latest === state.epoch ? undefined : stepFrom(join(data, "epochs", index.latest, "state.json"), state, sweep));
   index.latest = state.epoch;
-  index.epochs[state.epoch] = { corpus: state.corpus, nights: rest.nights.length, last: plan.date, missing: night.missing, configs: Object.keys(state.configs).length, counts };
+  index.epochs[state.epoch] = { corpus: state.corpus, nights: rest.nights.length, last: plan.date, missing: night.missing, configs: Object.keys(state.configs).length, counts, ...(step === undefined ? {} : { step }) };
   writeJson(indexFile, index);
   writeFileSync(join(out, "night.md"), nightMarkdown(state, night, counts, facts));
   console.log(readFileSync(join(out, "night.md"), "utf8"));
 } else {
   throw new RangeError(`The command is plan, run, race or summarize, not "${command}".`);
+}
+
+/** This function gives the step from the state in the file `file` to `state`, or `undefined` with no such file. */
+function stepFrom(file, state, sweep) {
+  if (!existsSync(file)) return undefined;
+  const old = readJson(file);
+  const [ids, hashes] = [sweep.map((i) => i.id), sweep.map((i) => i.hash)];
+  const baselineOf = (s) => Object.keys(s.configs).filter((id) => s.configs[id].status === "baseline");
+  return epochStep(
+    { epoch: old.epoch, inputs: old.inputs, hashes: hashesOfState(old, ids, hashes), baseline: baselineOf(old), reference: old.reference },
+    { epoch: state.epoch, inputs: ids, hashes, baseline: baselineOf(state), reference: state.reference },
+  );
 }
 
 /** This function gives the facts of a night that the prediction of `docs/SWEEP.md` scores. */

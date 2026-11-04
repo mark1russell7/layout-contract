@@ -57,6 +57,8 @@ export function nightSeed(date: string): number {
 /** The facts of one input of the corpus that the sweep uses. */
 export interface SweepInput {
   readonly id: string;
+  /** The hash of the input, from the manifest. The step between two epochs pairs only equal hashes. */
+  readonly hash?: string;
   readonly spec: string;
   /** The board kind: the first part of the id after the corpus, for example `rect-grid`. The summary groups by it. */
   readonly kind: string;
