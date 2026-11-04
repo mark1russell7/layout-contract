@@ -129,4 +129,4 @@ if (families.length > 0) {
   }
   console.log("");
 }
-console.log("The two builds run in one process, one after the other. Thus these times and this ratio are not the cost of a build alone (the fleet bench rule of 2026-11-02). This bench is a report, not a gate.");
+console.log("The two builds run in one process, one after the other. Thus these times and this ratio are not the cost of a build alone (the bench rule of this repository of 2026-11-02). This bench is a report, not a gate.");

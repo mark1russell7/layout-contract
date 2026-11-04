@@ -80,7 +80,7 @@ The cases that can break a bound:
 | Case | What happens |
 |---|---|
 | A kerning pair that is narrower | The bound holds, because the sum of the advances stays above the width. |
-| A kerning pair or a ligature that is wider | The bound is low with the default `pairMargin` of 0. Give the largest added width of a pair as a share of the largest advance. A test shows the low bound and the correction. |
+| A kerning pair or a ligature that is wider | The bound is low with the default `pairMargin` of 0. Give the largest added width of a pair as a share of the largest advance. A test shows the low bound and the correction. The Adobe metrics of Helvetica have positive pairs, but no text of up to 200 characters from `DIGITS`, `PRINTABLE_ASCII` or a to z and the space goes over the bound. This check is for one font only, so give a margin for a font that you did not check. |
 | Letter spacing and word spacing | `layoutText` has no such option. A host puts them in its advance function, so each member advance holds them. A host that adds letter spacing only between two characters gives it in `pairMargin`. |
 | Tab, line break, soft hyphen, zero-width character | `createTextCharset` refuses them, so a label with one gets a measure. `exact` collapses a tab or a line break to one space, so `layoutText` has no hard break. |
 | White space other than the space | `createTextCharset` refuses it, because `exact` replaces it with one space of a different width. |
