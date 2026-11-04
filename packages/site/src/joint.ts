@@ -151,7 +151,7 @@ export function renderJoint(root: HTMLElement, files: readonly JointData[]): voi
             .join("")}</select></label>`
         : "";
     root.innerHTML = `
-      <p class="dataline"><span class="badge">${esc(d.item)}</span>${d.cover === true ? ` <span class="badge warn" title="A cover run has more pairs, so the floor of an input can be lower. Do not compare its misses and scores with older runs.">cover run: its floors do not compare with older runs</span>` : ""} Data of <a href="${REPO}/actions/runs/${esc(d.run)}">run ${esc(d.run)}</a>, ${esc(d.date)} · ${versions} · corpus <code>${esc(d.corpus)}</code> · ${d.records.toLocaleString("en")} records, ${d.pairs} pairs</p>
+      <p class="dataline"><span class="badge">${esc(d.item)}</span>${d.cover === true ? ` <span class="badge warn">cover run</span>` : ""} Data of <a href="${REPO}/actions/runs/${esc(d.run)}">run ${esc(d.run)}</a>, ${esc(d.date)} · ${versions} · corpus <code>${esc(d.corpus)}</code> · ${d.records.toLocaleString("en")} records, ${d.pairs} pairs</p>
       ${d.cover === true ? `<p class="note">This cover run has each strategy and each open router, so it has more pairs. Its floors do not compare with the floors of a default run.</p>` : ""}
       ${runs}
       <div class="seg" role="radiogroup" aria-label="Inputs">
