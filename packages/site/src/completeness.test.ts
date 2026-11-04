@@ -34,11 +34,19 @@ describe("the lists of the joint pages", () => {
     expect(buildCatalog(manifestText, versions, true).packWaiting).toEqual([]);
   });
 
-  it("gives the entries of the benchmark that the newest run does not hold", () => {
-    const ids = catalog.benchPacks.map((p) => p.id);
+  it("gives the chips of the compare page that the newest run does not hold", () => {
+    const ids = [...catalog.benchPacks, ...catalog.extraPacks].map((p) => p.id);
     expect(catalog.packNoResult).toEqual([]);
     expect(buildCatalog(manifestText, versions, false, ids).packNoResult).toEqual([]);
     expect(buildCatalog(manifestText, versions, false, ids.slice(1)).packNoResult).toEqual(ids.slice(0, 1));
+  });
+
+  it("tags the five chips of run 40743187036 that no other tag covers", () => {
+    const measured = ["maxrects-baf", "maxrects-bl", "maxrects-blsf", "maxrects-bssf", "maxrects-cp", "rows", "select", "shelf", "shelf-best", "shelf-first", "shelf-first-input", "shelf-next", "skyline"];
+    const built = buildCatalog(manifestText, versions, false, measured);
+    const chips = [...built.benchPacks, ...built.extraPacks];
+    const untagged = chips.filter((p) => built.packExceptions[p.strategy] === undefined && !built.packWaiting.includes(p.strategy));
+    expect(untagged.map((p) => p.id).filter((id) => built.packNoResult.includes(id)).sort()).toEqual(["anneal", "genetic", "maxrects-bl-graph-bfs", "rows-graph-bfs", "tabu"]);
   });
 
   it("tags only the strategies of the closed list of exceptions", () => {

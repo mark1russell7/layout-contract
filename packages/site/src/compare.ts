@@ -62,7 +62,7 @@ function resultTag(strategy: string, id: string): string {
   const exception = catalog.packExceptions[strategy];
   if (exception !== undefined) return ` <span class="tag" title="${esc(exception.reason)}">no joint input</span>`;
   if (catalog.packWaiting.includes(strategy)) return ` <span class="tag" title="This strategy has no bench result at this time. You can run it here on one input.">waiting for the first cover run</span>`;
-  if (catalog.packNoResult.includes(id)) return ` <span class="tag" title="The newest published run does not hold this entry. A new run gives it a result. You can run it here on one input.">waiting for a new run</span>`;
+  if (catalog.packNoResult.includes(id)) return ` <span class="tag" title="The newest published run does not hold this entry. You can run it here on one input.">no result in the newest run</span>`;
   return "";
 }
 

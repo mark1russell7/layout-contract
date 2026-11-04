@@ -37,6 +37,7 @@ export function buildCatalog(manifestText: string, versions: EngineVersions, cov
     }
   });
   const { count: _count, ...grid } = GRID_DIMENSIONS_V2;
-  const packNoResult = measuredPacks === undefined ? [] : catalog.benchPacks.map((p) => p.id).filter((id) => !measuredPacks.includes(id));
+  const chips = [...catalog.benchPacks, ...catalog.extraPacks].map((p) => p.id);
+  const packNoResult = measuredPacks === undefined ? [] : chips.filter((id) => !measuredPacks.includes(id));
   return { ...catalog, packNoResult, inputs, grid: { ...grid, sizes: [...(grid["sizes"] ?? []), ...RECORDED_SIZE_NAMES] }, compareMaxBoxes: COMPARE_MAX_BOXES };
 }
