@@ -22,17 +22,21 @@ export interface SiteKpi {
 }
 
 /** The parts of the catalog that the measures read. */
-export type KpiCatalog = Pick<JointCatalog, "routers">;
+export type KpiCatalog = Pick<JointCatalog, "benchPacks" | "extraPacks" | "routers">;
 
 /** This function counts the engines of the run that have the version of the build of the site. */
 export function enginesCurrent(run: Readonly<Record<string, string>>, built: Readonly<Record<string, string>>): number {
   return Object.keys(run).filter((engine) => run[engine] === built[engine]).length;
 }
 
+/** This function counts the packers of the compare page with a result in the run. A chip with no result and a run entry with no chip do not count. */
+export function packersMeasured(run: JointData, catalog: KpiCatalog): number {
+  const chips = new Set([...catalog.benchPacks, ...catalog.extraPacks].map((pack) => pack.id));
+  return run.stress.byPacker.filter((packer) => chips.has(packer.id)).length;
+}
+
 /**
  * This function gives the input of the writer. It gives undefined when no joint run exists, because the time of the data is then not known.
- *
- * The measure `packers-measured` counts the packers of the run. A packer of the catalog with no row in the run has no result.
  *
  * @param files - The data files of `data/joint/`.
  * @param catalog - The catalog of the build.
@@ -46,7 +50,7 @@ export function siteKpiInput(files: readonly JointData[], catalog: KpiCatalog, b
     at: `${run.date}T00:00:00Z`,
     measures: [
       { id: "pairs-in-run", value: run.pairs, unit: "pairs" },
-      { id: "packers-measured", value: run.stress.byPacker.length, unit: "packers" },
+      { id: "packers-measured", value: packersMeasured(run, catalog), unit: "packers" },
       { id: "routers-on-compare", value: catalog.routers.length, unit: "routers" },
       { id: "engines-current", value: enginesCurrent(run.versions, built), unit: "engines" },
     ],

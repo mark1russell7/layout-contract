@@ -1,11 +1,13 @@
 import { describe, expect, it } from "vitest";
 import type { JointData } from "./data.ts";
-import { enginesCurrent, type KpiCatalog, siteKpiInput } from "./kpi.ts";
+import { enginesCurrent, type KpiCatalog, packersMeasured, siteKpiInput } from "./kpi.ts";
 
 const run = (date: string, pairs: number, versions: Record<string, string>, packers: readonly string[] = ["shelf", "rows"]): JointData =>
   ({ run: "1", date, pairs, versions, stress: { byPacker: packers.map((id) => ({ id })) } }) as unknown as JointData;
 
-const catalog: KpiCatalog = { routers: ["corners", "trunks"] };
+const chips = (...ids: readonly string[]): KpiCatalog["benchPacks"] => ids.map((id) => ({ id, strategy: id, options: {} }));
+
+const catalog: KpiCatalog = { benchPacks: chips("shelf", "rows"), extraPacks: chips("skyline", "anneal"), routers: ["corners", "trunks"] };
 
 describe("enginesCurrent", () => {
   it("counts only the engines with the version of the build", () => {
@@ -14,6 +16,16 @@ describe("enginesCurrent", () => {
 
   it("does not count an engine that the build does not have", () => {
     expect(enginesCurrent({ packing: "0.7.0" }, {})).toBe(0);
+  });
+});
+
+describe("packersMeasured", () => {
+  it("does not count a chip with no result in the run", () => {
+    expect(packersMeasured(run("2026-10-28", 130, {}, ["shelf", "skyline"]), catalog)).toBe(2);
+  });
+
+  it("does not count a run entry with no chip on the page", () => {
+    expect(packersMeasured(run("2026-10-28", 130, {}, ["shelf", "anneal-maxrects-bl-k16"]), catalog)).toBe(1);
   });
 });
 
