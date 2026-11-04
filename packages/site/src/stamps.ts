@@ -10,7 +10,7 @@ import type { JointData } from "./data.ts";
 /** The mark in the html of a measured page. The build replaces the mark with the stamp line of the page. */
 const MARK = "<!-- data-stamp -->";
 
-/** The page that shows the joint runs. */
+/** The page that shows the joint runs. Each other stamped page gets the same comparison. */
 const HOME = "index.html";
 
 /** The npm scope of the engines of a joint run. */
@@ -24,17 +24,21 @@ export function readStamps(text: string): DataStamps {
 }
 
 /**
- * This function compares the stamp of the home page with the newest joint run. An empty result tells that they agree.
+ * This function compares the stamp of each page with the newest joint run. An empty result tells that they agree.
  * Thus a new data file cannot land with the stamp of the run before it.
  *
  * @param stamps - The content of `data/stamps.json`.
  * @param run - The newest joint run of `data/joint/`.
  */
 export function stampFaults(stamps: DataStamps, run: Pick<JointData, "run" | "date" | "versions">): string[] {
-  const page = stamps.pages.find((p) => p.page === HOME);
-  if (page === undefined) return [`The file data/stamps.json has no stamp for ${HOME}.`];
+  if (!stamps.pages.some((p) => p.page === HOME)) return [`The file data/stamps.json has no stamp for ${HOME}.`];
+  return stamps.pages.flatMap((page) => pageFaults(page, run));
+}
+
+/** This function compares the stamp of one page with the newest joint run. */
+function pageFaults(page: DataStamps["pages"][number], run: Pick<JointData, "run" | "date" | "versions">): string[] {
   const stamped = page.runs.find((r) => r.id === run.run);
-  if (stamped === undefined) return [`The stamp of ${HOME} does not name the run ${run.run}, the newest joint run.`];
+  if (stamped === undefined) return [`The stamp of ${page.page} does not name the run ${run.run}, the newest joint run.`];
   const faults: string[] = [];
   if (stamped.date.slice(0, 10) > run.date) faults.push(`The stamp of the run ${run.run} has the date ${stamped.date}, after the date ${run.date} of its data.`);
   for (const [name, version] of Object.entries(run.versions)) {

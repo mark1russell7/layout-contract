@@ -253,17 +253,11 @@ function engineSpace(mod: Readonly<Record<string, unknown>>, name: string): Stra
 }
 
 /**
- * The composite strategies of `packing` 0.3.0 with the option `member`. The forms of the site set only the member of `aspect-fit` (`strategy` and `options`).
- * Thus the catalog does not show a pack entry of the benchmark with one of these strategies. Each strategy is an extra pack, with the default member. Roadmap item L80 adds the forms.
+ * This function tells if the forms of the playground can set a pack entry. They cannot set the option `member`, and they cannot set the option `table` of `select`.
+ * The compare page runs each entry, because the joint runner takes the options as they are. Roadmap item L80 adds the forms.
  */
-const MEMBER_WRAPS: ReadonlySet<string> = new Set(["restarts", "bbox", "ruin-recreate", "overlap-min", "anneal", "genetic", "tabu"]);
-
-/**
- * This function tells if the forms of the site can set a pack entry of the benchmark. They cannot set the member of a strategy of `MEMBER_WRAPS`.
- * They also cannot set the option `table` of `select`, so the entry `pack` is not in the catalog. Roadmap item L80 adds the forms.
- */
-export function inForms(entry: { readonly strategy: string; readonly options: Readonly<Record<string, unknown>> }): boolean {
-  return !MEMBER_WRAPS.has(entry.strategy) && entry.options["table"] === undefined;
+export function inForms(entry: { readonly options: Readonly<Record<string, unknown>> }): boolean {
+  return entry.options["member"] === undefined && entry.options["table"] === undefined;
 }
 
 /** The site uses `packSpace` of `packing` when this value is true. Roadmap item L80 changes the forms for its stages, and then sets it. */
@@ -271,11 +265,6 @@ const USE_PACK_SPACE = false;
 
 /** The site uses `routeSpace` of `highways` when this value is true. `highways` 0.13.0 has 7 stages and no stage `router`. Roadmap item L80 changes the forms for them, and then sets it. */
 const USE_ROUTE_SPACE = false;
-
-/** This function gives the pack entry of a strategy of `packing` that no entry of the benchmark uses. A wrapper wraps `DEFAULT_STRATEGY`. */
-function extraPack(f: StrategyFacts): PackChoice {
-  return f.wraps === undefined ? { id: f.id, strategy: f.id, options: {} } : { id: `${f.id}(${packing.DEFAULT_STRATEGY})`, strategy: f.id, options: { strategy: packing.DEFAULT_STRATEGY, options: {} } };
-}
 
 /** The facts of the catalog that come from the engines, without the inputs. */
 export type EngineCatalog = Omit<JointCatalog, "inputs" | "grid" | "compareMaxBoxes" | "packNoResult">;
@@ -287,7 +276,8 @@ function jointPairs(): JointPair[] {
 
 /**
  * This function gives the catalog of the joint pages from the registries of `packing` and `highways`.
- * The named configs of the pack space are the pack entries of the benchmark and the extra entries. The named configs of the route space are the routers.
+ * Each pack chip is an entry of the bench, with the id of its records. A strategy that no input can run gets a chip with its own id.
+ * The named configs of the pack space are the chips that the forms can set. The named configs of the route space are the routers.
  */
 export function engineCatalog(versions: Readonly<Record<string, string>>, coverRun = false): EngineCatalog {
   const pf = packFacts();
@@ -297,13 +287,11 @@ export function engineCatalog(versions: Readonly<Record<string, string>>, coverR
   // `packing` 0.3.0 has `packSpace`, with stages that the forms of the site do not read yet (roadmap item L80). Until then, the site derives the pack space from the registry.
   const fromPack = USE_PACK_SPACE ? engineSpace(packing as unknown as Record<string, unknown>, "packSpace") : undefined;
   const fromRoute = USE_ROUTE_SPACE ? engineSpace(highways as unknown as Record<string, unknown>, "routeSpace") : undefined;
-  const shown = PACK_ENTRIES.filter(inForms);
-  const used = new Set(shown.map((e) => e.strategy));
-  const benchPacks: PackChoice[] = shown.map((e) => ({ id: e.id, strategy: e.strategy, options: e.options }));
-  const extraPacks = pf.filter((f) => !used.has(f.id)).map(extraPack);
+  const benchPacks: PackChoice[] = [...PACK_ENTRIES];
+  const extraPacks: PackChoice[] = [...coverEntries(), ...pf.filter((f) => COVER_EXCEPTIONS[f.id] !== undefined).map((f) => ({ id: f.id, strategy: f.id, options: {} }))];
   const named = (space: StrategySpace, entries: readonly PackChoice[]): Record<string, StrategyConfig> => Object.fromEntries(entries.map((e) => [e.id, packConfig(space, e)]));
   const basePack = fromPack ?? derivedPack.space;
-  const pack: StrategySpace = fromPack ?? { ...basePack, named: named(basePack, [...benchPacks, ...extraPacks]) };
+  const pack: StrategySpace = fromPack ?? { ...basePack, named: named(basePack, [...benchPacks, ...extraPacks].filter(inForms)) };
   const baseRoute = fromRoute ?? derivedRoute.space;
   const route: StrategySpace = fromRoute ?? { ...baseRoute, named: Object.fromEntries(ROUTERS.map((r) => [r, routeConfig(baseRoute, { router: r, options: {} })])) };
   return {

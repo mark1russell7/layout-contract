@@ -21,6 +21,12 @@ describe("the file data/stamps.json", () => {
     expect(stampFaults(stamps, latestJoint(joints)!)).toEqual([]);
   });
 
+  it("stamps the compare page with the runs of the home page, because its tags read the newest run", () => {
+    const of = (name: string) => stamps.pages.find((p) => p.page === name);
+    expect(of("compare.html")?.runs).toEqual(of("index.html")?.runs);
+    expect(of("compare.html")?.inFlight).toEqual(of("index.html")?.inFlight);
+  });
+
   it("names a run in flight on newer engines while the data is old", () => {
     expect(stamps.pages.find((p) => p.page === "index.html")?.inFlight?.engines["@mark1russell7/packing"]).toBeDefined();
   });
@@ -29,6 +35,12 @@ describe("the file data/stamps.json", () => {
 describe("stampFaults", () => {
   it("gives no fault for the same run and the same engines", () => {
     expect(stampFaults(stampOf("7", { "@mark1russell7/packing": "0.2.16" }), run)).toEqual([]);
+  });
+
+  it("gives a fault for each stamped page, not only for the home page", () => {
+    const home = stampOf("7", { "@mark1russell7/packing": "0.2.16" });
+    const old = stampOf("6", { "@mark1russell7/packing": "0.2.16" }).pages.map((p) => ({ ...p, page: "compare.html" }));
+    expect(stampFaults({ ...home, pages: [...home.pages, ...old] }, run)).toEqual(["The stamp of compare.html does not name the run 7, the newest joint run."]);
   });
 
   it("gives a fault for a stamp of an older run", () => {

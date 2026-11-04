@@ -111,7 +111,7 @@ byId("playground").innerHTML = `
     <div id="pg-recipes" class="recipes"></div>
     <details class="more"><summary>Or start from a pair of the benchmark</summary>
     <label class="field wide"><span class="field-name">Pair</span><select id="pg-named">${named.map((n) => `<option value="${esc(n)}">${esc(n)}</option>`).join("")}</select></label>
-    <p class="hint">The ${named.length} pairs: ${catalog.benchPacks.length + catalog.extraPacks.length} pack entries × ${catalog.routers.length} routers, and ${catalog.jointPairs.length} joint pairs with lanes. The router list of step 4 also has ${catalog.openRouters.length} open routers that the benchmark does not race.${catalog.packWaiting.length > 0 ? ` These routers and ${catalog.packWaiting.length} strategies have no bench result: they are waiting for the first cover run.` : ""}</p>
+    <p class="hint">The ${named.length} pairs: ${Object.keys(catalog.pack.named ?? {}).length} pack entries × ${catalog.routers.length} routers, and ${catalog.jointPairs.length} joint pairs with lanes. The router list of step 4 also has ${catalog.openRouters.length} open routers that the benchmark does not race.${catalog.packWaiting.length > 0 ? ` These routers and ${catalog.packWaiting.length} strategies have no bench result: they are waiting for the first cover run.` : ""}</p>
     </details>
   </div>
   <div class="two">
