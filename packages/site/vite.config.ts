@@ -1,9 +1,11 @@
 import { readdirSync, readFileSync } from "node:fs";
 import { createRequire } from "node:module";
 import { fileURLToPath } from "node:url";
+import { siteKpi } from "@mark1russell7/site-pages/vite";
 import { defineConfig, type Plugin } from "vite";
 import { buildCatalog } from "./src/build-catalog.ts";
-import { checkDataFile } from "./src/data.ts";
+import { checkDataFile, type JointData } from "./src/data.ts";
+import { siteKpiInput } from "./src/kpi.ts";
 import { withEngineLinks } from "./src/links.ts";
 
 // The Pages workflow sets SITE_BASE to "/layout-contract". A local build uses the root.
@@ -42,22 +44,43 @@ function hasCoverRun(): boolean {
 /** The id of the virtual module of the catalog of the joint pages. */
 const CATALOG = "virtual:joint-catalog";
 
+/** The committed list of the inputs of the corpus. */
+const MANIFEST = fileURLToPath(new URL("../joint/corpus/joint-v2/corpus.json", import.meta.url));
+
+/** This function gives the version of each engine in the build of the site. */
+function engineVersions(): { readonly packing: string; readonly highways: string; readonly contract: string } {
+  const require = createRequire(import.meta.url);
+  const version = (name: string): string => (require(`${name}/package.json`) as { version: string }).version;
+  return { packing: version("@mark1russell7/packing"), highways: version("@mark1russell7/highways"), contract: version("@mark1russell7/layout-contract") };
+}
+
+/** This function gives the data files of `data/joint/`. */
+function jointFiles(): JointData[] {
+  const dir = new URL("./data/joint/", import.meta.url);
+  return readdirSync(dir)
+    .filter((name) => name.endsWith(".json"))
+    .map((name) => JSON.parse(readFileSync(new URL(name, dir), "utf8")) as JointData);
+}
+
+/** This function gives the input of `kpi.json`. A build without a joint run has no data to report, so it stops. */
+function kpiInput(): NonNullable<ReturnType<typeof siteKpiInput>> {
+  const input = siteKpiInput(jointFiles(), buildCatalog(readFileSync(MANIFEST, "utf8"), engineVersions(), hasCoverRun()), engineVersions());
+  if (input === undefined) throw new Error("data/joint/ has no run, so kpi.json has no time of the data.");
+  return input;
+}
+
 /**
  * This plugin gives the catalog of the joint pages as the module `virtual:joint-catalog`.
  * It reads the registries of the engines and makes each input of `joint-v2` at build time. A new strategy or option shows up after the next build.
  */
 function jointCatalog(): Plugin {
-  const manifest = fileURLToPath(new URL("../joint/corpus/joint-v2/corpus.json", import.meta.url));
   return {
     name: "layout-contract-site:joint-catalog",
     resolveId: (id) => (id === CATALOG ? `\0${CATALOG}` : null),
     load(id) {
       if (id !== `\0${CATALOG}`) return null;
-      this.addWatchFile(manifest);
-      const require = createRequire(import.meta.url);
-      const version = (name: string): string => (require(`${name}/package.json`) as { version: string }).version;
-      const versions = { packing: version("@mark1russell7/packing"), highways: version("@mark1russell7/highways"), contract: version("@mark1russell7/layout-contract") };
-      return `export default ${JSON.stringify(buildCatalog(readFileSync(manifest, "utf8"), versions, hasCoverRun()))};`;
+      this.addWatchFile(MANIFEST);
+      return `export default ${JSON.stringify(buildCatalog(readFileSync(MANIFEST, "utf8"), engineVersions(), hasCoverRun()))};`;
     },
   };
 }
@@ -79,5 +102,5 @@ export default defineConfig({
   define: {
     __BUILD__: JSON.stringify({ sha: (env["GITHUB_SHA"] ?? "local").slice(0, 7), date: new Date().toISOString().slice(0, 10) }),
   },
-  plugins: [checkData(), jointCatalog(), engineSites()],
+  plugins: [checkData(), jointCatalog(), engineSites(), siteKpi(kpiInput, env)],
 });
