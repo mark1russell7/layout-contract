@@ -144,6 +144,14 @@ Each engine maps its named strategies into `named`. Examples are `rows`, `maxrec
 
 The output of a named config is equal to the output of the old named strategy. The engine checks this equality with `outputHash` on its corpus.
 
+### The joint pack entries in `packSpace`
+
+The 32 pack entries of the joint cover are points of `packSpace` of `packing` 0.6.1. `configOfStrategy` gives the point of each entry. The test `pack-points.test.ts` checks each point with `checkConfig`, and compares the `outputHash` of `packConfig` with the hash of the entry on 17 inputs of `joint-v1`.
+
+- All 493 comparisons of a hash are equal.
+- In the other 51 of the 544 cases, the strategy does not support the input. The point and the entry then both throw `UnsupportedCell`.
+- Each entry has at least 7 comparisons of a hash.
+
 ## An example space
 
 The example has a packer and a router. The stage names are examples. Each engine gives its own names.
@@ -215,3 +223,20 @@ The prediction also finds two gaps in the schema. The engines examine them in pa
 
 1. A meta option takes each config of its space as a member. The portfolios of both engines take members from a fixed table. A field `pool` of the member rule can hold the names of the table. Version 0.2.14 adds `pool` as a list of member lists (L39).
 2. Some options take a function, for example the key of a grouping. The space gives each named function as one value of an `enum`.
+
+## The result for the engine spaces
+
+These results come from `packing` 0.6.1 and `highways` 0.13.0. Both engines added strategies after the prediction of 2026-10-28, so a count can be larger for that reason. 4 of the 8 claims are correct. The mean Brier score is 0.251, which is the score of a coin toss.
+
+| Claim | Result | Correct |
+|---|---|---|
+| P1 | The base count is 3,798, more than 3,000. | no |
+| P2 | The meta count is `null`, so it is more than 1e18. | no |
+| P3 | The base count is 3.17e10. | yes |
+| P4 | The joint base count is 1.20e14. | yes |
+| P5 | Of the 30 entries of the cover with a name in `named`, 0 share a `configId`. Of the 69 names, 10 pairs share one, more than 3. | no |
+| P6 | Of the 76 named routers, 0 share a `configId`. | yes |
+| P7 | `configOfStrategy` gives a point for each of the 32 entries of the cover. | yes |
+| P8 | `ROUTE_SPACE_MISFITS` is empty, so 0 named routers do not fit. | no |
+
+The routing stage of `routeSpace` has 67 options, and `routeSpace` has 7 stages, not 4. Thus `select`, `consensus` and `hub-arcs` fit as options of a stage.

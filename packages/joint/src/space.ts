@@ -1,5 +1,5 @@
 // The joint strategy space of the sweep (roadmap item L35, `docs/SWEEP.md`). It holds the pack entries, the routers and the lane option of the bench as data.
-// The engines do not publish their spaces yet. When they do, `jointSpace(packSpace, routeSpace)` takes them, and a new `JointAdapter` runs their configs.
+// The engines publish `packSpace` and `routeSpace`, but the sweep does not read them at this time. `docs/SWEEP.md` gives the steps of the switch.
 import {
   canonicalConfig,
   configId,

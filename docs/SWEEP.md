@@ -69,7 +69,7 @@ The counts of version `bench-3`:
 
 ### The switch to the engine spaces
 
-The parts are local copies of the bench options. Later, the joint space becomes `productSpace(packSpace, routeSpace)` with the lane part.
+The parts are local copies of the bench options. Both engines publish their spaces at this time, but the sweep does not read them. Later, the joint space becomes `productSpace(packSpace, routeSpace)` with the lane part.
 
 1. Replace `benchPackSpace()` and `benchRouteSpace()` with the spaces of `packing` and `highways`.
 2. Write a `JointAdapter` that gives the pack entry and the router of a config of these spaces.
