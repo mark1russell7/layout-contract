@@ -1,6 +1,7 @@
 // The memory gate of L81: the probe inputs cover each family of the corpus, and the gate fails on each kind of bad probe.
 import { describe, expect, it } from "vitest";
 import { jointCorpus, SET_V2 } from "./corpus.ts";
+import { straightCrossings } from "./joint-measures.ts";
 import {
   expectedProbes,
   familyOf,
@@ -12,6 +13,9 @@ import {
   MEMORY_LIMITS,
   memoryGate,
   type ProbeResult,
+  STEP_FUNCTION,
+  STEP_LINE_MB,
+  stepCount,
 } from "./memory-gate.ts";
 import { plannedCost } from "./plan.ts";
 import { PACK_ENTRIES, ROUTERS } from "./runner.ts";
@@ -92,6 +96,32 @@ describe("the gate", () => {
     const gate = memoryGate(each(["a"], ["bench-6144", "cap-2048"]), [ok("a", 100)]);
     expect(gate.rows.map((r) => `${r.mode} ${r.reason}`).sort()).toEqual(["bench-6144 ", "cap-2048 no probe"]);
     expect(gateMarkdown(gate)).toContain("### Memory gate: fail");
+  });
+});
+
+describe("the steps of the allocation", () => {
+  const site = (mb: number, name = STEP_FUNCTION) => ({ at: `${name} file:///x/joint-measures.ts:121`, mb });
+
+  it("counts the pairs where the function allocates the line or more", () => {
+    const pairs = [{ top: [site(27.8)] }, { top: [site(STEP_LINE_MB)] }, { top: [site(1076.3)] }, { top: [] }];
+    expect(stepCount(pairs)).toBe(2);
+  });
+
+  it("does not count another function", () => {
+    expect(stepCount([{ top: [site(5000, `${STEP_FUNCTION}Other`), site(5000, "hypot")] }])).toBe(0);
+  });
+
+  it("follows the name of the function", () => {
+    expect(straightCrossings.name).toBe(STEP_FUNCTION);
+  });
+
+  it("shows the count next to the allocation, and an empty cell without a count", () => {
+    const expected = [{ input: "a", mode: "measure-6144" }, { input: "b", mode: "bench-6144" }];
+    const results = [{ input: "a", mode: "measure-6144", status: 0, peakRssMb: 100, allocMb: 7, steps: 2 }, { input: "b", mode: "bench-6144", status: 0, peakRssMb: 90 }];
+    const text = gateMarkdown(memoryGate(expected, results));
+    expect(text).toContain("| Allocation (MB) | Steps |");
+    expect(text).toContain("| a | measure-6144 | 0 | 100 | 7 | 2 |");
+    expect(text).toContain("| b | bench-6144 | 0 | 90 |  |  |");
   });
 });
 

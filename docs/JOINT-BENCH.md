@@ -1755,6 +1755,20 @@ No engine changed after `21f9dc4`. The node version is the same. Each of the 300
 - The reason for a step inside a call is not known at this time. The result bytes are equal, so the step is not a change of the layouts.
 - Without the steps, the spread of the 6 probes is 2676 MB (s1), 2390 MB (s2) and 4484 MB (s3). Thus a filter of the steps does not give a much smaller limit, and the gate keeps the full allocation.
 - The largest value of s2 without steps is 3308922 MB. With 4 steps of 1134 MB, it is 3313458 MB. This is under the limit of s2.
+- `gate.md` shows the count of the steps of each probe next to its allocation. `stepCount` of `src/memory-gate.ts` counts the pairs where `straightCrossings` allocates 500 MB or more. In the 18 probes of the two runs, a plain call allocates at most 27.8 MB. The 21 steps allocate 1076.3 to 1140 MB.
+
+These limits do not catch each growth. The table gives the real growth of the allocation of all pairs, against the 6 probes.
+
+| Seed | A growth that no seen value fails | A growth that each seen value fails |
+|---|---|---|
+| s1 | up to 3575 MB (0.14%) | more than 7150 MB (0.28%) |
+| s2 | up to 3524 MB (0.11%) | more than 7048 MB (0.21%) |
+| s3 | up to 7590 MB (0.21%) | more than 15180 MB (0.43%) |
+
+- The first column is the margin, as a share of the worst value. The second column is the limit minus the lowest value, as a share of the lowest value.
+- A growth between the two columns fails on some nights only. The result depends on the count of the steps and on the noise.
+- The allocation alone is blind to 4 steps. They are 4560 MB: 0.18% of s1, 0.14% of s2 and 0.13% of s3. The lowest value of each seed without steps stays under its limit with 4 steps. Thus read the count of the steps before you read a change of this size as a growth.
+- These limits move again only with a measured cause. If a probe goes over a limit, do not re-fit, also when the probe has more than 4 steps. First measure why a call of `straightCrossings` steps, with one small job on that function alone. The first test is the tier of V8. This is a guess at this time.
 
 - The limits are in `MEMORY_LIMITS` of `src/memory-gate.ts`. A test examines each limit against the values of the table of the re-fit.
 - A probe fails when a value is more than its limit, or when it has no value.

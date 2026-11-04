@@ -38,6 +38,25 @@ export const MEMORY_LIMITS: Readonly<Record<string, MemoryLimit>> = {
   "joint-v2/rect-grid.freeHeight.holes.none.bimodal.n1000.e-dense.hubs.none.free.sp-gap/s3": { allocMb: 3574452, liveMaxMb: 503 },
 };
 
+/** The function of the joint measures that gives the steps of the allocation (`docs/JOINT-BENCH.md`, "The limits of the memory gate"). */
+export const STEP_FUNCTION = "straightCrossings";
+
+/**
+ * The line in MB between a plain call of `STEP_FUNCTION` and a step.
+ * In the 18 probes of the runs 41654875543 and 41769223049, a plain call allocates at most 27.8 MB, and a step allocates at least 1076.3 MB.
+ */
+export const STEP_LINE_MB = 500;
+
+/** One line of `alloc.jsonl`: the functions that allocated the most in one pair. */
+export interface PairAllocation {
+  readonly top: readonly { readonly at: string; readonly mb: number }[];
+}
+
+/** This function gives the count of the pairs of a probe where `STEP_FUNCTION` allocates `STEP_LINE_MB` or more. */
+export function stepCount(pairs: readonly PairAllocation[]): number {
+  return pairs.filter((pair) => pair.top.some((site) => site.at.startsWith(`${STEP_FUNCTION} `) && site.mb >= STEP_LINE_MB)).length;
+}
+
 /** One job of the gate: a group of inputs with commas, one heap mode, and the number of the repeat. */
 export interface GateJob {
   readonly input: string;
@@ -95,6 +114,8 @@ export interface ProbeResult {
   readonly peakRssMb: number | undefined;
   /** The sampled allocation from `summary.jsonl`, in the modes that sample it. */
   readonly allocMb?: number | undefined;
+  /** The count of the steps from `alloc.jsonl` (`stepCount`), in the modes that sample the allocation. */
+  readonly steps?: number | undefined;
   /** The largest retained heap from `summary.jsonl`, in the modes that force a GC. */
   readonly liveMaxMb?: number | undefined;
 }
@@ -107,6 +128,7 @@ export interface GateRow {
   readonly status: number | undefined;
   readonly peakRssMb: number | undefined;
   readonly allocMb: number | undefined;
+  readonly steps: number | undefined;
   readonly liveMaxMb: number | undefined;
   readonly reason: string;
 }
@@ -147,7 +169,7 @@ export function memoryGate(
     for (const r of probes) {
       const reason =
         r === undefined ? "no probe" : r.status === 134 ? "OOM (status 134)" : r.status !== 0 ? `status ${r.status}` : r.peakRssMb === undefined ? "no peak" : r.peakRssMb >= limitMb ? `peak ${r.peakRssMb} MB, limit ${limitMb} MB` : limitReason(r, limit);
-      rows.push({ family: familyOf(input), input, mode, status: r?.status, peakRssMb: r?.peakRssMb, allocMb: r?.allocMb, liveMaxMb: r?.liveMaxMb, reason });
+      rows.push({ family: familyOf(input), input, mode, status: r?.status, peakRssMb: r?.peakRssMb, allocMb: r?.allocMb, steps: r?.steps, liveMaxMb: r?.liveMaxMb, reason });
     }
   }
   rows.sort((a, b) => (b.peakRssMb ?? Infinity) - (a.peakRssMb ?? Infinity));
@@ -174,8 +196,8 @@ export function gateMarkdown(gate: GateResult): string {
     "",
     `The gate examined ${gate.rows.length} probes, with the limit ${gate.limitMb} MB. ${failed.length} failed.`,
     "",
-    "| Input | Mode | Status | Peak RSS (MB) | Allocation (MB) | Largest live heap (MB) | Result |",
-    "| --- | --- | --- | --- | --- | --- | --- |",
-    ...gate.rows.map((r) => `| ${r.input} | ${r.mode} | ${r.status ?? ""} | ${r.peakRssMb ?? ""} | ${r.allocMb ?? ""} | ${r.liveMaxMb ?? ""} | ${r.reason === "" ? "pass" : r.reason} |`),
+    "| Input | Mode | Status | Peak RSS (MB) | Allocation (MB) | Steps | Largest live heap (MB) | Result |",
+    "| --- | --- | --- | --- | --- | --- | --- | --- |",
+    ...gate.rows.map((r) => `| ${r.input} | ${r.mode} | ${r.status ?? ""} | ${r.peakRssMb ?? ""} | ${r.allocMb ?? ""} | ${r.steps ?? ""} | ${r.liveMaxMb ?? ""} | ${r.reason === "" ? "pass" : r.reason} |`),
   ].join("\n") + "\n";
 }
