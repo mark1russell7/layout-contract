@@ -95,7 +95,7 @@ jobs:
           if [ "$skip" = false ] && { [ "$EVENT" = schedule ] || [ "$EVENT" = workflow_run ]; }; then
             last=""
             for id in $(gh run list -R "$REPO" --workflow memory-probe.yml --branch main --status completed --limit 20 --json databaseId,event --jq '.[] | select(.event == "schedule" or .event == "workflow_run") | .databaseId'); do
-              last="$(gh run view "$id" -R "$REPO" --json jobs,headSha --jq 'if ([.jobs[] | select(.name == "gate" and (.conclusion == "success" or .conclusion == "failure"))] | length) > 0 then .headSha else "" end')"
+              last="$(gh run view "$id" -R "$REPO" --json jobs,headSha --jq 'if ([.jobs[] | select(.name == "gate" and (.conclusion == "success" or .conclusion == "failure"))] | length) > 0 then .headSha else "" end')" || { echo "::warning::The read of the run $id failed, so this plan skips that run."; continue; }
               if [ -n "$last" ]; then break; fi
             done
             if [ "$last" = "$SHA" ]; then skip=true; echo "The last nightly gate examined $SHA. This run stops." | tee -a "$GITHUB_STEP_SUMMARY"; fi
