@@ -4,7 +4,7 @@
 # and private members. The command `api-report check` compares this file with the built .d.ts files.
 # To accept a change of the API, start the build, then `api-report update`, and review the diff.
 
-## . (build/index.d.ts): 303 names
+## . (build/index.d.ts): 313 names
 
 AnyOption: build/index.d.ts#AnyOption
 BALANCE_MEASURE_SUFFIXES: build/index.d.ts#BALANCE_MEASURE_SUFFIXES
@@ -19,24 +19,24 @@ CatalogEntry: build/index.d.ts#CatalogEntry
 CatalogLimit: build/index.d.ts#CatalogLimit
 CatalogOptionsOptions: build/index.d.ts#CatalogOptionsOptions
 CellsOptions: build/index.d.ts#CellsOptions
-ClaimBreak: build/measures-C-Tuv8GU.d.ts#ClaimBreak
+ClaimBreak: build/measures-KWg_was6.d.ts#ClaimBreak
 ComposeOptions: build/index.d.ts#ComposeOptions
 ContainerTest: build/index.d.ts#ContainerTest
 CorpusDimension: build/index.d.ts#CorpusDimension
-CorpusEntry: build/measures-C-Tuv8GU.d.ts#CorpusEntry
+CorpusEntry: build/measures-KWg_was6.d.ts#CorpusEntry
 CorpusFamily: build/index.d.ts#CorpusFamily
-CorpusSplit: build/measures-C-Tuv8GU.d.ts#CorpusSplit
+CorpusSplit: build/measures-KWg_was6.d.ts#CorpusSplit
 CorpusStep: build/index.d.ts#CorpusStep
 CrossEngine: build/index.d.ts#CrossEngine
 DEFAULT_FAMILY_BY: build/index.d.ts#DEFAULT_FAMILY_BY
 DEFAULT_RNG: build/index.d.ts#DEFAULT_RNG
-DEFAULT_SHAPES: build/measures-C-Tuv8GU.d.ts#DEFAULT_SHAPES
+DEFAULT_SHAPES: build/measures-KWg_was6.d.ts#DEFAULT_SHAPES
 DEFAULT_TOLERANCE: build/index.d.ts#DEFAULT_TOLERANCE
-DeclaredClaim: build/measures-C-Tuv8GU.d.ts#DeclaredClaim
+DeclaredClaim: build/measures-KWg_was6.d.ts#DeclaredClaim
 DeclaredStrategy: build/index.d.ts#DeclaredStrategy
-Declares: build/measures-C-Tuv8GU.d.ts#Declares
+Declares: build/measures-KWg_was6.d.ts#Declares
 DimensionValues: build/index.d.ts#DimensionValues
-Direction: build/measures-C-Tuv8GU.d.ts#Direction
+Direction: build/measures-KWg_was6.d.ts#Direction
 EDGES_STEP: build/index.d.ts#EDGES_STEP
 EDGE_DENSITY: build/index.d.ts#EDGE_DENSITY
 EDGE_KEY_STEP: build/index.d.ts#EDGE_KEY_STEP
@@ -50,30 +50,31 @@ EdgeStepParams: build/index.d.ts#EdgeStepParams
 EnumOption: build/index.d.ts#EnumOption
 EnumerateOptions: build/index.d.ts#EnumerateOptions
 ExerciseEvidence: build/index.d.ts#ExerciseEvidence
-FAMILY_ANY_KIND: build/measures-C-Tuv8GU.d.ts#FAMILY_ANY_KIND
-FamilyBy: build/measures-C-Tuv8GU.d.ts#FamilyBy
-FamilyCell: build/measures-C-Tuv8GU.d.ts#FamilyCell
+FAMILY_ANY_KIND: build/measures-KWg_was6.d.ts#FAMILY_ANY_KIND
+FamilyBy: build/measures-KWg_was6.d.ts#FamilyBy
+FamilyCell: build/measures-KWg_was6.d.ts#FamilyCell
 FamilyRegistry: build/index.d.ts#FamilyRegistry
 FamilyVerdict: build/index.d.ts#FamilyVerdict
 GenerateContext: build/index.d.ts#GenerateContext
 GenerateOptions: build/index.d.ts#GenerateOptions
 GridOptions: build/index.d.ts#GridOptions
+HARD_RULE_VERSION: build/index.d.ts#HARD_RULE_VERSION
 HashOptions: build/index.d.ts#HashOptions
 INVALIDATED_FIELD: build/index.d.ts#INVALIDATED_FIELD
-Item: build/measures-C-Tuv8GU.d.ts#Item
-JOINT_MEASURES: build/measures-C-Tuv8GU.d.ts#JOINT_MEASURES
-JOINT_MOVED_MIN: build/measures-C-Tuv8GU.d.ts#JOINT_MOVED_MIN
-JointMeasureId: build/measures-C-Tuv8GU.d.ts#JointMeasureId
-LayoutBox: build/measures-C-Tuv8GU.d.ts#LayoutBox
-LayoutCell: build/measures-C-Tuv8GU.d.ts#LayoutCell
-LayoutContainer: build/measures-C-Tuv8GU.d.ts#LayoutContainer
-LayoutEdge: build/measures-C-Tuv8GU.d.ts#LayoutEdge
-LayoutGenerator: build/measures-C-Tuv8GU.d.ts#LayoutGenerator
-LayoutInput: build/measures-C-Tuv8GU.d.ts#LayoutInput
+Item: build/measures-KWg_was6.d.ts#Item
+JOINT_MEASURES: build/measures-KWg_was6.d.ts#JOINT_MEASURES
+JOINT_MOVED_MIN: build/measures-KWg_was6.d.ts#JOINT_MOVED_MIN
+JointMeasureId: build/measures-KWg_was6.d.ts#JointMeasureId
+LayoutBox: build/measures-KWg_was6.d.ts#LayoutBox
+LayoutCell: build/measures-KWg_was6.d.ts#LayoutCell
+LayoutContainer: build/measures-KWg_was6.d.ts#LayoutContainer
+LayoutEdge: build/measures-KWg_was6.d.ts#LayoutEdge
+LayoutGenerator: build/measures-KWg_was6.d.ts#LayoutGenerator
+LayoutInput: build/measures-KWg_was6.d.ts#LayoutInput
 LayoutRecord: build/index.d.ts#LayoutRecord
 ListItem: build/index.d.ts#ListItem
-Margin: build/measures-C-Tuv8GU.d.ts#Margin
-MeasureSpec: build/measures-C-Tuv8GU.d.ts#MeasureSpec
+Margin: build/measures-KWg_was6.d.ts#Margin
+MeasureSpec: build/measures-KWg_was6.d.ts#MeasureSpec
 Member: build/index.d.ts#Member
 MemberRule: build/index.d.ts#MemberRule
 MemberStatus: build/index.d.ts#MemberStatus
@@ -82,7 +83,7 @@ NODE_POSITIONS_DIMENSION: build/index.d.ts#NODE_POSITIONS_DIMENSION
 NoDefault: build/index.d.ts#NoDefault
 NoDefaultReason: build/index.d.ts#NoDefaultReason
 NumberOption: build/index.d.ts#NumberOption
-Obstacle: build/measures-C-Tuv8GU.d.ts#Obstacle
+Obstacle: build/measures-KWg_was6.d.ts#Obstacle
 OptionDeclaration: build/index.d.ts#OptionDeclaration
 OptionIssue: build/index.d.ts#OptionIssue
 OptionRef: build/index.d.ts#OptionRef
@@ -94,20 +95,21 @@ OutputGroup: build/index.d.ts#OutputGroup
 OwnerDimensionSpec: build/index.d.ts#OwnerDimensionSpec
 PACK_HARD_RULES: build/index.d.ts#PACK_HARD_RULES
 PackHard: build/index.d.ts#PackHard
-PackInput: build/measures-C-Tuv8GU.d.ts#PackInput
-PackInputOptions: build/measures-C-Tuv8GU.d.ts#PackInputOptions
-PackLink: build/measures-C-Tuv8GU.d.ts#PackLink
+PackInput: build/measures-KWg_was6.d.ts#PackInput
+PackInputOptions: build/measures-KWg_was6.d.ts#PackInputOptions
+PackLink: build/measures-KWg_was6.d.ts#PackLink
 PackOutput: build/index.d.ts#PackOutput
-PairGap: build/measures-C-Tuv8GU.d.ts#PairGap
+PairGap: build/measures-KWg_was6.d.ts#PairGap
 ParamKind: build/index.d.ts#ParamKind
 ParamRoute: build/index.d.ts#ParamRoute
 ParamValue: build/index.d.ts#ParamValue
 ParamWhen: build/index.d.ts#ParamWhen
 PickSpec: build/index.d.ts#PickSpec
 PlacedBox: build/index.d.ts#PlacedBox
+PlacedCircle: build/index.d.ts#PlacedCircle
 Placement: build/index.d.ts#Placement
-Point: build/measures-C-Tuv8GU.d.ts#Point
-Port: build/measures-C-Tuv8GU.d.ts#Port
+Point: build/measures-KWg_was6.d.ts#Point
+Port: build/measures-KWg_was6.d.ts#Port
 Portfolio: build/index.d.ts#Portfolio
 PortfolioKey: build/index.d.ts#PortfolioKey
 PortfolioLevel: build/index.d.ts#PortfolioLevel
@@ -118,42 +120,44 @@ ProcrustesOptions: build/index.d.ts#ProcrustesOptions
 RECORD_EPS: build/index.d.ts#RECORD_EPS
 RECORD_SCALE: build/index.d.ts#RECORD_SCALE
 RECT_SCATTERED: build/index.d.ts#RECT_SCATTERED
-Rect: build/measures-C-Tuv8GU.d.ts#Rect
-Region: build/measures-C-Tuv8GU.d.ts#Region
+Rect: build/measures-KWg_was6.d.ts#Rect
+Region: build/measures-KWg_was6.d.ts#Region
 RegistryCell: build/index.d.ts#RegistryCell
 RegistryEntry: build/index.d.ts#RegistryEntry
 RngFactory: build/index.d.ts#RngFactory
-RuleLevel: build/measures-C-Tuv8GU.d.ts#RuleLevel
+RuleLevel: build/measures-KWg_was6.d.ts#RuleLevel
 RunEnv: build/index.d.ts#RunEnv
 RunFacts: build/index.d.ts#RunFacts
-SHAPE_KINDS: build/measures-C-Tuv8GU.d.ts#SHAPE_KINDS
-SHAPE_KIND_IDS: build/measures-C-Tuv8GU.d.ts#SHAPE_KIND_IDS
-SIDES: build/measures-C-Tuv8GU.d.ts#SIDES
-SPLIT_SCHEMA: build/measures-C-Tuv8GU.d.ts#SPLIT_SCHEMA
+SHAPE_KINDS: build/measures-KWg_was6.d.ts#SHAPE_KINDS
+SHAPE_KIND_IDS: build/measures-KWg_was6.d.ts#SHAPE_KIND_IDS
+SIDES: build/measures-KWg_was6.d.ts#SIDES
+SPLIT_SCHEMA: build/measures-KWg_was6.d.ts#SPLIT_SCHEMA
 STRATEGY_CATALOG_SCHEMA: build/index.d.ts#STRATEGY_CATALOG_SCHEMA
 STRATEGY_SPACE_SCHEMA: build/index.d.ts#STRATEGY_SPACE_SCHEMA
 SampleOptions: build/index.d.ts#SampleOptions
 SelectCandidate: build/index.d.ts#SelectCandidate
 SelectLevel: build/index.d.ts#SelectLevel
 Selection: build/index.d.ts#Selection
-ShapeBound: build/measures-C-Tuv8GU.d.ts#ShapeBound
-ShapeCheck: build/measures-C-Tuv8GU.d.ts#ShapeCheck
+ShapeBound: build/measures-KWg_was6.d.ts#ShapeBound
+ShapeCheck: build/measures-KWg_was6.d.ts#ShapeCheck
 ShapeFilter: build/index.d.ts#ShapeFilter
-ShapeGeometry: build/measures-C-Tuv8GU.d.ts#ShapeGeometry
-ShapeKind: build/measures-C-Tuv8GU.d.ts#ShapeKind
-ShapeKindSpec: build/measures-C-Tuv8GU.d.ts#ShapeKindSpec
-ShapeLevel: build/measures-C-Tuv8GU.d.ts#ShapeLevel
-ShapeSupport: build/measures-C-Tuv8GU.d.ts#ShapeSupport
-Side: build/measures-C-Tuv8GU.d.ts#Side
-Sides: build/measures-C-Tuv8GU.d.ts#Sides
-SizedRect: build/measures-C-Tuv8GU.d.ts#SizedRect
+ShapeGeometry: build/measures-KWg_was6.d.ts#ShapeGeometry
+ShapeInput: build/measures-KWg_was6.d.ts#ShapeInput
+ShapeKind: build/measures-KWg_was6.d.ts#ShapeKind
+ShapeKindSpec: build/measures-KWg_was6.d.ts#ShapeKindSpec
+ShapeLevel: build/measures-KWg_was6.d.ts#ShapeLevel
+ShapeLimit: build/measures-KWg_was6.d.ts#ShapeLimit
+ShapeSupport: build/measures-KWg_was6.d.ts#ShapeSupport
+Side: build/measures-KWg_was6.d.ts#Side
+Sides: build/measures-KWg_was6.d.ts#Sides
+SizedRect: build/measures-KWg_was6.d.ts#SizedRect
 SpaceConstraint: build/index.d.ts#SpaceConstraint
 SpaceParam: build/index.d.ts#SpaceParam
 SpaceSize: build/index.d.ts#SpaceSize
 SpaceSizeOptions: build/index.d.ts#SpaceSizeOptions
 SpaceStage: build/index.d.ts#SpaceStage
-SplitCorpus: build/measures-C-Tuv8GU.d.ts#SplitCorpus
-SplitFold: build/measures-C-Tuv8GU.d.ts#SplitFold
+SplitCorpus: build/measures-KWg_was6.d.ts#SplitCorpus
+SplitFold: build/measures-KWg_was6.d.ts#SplitFold
 Stage: build/index.d.ts#Stage
 StageChoice: build/index.d.ts#StageChoice
 StageOption: build/index.d.ts#StageOption
@@ -178,7 +182,7 @@ VERDICT_EXACT_MAX: build/index.d.ts#VERDICT_EXACT_MAX
 VERDICT_RUNS: build/index.d.ts#VERDICT_RUNS
 VERDICT_SEED: build/index.d.ts#VERDICT_SEED
 ValueOption: build/index.d.ts#ValueOption
-Verdict: build/measures-C-Tuv8GU.d.ts#Verdict
+Verdict: build/measures-KWg_was6.d.ts#Verdict
 VerdictBreadth: build/index.d.ts#VerdictBreadth
 VerdictInterval: build/index.d.ts#VerdictInterval
 VerdictLabel: build/index.d.ts#VerdictLabel
@@ -193,10 +197,10 @@ applyPack: build/index.d.ts#applyPack
 balanceMeasureSpecs: build/index.d.ts#balanceMeasureSpecs
 balanceMeasures: build/index.d.ts#balanceMeasures
 balanceOf: build/index.d.ts#balanceOf
-boundsOf: build/measures-C-Tuv8GU.d.ts#boundsOf
-boxArea: build/measures-C-Tuv8GU.d.ts#boxArea
+boundsOf: build/measures-KWg_was6.d.ts#boundsOf
+boxArea: build/measures-KWg_was6.d.ts#boxArea
 canonicalConfig: build/index.d.ts#canonicalConfig
-canonicalInput: build/measures-C-Tuv8GU.d.ts#canonicalInput
+canonicalInput: build/measures-KWg_was6.d.ts#canonicalInput
 canonicalJson: build/index.d.ts#canonicalJson
 catalogChoices: build/index.d.ts#catalogChoices
 catalogDefaults: build/index.d.ts#catalogDefaults
@@ -204,27 +208,29 @@ catalogKey: build/index.d.ts#catalogKey
 catalogOptions: build/index.d.ts#catalogOptions
 checkCatalog: build/index.d.ts#checkCatalog
 checkConfig: build/index.d.ts#checkConfig
-checkDeclared: build/measures-C-Tuv8GU.d.ts#checkDeclared
+checkDeclared: build/measures-KWg_was6.d.ts#checkDeclared
 checkInput: build/index.d.ts#checkInput
 checkLayoutRecord: build/index.d.ts#checkLayoutRecord
 checkOptions: build/index.d.ts#checkOptions
 checkSchema: build/index.d.ts#checkSchema
-checkShapes: build/measures-C-Tuv8GU.d.ts#checkShapes
+checkShapes: build/measures-KWg_was6.d.ts#checkShapes
 checkSpace: build/index.d.ts#checkSpace
-checkSplit: build/measures-C-Tuv8GU.d.ts#checkSplit
+checkSplit: build/measures-KWg_was6.d.ts#checkSplit
+circleOverlaps: build/index.d.ts#circleOverlaps
+circlesOutside: build/index.d.ts#circlesOutside
 clampOptions: build/index.d.ts#clampOptions
-compareMeasure: build/measures-C-Tuv8GU.d.ts#compareMeasure
+compareMeasure: build/measures-KWg_was6.d.ts#compareMeasure
 composeFamily: build/index.d.ts#composeFamily
 configId: build/index.d.ts#configId
-corpusHashOf: build/measures-C-Tuv8GU.d.ts#corpusHashOf
+corpusHashOf: build/measures-KWg_was6.d.ts#corpusHashOf
 countObstacleHits: build/index.d.ts#countObstacleHits
 countOutside: build/index.d.ts#countOutside
 countOverlaps: build/index.d.ts#countOverlaps
 countPortsOffBorder: build/index.d.ts#countPortsOffBorder
 createFamilyRegistry: build/index.d.ts#createFamilyRegistry
 declarationIssues: build/index.d.ts#declarationIssues
-declaredClaimOf: build/measures-C-Tuv8GU.d.ts#declaredClaimOf
-declaredCounts: build/measures-C-Tuv8GU.d.ts#declaredCounts
+declaredClaimOf: build/measures-KWg_was6.d.ts#declaredClaimOf
+declaredCounts: build/measures-KWg_was6.d.ts#declaredCounts
 decodeOptionValue: build/index.d.ts#decodeOptionValue
 dimensionAt: build/index.d.ts#dimensionAt
 dimensionSupports: build/index.d.ts#dimensionSupports
@@ -236,27 +242,29 @@ encodeOptionValue: build/index.d.ts#encodeOptionValue
 enumerateSpace: build/index.d.ts#enumerateSpace
 exercised: build/index.d.ts#exercised
 familyKind: build/index.d.ts#familyKind
-familyOf: build/measures-C-Tuv8GU.d.ts#familyOf
+familyOf: build/measures-KWg_was6.d.ts#familyOf
 fnv1a32: build/index.d.ts#fnv1a32
-grow: build/measures-C-Tuv8GU.d.ts#grow
-isShapeKind: build/measures-C-Tuv8GU.d.ts#isShapeKind
-itemShapeOf: build/measures-C-Tuv8GU.d.ts#itemShapeOf
+grow: build/measures-KWg_was6.d.ts#grow
+hardRuleOf: build/index.d.ts#hardRuleOf
+inputShapeLevel: build/measures-KWg_was6.d.ts#inputShapeLevel
+isShapeKind: build/measures-KWg_was6.d.ts#isShapeKind
+itemShapeOf: build/measures-KWg_was6.d.ts#itemShapeOf
 joinConfigs: build/index.d.ts#joinConfigs
-leaveOneSeedOut: build/measures-C-Tuv8GU.d.ts#leaveOneSeedOut
+leaveOneSeedOut: build/measures-KWg_was6.d.ts#leaveOneSeedOut
 levelsOf: build/index.d.ts#levelsOf
 listOptions: build/index.d.ts#listOptions
-marginSides: build/measures-C-Tuv8GU.d.ts#marginSides
-minEffectOf: build/measures-C-Tuv8GU.d.ts#minEffectOf
+marginSides: build/measures-KWg_was6.d.ts#marginSides
+minEffectOf: build/measures-KWg_was6.d.ts#minEffectOf
 mulberry32: build/index.d.ts#mulberry32
 nearestGaps: build/index.d.ts#nearestGaps
 optionDefaults: build/index.d.ts#optionDefaults
 optionIssue: build/index.d.ts#optionIssue
 outputGroups: build/index.d.ts#outputGroups
 outputHash: build/index.d.ts#outputHash
-overlapOf: build/measures-C-Tuv8GU.d.ts#overlapOf
+overlapOf: build/measures-KWg_was6.d.ts#overlapOf
 ownerDimension: build/index.d.ts#ownerDimension
 packHard: build/index.d.ts#packHard
-packLinks: build/measures-C-Tuv8GU.d.ts#packLinks
+packLinks: build/measures-KWg_was6.d.ts#packLinks
 paramActive: build/index.d.ts#paramActive
 paramLevels: build/index.d.ts#paramLevels
 paramProblem: build/index.d.ts#paramProblem
@@ -265,42 +273,44 @@ parseLayoutRecord: build/index.d.ts#parseLayoutRecord
 parseStrategyCatalog: build/index.d.ts#parseStrategyCatalog
 perChange: build/index.d.ts#perChange
 pickMoves: build/index.d.ts#pickMoves
+placedCircle: build/index.d.ts#placedCircle
 placedRect: build/index.d.ts#placedRect
-pointSegmentDistance: build/measures-C-Tuv8GU.d.ts#pointSegmentDistance
-portPoint: build/measures-C-Tuv8GU.d.ts#portPoint
+pointSegmentDistance: build/measures-KWg_was6.d.ts#pointSegmentDistance
+portPoint: build/measures-KWg_was6.d.ts#portPoint
 portfolio: build/index.d.ts#portfolio
 procrustesOf: build/index.d.ts#procrustesOf
 productSpace: build/index.d.ts#productSpace
 randomInt: build/index.d.ts#randomInt
 rectInRegion: build/index.d.ts#rectInRegion
-regionArea: build/measures-C-Tuv8GU.d.ts#regionArea
+regionArea: build/measures-KWg_was6.d.ts#regionArea
 regionHitsRect: build/index.d.ts#regionHitsRect
 resolveDimensions: build/index.d.ts#resolveDimensions
-ruleLevel: build/measures-C-Tuv8GU.d.ts#ruleLevel
-segmentsCross: build/measures-C-Tuv8GU.d.ts#segmentsCross
+ruleLevel: build/measures-KWg_was6.d.ts#ruleLevel
+segmentsCross: build/measures-KWg_was6.d.ts#segmentsCross
 selectBest: build/index.d.ts#selectBest
 sha256Hex: build/index.d.ts#sha256Hex
-shapeKindOf: build/measures-C-Tuv8GU.d.ts#shapeKindOf
-shapeKindProblem: build/measures-C-Tuv8GU.d.ts#shapeKindProblem
-shapeKindsOf: build/measures-C-Tuv8GU.d.ts#shapeKindsOf
-shapeLevel: build/measures-C-Tuv8GU.d.ts#shapeLevel
-shapeSupportProblems: build/measures-C-Tuv8GU.d.ts#shapeSupportProblems
-shapesOf: build/measures-C-Tuv8GU.d.ts#shapesOf
+shapeKindOf: build/measures-KWg_was6.d.ts#shapeKindOf
+shapeKindProblem: build/measures-KWg_was6.d.ts#shapeKindProblem
+shapeKindsOf: build/measures-KWg_was6.d.ts#shapeKindsOf
+shapeLevel: build/measures-KWg_was6.d.ts#shapeLevel
+shapeSupportProblems: build/measures-KWg_was6.d.ts#shapeSupportProblems
+shapesOf: build/measures-KWg_was6.d.ts#shapesOf
+shapesOverlap: build/index.d.ts#shapesOverlap
 sharedDimension: build/index.d.ts#sharedDimension
 spaceShapeKinds: build/index.d.ts#spaceShapeKinds
 spaceSize: build/index.d.ts#spaceSize
 splitConfig: build/index.d.ts#splitConfig
-splitFileName: build/measures-C-Tuv8GU.d.ts#splitFileName
-splitFolds: build/measures-C-Tuv8GU.d.ts#splitFolds
+splitFileName: build/measures-KWg_was6.d.ts#splitFileName
+splitFolds: build/measures-KWg_was6.d.ts#splitFolds
 stepRandom: build/index.d.ts#stepRandom
 sweepGrid: build/index.d.ts#sweepGrid
 sweepOf: build/index.d.ts#sweepOf
 sweepValues: build/index.d.ts#sweepValues
 toLayoutRecord: build/index.d.ts#toLayoutRecord
-toPackInput: build/measures-C-Tuv8GU.d.ts#toPackInput
-toRect: build/measures-C-Tuv8GU.d.ts#toRect
-toSizedRect: build/measures-C-Tuv8GU.d.ts#toSizedRect
-translate: build/measures-C-Tuv8GU.d.ts#translate
+toPackInput: build/measures-KWg_was6.d.ts#toPackInput
+toRect: build/measures-KWg_was6.d.ts#toRect
+toSizedRect: build/measures-KWg_was6.d.ts#toSizedRect
+translate: build/measures-KWg_was6.d.ts#translate
 turnBox: build/index.d.ts#turnBox
 turnMargin: build/index.d.ts#turnMargin
 turnPoint: build/index.d.ts#turnPoint
@@ -595,6 +605,9 @@ export interface GridOptions extends ShapeFilter {
   readonly limit?: number;
 }
 
+### build/index.d.ts#HARD_RULE_VERSION
+export declare const HARD_RULE_VERSION = 2;
+
 ### build/index.d.ts#HashOptions
 export interface HashOptions {
   readonly grid?: number;
@@ -621,6 +634,7 @@ export interface LayoutRecord {
   readonly measures: Readonly<Record<string, number>>;
   readonly hard: Readonly<Record<string, number>>;
   readonly tolerance?: Readonly<Partial<Tolerance>>;
+  readonly hardRule?: number;
   readonly deterministic: boolean | null;
   readonly prediction?: string;
   readonly ms: number;
@@ -787,6 +801,13 @@ export type PickSpec = Pick<MeasureSpec, "direction" | "minEffect">;
 ### build/index.d.ts#PlacedBox
 export interface PlacedBox extends Rect {
   readonly id: string;
+}
+
+### build/index.d.ts#PlacedCircle
+export interface PlacedCircle {
+  readonly cx: number;
+  readonly cy: number;
+  readonly r: number;
 }
 
 ### build/index.d.ts#Placement
@@ -1247,6 +1268,12 @@ export declare function checkSchema(strategy: DeclaredStrategy): string[];
 ### build/index.d.ts#checkSpace
 export declare function checkSpace(space: StrategySpace): ClaimBreak[];
 
+### build/index.d.ts#circleOverlaps
+export declare function circleOverlaps(boxes: readonly LayoutBox[], tolerance?: number, pairGaps?: readonly PairGap[], gap?: number): number;
+
+### build/index.d.ts#circlesOutside
+export declare function circlesOutside(input: LayoutInput, tolerance?: number): number;
+
 ### build/index.d.ts#clampOptions
 export declare function clampOptions<O extends object>(strategy: DeclaredStrategy<O>, options: Partial<O>): Partial<O>;
 
@@ -1309,6 +1336,9 @@ export declare function familyKind(name: string, version: number): string;
 
 ### build/index.d.ts#fnv1a32
 export declare function fnv1a32(text: string): number;
+
+### build/index.d.ts#hardRuleOf
+export declare function hardRuleOf(record: Pick<LayoutRecord, "hardRule">): number;
 
 ### build/index.d.ts#joinConfigs
 export declare function joinConfigs(space: string, parts: readonly StrategyConfig[]): StrategyConfig;
@@ -1373,6 +1403,9 @@ export declare function pickMoves(trace: Pick<PortfolioTrace, "picked">): {
   pick: number;
 };
 
+### build/index.d.ts#placedCircle
+export declare function placedCircle(box: LayoutBox): PlacedCircle | undefined;
+
 ### build/index.d.ts#placedRect
 export declare function placedRect(box: LayoutBox): Rect | undefined;
 
@@ -1402,6 +1435,9 @@ export declare function selectBest(candidates: readonly SelectCandidate[], level
 
 ### build/index.d.ts#sha256Hex
 export declare function sha256Hex(text: string): string;
+
+### build/index.d.ts#shapesOverlap
+export declare function shapesOverlap(a: LayoutBox, b: LayoutBox, tolerance?: number, gap?: number): boolean;
 
 ### build/index.d.ts#sharedDimension
 export declare function sharedDimension(name: string, patch?: Partial<CorpusDimension>): CorpusDimension;
@@ -1454,20 +1490,20 @@ export declare function verdict<R extends VerdictRecord>(records: Iterable<R>, o
 ### build/index.d.ts#writeStrategyCatalog
 export declare function writeStrategyCatalog(source: StrategyCatalogSource, version: string): string;
 
-### build/measures-C-Tuv8GU.d.ts#ClaimBreak
+### build/measures-KWg_was6.d.ts#ClaimBreak
 interface ClaimBreak {
   readonly claim: string;
   readonly detail: string;
   readonly inputs: readonly string[];
 }
 
-### build/measures-C-Tuv8GU.d.ts#CorpusEntry
+### build/measures-KWg_was6.d.ts#CorpusEntry
 interface CorpusEntry {
   readonly id: string;
   readonly hash: string;
 }
 
-### build/measures-C-Tuv8GU.d.ts#CorpusSplit
+### build/measures-KWg_was6.d.ts#CorpusSplit
 interface CorpusSplit {
   readonly schema: typeof SPLIT_SCHEMA;
   readonly corpus: string;
@@ -1477,10 +1513,10 @@ interface CorpusSplit {
   }>>;
 }
 
-### build/measures-C-Tuv8GU.d.ts#DEFAULT_SHAPES
+### build/measures-KWg_was6.d.ts#DEFAULT_SHAPES
 declare const DEFAULT_SHAPES: readonly ShapeKind[];
 
-### build/measures-C-Tuv8GU.d.ts#DeclaredClaim
+### build/measures-KWg_was6.d.ts#DeclaredClaim
 interface DeclaredClaim {
   readonly minCount: number;
   readonly thin: readonly string[];
@@ -1489,36 +1525,36 @@ interface DeclaredClaim {
   readonly familyMin?: number;
 }
 
-### build/measures-C-Tuv8GU.d.ts#Declares
+### build/measures-KWg_was6.d.ts#Declares
 type Declares<I> = (input: I) => readonly string[];
 
-### build/measures-C-Tuv8GU.d.ts#Direction
+### build/measures-KWg_was6.d.ts#Direction
 type Direction = "lower" | "higher";
 
-### build/measures-C-Tuv8GU.d.ts#FAMILY_ANY_KIND
+### build/measures-KWg_was6.d.ts#FAMILY_ANY_KIND
 declare const FAMILY_ANY_KIND = "*";
 
-### build/measures-C-Tuv8GU.d.ts#FamilyBy
+### build/measures-KWg_was6.d.ts#FamilyBy
 type FamilyBy = readonly string[] | {
   readonly [kind: string]: readonly string[];
 };
 
-### build/measures-C-Tuv8GU.d.ts#FamilyCell
+### build/measures-KWg_was6.d.ts#FamilyCell
 type FamilyCell = Readonly<Record<string, unknown>>;
 
-### build/measures-C-Tuv8GU.d.ts#Item
+### build/measures-KWg_was6.d.ts#Item
 type Item = LayoutBox;
 
-### build/measures-C-Tuv8GU.d.ts#JOINT_MEASURES
+### build/measures-KWg_was6.d.ts#JOINT_MEASURES
 declare const JOINT_MEASURES: readonly MeasureSpec<JointMeasureId>[];
 
-### build/measures-C-Tuv8GU.d.ts#JOINT_MOVED_MIN
+### build/measures-KWg_was6.d.ts#JOINT_MOVED_MIN
 declare const JOINT_MOVED_MIN = .01;
 
-### build/measures-C-Tuv8GU.d.ts#JointMeasureId
+### build/measures-KWg_was6.d.ts#JointMeasureId
 type JointMeasureId = "joint.fill" | "joint.aspectError" | "joint.spill" | "joint.straight.crossings" | "joint.straight.length" | "joint.stability.mean" | "joint.stability.moved" | "joint.proxy.rank" | "joint.ms";
 
-### build/measures-C-Tuv8GU.d.ts#LayoutBox
+### build/measures-KWg_was6.d.ts#LayoutBox
 interface LayoutBox {
   readonly id: string;
   readonly w: number;
@@ -1537,7 +1573,7 @@ interface LayoutBox {
   readonly data?: Readonly<Record<string, unknown>>;
 }
 
-### build/measures-C-Tuv8GU.d.ts#LayoutCell
+### build/measures-KWg_was6.d.ts#LayoutCell
 interface LayoutCell {
   readonly containerSize?: "fixed" | "freeHeight" | "freeWidth" | "freeAspect" | "freeArea";
   readonly containerShape?: "rect" | "convex" | "polygon" | "circle" | "ellipse" | "holes";
@@ -1552,7 +1588,7 @@ interface LayoutCell {
   readonly itemShape?: ShapeKind | "mixed";
 }
 
-### build/measures-C-Tuv8GU.d.ts#LayoutContainer
+### build/measures-KWg_was6.d.ts#LayoutContainer
 interface LayoutContainer {
   readonly w?: number;
   readonly h?: number;
@@ -1563,7 +1599,7 @@ interface LayoutContainer {
   readonly inset?: number;
 }
 
-### build/measures-C-Tuv8GU.d.ts#LayoutEdge
+### build/measures-KWg_was6.d.ts#LayoutEdge
 interface LayoutEdge {
   readonly id: string;
   readonly source: string;
@@ -1573,7 +1609,7 @@ interface LayoutEdge {
   readonly data?: Readonly<Record<string, unknown>>;
 }
 
-### build/measures-C-Tuv8GU.d.ts#LayoutGenerator
+### build/measures-KWg_was6.d.ts#LayoutGenerator
 interface LayoutGenerator {
   readonly name: string;
   readonly version: number;
@@ -1581,7 +1617,7 @@ interface LayoutGenerator {
   readonly seed: number;
 }
 
-### build/measures-C-Tuv8GU.d.ts#LayoutInput
+### build/measures-KWg_was6.d.ts#LayoutInput
 interface LayoutInput {
   readonly schema: "layout-input/1";
   readonly id: string;
@@ -1605,10 +1641,10 @@ interface LayoutInput {
   readonly invalidated?: readonly string[];
 }
 
-### build/measures-C-Tuv8GU.d.ts#Margin
+### build/measures-KWg_was6.d.ts#Margin
 type Margin = number | Sides;
 
-### build/measures-C-Tuv8GU.d.ts#MeasureSpec
+### build/measures-KWg_was6.d.ts#MeasureSpec
 interface MeasureSpec<Id extends string = string> {
   readonly id: Id;
   readonly unit: string;
@@ -1626,7 +1662,7 @@ interface MeasureSpec<Id extends string = string> {
   readonly bound?: ShapeBound;
 }
 
-### build/measures-C-Tuv8GU.d.ts#Obstacle
+### build/measures-KWg_was6.d.ts#Obstacle
 interface Obstacle {
   readonly id: string;
   readonly region: Region;
@@ -1635,7 +1671,7 @@ interface Obstacle {
   };
 }
 
-### build/measures-C-Tuv8GU.d.ts#PackInput
+### build/measures-KWg_was6.d.ts#PackInput
 interface PackInput {
   readonly container: LayoutContainer;
   readonly items: readonly Item[];
@@ -1645,19 +1681,19 @@ interface PackInput {
   readonly links?: readonly PackLink[];
 }
 
-### build/measures-C-Tuv8GU.d.ts#PackInputOptions
+### build/measures-KWg_was6.d.ts#PackInputOptions
 interface PackInputOptions {
   readonly links?: boolean;
 }
 
-### build/measures-C-Tuv8GU.d.ts#PackLink
+### build/measures-KWg_was6.d.ts#PackLink
 interface PackLink {
   readonly a: number;
   readonly b: number;
   readonly weight?: number;
 }
 
-### build/measures-C-Tuv8GU.d.ts#PairGap
+### build/measures-KWg_was6.d.ts#PairGap
 interface PairGap {
   readonly a: string;
   readonly b: string;
@@ -1665,13 +1701,13 @@ interface PairGap {
   readonly lanes?: number;
 }
 
-### build/measures-C-Tuv8GU.d.ts#Point
+### build/measures-KWg_was6.d.ts#Point
 interface Point {
   readonly x: number;
   readonly y: number;
 }
 
-### build/measures-C-Tuv8GU.d.ts#Port
+### build/measures-KWg_was6.d.ts#Port
 interface Port {
   readonly id: string;
   readonly side?: Side;
@@ -1680,7 +1716,7 @@ interface Port {
   readonly along?: number;
 }
 
-### build/measures-C-Tuv8GU.d.ts#Rect
+### build/measures-KWg_was6.d.ts#Rect
 interface Rect {
   readonly x: number;
   readonly y: number;
@@ -1688,7 +1724,7 @@ interface Rect {
   readonly h: number;
 }
 
-### build/measures-C-Tuv8GU.d.ts#Region
+### build/measures-KWg_was6.d.ts#Region
 type Region = {
   readonly kind: "rect";
   readonly x: number;
@@ -1712,33 +1748,33 @@ type Region = {
   readonly ry: number;
 };
 
-### build/measures-C-Tuv8GU.d.ts#RuleLevel
+### build/measures-KWg_was6.d.ts#RuleLevel
 type RuleLevel = "exact" | "safe" | "none";
 
-### build/measures-C-Tuv8GU.d.ts#SHAPE_KINDS
+### build/measures-KWg_was6.d.ts#SHAPE_KINDS
 declare const SHAPE_KINDS: readonly ShapeKindSpec[];
 
-### build/measures-C-Tuv8GU.d.ts#SHAPE_KIND_IDS
+### build/measures-KWg_was6.d.ts#SHAPE_KIND_IDS
 declare const SHAPE_KIND_IDS: readonly ShapeKind[];
 
-### build/measures-C-Tuv8GU.d.ts#SIDES
+### build/measures-KWg_was6.d.ts#SIDES
 declare const SIDES: readonly Side[];
 
-### build/measures-C-Tuv8GU.d.ts#SPLIT_SCHEMA
+### build/measures-KWg_was6.d.ts#SPLIT_SCHEMA
 declare const SPLIT_SCHEMA = "corpus-split/1";
 
-### build/measures-C-Tuv8GU.d.ts#ShapeBound
+### build/measures-KWg_was6.d.ts#ShapeBound
 interface ShapeBound {
   readonly shapes: readonly ShapeKind[];
   readonly side: "upper" | "lower";
 }
 
-### build/measures-C-Tuv8GU.d.ts#ShapeCheck
+### build/measures-KWg_was6.d.ts#ShapeCheck
 interface ShapeCheck {
   readonly level?: "exact" | "safe" | "bound";
 }
 
-### build/measures-C-Tuv8GU.d.ts#ShapeGeometry
+### build/measures-KWg_was6.d.ts#ShapeGeometry
 interface ShapeGeometry {
   readonly bounds: boolean;
   readonly area: boolean;
@@ -1746,10 +1782,13 @@ interface ShapeGeometry {
   readonly overlap: boolean;
 }
 
-### build/measures-C-Tuv8GU.d.ts#ShapeKind
+### build/measures-KWg_was6.d.ts#ShapeInput
+type ShapeInput = Pick<LayoutInput, "id" | "boxes"> & Partial<Pick<LayoutInput, "obstacles" | "container">>;
+
+### build/measures-KWg_was6.d.ts#ShapeKind
 type ShapeKind = "rect" | "polygon" | "circle" | "free";
 
-### build/measures-C-Tuv8GU.d.ts#ShapeKindSpec
+### build/measures-KWg_was6.d.ts#ShapeKindSpec
 interface ShapeKindSpec {
   readonly id: ShapeKind;
   readonly fields: readonly string[];
@@ -1757,21 +1796,29 @@ interface ShapeKindSpec {
   readonly geometry: ShapeGeometry;
 }
 
-### build/measures-C-Tuv8GU.d.ts#ShapeLevel
+### build/measures-KWg_was6.d.ts#ShapeLevel
 type ShapeLevel = RuleLevel | "bound";
 
-### build/measures-C-Tuv8GU.d.ts#ShapeSupport
+### build/measures-KWg_was6.d.ts#ShapeLimit
+interface ShapeLimit {
+  readonly reads: "neighbours" | "container";
+  readonly because: string;
+  readonly until: string;
+}
+
+### build/measures-KWg_was6.d.ts#ShapeSupport
 interface ShapeSupport<Id extends string = string> {
   readonly id: Id;
   readonly shapes?: readonly ShapeKind[];
   readonly safe?: readonly ShapeKind[];
   readonly bound?: ShapeBound;
+  readonly limit?: ShapeLimit;
 }
 
-### build/measures-C-Tuv8GU.d.ts#Side
+### build/measures-KWg_was6.d.ts#Side
 type Side = "top" | "right" | "bottom" | "left";
 
-### build/measures-C-Tuv8GU.d.ts#Sides
+### build/measures-KWg_was6.d.ts#Sides
 interface Sides {
   readonly top: number;
   readonly right: number;
@@ -1779,7 +1826,7 @@ interface Sides {
   readonly left: number;
 }
 
-### build/measures-C-Tuv8GU.d.ts#SizedRect
+### build/measures-KWg_was6.d.ts#SizedRect
 interface SizedRect {
   readonly x: number;
   readonly y: number;
@@ -1787,7 +1834,7 @@ interface SizedRect {
   readonly height: number;
 }
 
-### build/measures-C-Tuv8GU.d.ts#SplitCorpus
+### build/measures-KWg_was6.d.ts#SplitCorpus
 interface SplitCorpus {
   readonly corpus: string;
   readonly specs: readonly {
@@ -1796,124 +1843,127 @@ interface SplitCorpus {
   readonly inputs: readonly CorpusEntry[];
 }
 
-### build/measures-C-Tuv8GU.d.ts#SplitFold
+### build/measures-KWg_was6.d.ts#SplitFold
 interface SplitFold {
   readonly train: readonly number[];
   readonly heldOut: readonly number[];
 }
 
-### build/measures-C-Tuv8GU.d.ts#Verdict
+### build/measures-KWg_was6.d.ts#Verdict
 type Verdict = "better" | "worse" | "tie";
 
-### build/measures-C-Tuv8GU.d.ts#boundsOf
+### build/measures-KWg_was6.d.ts#boundsOf
 declare function boundsOf(region: Region): Rect;
 
-### build/measures-C-Tuv8GU.d.ts#boxArea
+### build/measures-KWg_was6.d.ts#boxArea
 declare function boxArea(box: LayoutBox): number | undefined;
 
-### build/measures-C-Tuv8GU.d.ts#canonicalInput
+### build/measures-KWg_was6.d.ts#canonicalInput
 declare function canonicalInput<T extends LayoutInput>(input: T): T;
 
-### build/measures-C-Tuv8GU.d.ts#checkDeclared
+### build/measures-KWg_was6.d.ts#checkDeclared
 declare function checkDeclared<I>(inputs: Iterable<I>, declares: Declares<I>, claim: DeclaredClaim, ids?: readonly string[], cellOf?: (input: I) => FamilyCell | undefined): ClaimBreak[];
 
-### build/measures-C-Tuv8GU.d.ts#checkShapes
-declare function checkShapes(input: Pick<LayoutInput, "id" | "boxes">, uses: readonly ShapeSupport[], options?: ShapeCheck): ClaimBreak[];
+### build/measures-KWg_was6.d.ts#checkShapes
+declare function checkShapes(input: ShapeInput, uses: readonly ShapeSupport[], options?: ShapeCheck): ClaimBreak[];
 
-### build/measures-C-Tuv8GU.d.ts#checkSplit
+### build/measures-KWg_was6.d.ts#checkSplit
 declare function checkSplit(split: unknown, corpus: SplitCorpus, name?: string): ClaimBreak[];
 
-### build/measures-C-Tuv8GU.d.ts#compareMeasure
+### build/measures-KWg_was6.d.ts#compareMeasure
 declare function compareMeasure(candidate: number, baseline: number, spec: Pick<MeasureSpec, "direction" | "minEffect">): Verdict;
 
-### build/measures-C-Tuv8GU.d.ts#corpusHashOf
+### build/measures-KWg_was6.d.ts#corpusHashOf
 declare function corpusHashOf(corpus: string, inputs: readonly CorpusEntry[]): string;
 
-### build/measures-C-Tuv8GU.d.ts#declaredClaimOf
+### build/measures-KWg_was6.d.ts#declaredClaimOf
 declare function declaredClaimOf(manifest: object): DeclaredClaim | undefined;
 
-### build/measures-C-Tuv8GU.d.ts#declaredCounts
+### build/measures-KWg_was6.d.ts#declaredCounts
 declare function declaredCounts<I>(inputs: Iterable<I>, declares: Declares<I>, ids?: readonly string[]): Record<string, number>;
 
-### build/measures-C-Tuv8GU.d.ts#familyOf
+### build/measures-KWg_was6.d.ts#familyOf
 declare function familyOf(cell: FamilyCell, familyBy: FamilyBy): string;
 
-### build/measures-C-Tuv8GU.d.ts#grow
+### build/measures-KWg_was6.d.ts#grow
 declare function grow(rect: Rect, margin: Margin | undefined): Rect;
 
-### build/measures-C-Tuv8GU.d.ts#isShapeKind
+### build/measures-KWg_was6.d.ts#inputShapeLevel
+declare function inputShapeLevel(use: Pick<ShapeSupport, "shapes" | "safe" | "bound" | "limit">, kind: ShapeKind, input: ShapeInput): ShapeLevel;
+
+### build/measures-KWg_was6.d.ts#isShapeKind
 declare function isShapeKind(value: unknown): value is ShapeKind;
 
-### build/measures-C-Tuv8GU.d.ts#itemShapeOf
+### build/measures-KWg_was6.d.ts#itemShapeOf
 declare function itemShapeOf(input: Pick<LayoutInput, "boxes">): ShapeKind | "mixed";
 
-### build/measures-C-Tuv8GU.d.ts#leaveOneSeedOut
+### build/measures-KWg_was6.d.ts#leaveOneSeedOut
 declare function leaveOneSeedOut(seeds: readonly number[]): SplitFold[];
 
-### build/measures-C-Tuv8GU.d.ts#marginSides
+### build/measures-KWg_was6.d.ts#marginSides
 declare function marginSides(margin: Margin | undefined): Sides;
 
-### build/measures-C-Tuv8GU.d.ts#minEffectOf
+### build/measures-KWg_was6.d.ts#minEffectOf
 declare function minEffectOf(spec: Pick<MeasureSpec, "minEffect">, a?: number, b?: number): number;
 
-### build/measures-C-Tuv8GU.d.ts#overlapOf
+### build/measures-KWg_was6.d.ts#overlapOf
 declare function overlapOf(a: Rect, b: Rect): {
   readonly x: number;
   readonly y: number;
 };
 
-### build/measures-C-Tuv8GU.d.ts#packLinks
+### build/measures-KWg_was6.d.ts#packLinks
 declare function packLinks(input: LayoutInput): PackLink[];
 
-### build/measures-C-Tuv8GU.d.ts#pointSegmentDistance
+### build/measures-KWg_was6.d.ts#pointSegmentDistance
 declare function pointSegmentDistance(p: Point, a: Point, b: Point): number;
 
-### build/measures-C-Tuv8GU.d.ts#portPoint
+### build/measures-KWg_was6.d.ts#portPoint
 declare function portPoint(box: Pick<LayoutBox, "w" | "h">, port: Port): Point | undefined;
 
-### build/measures-C-Tuv8GU.d.ts#regionArea
+### build/measures-KWg_was6.d.ts#regionArea
 declare function regionArea(region: Region): number;
 
-### build/measures-C-Tuv8GU.d.ts#ruleLevel
+### build/measures-KWg_was6.d.ts#ruleLevel
 declare function ruleLevel(rule: Pick<ShapeSupport, "shapes" | "safe">, kind: ShapeKind): RuleLevel;
 
-### build/measures-C-Tuv8GU.d.ts#segmentsCross
+### build/measures-KWg_was6.d.ts#segmentsCross
 declare function segmentsCross(a: Point, b: Point, c: Point, d: Point): boolean;
 
-### build/measures-C-Tuv8GU.d.ts#shapeKindOf
+### build/measures-KWg_was6.d.ts#shapeKindOf
 declare function shapeKindOf(box: LayoutBox): ShapeKind;
 
-### build/measures-C-Tuv8GU.d.ts#shapeKindProblem
+### build/measures-KWg_was6.d.ts#shapeKindProblem
 declare function shapeKindProblem(box: LayoutBox): string | undefined;
 
-### build/measures-C-Tuv8GU.d.ts#shapeKindsOf
+### build/measures-KWg_was6.d.ts#shapeKindsOf
 declare function shapeKindsOf(input: Pick<LayoutInput, "boxes">): ShapeKind[];
 
-### build/measures-C-Tuv8GU.d.ts#shapeLevel
+### build/measures-KWg_was6.d.ts#shapeLevel
 declare function shapeLevel(use: Pick<ShapeSupport, "shapes" | "safe" | "bound">, kind: ShapeKind): ShapeLevel;
 
-### build/measures-C-Tuv8GU.d.ts#shapeSupportProblems
+### build/measures-KWg_was6.d.ts#shapeSupportProblems
 declare function shapeSupportProblems(uses: readonly ShapeSupport[]): string[];
 
-### build/measures-C-Tuv8GU.d.ts#shapesOf
+### build/measures-KWg_was6.d.ts#shapesOf
 declare function shapesOf(use: Pick<ShapeSupport, "shapes">): readonly ShapeKind[];
 
-### build/measures-C-Tuv8GU.d.ts#splitFileName
+### build/measures-KWg_was6.d.ts#splitFileName
 declare function splitFileName(corpus: string, hash: string): string;
 
-### build/measures-C-Tuv8GU.d.ts#splitFolds
+### build/measures-KWg_was6.d.ts#splitFolds
 declare function splitFolds(split: unknown, corpus: SplitCorpus, name: string, where?: string): SplitFold[];
 
-### build/measures-C-Tuv8GU.d.ts#toPackInput
+### build/measures-KWg_was6.d.ts#toPackInput
 declare function toPackInput(input: LayoutInput, options?: PackInputOptions): PackInput;
 
-### build/measures-C-Tuv8GU.d.ts#toRect
+### build/measures-KWg_was6.d.ts#toRect
 declare function toRect(rect: SizedRect): Rect;
 
-### build/measures-C-Tuv8GU.d.ts#toSizedRect
+### build/measures-KWg_was6.d.ts#toSizedRect
 declare function toSizedRect(rect: Rect): SizedRect;
 
-### build/measures-C-Tuv8GU.d.ts#translate
+### build/measures-KWg_was6.d.ts#translate
 declare function translate(region: Region, dx: number, dy: number): Region;
 
 ### build/text.d.ts#AdvanceFn
