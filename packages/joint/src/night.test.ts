@@ -72,6 +72,41 @@ describe("a night of the sweep on small inputs", () => {
     expect(state.nights[0]!.round2?.configs).toBe(second.facts.configs);
   });
 
+  it("keeps the route values of the baseline arm apart, so they move no verdict", () => {
+    const nightWith = (crossings: number): { state: ReturnType<typeof emptyState>; outcomes: ReturnType<typeof raceNight> } => {
+      const state = emptyState("test", "test", INPUTS);
+      const night = planRound1(state, INPUTS, OPTIONS);
+      const ids = Object.keys(night.configs);
+      const records = night.plan.units.flatMap((u) =>
+        u.configs.map((c) => {
+          const plain = record(c, u.input, 0.1 + (0.8 * ids.indexOf(c)) / ids.length);
+          return { ...plain, measures: { ...plain.measures, "route.crossings": crossings, "route.detour.mean": crossings + 1, "route.detour.q95": crossings + 2 } };
+        }),
+      );
+      applyRecords(state, records, INPUTS, OPTIONS.date);
+      return { state, outcomes: raceNight(state, INPUTS, { date: OPTIONS.date, runs: 200, draws: 400 }) };
+    };
+    const [low, high] = [nightWith(1), nightWith(1000)];
+    expect(high.state.reference).toEqual(low.state.reference);
+    expect(high.state.values).toEqual(low.state.values);
+    expect(high.state.configs).toEqual(low.state.configs);
+    expect(high.outcomes).toEqual(low.outcomes);
+    expect(low.state.stepValues?.[0]?.[0]).toEqual({ "route.crossings": 1, "route.detour.mean": 2, "route.detour.q95": 3 });
+    expect(high.state.stepValues?.[0]?.[0]).toEqual({ "route.crossings": 1000, "route.detour.mean": 1001, "route.detour.q95": 1002 });
+  });
+
+  it("gives an old state the route values at its first record, with null on an input with no night", () => {
+    const state = emptyState("test", "test", INPUTS);
+    expect(state.stepValues).toBeUndefined();
+    planRound1(state, INPUTS, OPTIONS);
+    const [first] = INPUTS;
+    const records = baselineIds().map((id) => record(id, first!.id, 0.5));
+    applyRecords(state, records, INPUTS, OPTIONS.date);
+    expect(state.stepValues?.[0]).toEqual([{}, {}, {}]);
+    expect(state.stepValues?.[1]).toBeNull();
+    expect(state.stepValues).toHaveLength(INPUTS.length);
+  });
+
   it("rotates the screened configs: a config that does not fit comes first on the next night", () => {
     const state = emptyState("test", "test", INPUTS);
     const first = planRound1(state, INPUTS, { ...OPTIONS, maxShards: 4 });

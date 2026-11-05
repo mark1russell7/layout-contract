@@ -15,6 +15,7 @@ This file lists the items of the roadmap of this repository. The status page of 
 | L96 | in progress | P2 | Two named tables of the family `recorded` in `rigor-generators`, with source, license and date, as joint inputs and size choices of the site |
 | L98 | done | P2 | Bench: run only chosen rows of the cover |
 | L94 | in progress | P1 | Circle items in the joint bench: one shared family and an exact hard rule in the contract (0.4.0), then the joint corpus. Routes read the box until highways routes around the true shape |
+| L110 | in progress | P1 | The step between two sweep nights reads route values: detour and routed crossings, then the route length through the contract |
 | L105 | in progress | P1 | State the key of the edges as a dimension (`edgeKey`), and do not read crossings alone across routers that share segments |
 | L103 | next | P1 | A load factor for each shard from the router `straight`, so a time limit does not depend on the runner |
 | L104 | in progress | P1 | A response explorer on the site, from the records of a joint run: the builder first, the page with the data of the cover run |
