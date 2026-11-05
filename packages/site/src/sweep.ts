@@ -1,7 +1,7 @@
 // The section "Sweep coverage": the trend of the coverage surrogate, read from the branch `sweep-data` when the page opens.
 // The build does not read the branch, so the page reads it at runtime. A failed read shows a link to the data.
 import { nightDue, nightVerdict } from "@layout-contract/joint/browser";
-import { checkSweepIndex, dayOf, FLAT_WEEK, mainLine, parseTrend, type StepFacts, type SweepIndex, type TrendRecord, type WeekView, weekView } from "./coverage.ts";
+import { checkSweepIndex, dayOf, FLAT_WEEK, mainLine, parseTrend, type StepFacts, type StepRouteFacts, type SweepIndex, type TrendRecord, type WeekView, weekView } from "./coverage.ts";
 import { esc, pct } from "./ui.ts";
 
 const REPO = "https://github.com/mark1russell7/layout-contract";
@@ -323,7 +323,31 @@ export function stepNote(step: StepFacts | null): string {
   if (step === null) return "";
   const ratio = (v: number): string => `×${v.toFixed(3)}`;
   if (step.pairs === 0) return `<p class="week-note flat"><span class="badge warn">Step</span> The engines changed, and no pair passed the rule: ${step.dropped} pairs dropped.</p>`;
-  return `<p class="week-note"><span class="badge">Step</span> The engines changed. On the baseline arm, the median ratio of new to old is fill ${ratio(step.fill)}, hard constraints ${ratio(step.hard)} and crossings ${ratio(step.crossings)}, over ${step.pairs} pairs, with ${step.dropped} dropped.</p>`;
+  return `<p class="week-note"><span class="badge">Step</span> The engines changed. On the baseline arm, the median ratio of new to old is fill ${ratio(step.fill)}, hard constraints ${ratio(step.hard)} and crossings ${ratio(step.crossings)}, over ${step.pairs} pairs, with ${step.dropped} dropped.</p>${stepRoutesNote(step)}`;
+}
+
+/** This function gives the words of one route value of a step. A value with no ratio says why, and it does not read as a pass. */
+function stepRouteText(route: StepRouteFacts): string {
+  const counts = [
+    [route.noOld, "no old value"],
+    [route.noNew, "no new value"],
+    [route.oldZero, "an old value of 0"],
+    [route.mixed, "a sample on one side only"],
+  ] as const;
+  const present = counts.filter(([n]) => n > 0);
+  const reasons = present.map(([n, text]) => `${n} with ${text}`).join(", ");
+  if (route.median === null) return `${route.label}: no ratio${present.length === 0 ? "" : ` (${reasons})`}`;
+  return `${route.label} ×${route.median.toFixed(3)} over ${route.n} pairs${present.length === 0 ? "" : `, ${reasons}`}`;
+}
+
+/** This function gives the line of the route values of a step, with the limits of each. */
+function stepRoutesNote(step: StepFacts): string {
+  const limit = "The step reads routes only by violation and cap counts.";
+  if (step.routes.every((r) => r.median === null)) {
+    const what = step.routes.length === 0 ? "This step has no route values." : `${step.routes.map(stepRouteText).join("; ")}.`;
+    return `<p class="week-note flat"><span class="badge warn">Routes</span> ${what} ${limit}</p>`;
+  }
+  return `<p class="week-note"><span class="badge">Routes</span> ${step.routes.map(stepRouteText).join("; ")}. A pack change also moves a detour, because the straight length is its denominator, so a move in a detour alone is no change of a router. A router that shares segments cuts the crossings, so that count alone is no win.</p>`;
 }
 
 /** The width of the charts before the page measures the section, in pixels. */

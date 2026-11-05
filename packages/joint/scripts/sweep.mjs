@@ -377,8 +377,8 @@ function stepFrom(file, state, sweep) {
   const [ids, hashes] = [sweep.map((i) => i.id), sweep.map((i) => i.hash)];
   const baselineOf = (s) => Object.keys(s.configs).filter((id) => s.configs[id].status === "baseline");
   return epochStep(
-    { epoch: old.epoch, inputs: old.inputs, hashes: hashesOfState(old, ids, hashes), baseline: baselineOf(old), reference: old.reference },
-    { epoch: state.epoch, inputs: ids, hashes, baseline: baselineOf(state), reference: state.reference },
+    { epoch: old.epoch, inputs: old.inputs, hashes: hashesOfState(old, ids, hashes), baseline: baselineOf(old), reference: old.reference, stepValues: old.stepValues },
+    { epoch: state.epoch, inputs: ids, hashes, baseline: baselineOf(state), reference: state.reference, stepValues: state.stepValues },
   );
 }
 
