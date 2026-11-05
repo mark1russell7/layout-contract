@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.5.0
+
+- MINOR before 1.0.0: a break. A reader with an older contract refuses a file of the schema `strategy-catalog/2`. `STRATEGY_CATALOG_SCHEMA` has a new value, and the type of `StrategyCatalog.schema` is wider.
+- The new schema `strategy-catalog/2` adds an optional list `output` to `CatalogEntry`. Each row has a `property`, a `class` and `evidence`. The new types are `OutputRow`, `OutputEvidence`, `OutputGridClass`, `OutputGridCounts` and `StrategyCatalogSchema`.
+- `parseStrategyCatalog` reads the schemas in `STRATEGY_CATALOG_SCHEMAS`. A file of the schema 1 stays valid, and a file of the schema 1 with `output` is refused.
+- `writeStrategyCatalog` writes the oldest schema that holds the file. A catalog with no `output` keeps the schema 1 and its bytes.
+- `outputGridClass` gives the class of a grid property from its counts, and the parser refuses each other class. One fraction gives `fractional`. With no fraction, fewer than `OUTPUT_CLASS_MIN_INPUTS` (30) inputs give `untested`.
+
 ## 0.3.12
 
 - PATCH before 1.0.0: new exports and a new row in the shared dimension table, with no break. No existing input changes.

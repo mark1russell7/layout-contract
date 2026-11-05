@@ -1,6 +1,6 @@
 # The strategy catalog
 
-The schema `strategy-catalog/1` gives each strategy and each option of one engine as JSON. A chooser renders it with no code for each strategy. The module `strategy-catalog.ts` of `layout-contract` has the format, the parser, the writer and the check. The module `strategy-options.ts` has the declarations of the options.
+The schema `strategy-catalog/2` gives each strategy and each option of one engine as JSON. It adds the field `output` to the schema `strategy-catalog/1`. A chooser renders it with no code for each strategy. The module `strategy-catalog.ts` of `layout-contract` has the format, the parser, the writer and the check. The module `strategy-options.ts` has the declarations of the options.
 
 ## The file
 
@@ -20,6 +20,8 @@ Each engine exports the file `./strategy-catalog.json` at a package path. The fi
 - The file has no time, commit or run stamp. The same source and version give the same bytes.
 - The strategies are sorted by `key`. The options keep the order of the schema, because a form shows them in that order.
 - `parseStrategyCatalog` refuses each unknown field. A new field is a new version of the schema.
+- `parseStrategyCatalog` reads the two schemas, and it refuses `output` in a file of the schema 1. So a file of the schema 1 stays valid, and each engine moves at its own time.
+- `writeStrategyCatalog` writes the oldest schema that holds the file. A catalog with no `output` keeps the schema 1 and its bytes. A reader with an older contract refuses a file of the schema 2.
 - An engine test fails if the file differs from the writer output, or if `version` differs from `package.json`.
 
 ## The entry
@@ -38,6 +40,7 @@ Each engine exports the file `./strategy-catalog.json` at a package path. The fi
 | `determinismNote` | Optional: one sentence on what can change the claim, for example a clock. |
 | `optIn` | `true` when the strategy is outside the default set of the engine, and a caller asks for it by name. |
 | `baseline` | Optional, and only the value `true`: the strategy is a baseline of a bench, and a screen compares with it. It has `optIn: true`, and a chooser does not offer it. |
+| `output` | Optional, in the schema 2: the reads of the output of the strategy, as rows. Each pair of `property` and `optionSet` has one row. |
 | `options` | The declarations. |
 
 The entry has no `defaults` field, because two places can disagree. The default is on the declaration, and `catalogDefaults(entry)` gives the record.
@@ -49,6 +52,31 @@ A limit has the form `{ "max": 10000, "describe": "..." }`, under the name of th
 `supports` has the dimension `nodePositions` (`NODE_POSITIONS_DIMENSION`) for a strategy that takes nodes. The value `host` means that the strategy keeps the positions of the host. The value `engine` means that the strategy can set them. A strategy that moves nodes has only `engine`, and a host that owns the positions does not offer it. A `SupportProbe` tests the claim with a run.
 
 The claim is for the default options, as `deterministic` is, so an entry has one value here. An option of the type `strategy` can change the answer. The chosen entry has its own claim, so a host that owns the positions also leaves out those choices.
+
+### The output of a strategy
+
+A row of `output` tells what one read of the results of the strategy found. The strategy states no promise beyond the evidence of the row. A row on the default options does not tell about other options.
+
+| Field | Rule |
+| --- | --- |
+| `property` | The property, as an open text. `position-grid` is for the positions and `size-grid` is for the sizes: the class tells if they are whole numbers. |
+| `class` | The class. For the two grid properties, it is `whole`, `near-whole`, `fractional` or `untested`. For another property, it is a text. |
+| `evidence.inputs` | The count of inputs that the strategy packed in this read. |
+| `evidence.fractionalInputs` | The count of inputs with a fractional value. A grid property must have this field. |
+| `evidence.nearWholeInputs` | The count of inputs with a near-whole value and no fractional value. A grid property must have this field. |
+| `evidence.source` | The input family or the study of the read. |
+| `evidence.optionSet` | The name of the options of the read, for example `default`. |
+| `evidence.catalogVersion` | The version of the catalog that the read used. |
+
+A value is near-whole when it is at most `OUTPUT_NEAR_WHOLE` (1e-9) from a whole number and is not whole. A value at a larger distance is fractional.
+
+For a grid property, the parser refuses a class that the counts do not give. `outputGridClass` has this rule:
+
+1. One fractional input gives `fractional` at any count, because one counterexample is a proof.
+2. With no fraction, fewer than `OUTPUT_CLASS_MIN_INPUTS` (30) inputs give `untested`. The row keeps the count.
+3. With no fraction and at least 30 inputs, a near-whole input gives `near-whole`. Otherwise the class is `whole`.
+
+A new property needs no new schema. The parser examines only the form of its row.
 
 ## The declaration
 

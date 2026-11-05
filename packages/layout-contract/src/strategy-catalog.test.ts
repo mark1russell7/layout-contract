@@ -9,10 +9,15 @@ import {
   decodeOptionValue,
   encodeOptionValue,
   NODE_POSITIONS_DIMENSION,
+  OUTPUT_CLASS_MIN_INPUTS,
+  OUTPUT_GRID_PROPERTIES,
+  outputGridClass,
+  type OutputRow,
   type ParamRoute,
   parseStrategyCatalog,
   type RegistryEntry,
   STRATEGY_CATALOG_SCHEMA,
+  STRATEGY_CATALOG_SCHEMAS,
   type StrategyCatalogSource,
   writeStrategyCatalog,
 } from "./strategy-catalog.ts";
@@ -71,7 +76,7 @@ const optionsOf = (entry: Record<string, unknown>): Record<string, Record<string
 describe("the writer", () => {
   it("writes the schema, the version, and the keys in order", () => {
     const doc = fileOf() as { schema: string; version: string; strategies: { key: string }[] };
-    expect(doc.schema).toBe(STRATEGY_CATALOG_SCHEMA);
+    expect(doc.schema).toBe(STRATEGY_CATALOG_SCHEMAS[0]);
     expect(doc.version).toBe("1.2.3");
     expect(doc.strategies.map((s) => s.key)).toEqual(["aspect-fit", "shelf"]);
   });
@@ -119,7 +124,7 @@ describe("the parser", () => {
   it("refuses what is not a catalog", () => {
     expect(parseStrategyCatalog(null)).toEqual({ ok: false, faults: ["The catalog is not an object."] });
     expect(parseStrategyCatalog({ ...fileOf(), strategies: 1 })).toMatchObject({ ok: false });
-    const parsed = parseStrategyCatalog({ ...fileOf(), schema: "strategy-catalog/2", engine: "", version: 1, extra: true });
+    const parsed = parseStrategyCatalog({ ...fileOf(), schema: "strategy-catalog/3", engine: "", version: 1, extra: true });
     expect(parsed.ok ? [] : parsed.faults).toHaveLength(4);
   });
 
@@ -212,6 +217,136 @@ describe("the parser", () => {
     expect(faultsOf("aspect-fit", (e) => (optionsOf(e)["members"]!["default"] = ["other"]))[0]).toContain("not a strategy that the option takes");
     expect(faultsOf("aspect-fit", (e) => (optionsOf(e)["members"]!["default"] = []))[0]).toContain("fewer than 1");
     expect(faultsOf("aspect-fit", (e) => (optionsOf(e)["members"]!["default"] = ["shelf", "shelf", "shelf"]))[0]).toContain("more than 2");
+  });
+});
+
+describe("the output of a strategy", () => {
+  const row = (property: string, rowClass: string, inputs: number, fractionalInputs: number, nearWholeInputs = 0, optionSet = "default"): OutputRow => ({
+    property,
+    class: rowClass,
+    evidence: { inputs, fractionalInputs, nearWholeInputs, source: "made-up-family", optionSet, catalogVersion: "1.2.3" },
+  });
+  const withRows = (output: readonly OutputRow[]): StrategyCatalogSource => ({ engine: "packing", strategies: [{ ...shelf, output }, wrap] });
+  /** This function gives the faults of a schema 2 file whose entry `shelf` has this `output`. */
+  const outputFaults = (output: unknown): readonly string[] => {
+    const doc = fileOf() as { schema: string; strategies: Record<string, unknown>[] };
+    doc.schema = STRATEGY_CATALOG_SCHEMA;
+    doc.strategies.find((s) => s["key"] === "shelf")!["output"] = output;
+    const parsed = parseStrategyCatalog(doc);
+    return parsed.ok ? [] : parsed.faults;
+  };
+
+  it("names the two schemas, and the newest is the last", () => {
+    expect(STRATEGY_CATALOG_SCHEMAS).toEqual(["strategy-catalog/1", "strategy-catalog/2"]);
+    expect(STRATEGY_CATALOG_SCHEMAS.at(-1)).toBe(STRATEGY_CATALOG_SCHEMA);
+    expect(OUTPUT_GRID_PROPERTIES).toEqual(["position-grid", "size-grid"]);
+  });
+
+  it("keeps schema 1 and its bytes for a catalog with no output", () => {
+    const text = writeStrategyCatalog(source, "1.2.3");
+    expect(JSON.parse(text)).toMatchObject({ schema: "strategy-catalog/1" });
+    const parsed = parseStrategyCatalog(JSON.parse(text));
+    if (!parsed.ok) throw new Error(parsed.faults.join(" "));
+    expect(parsed.catalog.schema).toBe("strategy-catalog/1");
+    expect(writeStrategyCatalog(parsed.catalog, "1.2.3")).toBe(text);
+    expect(text).not.toContain("output");
+  });
+
+  it("writes a catalog with no output byte for byte as schema 1", () => {
+    const entry: CatalogEntry = { key: "a", id: "a", family: "f", kind: "single", describe: "d", supports: {}, limits: {}, deterministic: true, optIn: false, options: {} };
+    const fields = '{\n      "key": "a",\n      "id": "a",\n      "family": "f",\n      "kind": "single",\n      "describe": "d",\n      "supports": {},\n      "limits": {},\n      "deterministic": true,\n      "optIn": false,\n      "options": {}\n    }';
+    const text = `{\n  "schema": "strategy-catalog/1",\n  "engine": "e",\n  "version": "1.2.3",\n  "strategies": [\n    ${fields}\n  ]\n}\n`;
+    expect(writeStrategyCatalog({ engine: "e", strategies: [entry] }, "1.2.3")).toBe(text);
+  });
+
+  it("gives a row no other effect on the file than the schema and the field", () => {
+    const doc = JSON.parse(writeStrategyCatalog(withRows([row("position-grid", "whole", 240, 0)]), "1.2.3")) as { schema: string; strategies: Record<string, unknown>[] };
+    expect(doc.schema).toBe("strategy-catalog/2");
+    delete doc.strategies.find((s) => s["key"] === "shelf")!["output"];
+    doc.schema = "strategy-catalog/1";
+    expect(`${JSON.stringify(doc, null, 2)}\n`).toBe(writeStrategyCatalog(source, "1.2.3"));
+  });
+
+  it("writes schema 2 for a catalog with output, and reads the same rows back", () => {
+    const rows = [row("position-grid", "whole", 240, 0), row("size-grid", "fractional", 240, 25), row("position-grid", "fractional", 6, 6, 0, "bench-entries")];
+    const text = writeStrategyCatalog(withRows(rows), "1.2.3");
+    expect(JSON.parse(text)).toMatchObject({ schema: STRATEGY_CATALOG_SCHEMA });
+    const parsed = parseStrategyCatalog(JSON.parse(text));
+    if (!parsed.ok) throw new Error(parsed.faults.join(" "));
+    expect(parsed.catalog.schema).toBe(STRATEGY_CATALOG_SCHEMA);
+    expect(parsed.catalog.strategies.find((s) => s.key === "shelf")?.output).toEqual(rows);
+    expect(parsed.catalog.strategies.find((s) => s.key === "aspect-fit")).not.toHaveProperty("output");
+    expect(writeStrategyCatalog(parsed.catalog, "1.2.3")).toBe(text);
+  });
+
+  it("reads a schema 2 file with no output", () => {
+    expect(parseStrategyCatalog({ ...fileOf(), schema: STRATEGY_CATALOG_SCHEMA }).ok).toBe(true);
+  });
+
+  it("refuses output in a schema 1 file", () => {
+    expect(faultsOf("shelf", (e) => (e["output"] = [row("position-grid", "whole", 240, 0)]))).toEqual([`The strategy shelf: the field "output" needs the schema ${STRATEGY_CATALOG_SCHEMA}.`]);
+  });
+
+  it("takes the class from the counts: one fraction proves fractional at any count", () => {
+    const of = (inputs: number, fractionalInputs: number, nearWholeInputs = 0): string => outputGridClass({ inputs, fractionalInputs, nearWholeInputs });
+    expect(OUTPUT_CLASS_MIN_INPUTS).toBe(30);
+    expect([of(6, 6), of(24, 4), of(240, 1), of(1, 1)]).toEqual(["fractional", "fractional", "fractional", "fractional"]);
+    expect([of(0, 0), of(12, 0), of(29, 0), of(29, 0, 3)]).toEqual(["untested", "untested", "untested", "untested"]);
+    expect([of(30, 0), of(240, 0)]).toEqual(["whole", "whole"]);
+    expect([of(30, 0, 1), of(240, 0, 240)]).toEqual(["near-whole", "near-whole"]);
+    expect(of(240, 1, 5)).toBe("fractional");
+  });
+
+  it.each([
+    ["whole", 29, 0, 0, "untested"],
+    ["whole", 240, 1, 0, "fractional"],
+    ["whole", 240, 0, 1, "near-whole"],
+    ["untested", 6, 6, 0, "fractional"],
+    ["untested", 30, 0, 0, "whole"],
+    ["fractional", 240, 0, 0, "whole"],
+    ["near-whole", 240, 0, 0, "whole"],
+    ["near-whole", 12, 0, 12, "untested"],
+    ["round", 240, 0, 0, "whole"],
+  ])("refuses the class %s of a grid property on %i inputs, %i fractional, %i near-whole", (rowClass, inputs, fractional, near, expected) => {
+    const faults = outputFaults([row("size-grid", rowClass, inputs, fractional, near)]);
+    expect(faults).toEqual([`The strategy shelf: the output row 0: the evidence gives the class "${expected}".`]);
+  });
+
+  it("keeps an open property: its class is a text, with no rule on the counts", () => {
+    const open: OutputRow = { property: "edge-order", class: "stable", evidence: { inputs: 3, source: "a-study", optionSet: "default", catalogVersion: "1.2.3" } };
+    expect(outputFaults([open])).toEqual([]);
+    expect(outputFaults([{ ...open, evidence: { ...open.evidence, fractionalInputs: 9 } }])).toEqual([]);
+    expect(outputFaults([{ ...open, evidence: { ...open.evidence, fractionalInputs: -1 } }])).toEqual([`The strategy shelf: the output row 0: the evidence field "fractionalInputs" is not a count.`]);
+  });
+
+  it("refuses a grid row with no counts, or with counts over the inputs", () => {
+    const { fractionalInputs: _f, ...noCount } = row("position-grid", "whole", 240, 0).evidence;
+    expect(outputFaults([{ ...row("position-grid", "whole", 240, 0), evidence: noCount }])).toEqual([`The strategy shelf: the output row 0: the evidence field "fractionalInputs" is not a count.`]);
+    expect(outputFaults([row("position-grid", "fractional", 5, 4, 3)])).toEqual([`The strategy shelf: the output row 0: the fractional and near-whole counts are more than the inputs.`]);
+  });
+
+  it("refuses a bad list, a bad row and a bad evidence", () => {
+    const good = row("position-grid", "whole", 240, 0);
+    const at = "The strategy shelf: the output row 0";
+    expect(outputFaults([])).toEqual([`The strategy shelf: "output" is not a list with rows.`]);
+    expect(outputFaults({})).toEqual([`The strategy shelf: "output" is not a list with rows.`]);
+    expect(outputFaults(["x"])).toEqual([`${at} is not an object.`]);
+    expect(outputFaults([{ ...good, extra: 1 }])).toEqual([`${at}: the field "extra" is unknown.`]);
+    expect(outputFaults([{ ...good, evidence: { ...good.evidence, extra: 1 } }])).toEqual([`${at}: the evidence: the field "extra" is unknown.`]);
+    expect(outputFaults([{ ...good, evidence: "x" }])).toEqual([`${at}: "evidence" is not an object.`]);
+    expect(outputFaults([{ ...good, property: " " }])).toContain(`${at}: "property" is not a text.`);
+    expect(outputFaults([{ ...good, evidence: { ...good.evidence, source: "" } }])).toEqual([`${at}: the evidence field "source" is not a text.`]);
+    expect(outputFaults([{ ...good, evidence: { ...good.evidence, inputs: 1.5 } }])).toContain(`${at}: the evidence field "inputs" is not a count.`);
+  });
+
+  it("refuses two rows for one property and option set, and takes two option sets", () => {
+    const whole = row("position-grid", "whole", 240, 0);
+    expect(outputFaults([whole, whole])).toEqual([`The strategy shelf: the output row 1: the property and the option set are not unique.`]);
+    expect(outputFaults([whole, row("position-grid", "whole", 240, 0, 0, "bench-entries")])).toEqual([]);
+  });
+
+  it("throws from the writer for a row that breaks a rule", () => {
+    expect(() => writeStrategyCatalog(withRows([row("position-grid", "whole", 12, 0)]), "1.2.3")).toThrow(/the evidence gives the class "untested"/);
   });
 });
 

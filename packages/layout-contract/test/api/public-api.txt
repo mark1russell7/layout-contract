@@ -4,7 +4,7 @@
 # and private members. The command `api-report check` compares this file with the built .d.ts files.
 # To accept a change of the API, start the build, then `api-report update`, and review the diff.
 
-## . (build/index.d.ts): 303 names
+## . (build/index.d.ts): 313 names
 
 AnyOption: build/index.d.ts#AnyOption
 BALANCE_MEASURE_SUFFIXES: build/index.d.ts#BALANCE_MEASURE_SUFFIXES
@@ -82,6 +82,9 @@ NODE_POSITIONS_DIMENSION: build/index.d.ts#NODE_POSITIONS_DIMENSION
 NoDefault: build/index.d.ts#NoDefault
 NoDefaultReason: build/index.d.ts#NoDefaultReason
 NumberOption: build/index.d.ts#NumberOption
+OUTPUT_CLASS_MIN_INPUTS: build/index.d.ts#OUTPUT_CLASS_MIN_INPUTS
+OUTPUT_GRID_PROPERTIES: build/index.d.ts#OUTPUT_GRID_PROPERTIES
+OUTPUT_NEAR_WHOLE: build/index.d.ts#OUTPUT_NEAR_WHOLE
 Obstacle: build/measures-C-Tuv8GU.d.ts#Obstacle
 OptionDeclaration: build/index.d.ts#OptionDeclaration
 OptionIssue: build/index.d.ts#OptionIssue
@@ -90,7 +93,11 @@ OptionScale: build/index.d.ts#OptionScale
 OptionSchema: build/index.d.ts#OptionSchema
 OptionSetting: build/index.d.ts#OptionSetting
 OptionSupports: build/index.d.ts#OptionSupports
+OutputEvidence: build/index.d.ts#OutputEvidence
+OutputGridClass: build/index.d.ts#OutputGridClass
+OutputGridCounts: build/index.d.ts#OutputGridCounts
 OutputGroup: build/index.d.ts#OutputGroup
+OutputRow: build/index.d.ts#OutputRow
 OwnerDimensionSpec: build/index.d.ts#OwnerDimensionSpec
 PACK_HARD_RULES: build/index.d.ts#PACK_HARD_RULES
 PackHard: build/index.d.ts#PackHard
@@ -131,6 +138,7 @@ SHAPE_KIND_IDS: build/measures-C-Tuv8GU.d.ts#SHAPE_KIND_IDS
 SIDES: build/measures-C-Tuv8GU.d.ts#SIDES
 SPLIT_SCHEMA: build/measures-C-Tuv8GU.d.ts#SPLIT_SCHEMA
 STRATEGY_CATALOG_SCHEMA: build/index.d.ts#STRATEGY_CATALOG_SCHEMA
+STRATEGY_CATALOG_SCHEMAS: build/index.d.ts#STRATEGY_CATALOG_SCHEMAS
 STRATEGY_SPACE_SCHEMA: build/index.d.ts#STRATEGY_SPACE_SCHEMA
 SampleOptions: build/index.d.ts#SampleOptions
 SelectCandidate: build/index.d.ts#SelectCandidate
@@ -160,6 +168,7 @@ StageOption: build/index.d.ts#StageOption
 StageTrace: build/index.d.ts#StageTrace
 StrategyCatalog: build/index.d.ts#StrategyCatalog
 StrategyCatalogParse: build/index.d.ts#StrategyCatalogParse
+StrategyCatalogSchema: build/index.d.ts#StrategyCatalogSchema
 StrategyCatalogSource: build/index.d.ts#StrategyCatalogSource
 StrategyConfig: build/index.d.ts#StrategyConfig
 StrategyInfo: build/index.d.ts#StrategyInfo
@@ -251,6 +260,7 @@ mulberry32: build/index.d.ts#mulberry32
 nearestGaps: build/index.d.ts#nearestGaps
 optionDefaults: build/index.d.ts#optionDefaults
 optionIssue: build/index.d.ts#optionIssue
+outputGridClass: build/index.d.ts#outputGridClass
 outputGroups: build/index.d.ts#outputGroups
 outputHash: build/index.d.ts#outputHash
 overlapOf: build/measures-C-Tuv8GU.d.ts#overlapOf
@@ -400,6 +410,7 @@ export interface CatalogEntry {
   readonly determinismNote?: string;
   readonly optIn: boolean;
   readonly baseline?: true;
+  readonly output?: readonly OutputRow[];
   readonly options: Readonly<Record<string, AnyOption>>;
 }
 
@@ -691,6 +702,15 @@ export interface NumberOption extends OptionBase {
   readonly default?: number;
 }
 
+### build/index.d.ts#OUTPUT_CLASS_MIN_INPUTS
+export declare const OUTPUT_CLASS_MIN_INPUTS = 30;
+
+### build/index.d.ts#OUTPUT_GRID_PROPERTIES
+export declare const OUTPUT_GRID_PROPERTIES: readonly string[];
+
+### build/index.d.ts#OUTPUT_NEAR_WHOLE
+export declare const OUTPUT_NEAR_WHOLE = 1e-9;
+
 ### build/index.d.ts#OptionDeclaration
 export type OptionDeclaration<V, S extends string = string> = [V] extends [number] ? NumberOption : [V] extends [boolean] ? BooleanOption : [V] extends [string] ? string extends V ? EnumOption<V> | ValueOption<V, S> : EnumOption<V> : [Extract<V, string>] extends [never] ? ValueOption<V, S> : EnumOption<Extract<V, string>> | ValueOption<V, S>;
 
@@ -725,10 +745,37 @@ export interface OptionSupports {
   readonly shape?: readonly ShapeKind[];
 }
 
+### build/index.d.ts#OutputEvidence
+export interface OutputEvidence {
+  readonly inputs: number;
+  readonly fractionalInputs?: number;
+  readonly nearWholeInputs?: number;
+  readonly source: string;
+  readonly optionSet: string;
+  readonly catalogVersion: string;
+}
+
+### build/index.d.ts#OutputGridClass
+export type OutputGridClass = "whole" | "near-whole" | "fractional" | "untested";
+
+### build/index.d.ts#OutputGridCounts
+export interface OutputGridCounts {
+  readonly inputs: number;
+  readonly fractionalInputs: number;
+  readonly nearWholeInputs: number;
+}
+
 ### build/index.d.ts#OutputGroup
 export interface OutputGroup {
   readonly id: string;
   readonly members: readonly string[];
+}
+
+### build/index.d.ts#OutputRow
+export interface OutputRow {
+  readonly property: string;
+  readonly class: string;
+  readonly evidence: OutputEvidence;
 }
 
 ### build/index.d.ts#OwnerDimensionSpec
@@ -897,7 +944,10 @@ export interface RunEnv {
 export type RunFacts = Omit<LayoutRecord, "schema" | "input" | "inputHash" | "set" | "nodes" | "edges" | "shapes">;
 
 ### build/index.d.ts#STRATEGY_CATALOG_SCHEMA
-export declare const STRATEGY_CATALOG_SCHEMA = "strategy-catalog/1";
+export declare const STRATEGY_CATALOG_SCHEMA = "strategy-catalog/2";
+
+### build/index.d.ts#STRATEGY_CATALOG_SCHEMAS
+export declare const STRATEGY_CATALOG_SCHEMAS: readonly ["strategy-catalog/1", "strategy-catalog/2"];
 
 ### build/index.d.ts#STRATEGY_SPACE_SCHEMA
 export declare const STRATEGY_SPACE_SCHEMA = "strategy-space/1";
@@ -1001,7 +1051,7 @@ export interface StageTrace {
 
 ### build/index.d.ts#StrategyCatalog
 export interface StrategyCatalog extends StrategyCatalogSource {
-  readonly schema: typeof STRATEGY_CATALOG_SCHEMA;
+  readonly schema: StrategyCatalogSchema;
   readonly version: string;
 }
 
@@ -1013,6 +1063,9 @@ export type StrategyCatalogParse = {
   readonly ok: false;
   readonly faults: readonly string[];
 };
+
+### build/index.d.ts#StrategyCatalogSchema
+export type StrategyCatalogSchema = (typeof STRATEGY_CATALOG_SCHEMAS)[number];
 
 ### build/index.d.ts#StrategyCatalogSource
 export interface StrategyCatalogSource {
@@ -1334,6 +1387,9 @@ export declare function optionDefaults<O extends object, S extends string = stri
 
 ### build/index.d.ts#optionIssue
 export declare function optionIssue(key: string, value: unknown, d: AnyOption): OptionIssue | undefined;
+
+### build/index.d.ts#outputGridClass
+export declare function outputGridClass(counts: OutputGridCounts): OutputGridClass;
 
 ### build/index.d.ts#outputGroups
 export declare function outputGroups(hashes: Readonly<Record<string, readonly string[]>>): OutputGroup[];
