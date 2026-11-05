@@ -2,7 +2,7 @@ import { readdirSync, readFileSync } from "node:fs";
 import type { DataStamps } from "@mark1russell7/site-pages";
 import { describe, expect, it } from "vitest";
 import { type JointData, latestJoint } from "./data.ts";
-import { readStamps, stampFaults, withDataStamp } from "./stamps.ts";
+import { NPM_NOT_READ, npmLine, readStamps, stampFaults, withDataStamp } from "./stamps.ts";
 
 const data = new URL("../data/", import.meta.url);
 const stamps = readStamps(readFileSync(new URL("stamps.json", data), "utf8"));
@@ -65,9 +65,42 @@ describe("stampFaults", () => {
   });
 });
 
+describe("npmLine", () => {
+  const packing = { engine: "packing", used: "0.7.0", latest: "0.8.0", behind: 1 };
+  const highways = { engine: "highways", used: "0.14.0", latest: "0.14.0", behind: 0 };
+
+  it("names the versions of the run and of npm, and the run that closes the gap", () => {
+    expect(npmLine([highways, packing])).toBe('<p class="data-stamp">The engines of this data: highways 0.14.0, npm 0.14.0. packing 0.7.0, npm 0.8.0, 1 release behind. A run on packing 0.8.0 closes the gap.</p>');
+  });
+
+  it("does not read 1 and 6 releases behind as the same", () => {
+    expect(npmLine([{ ...packing, behind: 6 }])).toContain("6 releases behind");
+  });
+
+  it("tells in words that the build did not read npm", () => {
+    expect(npmLine(undefined)).toBe('<p class="data-stamp">npm not read at this build, so the gap is unknown.</p>');
+  });
+
+  it("tells when each engine is current", () => {
+    expect(npmLine([highways])).toContain("Each engine has the newest version on npm.");
+  });
+});
+
 describe("withDataStamp", () => {
   const page = "<div><!-- data-stamp --></div>";
   const one = stampOf("7", { "@mark1russell7/packing": "0.2.16" });
+
+  it("adds the line of npm when the build has a read of npm", () => {
+    const html = withDataStamp(page, "/site/index.html", one, [{ engine: "packing", used: "0.2.16", latest: "0.8.0", behind: 2 }]);
+    expect(html).toContain("The data comes from");
+    expect(html).toContain("packing 0.2.16, npm 0.8.0, 2 releases behind");
+  });
+
+  it("keeps the stamp line and tells that the gap is unknown without a read of npm", () => {
+    const html = withDataStamp(page, "/site/index.html", one);
+    expect(html).toContain("The data comes from");
+    expect(html).toContain(NPM_NOT_READ);
+  });
 
   it("puts the line of the run at the mark", () => {
     const html = withDataStamp(page, "C:\\site\\index.html", one);

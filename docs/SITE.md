@@ -39,6 +39,8 @@ The data folder has these files:
 | `data/news.json` | `site-news/1` | The news, from the newest item to the oldest. |
 | `data/stamps.json` | `data-stamp/1` | The runs of each measured page, with their dates and engine versions, and a run in flight. |
 
+The measure `engines-current` of `kpi.json` counts the engines of the newest run that have the newest stable version on npm. The measure `engine-releases-behind-<engine>` counts the stable versions after the run. The build reads npm, and the daily build reads it again, so these numbers fall when an engine has a release. This limit is stricter than the freshness gate, on purpose. If npm does not answer, the file has no such measures, and each stamped page says that the gap is unknown. So the reading ages, and the KPI rules see it. A scheduled build stops when the last deploy also has no read of npm.
+
 A run changes `data/stamps.json`. Set `inFlight` when a run starts on newer engines. Move the run to `runs` in the pull request of its data file. The build stops when the stamp does not agree with the newest joint run. The Pages workflow runs the freshness gate on this file at each build and each morning. The limits are 3 days of age, or a newer run in flight, and 1 minor version behind npm at the start of the run. A run in flight for more than 3 days fails the gate, so a resume run takes its place in `inFlight`.
 
 `src/data.ts` holds the formats and their checks:

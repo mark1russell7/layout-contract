@@ -3,11 +3,12 @@ import { readdirSync, readFileSync } from "node:fs";
 import { createRequire } from "node:module";
 import { fileURLToPath } from "node:url";
 import { coverEntries, PACK_ENTRIES } from "@layout-contract/joint/browser";
+import { npmPublishTimes } from "@mark1russell7/site-pages";
 import { siteKpi } from "@mark1russell7/site-pages/vite";
 import { defineConfig, type Plugin } from "vite";
 import { buildCatalog } from "./src/build-catalog.ts";
 import { checkDataFile, type JointData, latestJoint } from "./src/data.ts";
-import { siteKpiInput } from "./src/kpi.ts";
+import { ENGINE_SCOPE, enginesOnNpm, failedReadStops, type NpmRead, siteKpiInput } from "./src/kpi.ts";
 import { withEngineLinks } from "./src/links.ts";
 import { readStamps, stampFaults, withDataStamp } from "./src/stamps.ts";
 
@@ -50,6 +51,43 @@ function catalogOfTheRuns(): ReturnType<typeof buildCatalog> {
   return buildCatalog(readFileSync(MANIFEST, "utf8"), engineVersions(), hasCoverRun(), measured);
 }
 
+/** The read of npm of this build. It stays undefined outside a build, and when npm does not answer. */
+let npmRead: NpmRead | undefined;
+
+/** The file of measures of the last deploy. A build reads it only after a failed read of npm. */
+const LIVE_KPI = "https://mark1russell7.github.io/layout-contract/kpi.json";
+
+/** This function gives the bytes of the file of measures of the last deploy, or `undefined` when they do not load. */
+async function lastKpi(): Promise<string | undefined> {
+  try {
+    const response = await fetch(LIVE_KPI, { signal: AbortSignal.timeout(20_000) });
+    return response.ok ? await response.text() : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
+/**
+ * This plugin reads npm once at the start of a build, for the page and for `kpi.json`.
+ * The daily build of the Pages workflow reads it again, so the number also follows a release with no commit here.
+ * A failed read gives a warning and no measures. A blip of npm does not stop a deploy, and an old value is not a measure.
+ * A second failed read in a row stops a scheduled build, so a broken read does not stay hidden.
+ */
+function npmEngines(): Plugin {
+  return {
+    name: "layout-contract-site:npm-engines",
+    apply: "build",
+    async buildStart() {
+      const latest = latestJoint(jointFiles());
+      if (latest === undefined) return;
+      const { times, problems } = await npmPublishTimes({ packages: Object.keys(latest.versions).map((engine) => `${ENGINE_SCOPE}${engine}`) });
+      for (const problem of problems) this.warn(problem);
+      npmRead = problems.length > 0 ? undefined : { at: `${new Date().toISOString().slice(0, 19)}Z`, engines: enginesOnNpm(latest.versions, times) };
+      if (npmRead === undefined && failedReadStops(env["GITHUB_EVENT_NAME"], await lastKpi())) this.error("The scheduled build did not read npm, and the last deploy also has no read of npm.");
+    },
+  };
+}
+
 /** This plugin puts the stamp line of `data/stamps.json` in each measured page. A stamp that does not agree with the newest joint run stops the build. */
 function dataStamps(): Plugin {
   const stamps = readStamps(readFileSync(new URL("./data/stamps.json", import.meta.url), "utf8"));
@@ -60,7 +98,7 @@ function dataStamps(): Plugin {
       const faults = latest === undefined ? [] : stampFaults(stamps, latest);
       if (faults.length > 0) this.error(`The file data/stamps.json is not good:\n- ${faults.join("\n- ")}`);
     },
-    transformIndexHtml: (html, ctx) => withDataStamp(html, ctx.filename, stamps),
+    transformIndexHtml: (html, ctx) => withDataStamp(html, ctx.filename, stamps, npmRead?.engines),
   };
 }
 
@@ -93,7 +131,7 @@ function commitTime(): string {
 
 /** This function gives the input of `kpi.json`. A build without a joint run has no data to report, so it stops. */
 function kpiInput(): NonNullable<ReturnType<typeof siteKpiInput>> {
-  const input = siteKpiInput(jointFiles(), catalogOfTheRuns(), engineVersions(), [...PACK_ENTRIES, ...coverEntries()], commitTime());
+  const input = siteKpiInput(jointFiles(), catalogOfTheRuns(), npmRead, [...PACK_ENTRIES, ...coverEntries()], commitTime());
   if (input === undefined) throw new Error("data/joint/ has no run, so kpi.json has no time of the data.");
   return input;
 }
@@ -131,5 +169,5 @@ export default defineConfig({
   define: {
     __BUILD__: JSON.stringify({ sha: (env["GITHUB_SHA"] ?? "local").slice(0, 7), date: new Date().toISOString().slice(0, 10) }),
   },
-  plugins: [checkData(), jointCatalog(), engineSites(), dataStamps(), siteKpi(kpiInput, env)],
+  plugins: [checkData(), jointCatalog(), engineSites(), npmEngines(), dataStamps(), siteKpi(kpiInput, env)],
 });
