@@ -34,7 +34,9 @@ export interface LayoutRecord {
   readonly hardRule?: number;
   /**
    * The value is `true` when two runs with the same seed give the same positions.
-   * A skipped record has `null`, because no run made a claim. Each other record has a boolean.
+   * A skipped record has `null`, because no run made a claim.
+   * A record with `oneRun: true` can also have `null`: the pair had no second run to compare.
+   * Each other record has a boolean.
    */
   readonly deterministic: boolean | null;
   /** The id of the prediction that was written before the run. */
@@ -46,6 +48,7 @@ export interface LayoutRecord {
   /**
    * The value is `true` when a measure of the pair chose 1 timed repeat and no warm-up.
    * Then `ms` is one time, so a time gate does not read this record.
+   * A bench that runs such a pair only once writes `deterministic: null`, and its record makes no claim on determinism.
    */
   readonly oneRun?: boolean;
   /** The wall budget of the pair of a strategy and an input, in milliseconds. */
@@ -153,7 +156,7 @@ export function hardRuleOf(record: Pick<LayoutRecord, "hardRule">): number {
 /**
  * This function gives the problems of one `layout-record/1` value. An empty list means a good record.
  * A record that has `skipped` has `deterministic: null`. An old skipped record with a boolean is also correct.
- * A record without `skipped` has a boolean. The check accepts fields that the format does not know.
+ * A record without `skipped` has a boolean, or `null` when it has `oneRun: true`. The check accepts fields that the format does not know.
  */
 export function checkLayoutRecord(value: unknown): string[] {
   if (!isFields(value)) return ["the record is not an object"];
@@ -179,7 +182,8 @@ export function checkLayoutRecord(value: unknown): string[] {
   if (v["env"] !== undefined) out.push(...envProblems(v["env"]));
   const deterministic = v["deterministic"];
   if (v["skipped"] === undefined) {
-    if (typeof deterministic !== "boolean") out.push("deterministic is not a boolean, and the record has no skipped");
+    const noClaim = deterministic === null && v["oneRun"] === true;
+    if (typeof deterministic !== "boolean" && !noClaim) out.push("deterministic is not a boolean, and the record has no skipped");
   } else if (deterministic !== null && typeof deterministic !== "boolean") out.push("deterministic of a skipped record is not null or a boolean");
   return out;
 }

@@ -215,7 +215,7 @@ The records of an iteration pair hold the best round. They add these measures to
 | `iter.stop` | The end of the rounds, as the index in `ITER_STOPS`: 0 the cap, 1 no gain, 2 the same margins, 3 a failure |
 | `iter.widened`, `iter.narrowed` | The count of the sides that the rounds widened and narrowed |
 
-`pack.ms`, `joint.ms` and `ms` are the sum of the base pair and of all used rounds, also the rounds after the best round. `time.lanes.ms` is the time of the lane counts and the margins.
+`pack.ms`, `joint.ms` and `ms` are the sum of the base pair and of all used rounds, also the rounds after the best round. `time.lanes.ms` is the time of the lane counts and the margins, and `ms` does not hold it. So `ms` minus `pack.ms` is the route time of the base pair and of all used rounds. `route.ms` holds only the best round.
 
 ### The iteration pairs in the analysis
 

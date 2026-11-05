@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.5.1
+
+- PATCH before 1.0.0: new exports, one new measure and one wider check, with no change to a type or to an old measure.
+- `CIRCLE_SCATTERED` is the shared family `circle-scattered`: circle items in a fixed rectangle or circle container, which they fill approximately half. Its input takes the exact rules of 0.4.0, because it has only circles and no obstacles.
+- `segmentThroughShape` tells if a segment goes through a placed box. A circle box reads its circle, and each other kind reads its bounding box.
+- `countLinksThroughShapes` counts the routes that go through a box that is not one of their ends. `ShapeLink` is its route.
+- `crossingPoint` gives the point where two segments cross. It gives a point exactly when `segmentsCross` is true.
+- `EPS_STEPS` is the count of `EPS` steps in one layout unit.
+- `JOINT_MEASURES` has the new diagnostic `joint.route.length`: the mean length of the routes in layout units. No verdict reads it.
+- `checkLayoutRecord` accepts `deterministic: null` on a record with `oneRun: true`, because such a pair can have no second run to compare. It still refuses `null` on each other record without `skipped`. The type of the field does not change. A reader with an older contract refuses such a record.
+
 ## 0.5.0
 
 - MINOR before 1.0.0: a break. A reader with an older contract refuses a file of the schema `strategy-catalog/2`. `STRATEGY_CATALOG_SCHEMA` has a new value, and the type of `StrategyCatalog.schema` is wider.

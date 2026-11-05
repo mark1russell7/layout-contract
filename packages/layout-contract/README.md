@@ -8,7 +8,7 @@ The package has one runtime dependency: `@mark1russell7/rigor-generators`, the h
 
 | Part | Exports |
 |---|---|
-| Geometry | `Point`, `Rect`, `Region`, `Side`, `Sides`, `Margin`, `marginSides`, `grow`, `boundsOf`, `regionArea`, `translate`, `overlapOf`, `segmentsCross`, `pointSegmentDistance` |
+| Geometry | `Point`, `Rect`, `Region`, `Side`, `Sides`, `Margin`, `marginSides`, `grow`, `boundsOf`, `regionArea`, `translate`, `overlapOf`, `segmentsCross`, `crossingPoint`, `pointSegmentDistance` |
 | The shape kinds | `ShapeKind`, `SHAPE_KINDS`, `SHAPE_KIND_IDS`, `ShapeKindSpec`, `ShapeGeometry`, `DEFAULT_SHAPES`, `ShapeSupport`, `ShapeBound`, `RuleLevel`, `ShapeLevel`, `ShapeCheck`, `isShapeKind`, `shapeKindOf`, `shapeKindsOf`, `itemShapeOf`, `shapeKindProblem`, `shapesOf`, `ruleLevel`, `shapeLevel`, `shapeSupportProblems`, `boxArea`, `checkShapes` |
 | The input `layout-input/1` | `LayoutInput`, `LayoutBox` (`Item` for the packer), `Port`, `portPoint`, `LayoutEdge`, `LayoutContainer`, `Obstacle`, `LayoutCell`, `LayoutGenerator`, `PairGap`, `canonicalInput` |
 | The packer | `PackInput`, `PackLink`, `toPackInput`, `packLinks`, `Placement`, `PackOutput`, `StageTrace`, `applyPack` |
@@ -32,8 +32,8 @@ The package has one runtime dependency: `@mark1russell7/rigor-generators`, the h
 | The option declarations | `OptionSchema`, `OptionDeclaration`, `AnyOption`, `NumberOption`, `BooleanOption`, `EnumOption`, `ValueOption`, `ListItem`, `NoDefault`, `DeclaredStrategy`, `listOptions`, `optionDefaults`, `checkOptions`, `clampOptions`, `sweepValues`, `sweepOf`, `sweepGrid`, `checkSchema` |
 | The strategy catalog | `StrategyCatalog`, `StrategyCatalogSource`, `CatalogEntry`, `ParamRoute`, `StrategyMember`, `CatalogLimit`, `OutputRow`, `OutputEvidence`, `OutputGridClass`, `OutputGridCounts`, `StrategyCatalogSchema`, `STRATEGY_CATALOG_SCHEMA`, `STRATEGY_CATALOG_SCHEMAS`, `OUTPUT_GRID_PROPERTIES`, `OUTPUT_NEAR_WHOLE`, `OUTPUT_CLASS_MIN_INPUTS`, `NODE_POSITIONS_DIMENSION`, `outputGridClass`, `parseStrategyCatalog`, `writeStrategyCatalog`, `checkCatalog`, `catalogDefaults`, `catalogOptions`, `catalogChoices`, `catalogKey`, `decodeOptionValue`, `encodeOptionValue` |
 | The turn | `turnBox`, `turnPort`, `turnMargin`, `turnRegion`, `turnSide`, `turnPoint` |
-| The tolerances | `EPS`, `RECORD_EPS`, `RECORD_SCALE`, `Tolerance`, `DEFAULT_TOLERANCE` |
-| The hard rules | `HARD_RULE_VERSION`, `shapesOverlap`, `circleOverlaps`, `circlesOutside`, `placedCircle`, `PlacedCircle`, `countOverlaps`, `countObstacleHits`, `regionHitsRect`, `rectInRegion`, `countOutside`, `ContainerTest`, `countPortsOffBorder`, `packHard`, `PackHard`, `PACK_HARD_RULES`, `placedRect`, `checkInput` |
+| The tolerances | `EPS`, `EPS_STEPS`, `RECORD_EPS`, `RECORD_SCALE`, `Tolerance`, `DEFAULT_TOLERANCE` |
+| The hard rules | `HARD_RULE_VERSION`, `shapesOverlap`, `circleOverlaps`, `circlesOutside`, `placedCircle`, `PlacedCircle`, `segmentThroughShape`, `countLinksThroughShapes`, `ShapeLink`, `countOverlaps`, `countObstacleHits`, `regionHitsRect`, `rectInRegion`, `countOutside`, `ContainerTest`, `countPortsOffBorder`, `packHard`, `PackHard`, `PACK_HARD_RULES`, `placedRect`, `checkInput` |
 
 ## The rules
 
@@ -74,7 +74,7 @@ The package has one runtime dependency: `@mark1russell7/rigor-generators`, the h
 - **The verdict.** `verdict` compares two strategies on one measure, with the family as the unit. A verdict counts only when it holds for the mean of the family means and for the mean of the inputs.
 - **The record.** A run writes one `layout-record/1` line of JSON Lines. The formats of the engines tell the fields. These rules are new in 0.3.0:
   - `deterministic` is `true` when two runs with the same seed give the same output. A skipped record has `null`, because no run made a claim.
-  - A record without `skipped` has a boolean `deterministic`. `checkLayoutRecord` refuses `null` on it.
+  - A record without `skipped` has a boolean `deterministic`, or `null` when it has `oneRun: true` and the pair had no second run. `checkLayoutRecord` refuses `null` on each other record.
   - An old skipped record has `deterministic: true`. `checkLayoutRecord` accepts it, and `parseLayoutRecord` gives `null` in its place.
   - `env` gives the computer of the run: `node`, `os`, `arch`, `runner`, `cpu` and `cpus`. A timing record also gives `mode`, and it can give `context`.
   - `env.mode` is the mode of the timing, for example `process` or `fresh` of `paired-time/1`. `env.context` is `ci` or `local`, with the Node flags.

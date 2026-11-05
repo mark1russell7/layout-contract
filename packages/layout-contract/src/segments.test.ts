@@ -1,7 +1,47 @@
 import { describe, expect, it } from "vitest";
-import { pointSegmentDistance, segmentsCross } from "./geometry.ts";
+import { crossingPoint, pointSegmentDistance, segmentsCross } from "./geometry.ts";
 
 const p = (x: number, y: number) => ({ x, y });
+
+describe("crossingPoint", () => {
+  it("gives the point where two segments cross", () => {
+    expect(crossingPoint(p(0, 0), p(10, 10), p(0, 10), p(10, 0))).toEqual(p(5, 5));
+    expect(crossingPoint(p(0, 0), p(4, 0), p(1, -1), p(1, 3))).toEqual(p(1, 0));
+  });
+
+  it("gives nothing for a touch at an end, for collinear segments and for segments apart", () => {
+    expect(crossingPoint(p(0, 0), p(5, 5), p(0, 10), p(10, 0))).toBeUndefined();
+    expect(crossingPoint(p(0, 0), p(10, 0), p(10, 0), p(10, 10))).toBeUndefined();
+    expect(crossingPoint(p(0, 0), p(10, 0), p(5, 0), p(15, 0))).toBeUndefined();
+    expect(crossingPoint(p(0, 0), p(1, 1), p(0, 10), p(10, 0))).toBeUndefined();
+  });
+
+  it("gives a point at a small scale, as segmentsCross does", () => {
+    const s = 1e-100;
+    const q = crossingPoint(p(0, 0), p(s, s), p(0, s), p(s, 0));
+    expect(q?.x).toBeCloseTo(s / 2, 110);
+    expect(q?.y).toBeCloseTo(s / 2, 110);
+  });
+
+  it("gives a point exactly when segmentsCross is true, on the 2 segments, on a seeded walk", () => {
+    let state = 12345;
+    const next = (): number => {
+      state = (state * 48271) % 2147483647;
+      return (state % 41) - 20;
+    };
+    let crossed = 0;
+    for (let i = 0; i < 2000; i++) {
+      const [a, b, c, d] = [p(next(), next()), p(next(), next()), p(next(), next()), p(next(), next())];
+      const q = crossingPoint(a, b, c, d);
+      expect(q !== undefined).toBe(segmentsCross(a, b, c, d));
+      if (q === undefined) continue;
+      crossed++;
+      expect(pointSegmentDistance(q, a, b)).toBeLessThan(1e-9);
+      expect(pointSegmentDistance(q, c, d)).toBeLessThan(1e-9);
+    }
+    expect(crossed).toBeGreaterThan(100);
+  });
+});
 
 describe("segmentsCross", () => {
   it("is true when the segments cross inside both of them", () => {
