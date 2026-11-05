@@ -1030,6 +1030,26 @@ describe("the fixed options of a sample (L122)", () => {
     for (const c of one) expect([c.stages["local"]?.option, c.stages["placement"]?.option]).toEqual(["anneal", "maxrects"]);
   });
 
+  it("draws a fixed stage first with the walk draw, so a large stage draws only the options that keep the constraints with it", () => {
+    // The stage small with b1 needs the option a0 of the stage wide, so 1 of 40 options of wide is open.
+    const narrow: StrategySpace = {
+      schema: STRATEGY_SPACE_SCHEMA,
+      engine: "narrow",
+      version: "0.0.1",
+      stages: [
+        { name: "wide", options: Array.from({ length: 40 }, (_, i) => ({ id: `a${i}`, params: [] })) },
+        { name: "small", options: [{ id: "b0", params: [] }, { id: "b1", params: [] }] },
+      ],
+      constraints: [{ if: { stage: "small", option: "b1" }, then: { stage: "wide", option: "a0" } }],
+    };
+    const tight = { ...options, maxTries: 200, fixed: { small: "b1" } };
+    const out = enumerateSpace(narrow, { ...tight, draw: "walk" });
+    expect(out).toHaveLength(60);
+    for (const c of out) expect([c.stages["wide"]?.option, c.stages["small"]?.option]).toEqual(["a0", "b1"]);
+    // Flip: the reject draw draws wide with no regard to small, and 200 tries give approximately 5 configs of 60.
+    expect(() => enumerateSpace(narrow, { ...tight, draw: "reject" })).toThrow(/remove too many points/);
+  });
+
   it("refuses a fixed option that the constraints forbid, with the broken constraint in the reason", () => {
     expect(() => enumerateSpace(pack, { ...options, fixed: { local: "anneal", placement: "shelf" } })).toThrow(
       "The constraints of the space pack forbid the fixed options local.anneal, placement.shelf. The broken constraints: if local is anneal, then placement is maxrects.",

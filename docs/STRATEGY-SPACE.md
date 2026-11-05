@@ -195,6 +195,7 @@ The option `fixed` of a sample gives each config the same option at a stage. A k
 - The sample refuses a stage or an option that the space does not have, and a fixed option that the shape filter removes. It refuses these with a `RangeError`, also for `n` 0.
 - When a constraint between two fixed options breaks, the `RangeError` names the broken constraints.
 - When the constraints with the other stages remove each config, the `RangeError` tells that no constraint between two fixed options breaks.
+- With `draw: "walk"`, the fixed stages draw first. The other stages then draw only from the options that keep the constraints with the fixed options. With the largest stage first, most points of a tight constraint break at the fixed stage.
 - A sample with fixed options is not a sample of the space. Each record of such a sample states its fixed options.
 
 ## An example space

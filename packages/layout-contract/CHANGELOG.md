@@ -6,6 +6,7 @@
 - With `fixed`, each config of a sample has the fixed option at each named stage. A meta option of another stage of the same part goes out of the sample.
 - The sample refuses a stage or an option that the space does not have with a `RangeError`. It also refuses a fixed meta option with `meta: "skip"`, and a fixed option that the shape filter removes.
 - Two fixed options that a constraint forbids get a `RangeError` that names the broken constraints. `docs/STRATEGY-SPACE.md` tells the rules.
+- With `draw: "walk"`, the fixed stages draw first. Thus the other stages draw only from the options that keep the constraints with the fixed options. Without `fixed`, the walk keeps its order.
 
 ## 0.5.3
 

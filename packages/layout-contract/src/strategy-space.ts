@@ -171,6 +171,7 @@ export interface SampleOptions extends ShapeFilter {
   /**
    * How a point keeps the constraints. With `reject` (the default), a point that breaks a constraint draws again.
    * With `walk`, a point draws its stages from the largest to the smallest. Each stage draws only from the options that keep the constraints with the stages before it.
+   * The stages of `fixed` draw before the other stages.
    * A space whose constraints reject most draws gets its sample with `walk`. The two values give different configs for one seed.
    * A sample of `walk` is not uniform over the valid configs. Each option of the largest stage gets an equal share, whatever count of valid configs it has.
    * Thus a mean over this sample is not a mean of the space.
@@ -1023,7 +1024,16 @@ const subSeed = (seed: number, step: string): number => Math.floor(stepRandom(se
  * This function gives a sample of a space: Latin hypercube strata over the options, the params and the member counts.
  * `canon` is the space of `canonicalConfig`: the space before a shape filter. A member of an option with `view: "bounds"` can have an option that the filter removed.
  */
-function sampleConfigs(space: StrategySpace, n: number, seed: number, meta: boolean, maxTries: number, canon: StrategySpace = space, walk = false): StrategyConfig[] {
+function sampleConfigs(
+  space: StrategySpace,
+  n: number,
+  seed: number,
+  meta: boolean,
+  maxTries: number,
+  canon: StrategySpace = space,
+  walk = false,
+  first: ReadonlySet<string> = new Set(),
+): StrategyConfig[] {
   const stages = space.stages;
   const prefix = prefixes(space);
   // A stage without options can stay empty in a part with a meta option of `view: "bounds"` or with no member list, because that option replaces the stage.
@@ -1042,7 +1052,7 @@ function sampleConfigs(space: StrategySpace, n: number, seed: number, meta: bool
     if (!usable.has(o)) usable.set(o, hasMembers(space, s.name, o));
     return usable.get(o)!;
   };
-  const plan = walk ? walkPlan(stages, lists, space.constraints ?? [], n) : null;
+  const plan = walk ? walkPlan(stages, lists, space.constraints ?? [], n, first) : null;
   const points: Map<string, StageOption | null>[] = [];
   let tries = 0;
   for (let round = 0; points.length < n; round++) {
@@ -1148,7 +1158,7 @@ export function enumerateSpace(space: StrategySpace, options: EnumerateOptions):
   const kept = restrict(space, options.shapes);
   const drawn = fixed === undefined ? kept : fixStages(space, kept, fixed, options.shapes);
   try {
-    return sampleConfigs(drawn, options.n, options.seed, meta === "sample", options.maxTries ?? Math.max(1000, 100 * options.n), space, draw === "walk");
+    return sampleConfigs(drawn, options.n, options.seed, meta === "sample", options.maxTries ?? Math.max(1000, 100 * options.n), space, draw === "walk", new Set(Object.keys(fixed ?? {})));
   } catch (error) {
     // Only a space without a config for the shape kinds, or for the fixed options, gives the RangeError. A different failure keeps its own error.
     if (options.shapes !== undefined && !hasConfig(kept, meta === "sample")) throw noSample(space, kept, options.shapes, meta === "sample");
