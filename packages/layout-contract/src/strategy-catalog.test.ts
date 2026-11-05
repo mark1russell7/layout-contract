@@ -347,6 +347,7 @@ describe("the output of a strategy", () => {
 
   it("throws from the writer for a row that breaks a rule", () => {
     expect(() => writeStrategyCatalog(withRows([row("position-grid", "whole", 12, 0)]), "1.2.3")).toThrow(/the evidence gives the class "untested"/);
+    expect(() => writeStrategyCatalog(withRows([]), "1.2.3")).toThrow(/"output" is not a list with rows/);
   });
 });
 
