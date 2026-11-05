@@ -70,6 +70,8 @@ jobs:
           echo "The base is $base." >> "$GITHUB_STEP_SUMMARY"
       - name: Run the bench
         working-directory: packages/layout-contract
+        # This key adds pipefail. With the default shell a crash of the bench under `tee` passes.
+        shell: bash
         run: |
           base="$RUNNER_TEMP/base/node_modules/@mark1russell7/layout-contract/build/text.js"
           # The flip test of this step: a head file that does not exist crashes the bench, and this pipe must then fail. So a crash under `tee` cannot pass as green. The crash text in the log is expected.
