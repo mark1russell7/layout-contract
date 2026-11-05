@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import type { LayoutRecord } from "@mark1russell7/layout-contract";
-import { applyRecords, emptyState, planRound1, planRound2, raceNight, statusCounts, valueMaps } from "./night.ts";
+import { nightLine, nightVerdict } from "./night-check.ts";
+import { applyRecords, emptyState, labelLine, lostLine, lostPairs, noReferenceRecords, noteLost, planRound1, planRound2, raceLines, raceNight, RACE_NOTE_2026_11_02, statusCounts, valueMaps } from "./night.ts";
 import { baselineIds, type SweepInput } from "./sweep.ts";
 
 /** The inputs of a test: 4 specs with 3 seeds each. Spec `d` is a stress spec. */
@@ -153,5 +154,153 @@ describe("a night of the sweep on small inputs", () => {
     applyRecords(state, changed, INPUTS, "2026-10-29");
     expect(state.nights.find((n) => n.date === "2026-10-29")?.drift).toBe(4);
     expect(state.summary.find((r) => r.config === base[0] && r.cell === "headline")?.n).toBe(9);
+  });
+});
+
+/** This function gives a state after a first night with each record, so each input has a reference, and with one new config. */
+function stateWithAlive(): ReturnType<typeof emptyState> {
+  const state = emptyState("test", "test", INPUTS);
+  const base = baselineIds();
+  applyRecords(state, INPUTS.flatMap((i) => base.map((c) => record(c, i.id, 0.5))), INPUTS, OPTIONS.date);
+  state.configs["held"] = { status: "alive", config: { pack: "p", router: "r" }, ran: OPTIONS.date } as unknown as (typeof state.configs)[string];
+  return state;
+}
+
+describe("the race of a night states what it held out", () => {
+  const NEXT = { date: "2026-10-29", runs: 200, draws: 400 };
+
+  it("prints the name and the reason of an injected held config", () => {
+    const state = stateWithAlive();
+    // The config has values on each input except 2.
+    applyRecords(state, INPUTS.slice(2).map((i) => record("held", i.id, 0.5)), INPUTS, NEXT.date);
+    raceNight(state, INPUTS, NEXT);
+    const race = state.nights.at(-1)!.race!;
+    expect(race.full).toBe(0);
+    expect(race.aliveAtStart).toBe(1);
+    expect(race.held).toEqual([{ config: "held", status: "alive", missing: 2, of: INPUTS.length, reason: `2 of ${INPUTS.length} inputs have no value` }]);
+    const text = raceLines(race).join("\n");
+    expect(text).toContain("1 alive configs at the start, 0 with each input raced, 1 held out");
+    expect(text).toContain("| `held` | alive | 2 |");
+  });
+
+  it("prints no held config on a night with none, also when a config raced in full", () => {
+    const state = stateWithAlive();
+    applyRecords(state, INPUTS.map((i) => record("held", i.id, 0.5)), INPUTS, NEXT.date);
+    raceNight(state, INPUTS, NEXT);
+    const race = state.nights.at(-1)!.race!;
+    expect(race.held).toEqual([]);
+    expect(race.full).toBe(1);
+    const text = raceLines(race).join("\n");
+    expect(text).toContain("0 held out");
+    expect(text).not.toContain("Held config");
+  });
+
+  it("reads a night with nothing to race differently from a night that held each config out", () => {
+    const empty = emptyState("test", "test", INPUTS);
+    raceNight(empty, INPUTS, NEXT);
+    const race = empty.nights.at(-1)!.race!;
+    expect(race.full).toBe(0);
+    expect(raceLines(race).join("\n")).toContain("had nothing to race");
+    const held = stateWithAlive();
+    raceNight(held, INPUTS, NEXT);
+    const heldRace = held.nights.at(-1)!.race!;
+    expect(heldRace.full).toBe(0);
+    expect(raceLines(heldRace).join("\n")).not.toContain("nothing to race");
+  });
+
+  it("gives a night from before the held list only its counts", () => {
+    expect(raceLines({ raced: 1, dropped: 0, halved: 0, alive: 1, full: 0, fullDropped: 0 })).toEqual(['Race: {"raced":1,"dropped":0,"halved":0,"alive":1,"full":0,"fullDropped":0}.']);
+    expect(raceLines(undefined)).toEqual(["Race: none."]);
+  });
+});
+
+describe("the label of a config states its origin", () => {
+  it("reads a label from the screen as that, and a held config as held", () => {
+    const entry = { label: "better", labelFrom: { kind: "screen", night: "2026-11-01" } } as const;
+    expect(labelLine(entry)).toBe("better (the screen of 2026-11-01)");
+    expect(labelLine(entry, 9)).toBe("held, 9 inputs missing (better from the screen of 2026-11-01)");
+    expect(labelLine({ label: "better", labelFrom: { kind: "race", night: "2026-11-03" } })).toBe("better (the full race of 2026-11-03)");
+  });
+
+  it("states when the state gives no origin", () => {
+    expect(labelLine({ label: "better" })).toBe("better (origin not stated)");
+    expect(labelLine({ label: "better" }, 3)).toBe("held, 3 inputs missing (better from a race with no stated origin)");
+    expect(labelLine({}, 3)).toBe("held, 3 inputs missing (no label)");
+    expect(labelLine({})).toBe("");
+  });
+
+  it("writes the origin at the race", () => {
+    const state = stateWithAlive();
+    applyRecords(state, INPUTS.map((i) => record("held", i.id, 0.5)), INPUTS, "2026-10-29");
+    raceNight(state, INPUTS, { date: "2026-10-29", runs: 200, draws: 400 });
+    expect(state.configs["held"]!.labelFrom).toEqual({ kind: "race", night: "2026-10-29" });
+  });
+
+  it("keeps the note on the labels of 2026-11-02 with its run", () => {
+    expect(RACE_NOTE_2026_11_02).toContain("41442420950");
+    expect(RACE_NOTE_2026_11_02).toContain("2026-11-01");
+  });
+});
+
+describe("the count of the planned pairs that gave no value", () => {
+  const UNITS = [{ input: INPUTS[0]!.id, configs: ["a", "b"] }, { input: INPUTS[1]!.id, configs: ["a"] }];
+
+  /** This function gives a night where each input has no reference, or each input except the first. */
+  function stateOf(withReference: boolean): ReturnType<typeof emptyState> {
+    const state = emptyState("test", "test", INPUTS);
+    const base = baselineIds();
+    if (withReference) applyRecords(state, base.map((c) => record(c, INPUTS[0]!.id, 0.5)), INPUTS, OPTIONS.date);
+    else applyRecords(state, [], INPUTS, OPTIONS.date);
+    for (const id of ["a", "b"]) state.configs[id] = { status: "screened", config: {}, ran: OPTIONS.date } as unknown as (typeof state.configs)[string];
+    return state;
+  }
+
+  it("counts a pair with no record, a pair of a censored unit and a record with no reference", () => {
+    const state = stateOf(true);
+    const records = [record("a", INPUTS[0]!.id, 0.5), record("a", INPUTS[1]!.id, 0.5)];
+    applyRecords(state, records, INPUTS, OPTIONS.date);
+    expect(lostPairs(state, UNITS, records)).toEqual([
+      { config: "b", input: INPUTS[0]!.id, reason: "no-record" },
+      { config: "a", input: INPUTS[1]!.id, reason: "no-reference" },
+    ]);
+    expect(lostPairs(state, UNITS, records, new Set([`b|${INPUTS[0]!.id}`]))[0]!.reason).toBe("censored");
+    expect(noReferenceRecords(state, records).map((r) => r.input)).toEqual([INPUTS[1]!.id]);
+  });
+
+  it("gives no record of an unknown config to the kept file", () => {
+    const state = stateOf(false);
+    expect(noReferenceRecords(state, [record("unknown", INPUTS[0]!.id, 0.5), record("a", "test/none/s1", 0.5)])).toEqual([]);
+  });
+
+  it("takes a lost pair off the count when a later round gets its value, and keeps a pair that no round plans again", () => {
+    const state = stateOf(true);
+    const night = state.nights.at(-1)!;
+    noteLost(night, 1, UNITS, [{ config: "b", input: INPUTS[0]!.id, reason: "no-record" }, { config: "a", input: INPUTS[1]!.id, reason: "no-reference" }]);
+    expect(night.missing).toBe(2);
+    expect(night.lost?.rounds[1]).toEqual({ planned: 3, noRecord: 1, noReference: 1, censored: 0 });
+    noteLost(night, 2, [{ input: INPUTS[0]!.id, configs: ["b"] }], []);
+    expect(night.missing).toBe(1);
+    expect(lostLine(night)).toContain("Planned pairs that gave no value by the end of the night: 1 (round 1: 1 with no record, 1 with no reference, 0 censored; round 2: 0 with no record, 0 with no reference, 0 censored).");
+  });
+
+  // The flip of the line "Partial" of the page. A record with no reference and a pair with no record turn the line partial. A copy with no fault stays current.
+  it("turns the check of a night partial on a fault, and a no-fault copy stays current", () => {
+    const state = stateOf(true);
+    const records = [record("a", INPUTS[0]!.id, 0.5), record("a", INPUTS[1]!.id, 0.5)];
+    applyRecords(state, records, INPUTS, OPTIONS.date);
+    const fault = state.nights.at(-1)!;
+    noteLost(fault, 1, UNITS, lostPairs(state, UNITS, records));
+    const v = nightVerdict(OPTIONS.date, fault.missing, OPTIONS.date);
+    expect(v.state).toBe("partial");
+    expect(nightLine(v)).toContain("2 planned pairs gave no value");
+
+    const clean = stateOf(true);
+    const units = [{ input: INPUTS[0]!.id, configs: ["a", "b"] }];
+    const all = [record("a", INPUTS[0]!.id, 0.5), record("b", INPUTS[0]!.id, 0.5)];
+    applyRecords(clean, all, INPUTS, OPTIONS.date);
+    const night = clean.nights.at(-1)!;
+    noteLost(night, 1, units, lostPairs(clean, units, all));
+    expect(night.missing).toBe(0);
+    expect(nightVerdict(OPTIONS.date, night.missing, OPTIONS.date).state).toBe("current");
   });
 });

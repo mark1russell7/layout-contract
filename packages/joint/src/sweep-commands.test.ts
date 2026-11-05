@@ -52,10 +52,10 @@ function night(date: string, data: string, branch: string, extra: readonly strin
   const at = (name: string) => join(dir, date, name);
   start("sweep.mjs", ["plan", "--data", data, "--out", at("night"), "--date", date, ...LIMITS, ...extra]);
   trim(join(date, "night"));
-  start("sweep.mjs", ["run", "--plan", at("night"), "--shard", "0", "--out", at("records1"), "--deadline-minutes", "105"]);
+  start("sweep.mjs", ["run", "--plan", at("night"), "--shard", "0", "--out", at("records1"), "--deadline-minutes", "90", "--hard-deadline-minutes", "100"]);
   start("sweep.mjs", ["race", "--night", at("night"), "--records", at("records1"), "--out", at("night2"), ...LIMITS]);
   trim(join(date, "night2"));
-  start("sweep.mjs", ["run", "--plan", at("night2"), "--shard", "0", "--out", at("records2"), "--deadline-minutes", "105"]);
+  start("sweep.mjs", ["run", "--plan", at("night2"), "--shard", "0", "--out", at("records2"), "--deadline-minutes", "90", "--hard-deadline-minutes", "100"]);
   start("sweep.mjs", ["summarize", "--night", at("night2"), "--records", at("records2"), "--data", data, "--out", at("out"), "--run", "1"]);
   return start("next-night.ts", [at("out"), branch]).trim();
 }
