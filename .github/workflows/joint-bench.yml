@@ -207,7 +207,8 @@ jobs:
       # The account runs at most 20 jobs at once, for all repos together. The fleet rule of 2026-10-30 (STRATEGY.md) gives a heavy workflow 3 jobs at once, so gates and releases get runners.
       max-parallel: 3
       matrix:
-        shard: ${{ fromJSON(needs.plan.outputs.shards) }}
+        # A test of the job prior: one shard of the resume plan. This branch does not merge.
+        shard: [0]
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -242,7 +243,7 @@ jobs:
           CONFIRM: ${{ inputs.confirm && 'on' || '' }}
           # 7 inputs of 1000 boxes went above the default heap of approximately 4 GB with 195 pairs in run 40815928586. The runner has 16 GB.
           NODE_OPTIONS: --max-old-space-size=6144
-        run: node scripts/bench.mjs run --corpus "$CORPUS" --shards "$COUNT" --shard "$SHARD" --out records ${SLICE:+--slice "$SLICE"} ${LANES:+--lanes on} ${ITERATE:+--iterate on} ${CONFIRM:+--confirm on} ${PAIRS:+--pairs "$PAIRS"} ${PAIR_BUDGET:+--pair-budget "$PAIR_BUDGET"} ${COVER:+--cover on} ${PRIOR:+--prior "$PRIOR"}
+        run: node scripts/bench.mjs run --corpus "$CORPUS" --shards "$COUNT" --shard "$SHARD" --out records ${SLICE:+--slice "$SLICE"} ${LANES:+--lanes on} ${ITERATE:+--iterate on} ${CONFIRM:+--confirm on} ${PAIRS:+--pairs "$PAIRS"} ${PAIR_BUDGET:+--pair-budget "$PAIR_BUDGET"} ${COVER:+--cover on} ${PRIOR:+--prior "$PRIOR"} --deadline-minutes 5
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         # A shard that failed or that a person cancelled still keeps each finished pair.
         if: ${{ always() }}
