@@ -17,18 +17,16 @@
       "date": "2026-10-28",
       "item": "VERDICT",
       "title": "Verdicts over families, with their scope and breadth",
-      "release": "0.2.12",
       "prs": [
         49,
         51
       ],
-      "summary": "Version 0.2.11 adds familyBy, familyOf and the verdict over families. Version 0.2.12 adds the scope and the breadth of a verdict."
+      "summary": "The contract adds familyBy, familyOf and the verdict over families. A later release adds the scope and the breadth of a verdict."
     },
     {
       "date": "2026-10-28",
       "item": "L34",
       "title": "Strategy space as data (part 1)",
-      "release": "0.2.10",
       "prs": [
         47
       ],
@@ -37,26 +35,25 @@
     {
       "date": "2026-10-28",
       "item": "L33",
-      "title": "highways 0.8.1 in the joint benchmark: the ROUTE-SCALE fix",
+      "title": "A new highways release in the joint benchmark: the ROUTE-SCALE fix",
       "prs": [
         45
       ],
-      "summary": "The joint runner uses highways 0.8.1. That version computes the key of each shared link one time. The output of highways does not change."
+      "summary": "The joint runner takes a new highways release. That release computes the key of each shared link one time. The output of highways does not change."
     },
     {
       "date": "2026-10-28",
       "item": "L31",
-      "title": "highways 0.8.0 in the joint benchmark: the fixed lane order",
+      "title": "A new highways release in the joint benchmark: the fixed lane order",
       "prs": [
         43
       ],
-      "summary": "The joint runner uses highways 0.8.0. That version fixes the lane order of a run. The route hashes of shared and sections change one time, and no point moves."
+      "summary": "The joint runner takes a new highways release. That release fixes the lane order of a run. The route hashes of shared and sections change one time, and no point moves."
     },
     {
       "date": "2026-10-28",
       "item": "L22",
       "title": "Corpus claims, corpus hash and split checks",
-      "release": "0.2.9",
       "prs": [
         42
       ],
