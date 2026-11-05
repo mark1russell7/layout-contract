@@ -65,6 +65,10 @@ env:
   PAIRS: ${{ inputs.pairs || '' }}
   REPEATS: ${{ inputs.repeats || '1' }}
 
+defaults:
+  run:
+    shell: bash
+
 jobs:
   plan:
     runs-on: ubuntu-latest
