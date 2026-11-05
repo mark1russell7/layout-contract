@@ -33,7 +33,7 @@ describe("the shape kinds", () => {
   it("declares 4 kinds in a fixed order, each with its bounding box", () => {
     expect(SHAPE_KIND_IDS).toEqual(["rect", "polygon", "circle", "free"]);
     expect(SHAPE_KINDS.every((k) => k.geometry.bounds)).toBe(true);
-    expect(SHAPE_KINDS.filter((k) => k.geometry.overlap).map((k) => k.id)).toEqual(["rect"]);
+    expect(SHAPE_KINDS.filter((k) => k.geometry.overlap).map((k) => k.id)).toEqual(["rect", "circle"]);
   });
 
   it("gives the kind of a box from shapeKind, or from its shape", () => {
@@ -127,8 +127,8 @@ describe("the safe level of a rule (L57)", () => {
   const inContainer = PACK_HARD_RULES.find((r) => r.id === "in-container")!;
 
   it("gives the level of each hard rule on each kind", () => {
-    expect(SHAPE_KIND_IDS.map((k) => ruleLevel(noOverlap, k))).toEqual(["exact", "safe", "safe", "safe"]);
-    expect(SHAPE_KIND_IDS.map((k) => ruleLevel(inContainer, k))).toEqual(["exact", "safe", "safe", "safe"]);
+    expect(SHAPE_KIND_IDS.map((k) => ruleLevel(noOverlap, k))).toEqual(["exact", "safe", "exact", "safe"]);
+    expect(SHAPE_KIND_IDS.map((k) => ruleLevel(inContainer, k))).toEqual(["exact", "safe", "exact", "safe"]);
     for (const id of ["locked-kept", "complete"]) expect(SHAPE_KIND_IDS.map((k) => ruleLevel(PACK_HARD_RULES.find((r) => r.id === id)!, k))).toEqual(["exact", "exact", "exact", "exact"]);
     expect(SHAPE_KIND_IDS.map((k) => ruleLevel({}, k))).toEqual(["exact", "none", "none", "none"]);
     expect(ruleLevel({ shapes: ["circle"], safe: ["free"] }, "rect")).toBe("none");
@@ -149,8 +149,8 @@ describe("the safe level of a rule (L57)", () => {
   it("refuses a safe kind by default, and accepts it with the level safe", () => {
     const exact = checkShapes(input([rect, tri]), PACK_HARD_RULES);
     expect(exact.map((b) => b.detail)).toEqual([
-      "no-overlap supports only the shape kinds rect, but the input t has polygon boxes: p. The count of no-overlap on polygon is only safe",
-      "in-container supports only the shape kinds rect, but the input t has polygon boxes: p. The count of in-container on polygon is only safe",
+      "no-overlap supports only the shape kinds rect, circle, but the input t has polygon boxes: p. The count of no-overlap on polygon is only safe",
+      "in-container supports only the shape kinds rect, circle, but the input t has polygon boxes: p. The count of in-container on polygon is only safe",
     ]);
     expect(checkShapes(input([rect, tri, circle, ellipse]), PACK_HARD_RULES, { level: "safe" })).toEqual([]);
     const measures = checkShapes(input([tri]), [...JOINT_MEASURES, ...PACK_HARD_RULES], { level: "safe" });

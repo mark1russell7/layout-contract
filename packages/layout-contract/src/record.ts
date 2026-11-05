@@ -30,6 +30,8 @@ export interface LayoutRecord {
   readonly hard: Readonly<Record<string, number>>;
   /** The tolerance of each hard rule of the run. */
   readonly tolerance?: Readonly<Partial<Tolerance>>;
+  /** The version of the rules that made the counts of `hard`: `HARD_RULE_VERSION` at the run. `hardRuleOf` reads it. */
+  readonly hardRule?: number;
   /**
    * The value is `true` when two runs with the same seed give the same positions.
    * A skipped record has `null`, because no run made a claim. Each other record has a boolean.
@@ -117,7 +119,7 @@ const STAGES: readonly string[] = ["pack", "route", "joint"];
 const RECORD_STRINGS = ["step", "strategy", "corpus", "input", "inputHash", "set"] as const;
 const RECORD_NUMBERS = ["seed", "nodes", "edges", "ms"] as const;
 const RECORD_OPTIONAL_STRINGS = ["prediction", "outputHash", "skipped", "commit"] as const;
-const RECORD_OPTIONAL_NUMBERS = ["budgetMs", "msAtLeast"] as const;
+const RECORD_OPTIONAL_NUMBERS = ["budgetMs", "msAtLeast", "hardRule"] as const;
 const ENV_STRINGS = ["node", "os", "arch", "runner", "cpu"] as const;
 const ENV_OPTIONAL_STRINGS = ["mode", "context"] as const;
 
@@ -138,6 +140,14 @@ function envProblems(env: unknown): string[] {
   if (typeof env["cpus"] !== "number") out.push("env.cpus is not a number");
   for (const key of ENV_OPTIONAL_STRINGS) if (env[key] !== undefined && typeof env[key] !== "string") out.push(`env.${key} is not a string`);
   return out;
+}
+
+/**
+ * This function gives the version of the rules that made the counts of `hard` of a record. A record without `hardRule` has version 1.
+ * On version 1, a count on a circle is by its bounding box. So it is an upper bound, and a count over 0 proves nothing.
+ */
+export function hardRuleOf(record: Pick<LayoutRecord, "hardRule">): number {
+  return record.hardRule ?? 1;
 }
 
 /**
