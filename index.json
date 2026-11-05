@@ -27,7 +27,54 @@
     "halved": 59,
     "design": 0
    }
+  },
+  "joint-v2_packing-0.6.1_highways-0.13.0_space-bench-3": {
+   "corpus": "joint-v2",
+   "nights": 1,
+   "last": "2026-11-05",
+   "missing": 0,
+   "configs": 17,
+   "counts": {
+    "baseline": 3,
+    "screened": 1,
+    "alive": 3,
+    "dropped": 6,
+    "halved": 4,
+    "design": 0
+   },
+   "step": {
+    "from": "joint-v2_packing-0.4.1_highways-0.10.0_space-bench-3",
+    "to": "joint-v2_packing-0.6.1_highways-0.13.0_space-bench-3",
+    "pairs": 909,
+    "dropped": {
+     "space": 0,
+     "input": 0,
+     "hash": 0,
+     "config": 0,
+     "missing": 0
+    },
+    "metrics": {
+     "joint.fill": {
+      "n": 909,
+      "median": 1,
+      "q10": 1,
+      "q90": 1
+     },
+     "hard": {
+      "n": 522,
+      "median": 1,
+      "q10": 1,
+      "q90": 1
+     },
+     "joint.straight.crossings": {
+      "n": 787,
+      "median": 1,
+      "q10": 1,
+      "q90": 1
+     }
+    }
+   }
   }
  },
- "latest": "joint-v2_packing-0.4.1_highways-0.10.0_space-bench-3"
+ "latest": "joint-v2_packing-0.6.1_highways-0.13.0_space-bench-3"
 }
