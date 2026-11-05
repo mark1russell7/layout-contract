@@ -23,6 +23,9 @@ import { dirname, join } from "node:path";
 import {
   applyRecords,
   BASELINE_ARM,
+  GATE_LANES,
+  gateCost,
+  gateEstimate,
   BENCH_SPACE_VERSION,
   baselineIds,
   CONFIG_COST,
@@ -325,6 +328,15 @@ if (command === "plan") {
   console.log(`race of ${plan.date}: ${JSON.stringify(state.nights.at(-1).race)}, labels ${JSON.stringify(labels)}`);
   const options = planOptions(plan.date, state);
   writePlan(args.out ?? "night2", state, planRound2(state, sweep, options), options);
+} else if (command === "gate-estimate") {
+  // Each file under --runs is one gate, as `gh run view --json jobs` writes it. The first word of the output is the estimate in minutes, and the rest is the reason for the summary.
+  const files = existsSync(args.runs) ? readdirSync(args.runs).filter((f) => f.endsWith(".json")).sort() : [];
+  const gates = files.map((f) => readJson(join(args.runs, f)).jobs ?? []);
+  const parts = gates.map((jobs, i) => {
+    const cost = gateCost(jobs);
+    return `${files[i].replace(/\.json$/, "")}: longest job ${Math.round(cost.longest)}, ${Math.round(cost.jobMinutes)} job minutes`;
+  });
+  console.log(`${gateEstimate(gates)} the median at ${GATE_LANES} lanes over ${parts.length === 0 ? "no gate, so the fallback" : parts.join("; ")}`);
 } else if (command === "summarize") {
   const dir = args.night ?? "night2";
   const state = readJson(join(dir, "state.json"));

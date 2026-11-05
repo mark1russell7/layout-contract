@@ -1,4 +1,5 @@
 // The memory gate of L81: the probe inputs cover each family of the corpus, and the gate fails on each kind of bad probe.
+import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { jointCorpus, SET_V2 } from "./corpus.ts";
 import { straightCrossings } from "./joint-measures.ts";
@@ -6,6 +7,10 @@ import {
   expectedProbes,
   familyOf,
   familyProbeGroups,
+  GATE_FALLBACK_MINUTES,
+  GATE_LANES,
+  gateCost,
+  gateEstimate,
   gateJobs,
   gateMarkdown,
   LIMITS_MODE,
@@ -167,5 +172,63 @@ describe("the limits of input F", () => {
     ]);
     expect(expectedProbes(jobs).map((p) => `${p.mode} ${p.input}`)).toEqual([`${LIMITS_MODE} f/s1`, `${LIMITS_MODE} f/s2`, "bench-6144 x/s1", "bench-6144 f/s1", "bench-6144 f/s2"]);
     expect(gateJobs(["x/s1"], ["bench-6144"], 1)).toEqual([{ input: "x/s1", mode: "bench-6144", repeat: 1 }]);
+  });
+});
+
+/** This function gives a job with a start at a stated minute of a stated day, and a length in minutes. */
+function timedJob(start: number, minutes: number): { conclusion: string; startedAt: string; completedAt: string } {
+  const base = Date.parse("2026-11-04T00:00:00Z");
+  return { conclusion: "success", startedAt: new Date(base + start * 60000).toISOString(), completedAt: new Date(base + (start + minutes) * 60000).toISOString() };
+}
+
+describe("the expected minutes of a gate", () => {
+  it("is the longest job when the longest job is over the job minutes per lane", () => {
+    const cost = gateCost([timedJob(0, 303), timedJob(0, 100), timedJob(0, 100)], 6);
+    expect(cost.longest).toBe(303);
+    expect(cost.jobMinutes).toBe(503);
+    expect(cost.minutes).toBe(303);
+  });
+
+  it("is the job minutes per lane when no job is that long", () => {
+    const jobs = Array.from({ length: 120 }, (_, i) => timedJob(i, 12));
+    expect(gateCost(jobs, 6).minutes).toBe(240);
+    expect(gateCost(jobs, 3).minutes).toBe(480);
+  });
+
+  it("does not read a wait in the concurrency group, because only the times of the jobs count", () => {
+    const late = [timedJob(334, 171), timedJob(334, 171)];
+    expect(gateCost(late, 6).minutes).toBe(171);
+  });
+
+  it("leaves out skipped jobs, jobs with no end and jobs with a start at the year 1", () => {
+    const cost = gateCost([
+      timedJob(0, 10),
+      { conclusion: "skipped", startedAt: "2026-11-04T00:00:00Z", completedAt: "2026-11-04T09:00:00Z" },
+      { conclusion: "success", startedAt: "2026-11-04T00:00:00Z", completedAt: null },
+      { conclusion: "success", startedAt: "0001-01-01T00:00:00Z", completedAt: "2026-11-04T00:00:00Z" },
+      { conclusion: "success" },
+    ]);
+    expect(cost.jobMinutes).toBe(10);
+  });
+
+  it("refuses a count of lanes that is not a whole number from 1", () => {
+    expect(() => gateCost([], 0)).toThrow(RangeError);
+    expect(() => gateCost([], 1.5)).toThrow(RangeError);
+  });
+
+  it("takes the median over the gates, and an odd gate does not move it", () => {
+    expect(gateEstimate([[timedJob(0, 100)], [timedJob(0, 300)], [timedJob(0, 200)]])).toBe(200);
+  });
+
+  it("takes the fallback when no gate has job times", () => {
+    expect(gateEstimate([])).toBe(GATE_FALLBACK_MINUTES);
+    expect(gateEstimate([[{ conclusion: "skipped" }]])).toBe(GATE_FALLBACK_MINUTES);
+  });
+
+  it("reads the lanes of the nightly gate, and a dispatch keeps 3", () => {
+    const text = readFileSync(new URL("../../../.github/workflows/memory-probe.yml", import.meta.url), "utf8");
+    const line = /max-parallel: \$\{\{ github\.event_name == 'workflow_dispatch' && (\d+) \|\| (\d+) \}\}/.exec(text);
+    expect(line?.[1]).toBe("3");
+    expect(Number(line?.[2])).toBe(GATE_LANES);
   });
 });

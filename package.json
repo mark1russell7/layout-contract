@@ -36,6 +36,12 @@
   },
   "conventions": {
     "rules": {
+      "runner-budget": {
+        "ignore": [
+          ".github/workflows/memory-probe.yml"
+        ],
+        "reason": "The nightly memory gate has 6 jobs at once on a stated trial of 3 nights from 2026-11-05 (docs/JOINT-BENCH.md). A dispatch keeps 3. This exception ends with the trial."
+      },
       "typed-scripts": {
         "ignore": [
           "packages/*/scripts/*.mjs"

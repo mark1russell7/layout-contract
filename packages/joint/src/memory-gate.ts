@@ -2,6 +2,8 @@
 // For the inputs of `MEMORY_LIMITS`, the gate also examines the allocation and the live heap in the mode `LIMITS_MODE`.
 // The bench gives the list of the inputs, so the gate cannot leave out a family.
 
+import { median } from "@mark1russell7/rigor-statistics";
+
 /** One input of the corpus with its planned cost (`plannedCost`). */
 export interface CostedInput {
   readonly id: string;
@@ -55,6 +57,64 @@ export interface PairAllocation {
 /** This function gives the count of the pairs of a probe where `STEP_FUNCTION` allocates `STEP_LINE_MB` or more. */
 export function stepCount(pairs: readonly PairAllocation[]): number {
   return pairs.filter((pair) => pair.top.some((site) => site.at.startsWith(`${STEP_FUNCTION} `) && site.mb >= STEP_LINE_MB)).length;
+}
+
+/**
+ * The jobs at once of the nightly gate: `max-parallel` of `memory-probe.yml`. A test compares them.
+ * The number is a stated exception to the fleet limit of 3, on trial for 3 nights (`docs/JOINT-BENCH.md`, "The trial of the gate with 6 jobs at once").
+ */
+export const GATE_LANES = 6;
+
+/** The expected minutes of a gate with no job record to read: the safe side of the budget of the sweep. */
+export const GATE_FALLBACK_MINUTES = 360;
+
+/** The times of one job of a gate, as `gh run view --json jobs` gives them. */
+export interface GateJobTime {
+  readonly conclusion?: string | null;
+  readonly startedAt?: string | null;
+  readonly completedAt?: string | null;
+}
+
+/** The expected minutes of one gate from its jobs. */
+export interface GateCost {
+  /** The minutes of the longest job. No count of lanes can lower this floor. */
+  readonly longest: number;
+  /** The sum of the minutes of the jobs. */
+  readonly jobMinutes: number;
+  /** The larger of `longest` and `jobMinutes` over the lanes, up to a whole minute. */
+  readonly minutes: number;
+}
+
+/**
+ * This function gives the expected minutes of a gate from its jobs: the larger of the longest job and the job minutes over the lanes.
+ * Wall time is not an input. The gate 41433146680 waited 334 of its 704 minutes in its concurrency group, with no job running.
+ * A skipped job has no time, and GitHub can give it a start at the year 1. So a job counts only with a real start and a real end.
+ */
+export function gateCost(jobs: readonly GateJobTime[], lanes: number = GATE_LANES): GateCost {
+  if (!Number.isInteger(lanes) || lanes < 1) throw new RangeError(`The lanes are a whole number from 1, not ${lanes}.`);
+  let longest = 0;
+  let jobMinutes = 0;
+  for (const job of jobs) {
+    if (job.conclusion === "skipped" || job.startedAt == null || job.completedAt == null) continue;
+    const from = Date.parse(job.startedAt);
+    const to = Date.parse(job.completedAt);
+    if (!(from > 0) || !(to > from)) continue;
+    const minutes = (to - from) / 60000;
+    jobMinutes += minutes;
+    if (minutes > longest) longest = minutes;
+  }
+  return { longest, jobMinutes, minutes: Math.ceil(Math.max(longest, jobMinutes / lanes)) };
+}
+
+/**
+ * This function gives the expected minutes of the next gate: the median of `gateCost` over the gates that have job times.
+ * With no such gate, it gives `GATE_FALLBACK_MINUTES`.
+ * Each gate counts at the lanes of the next gate, so a gate of the old count of lanes does not raise the estimate.
+ */
+export function gateEstimate(gates: readonly (readonly GateJobTime[])[], lanes: number = GATE_LANES): number {
+  const costs = gates.map((jobs) => gateCost(jobs, lanes)).filter((cost) => cost.jobMinutes > 0);
+  if (costs.length === 0) return GATE_FALLBACK_MINUTES;
+  return Math.ceil(median(costs.map((cost) => cost.minutes)));
 }
 
 /** One job of the gate: a group of inputs with commas, one heap mode, and the number of the repeat. */

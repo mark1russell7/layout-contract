@@ -1511,6 +1511,14 @@ The first gate with 3 jobs at once was run `41042609930`, after the sweep of the
 
 The mean Brier score of N1-N3 is 0.082. The claim on the time of the sweep in [SWEEP.md](SWEEP.md) is also a miss. With it, the mean of the night is 0.151.
 
+### The trial of the gate with 6 jobs at once
+
+The gate of 2026-11-04 (run `41769223049`) took 607 minutes with 1,440 job minutes on 3 lanes. Its longest job took 303 minutes, for 3 seeds of the dense input with hubs: 82, 108 and 112 minutes. The nightly gate has 6 jobs at once for 3 nights, and the total of the job minutes does not change. This is a stated exception to the limit of 3. A dispatch keeps 3.
+
+The claim for night 1 is on the span from the first job start to the last job end. The span is 280 to 380 minutes, because the longest job sets the floor over the job minutes per lane (240).
+
+The trial stops if a release gate or a PR gate waits more than 15 minutes because of it. It also stops if a heavy dispatch stays refused overnight because of it. Each seed that costs more than 60 minutes gets its own job after night 1, so that night 1 reads the lanes alone. A job that reaches the limit of 340 minutes is a fault of the job limit, not a memory result.
+
 ### The prediction for the first run of the gate
 
 I wrote these claims before the run. The model of memory and of the time in CI is weak (L79), so those claims have a p of 0.6 or less. M2 has more because bench-4 measured it. The peaks of bench-4 are shard peaks: the RSS of a shard includes the inputs before it. Thus a probe of one input alone can have a lower peak.
