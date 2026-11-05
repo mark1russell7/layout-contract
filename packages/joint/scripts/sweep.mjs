@@ -53,6 +53,9 @@ import {
   applyKept,
   censoredLines,
   waitingLine,
+  waitAgeLines,
+  epochEnd,
+  epochEndLines,
   pairRuns,
   planDesign,
   planRound1,
@@ -445,6 +448,10 @@ if (command === "plan") {
   if (args["run-jobs"] !== undefined) night.wall = existsSync(args["run-jobs"]) ? { rounds: roundWallsOf(readJson(args["run-jobs"]).jobs ?? []) } : null;
   const out = args.out ?? "out";
   const data = args.data ?? "data";
+  // The first night of an epoch states what the epoch before it left open, because a new epoch carries no config.
+  const latest = existsSync(join(data, "index.json")) ? readJson(join(data, "index.json")).latest : undefined;
+  const before = latest === undefined || latest === state.epoch ? undefined : join(data, "epochs", latest, "state.json");
+  if (before !== undefined && existsSync(before)) night.epochBefore = epochEnd(readJson(before));
   // The new tree of the data branch: each file of the old tree, and the files of this epoch.
   mkdirSync(out, { recursive: true });
   if (existsSync(data)) cpSync(data, out, { recursive: true, filter: (from) => !/[\\/]\.git([\\/]|$)/.test(from) });
@@ -552,7 +559,7 @@ function nightMarkdown(state, night, counts, facts) {
   lines.push(...costClaimLines(cm.interval, night.budget));
   for (const s of night.shards) if (s.censored !== undefined) lines.push(`Round ${s.round} shard ${s.shard} stopped in the unit \`${s.censored.unit}\` (${s.censored.reason}). The unit took at least ${(s.censored.atLeastMs / 60000).toFixed(1)} minutes, and ${s.censored.configs.length} configs have no record.`);
   lines.push(`Drift of the baseline arm: ${night.drift} inputs. Values: ${night.values}. ${lostLine(night)}`, "", LOST_METHOD_NOTE, "");
-  lines.push(waitingLine(night), `Kept records that gave a value on this night: ${night.kept ?? 0}.`, "", ...censoredLines(state), "");
+  lines.push(...epochEndLines(night), waitingLine(night), `Kept records that gave a value on this night: ${night.kept ?? 0}.`, "", ...waitAgeLines(state), "", ...censoredLines(state), "");
   lines.push("| Baseline config | Headline misses of the reference floor | Inputs |", "|---|---|---|");
   for (const [name, m] of Object.entries(facts.misses)) lines.push(`| \`${name}\` | ${m.misses} | ${m.of} |`);
   const best = Object.entries(state.configs)

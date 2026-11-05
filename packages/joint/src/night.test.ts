@@ -1,9 +1,9 @@
 import { describe, expect, it } from "vitest";
 import type { LayoutRecord } from "@mark1russell7/layout-contract";
 import { nightLine, nightVerdict } from "./night-check.ts";
-import { applyRecords, emptyState, labelLine, lostLine, lostPairs, noReferenceRecords, noteLost, planRound1, planRound2, raceLines, raceNight, RACE_NOTE_2026_11_02, statusCounts, valueMaps, applyKept, censoredLimit, censoredLines, nightOf, noteMisses, settleRows, waitingLine } from "./night.ts";
+import { applyRecords, emptyState, labelLine, lostLine, lostPairs, noReferenceRecords, noteLost, planRound1, planRound2, raceLines, raceNight, RACE_NOTE_2026_11_02, statusCounts, valueMaps, applyKept, censoredLimit, censoredLines, nightOf, noteMisses, settleRows, waitingLine, waitAgeLines, WAIT_BOUND, epochEnd, epochEndLines } from "./night.ts";
 import { configRun } from "./space.ts";
-import { baselineIds, jobCost, SWEEP_FILL, takeBudget, type SweepInput } from "./sweep.ts";
+import { baselineIds, jobCost, SWEEP_FILL, takeBudget, takeFitting, type SweepInput } from "./sweep.ts";
 
 /** The inputs of a test: 4 specs with 3 seeds each. Spec `d` is a stress spec. */
 const INPUTS: SweepInput[] = ["a", "b", "c", "d"].flatMap((s) =>
@@ -483,15 +483,15 @@ describe("a pair that misses on 2 planned nights gets a censored row (L116)", ()
 
 describe("a plan cannot hold a config for ever because of its cost (L116)", () => {
   /** This function gives a state with 3 real alive configs with no values, and the planned cost of the first of the rotation. Configs with no date and no mean have the order of their ids. */
-  function threeAlive(): { state: ReturnType<typeof emptyState>; ids: string[]; costOfFirst: number } {
-    const state = emptyState("test", "test", INPUTS);
-    const first = planRound1(state, INPUTS, { ...OPTIONS, maxShards: 4 });
+  function threeAlive(inputs: readonly SweepInput[] = INPUTS): { state: ReturnType<typeof emptyState>; ids: string[]; costOfFirst: number } {
+    const state = emptyState("test", "test", inputs);
+    const first = planRound1(state, inputs, { ...OPTIONS, maxShards: 4 });
     const base = new Set(baselineIds());
     applyRecords(state, first.plan.units.flatMap((u) => u.configs.filter((c) => base.has(c)).map((c) => record(c, u.input, 0.5))), INPUTS, OPTIONS.date);
     const ids = Object.keys(first.configs).filter((id) => !base.has(id)).slice(0, 3).sort();
     for (const id of Object.keys(state.configs)) if (state.configs[id]!.status === "screened") state.configs[id]!.status = ids.includes(id) ? "alive" : "dropped";
     const run = configRun(state.configs[ids[0]!]!.config);
-    return { state, ids, costOfFirst: INPUTS.reduce((s, i) => s + jobCost(run, i), 0) };
+    return { state, ids, costOfFirst: inputs.reduce((s, i) => s + jobCost(run, i), 0) };
   }
 
   it("runs the first config that does not fit in part, and counts the rest as waiting", () => {
@@ -527,5 +527,144 @@ describe("a plan cannot hold a config for ever because of its cost (L116)", () =
 
   it("reads not read on a night from before the field", () => {
     expect(waitingLine({})).toBe("Waiting for the budget: not read.");
+  });
+
+  /** This function gives a state with an alive config whose pairs each cost more than the first pair of the 2 cheapest configs. It also gives a budget between those costs. */
+  function oneDear(): { state: ReturnType<typeof emptyState>; dear: string; cheap: string[]; target: number } {
+    const state = emptyState("test", "test", INPUTS);
+    const first = planRound1(state, INPUTS, { ...OPTIONS, maxShards: 4 });
+    const base = new Set(baselineIds());
+    applyRecords(state, first.plan.units.flatMap((u) => u.configs.filter((c) => base.has(c)).map((c) => record(c, u.input, 0.5))), INPUTS, OPTIONS.date);
+    const dearest = (id: string): number => Math.min(...INPUTS.map((i) => jobCost(configRun(state.configs[id]!.config), i)));
+    const sorted = Object.keys(first.configs).filter((id) => !base.has(id)).sort((a, b) => dearest(b) - dearest(a) || (a < b ? -1 : 1));
+    const dear = sorted[0]!;
+    const cheap = sorted.slice(-2);
+    for (const id of Object.keys(state.configs)) if (state.configs[id]!.status === "screened") state.configs[id]!.status = id === dear || cheap.includes(id) ? "alive" : "dropped";
+    const firstOf = (id: string): number => jobCost(configRun(state.configs[id]!.config), INPUTS[0]!);
+    return { state, dear, cheap, target: (dearest(dear) + Math.max(...cheap.map(firstOf))) / 2 / SWEEP_FILL };
+  }
+
+  it("skips a config with no pair that fits, plans the next config, and counts the pairs over the budget", () => {
+    const { state, dear, cheap, target } = oneDear();
+    // A config with no date is the oldest, so the 2 cheap configs need a date for the dear config to be the head.
+    state.configs[dear]!.ran = "2026-01-01";
+    for (const id of cheap) state.configs[id]!.ran = "2026-10-20";
+    const plan = planRound2(state, INPUTS, { ...OPTIONS, date: "2026-10-30", target, maxShards: 1, maxConfigs: 0, maxUnit: target });
+    const planned = new Set(plan.plan.units.flatMap((u) => u.configs));
+    expect(planned.has(dear)).toBe(false);
+    // takeBudget alone stops at the first config, the fault copy of this plan, and plans no config.
+    expect(cheap.some((id) => planned.has(id))).toBe(true);
+    expect(state.configs[dear]!.waited).toEqual(["2026-10-30"]);
+    const waiting = nightOf(state, "2026-10-30").waiting?.[2];
+    expect(waiting?.overBudgetPairs).toBeGreaterThanOrEqual(INPUTS.length);
+    expect(waiting?.overBudgetInputs).toBe(INPUTS.length);
+    expect(waitAgeLines(state).join("\n")).toContain(`| \`${dear}\` | alive | 1 | 2026-10-30 |`);
+  });
+
+  it("moves on to the next pair when a pair of a config does not fit", () => {
+    const mixed = INPUTS.map((i, n) => (n === 0 ? { ...i, boxes: 2000, edges: 1999 } : i));
+    const { state, ids } = threeAlive(mixed);
+    const run = configRun(state.configs[ids[0]!]!.config);
+    const [big, small] = [jobCost(run, mixed[0]!), jobCost(run, mixed[1]!)];
+    expect(big).toBeGreaterThan(small);
+    const budget = (big + small) / 2;
+    for (const id of ids.slice(1)) state.configs[id]!.ran = "2026-10-20";
+    const plan = planRound2(state, mixed, { ...OPTIONS, date: "2026-10-30", target: budget / SWEEP_FILL, maxShards: 1, maxConfigs: 0, maxUnit: budget / SWEEP_FILL });
+    const inputsOf = plan.plan.units.filter((u) => u.configs.includes(ids[0]!)).map((u) => u.input);
+    expect(inputsOf.length).toBeGreaterThan(0);
+    expect(inputsOf).not.toContain(mixed[0]!.id);
+    // takeBudget stops at the first pair, the fault copy of this plan, and takes no pair.
+    expect(takeBudget(mixed, (i) => jobCost(run, i), budget).taken).toEqual([]);
+    expect(takeFitting(mixed, (i) => jobCost(run, i), budget).taken.length).toBe(inputsOf.length);
+  });
+
+  it("orders the configs past the limit by their age and then by id, and not by their means", () => {
+    const { state, ids } = threeAlive();
+    const costs = ids.map((id) => INPUTS.reduce((s, i) => s + jobCost(configRun(state.configs[id]!.config), i), 0));
+    const target = Math.min(...costs) / 2 / SWEEP_FILL;
+    const options = { ...OPTIONS, target, maxShards: 1, maxConfigs: 0, maxUnit: target, date: "2026-10-30" };
+    const nights = (n: number): string[] => Array.from({ length: n }, (_, i) => `2026-10-1${i}`);
+    state.configs[ids[0]!]!.mean = 0.1;
+    state.configs[ids[1]!]!.mean = 0.9;
+    state.configs[ids[2]!]!.mean = 0.5;
+    const plannedOf = (s: typeof state): string[] => {
+      const units = planRound2(s, INPUTS, options).plan.units;
+      return ids.filter((id) => units.some((u) => u.configs.includes(id)));
+    };
+    const equal = JSON.parse(JSON.stringify(state)) as typeof state;
+    for (const id of ids) equal.configs[id]!.waited = nights(WAIT_BOUND);
+    // One age: the first id, although its mean is the smallest. The sort of the means alone gives the second id.
+    expect(plannedOf(equal)).toEqual([ids[0]]);
+    const longer = JSON.parse(JSON.stringify(state)) as typeof state;
+    for (const id of ids) longer.configs[id]!.waited = nights(WAIT_BOUND);
+    longer.configs[ids[2]!]!.waited = nights(WAIT_BOUND + 1);
+    expect(plannedOf(longer)).toEqual([ids[2]]);
+  });
+
+  it("states the open configs at the end of an epoch, and no line after the first night", () => {
+    const { state, ids } = threeAlive();
+    expect(epochEnd(state)).toEqual({ epoch: "test", open: 3, leftOut: 0 });
+    // An epoch from before the field has no read of the plans.
+    const older = JSON.parse(JSON.stringify(state)) as typeof state;
+    for (const n of older.nights) delete n.waiting;
+    expect(epochEnd(older).leftOut).toBeNull();
+    const target = INPUTS.reduce((s, i) => s + jobCost(configRun(state.configs[ids[0]!]!.config), i), 0) / 2 / SWEEP_FILL;
+    planRound2(state, INPUTS, { ...OPTIONS, date: "2026-10-30", target, maxShards: 1, maxConfigs: 0, maxUnit: target });
+    const end = epochEnd(state);
+    expect(end.open).toBe(3);
+    expect(end.leftOut).toBeGreaterThan(0);
+    expect(epochEndLines({ epochBefore: { epoch: "old", open: 3, leftOut: null } })[0]).toBe("The epoch `old` ended with 3 open configs, and a plan left out a count not read of them. A new epoch carries no config and no age.");
+    expect(epochEndLines({})).toEqual([]);
+  });
+
+  it("brings a config past the limit to the head of the plan, against the order of the dates, and a fault copy with no rule stays behind", () => {
+    const { state, ids, costOfFirst } = threeAlive();
+    const target = costOfFirst / 2 / SWEEP_FILL;
+    const options = { ...OPTIONS, target, maxShards: 1, maxConfigs: 0, maxUnit: target, date: "2026-10-30" };
+    const [old, recent] = [ids[0]!, ids[1]!];
+    state.configs[old]!.ran = "2026-10-01";
+    state.configs[recent]!.ran = "2026-10-20";
+    state.configs[ids[2]!]!.ran = "2026-10-21";
+    const copy = JSON.parse(JSON.stringify(state)) as typeof state;
+    state.configs[recent]!.waited = Array.from({ length: WAIT_BOUND }, (_, i) => `2026-10-2${i + 2}`);
+    const first = (s: typeof state): string => planRound2(s, INPUTS, options).plan.units.flatMap((u) => u.configs)[0]!;
+    expect(first(state)).toBe(recent);
+    expect(state.configs[recent]!.waited).toBeUndefined();
+    // The fault copy: the same dates, and one night under the limit.
+    copy.configs[recent]!.waited = Array.from({ length: WAIT_BOUND - 1 }, (_, i) => `2026-10-2${i + 2}`);
+    expect(first(copy)).toBe(old);
+  });
+
+  it("reads no read past the limit with no plan, and a config under the limit reads held", () => {
+    const { state, ids } = threeAlive();
+    const held = (id: string) => {
+      raceNight(state, INPUTS, { date: OPTIONS.date });
+      return state.nights.at(-1)!.race?.held?.find((h) => h.config === id);
+    };
+    state.configs[ids[0]!]!.waited = Array.from({ length: WAIT_BOUND }, (_, i) => `2026-10-2${i}`);
+    expect(held(ids[0]!)?.noRead).toBeUndefined();
+    state.configs[ids[0]!]!.waited = Array.from({ length: WAIT_BOUND + 1 }, (_, i) => `2026-10-2${i}`);
+    const past = held(ids[0]!);
+    expect(past?.noRead).toBe(true);
+    expect(past?.reason).toContain(`a plan left it out on ${WAIT_BOUND + 1} nights`);
+    expect(labelLine(state.configs[ids[0]!]!, past?.missing ?? 0, true)).toContain(`no read, left out of the plan on ${WAIT_BOUND + 1} nights`);
+  });
+
+  it("does not add a second date in one night, and counts a round where a backlog gave no fresh configs", () => {
+    const { state, ids, costOfFirst } = threeAlive();
+    const target = costOfFirst / 2 / SWEEP_FILL;
+    const options = { ...OPTIONS, target, maxShards: 1, maxConfigs: 0, maxUnit: target, date: "2026-10-30" };
+    planRound2(state, INPUTS, options);
+    planRound2(state, INPUTS, options);
+    const left = ids.filter((id) => state.configs[id]!.waited !== undefined);
+    expect(left.length).toBeGreaterThan(0);
+    for (const id of left) expect(state.configs[id]!.waited).toEqual(["2026-10-30"]);
+    expect(nightOf(state, "2026-10-30").waiting?.[2]?.noFresh).toBe(true);
+    expect(waitAgeLines(state)[0]).toBe("Rounds of this epoch where a backlog gave no fresh configs: 1.");
+    expect(waitingLine(nightOf(state, "2026-10-30"))).toContain("no fresh configs");
+  });
+
+  it("gives the plain lines with no wait", () => {
+    expect(waitAgeLines(emptyState("test", "test", INPUTS))).toEqual(["Rounds of this epoch where a backlog gave no fresh configs: 0.", "Configs that a plan left out: 0."]);
   });
 });

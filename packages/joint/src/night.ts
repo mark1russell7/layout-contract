@@ -24,6 +24,7 @@ import {
   SWEEP_SCHEMA,
   sweepValue,
   takeBudget,
+  takeFitting,
   unitsOf,
   type ConfigStatus,
   type RaceOutcome,
@@ -65,6 +66,8 @@ export interface ConfigEntry {
   ran?: string;
   /** The planned pairs of this config that gave no value by the end of a night, by input. A value clears the entry. A state from before L116 has none. */
   misses?: Record<string, PairMiss>;
+  /** The nights that a plan left this config out while it had inputs to run. A plan that gives it a pair clears this list. */
+  waited?: readonly string[];
   /** The censored rows of this config, by input (`noteMisses`). No row is a value, so the input does not count for this config. */
   censored?: Record<string, CensoredRow>;
 }
@@ -85,6 +88,12 @@ export interface CensoredRow extends PairMiss {
 
 /** The count of the planned nights with no value that gives a pair its censored row. A night that does not plan the pair does not add to the count and does not clear it. */
 export const MISS_BOUND = 2;
+
+/**
+ * The nights that a plan can leave out a config with inputs to run. The config then goes first in the next plan. A config that the next plan also leaves out reads "no read".
+ * On 3 of the 4 saved nights each alive config with missing inputs had a plan. Thus a rotation took 1 night, and this limit is 2 rotations.
+ */
+export const WAIT_BOUND = 2;
 
 /** The largest share of the inputs with a censored row in a full race. Over it, the config reads "no read". `docs/SWEEP.md` tells how this share was chosen. */
 export const CENSORED_SHARE = 0.005;
@@ -156,9 +165,23 @@ export interface LostPair {
 }
 
 /** The configs that a plan left with inputs to run, and the count of those pairs. */
+/** The open configs at the end of an epoch. A new epoch starts with the baseline arm only, so these configs do not go on. */
+export interface EpochEnd {
+  readonly epoch: string;
+  /** The screened and alive configs with an input that has no value and no row. */
+  readonly open: number;
+  /** The open configs that a plan left out on the last nights. An epoch from before the field reads null. */
+  readonly leftOut: number | null;
+}
+
 export interface WaitingCounts {
   readonly configs: number;
   readonly pairs: number;
+  /** The pairs and the distinct inputs with a cost over the whole budget of the round. Such a pair gets no plan and no miss. */
+  readonly overBudgetPairs?: number;
+  readonly overBudgetInputs?: number;
+  /** True for a round where a backlog gave no fresh configs. */
+  readonly noFresh?: boolean;
 }
 
 /** One night in the state. */
@@ -182,6 +205,8 @@ export interface NightEntry {
   waiting?: Record<string, WaitingCounts>;
   /** The kept records that gave a value on this night, after the reference of their input returned. A night with none has no field. */
   kept?: number;
+  /** The end of the epoch before this one, on the first night of an epoch. */
+  epochBefore?: EpochEnd;
   /** The planned and the real minutes of each shard. A stop writes the censored row of the unit in progress. */
   shards: { round: number; shard: number; planned: number; real: number; elapsedMinutes?: number; censored?: CensoredUnit }[];
 }
@@ -415,8 +440,39 @@ export function censoredLines(state: SweepState): string[] {
 
 /** This function gives the line of the pairs of a night that had no place in the budget. */
 export function waitingLine(night: Pick<NightEntry, "waiting">): string {
-  const rounds = Object.entries(night.waiting ?? {}).map(([round, w]) => `round ${round}: ${w.configs} configs, ${w.pairs} pairs`);
+  const rounds = Object.entries(night.waiting ?? {}).map(([round, w]) => `round ${round}: ${w.configs} configs, ${w.pairs} pairs, ${w.overBudgetPairs ?? 0} pairs over the whole budget on ${w.overBudgetInputs ?? 0} inputs${w.noFresh === true ? ", no fresh configs" : ""}`);
   return `Waiting for the budget: ${rounds.length === 0 ? "not read" : rounds.join("; ")}.`;
+}
+
+/** This function reads the end of an epoch from its state. */
+export function epochEnd(state: SweepState): EpochEnd {
+  const open = Object.entries(state.configs).filter(([id, c]) => {
+    if (c.status !== "screened" && c.status !== "alive") return false;
+    const values = state.values[id];
+    return state.inputs.some((input, i) => (values?.[i] ?? null) === null && c.censored?.[input] === undefined);
+  });
+  const read = state.nights.some((n) => n.waiting !== undefined);
+  return { epoch: state.epoch, open: open.length, leftOut: read ? open.filter(([, c]) => (c.waited?.length ?? 0) > 0).length : null };
+}
+
+/** This function gives the line of the end of the epoch before a night, or no line after the first night of an epoch. */
+export function epochEndLines(night: Pick<NightEntry, "epochBefore">): string[] {
+  const end = night.epochBefore;
+  if (end === undefined) return [];
+  return [`The epoch \`${end.epoch}\` ended with ${end.open} open configs, and a plan left out ${end.leftOut ?? "a count not read"} of them. A new epoch carries no config and no age.`, ""];
+}
+
+/** This function gives the age of each config that a plan left out. It also gives the count of the rounds where a backlog gave no fresh configs. */
+export function waitAgeLines(state: SweepState): string[] {
+  const noFresh = state.nights.flatMap((n) => Object.values(n.waiting ?? {})).filter((w) => w.noFresh === true).length;
+  const rows = Object.entries(state.configs)
+    .filter(([, c]) => (c.status === "screened" || c.status === "alive") && (c.waited?.length ?? 0) > 0)
+    .sort(([a, x], [b, y]) => y.waited!.length - x.waited!.length || (a < b ? -1 : 1));
+  const lines = [`Rounds of this epoch where a backlog gave no fresh configs: ${noFresh}.`];
+  if (rows.length === 0) return [...lines, "Configs that a plan left out: 0."];
+  lines.push(`Configs that a plan left out: ${rows.length}. After ${WAIT_BOUND} nights a config goes first in the next plan. After ${WAIT_BOUND + 1} nights it reads no read.`, "", "| Config | Status | Nights left out | Nights |", "|---|---|---|---|");
+  for (const [id, c] of rows) lines.push(`| \`${id}\` | ${c.status} | ${c.waited!.length} | ${c.waited!.join(", ")} |`);
+  return lines;
 }
 
 /** The note on the race of 2026-11-02. It stays in each summary, because the summary of that night printed the 3 labels with no mark. */
@@ -440,12 +496,12 @@ export function raceLines(race: RaceFacts | undefined): string[] {
 }
 
 /** This function gives the label of a config for a page or a summary. A held config reads as held, and a label from the screen alone reads as that. */
-export function labelLine(entry: Pick<ConfigEntry, "label" | "labelFrom" | "decided" | "censored">, heldMissing = 0, noRead = false): string {
+export function labelLine(entry: Pick<ConfigEntry, "label" | "labelFrom" | "decided" | "censored" | "waited">, heldMissing = 0, noRead = false): string {
   const label = entry.label ?? "";
   const from = entry.labelFrom;
   const rows = Object.keys(entry.censored ?? {}).length;
   const old = label === "" ? "no label" : `${label} from ${from === undefined ? "a race with no stated origin" : originText(from)}`;
-  if (noRead) return `no read, ${rows} censored inputs (${old})`;
+  if (noRead) return `no read, ${rows === 0 ? `left out of the plan on ${entry.waited?.length ?? 0} nights` : `${rows} censored inputs`} (${old})`;
   const marked = rows === 0 ? "" : `, ${rows} censored inputs`;
   if (heldMissing > 0) return `held, ${heldMissing} inputs missing${marked} (${old})`;
   if (label === "") return rows === 0 ? "" : `${rows} censored inputs`;
@@ -528,15 +584,33 @@ export function planJobs(
   return { round, date: options.date, plan, configs, runs, facts };
 }
 
-/** This function sorts configs for the rotation: the config that a night planned the longest time ago comes first. A config that no night planned is the oldest. */
+/**
+ * This function sorts configs for the rotation. A config that a plan left out on `WAIT_BOUND` nights comes first, the longest wait first and then by id.
+ * Then the config that a night planned the longest time ago comes first. A config that no night planned is the oldest.
+ */
 function byAge<T extends { readonly id: string }>(state: SweepState, items: readonly T[]): T[] {
   const age = (x: T): string => state.configs[x.id]!.ran ?? "";
-  return [...items].sort((a, b) => (age(a) < age(b) ? -1 : age(a) > age(b) ? 1 : 0));
+  const overdue = (x: T): number => {
+    const nights = state.configs[x.id]!.waited?.length ?? 0;
+    return nights >= WAIT_BOUND ? nights : 0;
+  };
+  return [...items].sort((a, b) => overdue(b) - overdue(a) || (overdue(a) > 0 ? (a.id < b.id ? -1 : 1) : age(a) < age(b) ? -1 : age(a) > age(b) ? 1 : 0));
+}
+
+/** This function adds the night to each config of a status that the plan left out with inputs to run. A pair in the plan or no input to run clears the list. */
+function noteWaits(state: SweepState, status: ConfigStatus, items: readonly { readonly id: string }[], planned: ReadonlySet<string>, date: string): void {
+  const waiting = new Set(items.map((x) => x.id).filter((id) => !planned.has(id)));
+  for (const [id, entry] of Object.entries(state.configs)) {
+    if (entry.status !== status) continue;
+    if (!waiting.has(id)) delete entry.waited;
+    else if (entry.waited?.at(-1) !== date) entry.waited = [...(entry.waited ?? []), date];
+  }
 }
 
 /**
  * This function takes the configs of a rotation while the budget lasts. The first config that does not fit runs in part, in the order of its inputs, so the oldest config makes progress on each night.
  * A config with a cost over the budget then cannot hold up the configs behind it. A record moves its date, so they come first on the next night.
+ * A pair that does not fit does not stop the pairs behind it (`takeFitting`). A config with no pair that fits gets no plan, and the next config takes its place. The first such config waits, and its age rises (`noteWaits`).
  */
 function takeOldest(
   state: SweepState,
@@ -544,6 +618,8 @@ function takeOldest(
   byId: ReadonlyMap<string, SweepInput>,
   budget: number,
   space: StrategySpace,
+  status: ConfigStatus,
+  date: string,
 ): { readonly jobs: SweepJob[]; readonly cost: number; readonly waiting: WaitingCounts } {
   const pairCost = (id: string): ((i: SweepInput) => number) => {
     const run = configRun(state.configs[id]!.config, space);
@@ -555,11 +631,26 @@ function takeOldest(
   };
   const whole = takeBudget(items, costOf, budget);
   const jobs: SweepJob[] = whole.taken.flatMap((a) => a.missing.map((i) => ({ config: a.id, input: i.id })));
-  const next = items[whole.taken.length];
-  const part = next === undefined ? { taken: [] as SweepInput[], cost: 0 } : takeBudget(next.missing, pairCost(next.id), budget - whole.cost);
-  if (next !== undefined) for (const i of part.taken) jobs.push({ config: next.id, input: i.id });
+  let part = { taken: [] as SweepInput[], cost: 0 };
+  let partOf: string | undefined;
+  for (const a of items.slice(whole.taken.length)) {
+    part = takeFitting(a.missing, pairCost(a.id), budget - whole.cost);
+    if (part.taken.length === 0) continue;
+    partOf = a.id;
+    for (const i of part.taken) jobs.push({ config: a.id, input: i.id });
+    break;
+  }
+  noteWaits(state, status, items, new Set([...whole.taken.map((a) => a.id), ...(partOf === undefined ? [] : [partOf])]), date);
+  const over = items.flatMap((a) => {
+    const one = pairCost(a.id);
+    return a.missing.filter((i) => one(i) > budget).map((i) => i.id);
+  });
   const left = items.slice(whole.taken.length);
-  return { jobs, cost: whole.cost + part.cost, waiting: { configs: left.length, pairs: left.reduce((s, a) => s + a.missing.length, 0) - part.taken.length } };
+  return {
+    jobs,
+    cost: whole.cost + part.cost,
+    waiting: { configs: left.length, pairs: left.reduce((s, a) => s + a.missing.length, 0) - part.taken.length, overBudgetPairs: over.length, overBudgetInputs: new Set(over).size },
+  };
 }
 
 /** This function gives the new configs of a round for a budget, in the order of their coverage need. */
@@ -601,7 +692,7 @@ export function planRound1(state: SweepState, inputs: readonly SweepInput[], opt
     .filter(([, c]) => c.status === "screened")
     .map(([id]) => ({ id, missing: missingOf(state, id, screen, at) }))
     .filter((s) => s.missing.length > 0);
-  const old = takeOldest(state, byAge(state, screened), byId, options.maxShards * options.target * SWEEP_FILL - base, space);
+  const old = takeOldest(state, byAge(state, screened), byId, options.maxShards * options.target * SWEEP_FILL - base, space, "screened", options.date);
   jobs.push(...old.jobs);
   const budget = options.maxShards * options.target * SWEEP_FILL - base - old.cost;
   const fresh = freshFor(state, nightSeed(options.date), screen, budget, options);
@@ -610,7 +701,7 @@ export function planRound1(state: SweepState, inputs: readonly SweepInput[], opt
     for (const i of screen) jobs.push({ config: id, input: i.id });
   }
   const night = nightOf(state, options.date);
-  night.waiting = { ...night.waiting, 1: old.waiting };
+  night.waiting = { ...night.waiting, 1: { ...old.waiting, noFresh: old.waiting.pairs > 0 && fresh.length === 0 } };
   const plan = finish(state, 1, jobs, fresh, inputs, options);
   night.round1 = plan.facts;
   return plan;
@@ -765,6 +856,8 @@ export function raceNight(state: SweepState, inputs: readonly SweepInput[], opti
     const reason = `${missing} of ${list.length} ${what} have no value`;
     // No plan owes this config an input, so only a new epoch can bring it to the race.
     if (missingOf(state, id, list, at).length === 0) return { config: id, status, missing, of: list.length, reason: `${reason}: ${rowsOf(state, id)} censored rows, so it reads no read`, noRead: true };
+    const waited = state.configs[id]!.waited?.length ?? 0;
+    if (waited > WAIT_BOUND) return { config: id, status, missing, of: list.length, reason: `${reason}: a plan left it out on ${waited} nights, so it reads no read`, noRead: true };
     return { config: id, status, missing, of: list.length, reason };
   };
   const taking = new Set([...screened, ...full]);
@@ -823,7 +916,7 @@ export function planRound2(state: SweepState, inputs: readonly SweepInput[], opt
   // The sort is stable, so the configs of one age keep the order of their means.
   const rotated = byAge(state, alive);
   const budget = options.maxShards * options.target * SWEEP_FILL;
-  const old = takeOldest(state, rotated, byId, budget, space);
+  const old = takeOldest(state, rotated, byId, budget, space, "alive", options.date);
   const jobs = old.jobs;
   const fresh = freshFor(state, nightSeed(options.date) * 2 + 1, screen, budget - old.cost, options);
   for (const config of fresh) {
@@ -833,7 +926,7 @@ export function planRound2(state: SweepState, inputs: readonly SweepInput[], opt
   const plan = finish(state, 2, jobs, fresh, inputs, options);
   const night = nightOf(state, options.date);
   night.round2 = plan.facts;
-  night.waiting = { ...night.waiting, 2: old.waiting };
+  night.waiting = { ...night.waiting, 2: { ...old.waiting, noFresh: old.waiting.pairs > 0 && fresh.length === 0 } };
   return plan;
 }
 

@@ -86,6 +86,8 @@ describe("the commands of the sweep script", () => {
     const page = readFileSync(join(dir, "2026-01-02", "out", "night.md"), "utf8");
     expect(page).toContain("Kept records that gave a value on this night: 0.");
     expect(page).toContain("Censored rows: 0.");
+    expect(page).toContain("Rounds of this epoch where a backlog gave no fresh configs:");
+    expect(page).toContain("pairs over the whole budget on");
     const index = JSON.parse(readFileSync(join(dir, "2026-01-02", "out", "index.json"), "utf8")) as { latest: string; epochs: Record<string, { nights: number }> };
     expect(index.epochs[index.latest]!.nights).toBe(2);
     expect(existsSync(join(dir, "2026-01-02", "out", "epochs", index.latest, "nights", "2026-01-01.json"))).toBe(true);
@@ -109,6 +111,9 @@ describe("the commands of the sweep script", () => {
     start("sweep.mjs", ["summarize", "--night", join(dir, "2026-01-02", "night2"), "--records", join(dir, "2026-01-02", "records2"), "--data", data, "--out", out, "--run", "1"]);
     const stepped = JSON.parse(readFileSync(join(out, "index.json"), "utf8")) as { epochs: Record<string, { step: EpochStep }> };
     const step = stepped.epochs[index.latest]!.step;
+    // The same run states what the old epoch left open. The line is absent on the later nights of an epoch.
+    expect(readFileSync(join(out, "night.md"), "utf8")).toContain(`The epoch \`${old}\` ended with `);
+    expect(page).not.toContain("A new epoch carries no config and no age.");
     expect(step).toMatchObject({ from: old, dropped: { space: 0, input: 0, hash: 0, config: 0 } });
     expect(step.pairs).toBeGreaterThan(0);
     expect(step.metrics["joint.fill"]).toMatchObject({ median: 1, q10: 1, q90: 1 });
