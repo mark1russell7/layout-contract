@@ -19,13 +19,13 @@ This file lists the items of the roadmap of this repository. The status page of 
 | L111 | in progress | P2 | The cost claim of the sweep is an interval for the whole night, then for each shard, and the night record states the inputs of its budget |
 | L110 | in progress | P1 | The step between two sweep nights reads route values: detour, routed crossings and the route length of the contract (`joint.route.length`) |
 | L109 | in progress | P2 | The point where two segments cross has its home in the contract, beside `segmentsCross`, and gives a point exactly when that function is true |
-| L118 | in progress | P1 | A sample of a space whose constraints reject most draws: the option `draw: "walk"` of `enumerateSpace`. |
 | L105 | in progress | P1 | State the key of the edges as a dimension (`edgeKey`), and do not read crossings alone across routers that share segments |
 | L103 | next | P1 | A load factor for each shard from the router `straight`, so a time limit does not depend on the runner |
 | L104 | in progress | P1 | A response explorer on the site, from the records of a joint run: the builder first, the page with the data of the cover run |
 | L102 | in progress | P1 | The strategy catalog: each strategy and option of an engine as JSON (`docs/STRATEGY-CATALOG.md`) |
 | L101 | in progress | P0 | Bench: a shard with a deadline, a record for each pair, and a resume of a run |
 | L100 | in progress | P1 | The step between two epochs: raw values of the baseline arm, with a marked step on the charts |
+| L122 | in progress | P1 | A floor per option for a walk sample: the count per option beside uniform, a floor with its reason, a stratum if an option falls under it, and a test that pins the smallest count. By 2026-11-17. Part 1, the sample option `fixed`, is in version 0.5.4. |
 | L99 | in progress | P1 | A night with no result shows: `night-check.yml`, a line on the site, retries on API reads, and no green skip after a failed gate |
 
 ## Next
@@ -69,8 +69,6 @@ This file lists the items of the roadmap of this repository. The status page of 
 | L91 | later | P3 | Align linked boxes so that the edges are straight |
 | L92 | later | P3 | A learned route proxy for the placer |
 | L93 | later | P3 | An exact joint reference for small inputs |
-| L119 | in progress | P1 | A meta option that chooses its members from the input: the member rule with `min` and `max` 0. |
-| L122 | next | P1 | A floor per option for a walk sample: the count per option beside uniform, a floor with its reason, a stratum if an option falls under it, and a test that pins the smallest count. By 2026-11-17. |
 | L121 | later | P3 | The local `permutation` of the strategy space uses `Random.shuffle` of `@mark1russell7/rigor-generators`, after a byte-equal read. |
 | L106 | later | P2 | One name for routes through a shape: `route.through` takes the true shape when the measure of the router is on npm, and the extra key stops |
 | L107 | later | P2 | An exact rule for a circle beside another shape kind, an obstacle or a polygon container, due 2026-11-28 |
@@ -138,3 +136,5 @@ This file lists the items of the roadmap of this repository. The status page of 
 | L84 | done | P1 | A paired-time A/A arm in the joint bench, for the new Time row |
 | L85 | done | P2 | CI runs each command of the sweep script on a small fixture |
 | L86 | done | P3 | Move the random generators and the joint statistics to the rigor packages |
+| L118 | done | P1 | A sample of a space whose constraints reject most draws: the option `draw: "walk"` of `enumerateSpace`. Version 0.5.2. |
+| L119 | done | P1 | A meta option that chooses its members from the input: the member rule with `min` and `max` 0. Version 0.5.3. |

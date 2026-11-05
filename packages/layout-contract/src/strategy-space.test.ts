@@ -1008,3 +1008,90 @@ describe("a sample with a shape filter (0.2.17)", () => {
     expect(completed).toBeGreaterThan(700);
   });
 });
+
+describe("the fixed options of a sample (L122)", () => {
+  const options = { mode: "sample", n: 60, seed: 3 } as const;
+
+  it("gives the fixed option at the fixed stage of each config, and each config keeps the constraints", () => {
+    const out = enumerateSpace(pack, { ...options, fixed: { placement: "shelf" } });
+    expect(out).toHaveLength(60);
+    for (const c of out) {
+      expect(c.stages["placement"]?.option).toBe("shelf");
+      expect(checkConfig(pack, c)).toEqual([]);
+    }
+    // Flip: without fixed, the sample has more than one placement.
+    expect(new Set(enumerateSpace(pack, options).map((c) => c.stages["placement"]?.option)).size).toBeGreaterThan(1);
+  });
+
+  it("gives the same configs for the same seed, and fixes an optional stage with the walk draw", () => {
+    const one = enumerateSpace(pack, { ...options, fixed: { local: "anneal" }, draw: "walk" });
+    expect(enumerateSpace(pack, { ...options, fixed: { local: "anneal" }, draw: "walk" })).toEqual(one);
+    // The constraint of anneal needs maxrects, so each config has maxrects.
+    for (const c of one) expect([c.stages["local"]?.option, c.stages["placement"]?.option]).toEqual(["anneal", "maxrects"]);
+  });
+
+  it("refuses a fixed option that the constraints forbid, with the broken constraint in the reason", () => {
+    expect(() => enumerateSpace(pack, { ...options, fixed: { local: "anneal", placement: "shelf" } })).toThrow(
+      "The constraints of the space pack forbid the fixed options local.anneal, placement.shelf. The broken constraints: if local is anneal, then placement is maxrects.",
+    );
+    // Flip: the same fixed options in a space with no constraints give a sample.
+    const free = { ...pack, constraints: [] };
+    for (const c of enumerateSpace(free, { ...options, fixed: { local: "anneal", placement: "shelf" } })) expect(c.stages["placement"]?.option).toBe("shelf");
+  });
+
+  it("refuses a fixed option that the constraints with the other stages forbid", () => {
+    const chain: StrategySpace = {
+      ...pack,
+      named: {},
+      constraints: [
+        { if: { stage: "local", option: "anneal" }, then: { stage: "placement", option: "maxrects" } },
+        { if: { stage: "placement", option: "maxrects" }, then: { not: { stage: "local", option: "anneal" } } },
+      ],
+    };
+    expect(() => enumerateSpace(chain, { ...options, fixed: { local: "anneal" } })).toThrow(/^The space pack has no config with the fixed options local\.anneal\. No constraint between two fixed options breaks/);
+  });
+
+  it("refuses a stage or an option that the space does not have, and a meta option without meta sample", () => {
+    expect(() => enumerateSpace(pack, { ...options, fixed: { nowhere: "shelf" } })).toThrow("The option fixed names the stage nowhere, and the space pack has no such stage.");
+    expect(() => enumerateSpace(pack, { ...options, fixed: { placement: "none" } })).toThrow("The option fixed names the option none of the stage placement, and the stage has no such option.");
+    const metaStage = pack.stages.find((s) => s.options.some((o) => o.members !== undefined))!;
+    const metaOption = metaStage.options.find((o) => o.members !== undefined)!;
+    expect(() => enumerateSpace(pack, { ...options, fixed: { [metaStage.name]: metaOption.id } })).toThrow(/a sample with meta skip has no meta option\. Set meta to "sample"\.$/);
+    // A bad key refuses also for n 0, so a caller sees the error before a large run.
+    expect(() => enumerateSpace(pack, { ...options, n: 0, fixed: { nowhere: "shelf" } })).toThrow(RangeError);
+  });
+
+  it("gives a fixed meta option with meta sample, and no other stage of its part has an option", () => {
+    const metaStage = pack.stages.find((s) => s.options.some((o) => o.members !== undefined))!;
+    const metaOption = metaStage.options.find((o) => o.members !== undefined)!;
+    const out = enumerateSpace(pack, { ...options, meta: "sample", fixed: { [metaStage.name]: metaOption.id } });
+    expect(out).toHaveLength(60);
+    for (const c of out) {
+      expect(c.stages[metaStage.name]?.option).toBe(metaOption.id);
+      expect(checkConfig(pack, c)).toEqual([]);
+    }
+  });
+
+  it("keeps a fixed base option when a meta option of another stage of its part can be drawn", () => {
+    const metaStage = pack.stages.find((s) => s.options.some((o) => o.members !== undefined))!;
+    const base = pack.stages.find((s) => s !== metaStage && !s.optional)!;
+    const id = base.options.find((o) => o.members === undefined)!.id;
+    const out = enumerateSpace(pack, { ...options, meta: "sample", fixed: { [base.name]: id } });
+    expect(out).toHaveLength(60);
+    for (const c of out) expect(c.stages[base.name]?.option).toBe(id);
+  });
+
+  it("refuses a fixed option that the shape filter removes", () => {
+    const rectOnly: StrategySpace = {
+      ...pack,
+      named: {},
+      stages: pack.stages.map((s) => (s.name === "placement" ? { ...s, options: s.options.map((o) => (o.id === "shelf" ? { ...o, supports: { shape: ["rect"] } } : o)) } : s)),
+    };
+    const other = SHAPE_KIND_IDS.find((k) => k !== "rect")!;
+    expect(() => enumerateSpace(rectOnly, { ...options, shapes: [other], fixed: { placement: "shelf" } })).toThrow(
+      `The fixed option placement.shelf of the space pack does not support the shape kinds ${other}.`,
+    );
+    // Flip: with the kind rect, the fixed option stays.
+    for (const c of enumerateSpace(rectOnly, { ...options, shapes: ["rect"], fixed: { placement: "shelf" } })) expect(c.stages["placement"]?.option).toBe("shelf");
+  });
+});

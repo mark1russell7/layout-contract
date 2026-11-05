@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.5.4
+
+- PATCH before 1.0.0: a new optional option. `SampleOptions` has the option `fixed`. Without it, a sample gives the same configs as before.
+- With `fixed`, each config of a sample has the fixed option at each named stage. A meta option of another stage of the same part goes out of the sample.
+- The sample refuses a stage or an option that the space does not have with a `RangeError`. It also refuses a fixed meta option with `meta: "skip"`, and a fixed option that the shape filter removes.
+- Two fixed options that a constraint forbids get a `RangeError` that names the broken constraints. `docs/STRATEGY-SPACE.md` tells the rules.
+
 ## 0.5.3
 
 - PATCH before 1.0.0: `checkSpace` accepts a new form that it refused before, and each space that was good stays good with the same configs.

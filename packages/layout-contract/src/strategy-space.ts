@@ -176,6 +176,13 @@ export interface SampleOptions extends ShapeFilter {
    * Thus a mean over this sample is not a mean of the space.
    */
   readonly draw?: "reject" | "walk";
+  /**
+   * The options that each config of the sample has. A key is the name of a stage, and its value is the id of one option of that stage. The other stages draw as before.
+   * A stage of a product space has the name of its part before its own name, for example `pack.placement`.
+   * A fixed meta option needs `meta: "sample"`. A meta option of another stage of the same part goes out, because such an option replaces the fixed stage.
+   * A fixed option that the shape filter removes, or that the constraints forbid, gets a `RangeError` with the reason.
+   */
+  readonly fixed?: Readonly<Record<string, string>>;
 }
 
 /** The options of `enumerateSpace`. */
@@ -873,6 +880,66 @@ function noSample(space: StrategySpace, kept: StrategySpace, shapes: readonly Sh
   return new RangeError(text);
 }
 
+/** This function gives a constraint in words, for the reason of an error. */
+function constraintText(c: SpaceConstraint): string {
+  const ref = (r: OptionRef): string => `${r.stage} ${r.option === null ? "has no option" : `is ${r.option}`}`;
+  return "not" in c.then ? `if ${ref(c.if)}, then not ${ref(c.then.not)}` : `if ${ref(c.if)}, then ${ref(c.then)}`;
+}
+
+/**
+ * This function throws a `RangeError` for a bad `fixed` option of a sample. A stage or an option that the space does not have is bad.
+ * A meta option without `meta: "sample"` is bad, and so are two fixed options that a constraint forbids.
+ */
+function assertFixed(space: StrategySpace, fixed: Readonly<Record<string, string>>, meta: boolean): void {
+  for (const [stage, id] of Object.entries(fixed)) {
+    const s = space.stages.find((x) => x.name === stage);
+    if (s === undefined) throw new RangeError(`The option fixed names the stage ${stage}, and the space ${space.engine} has no such stage.`);
+    const o = s.options.find((x) => x.id === id);
+    if (o === undefined) throw new RangeError(`The option fixed names the option ${String(id)} of the stage ${stage}, and the stage has no such option.`);
+    if (o.members !== undefined && !meta) throw new RangeError(`The option fixed names the meta option ${stage}.${id}, and a sample with meta skip has no meta option. Set meta to "sample".`);
+  }
+  const ids = new Map<string, string | null>(Object.entries(fixed));
+  const other = (c: SpaceConstraint): string => ("not" in c.then ? c.then.not.stage : c.then.stage);
+  const broken = (space.constraints ?? []).filter((c) => ids.has(c.if.stage) && ids.has(other(c)) && !holds(c, ids));
+  if (broken.length > 0) {
+    const names = Object.entries(fixed).map(([stage, id]) => `${stage}.${id}`);
+    throw new RangeError(`The constraints of the space ${space.engine} forbid the fixed options ${names.join(", ")}. The broken constraints: ${broken.map(constraintText).join("; ")}.`);
+  }
+}
+
+/**
+ * This function gives the restricted space `kept` with only the fixed option at each fixed stage. A fixed stage that was optional stops being optional.
+ * A meta option of another stage of the part of a fixed stage goes out. A sample gives no option to the other stages of the part of its meta option.
+ */
+function fixStages(space: StrategySpace, kept: StrategySpace, fixed: Readonly<Record<string, string>>, shapes: readonly ShapeKind[] | undefined): StrategySpace {
+  const prefix = prefixes(kept);
+  const parts = new Set(Object.keys(fixed).map((stage) => prefix.get(stage)!));
+  const stages = kept.stages.map((s) => {
+    const id = fixed[s.name];
+    if (id === undefined) return parts.has(prefix.get(s.name)!) ? { ...s, options: s.options.filter((o) => o.members === undefined) } : s;
+    // A fixed meta option takes its members from the space before the fix, because the fix removes each base config of its own stage.
+    const options = s.options.filter((o) => o.id === id).map((o) => (o.members === undefined ? o : withMemberSpace(o, memberSpaces.get(o) ?? partOf(kept, s.name).space)));
+    if (options.length === 0) throw new RangeError(`The fixed option ${s.name}.${id} of the space ${space.engine} does not support the shape kinds ${(shapes ?? []).join(", ")}.`);
+    return { ...s, options, optional: false };
+  });
+  return { ...kept, stages };
+}
+
+/** This function gives a copy of a meta option whose members come from `members`. */
+function withMemberSpace(o: StageOption, members: StrategySpace): StageOption {
+  const copy = { ...o };
+  memberSpaces.set(copy, members);
+  return copy;
+}
+
+/** This function gives the error of a sample whose fixed options keep each constraint between them. The constraints with the other stages remove each config. */
+function noFixedSample(space: StrategySpace, fixed: Readonly<Record<string, string>>): RangeError {
+  const names = Object.entries(fixed).map(([stage, id]) => `${stage}.${id}`);
+  return new RangeError(
+    `The space ${space.engine} has no config with the fixed options ${names.join(", ")}. No constraint between two fixed options breaks, so the constraints with the other stages remove each config.`,
+  );
+}
+
 /** This function gives the count of the base configs of a space that is known to be good. */
 const baseCount = (space: StrategySpace, levels: number, limit: bigint): bigint => combos(space, levels, false, limit).reduce((sum, c) => sum + c.weight!, 0n);
 
@@ -1059,6 +1126,7 @@ function sampleConfigs(space: StrategySpace, n: number, seed: number, meta: bool
  * - A meta option with a `pool` gives only the entries of its pool. With `shapes`, only the entries whose members support each kind count.
  * - A sample draws again when a point chooses a meta option without a member list. `spaceSize` gives such an option 0.
  * - With `shapes`, a sample throws a `RangeError` when the space has no config for the kinds. The error names the stages without an option and the meta options without members.
+ * - With `fixed`, each config has the fixed option at each named stage. A fixed option that the space, the shape filter or the constraints do not permit gets a `RangeError` with the reason.
  */
 export function enumerateSpace(space: StrategySpace, options: EnumerateOptions): StrategyConfig[] {
   assertSpace(space);
@@ -1074,13 +1142,17 @@ export function enumerateSpace(space: StrategySpace, options: EnumerateOptions):
   if (meta !== "skip" && meta !== "sample") throw new RangeError(`The option meta is ${String(meta)}, not skip or sample.`);
   const draw = options.draw ?? "reject";
   if (draw !== "reject" && draw !== "walk") throw new RangeError(`The option draw is ${String(draw)}, not reject or walk.`);
+  const fixed = options.fixed;
+  if (fixed !== undefined) assertFixed(space, fixed, meta === "sample");
   if (options.n === 0) return [];
   const kept = restrict(space, options.shapes);
+  const drawn = fixed === undefined ? kept : fixStages(space, kept, fixed, options.shapes);
   try {
-    return sampleConfigs(kept, options.n, options.seed, meta === "sample", options.maxTries ?? Math.max(1000, 100 * options.n), space, draw === "walk");
+    return sampleConfigs(drawn, options.n, options.seed, meta === "sample", options.maxTries ?? Math.max(1000, 100 * options.n), space, draw === "walk");
   } catch (error) {
-    // Only a space without a config for the shape kinds gives the RangeError. A different failure keeps its own error.
+    // Only a space without a config for the shape kinds, or for the fixed options, gives the RangeError. A different failure keeps its own error.
     if (options.shapes !== undefined && !hasConfig(kept, meta === "sample")) throw noSample(space, kept, options.shapes, meta === "sample");
+    if (fixed !== undefined && !hasConfig(drawn, meta === "sample")) throw noFixedSample(space, fixed);
     throw error;
   }
 }
