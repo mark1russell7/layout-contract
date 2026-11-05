@@ -60,4 +60,4 @@ jobs:
         run: curl --fail --silent --show-error --retry 3 --output "$RUNNER_TEMP/lag-holds.json" https://raw.githubusercontent.com/mark1russell7/release-train/main/lag-holds.json
       - name: Compare the rows with the Renovate rule
         working-directory: packages/joint
-        run: node scripts/hold-check.ts ../../renovate.json "$RUNNER_TEMP/lag-holds.json"
+        run: node scripts/hold-check.ts ../../renovate.json "$RUNNER_TEMP/lag-holds.json" ../../pnpm-lock.yaml

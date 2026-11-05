@@ -6,7 +6,7 @@
 
 import { type DataStamps, parseDataStamps, renderDataStamp } from "@mark1russell7/site-pages";
 import type { JointData } from "./data.ts";
-import { ENGINE_SCOPE, type EngineOnNpm } from "./kpi.ts";
+import { ENGINE_SCOPE, type EngineOnNpm, HOLD_ROWS } from "./kpi.ts";
 
 /** The mark in the html of a measured page. The build replaces the mark with the stamp line of the page. */
 const MARK = "<!-- data-stamp -->";
@@ -56,9 +56,10 @@ export const NPM_NOT_READ = "npm not read at this build, so the gap is unknown."
  */
 export function npmLine(engines: readonly EngineOnNpm[] | undefined): string {
   if (engines === undefined) return `<p class="data-stamp">${NPM_NOT_READ}</p>`;
-  const behind = engines.filter((e) => e.used !== e.latest);
-  const parts = engines.map((e) => `${e.engine} ${e.used}, npm ${e.latest}${e.behind === 0 ? "" : `, ${e.behind} ${e.behind === 1 ? "release" : "releases"} behind`}`);
-  const end = behind.length === 0 ? "Each engine has the newest version on npm." : `A run on ${behind.map((e) => `${e.engine} ${e.latest}`).join(" and ")} closes the gap.`;
+  const behind = engines.filter((e) => e.used !== e.latest && e.heldUntil === undefined);
+  const parts = engines.map((e) => `${e.engine} ${e.used}, npm ${e.latest}${e.behind === 0 ? "" : `, ${e.behind} ${e.behind === 1 ? "release" : "releases"} behind`}${e.heldUntil === undefined ? "" : `, held to ${e.heldUntil} by <a href="${HOLD_ROWS}">this row</a>`}`);
+  const held = engines.some((e) => e.heldUntil !== undefined);
+  const end = behind.length > 0 ? `A run on ${behind.map((e) => `${e.engine} ${e.latest}`).join(" and ")} closes the gap.` : held ? "A run after the hold closes the gap." : "Each engine has the newest version on npm.";
   return `<p class="data-stamp">The engines of this data: ${parts.join(". ")}. ${end}</p>`;
 }
 

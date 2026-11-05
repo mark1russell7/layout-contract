@@ -81,6 +81,18 @@ describe("npmLine", () => {
     expect(npmLine(undefined)).toBe('<p class="data-stamp">npm not read at this build, so the gap is unknown.</p>');
   });
 
+  it("names the hold and links its row, in place of a run that closes the gap", () => {
+    const line = npmLine([highways, { ...packing, heldUntil: "2026-11-17" }]);
+    expect(line).toContain('packing 0.7.0, npm 0.8.0, 1 release behind, held to 2026-11-17 by <a href="https://github.com/mark1russell7/release-train/blob/main/lag-holds.json">this row</a>.');
+    expect(line).toContain("A run after the hold closes the gap.");
+    expect(line).not.toContain("A run on");
+  });
+
+  it("names a run for the engine with no hold, beside a held engine", () => {
+    const line = npmLine([{ ...highways, latest: "0.15.0", behind: 1, heldUntil: "2026-11-17" }, packing]);
+    expect(line).toContain("A run on packing 0.8.0 closes the gap.");
+  });
+
   it("tells when each engine is current", () => {
     expect(npmLine([highways])).toContain("Each engine has the newest version on npm.");
   });

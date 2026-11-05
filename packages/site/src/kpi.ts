@@ -1,11 +1,15 @@
 // The numbers of the file `kpi.json` of the site. Each value comes from the joint data or the catalog of the build.
 // So no reader copies a number from a page, and no number has a person as its source.
+import type { RenovateHold } from "@layout-contract/joint/browser";
 import { compareVersions, parseVersion } from "@mark1russell7/site-pages";
 import type { JointCatalog } from "./catalog.ts";
 import { latestJoint, type JointData } from "./data.ts";
 
 /** The npm scope of the engines of a joint run. */
 export const ENGINE_SCOPE = "@mark1russell7/";
+
+/** The file of the rows that hold an engine. The line of a page links to it. */
+export const HOLD_ROWS = "https://github.com/mark1russell7/release-train/blob/main/lag-holds.json";
 
 /** The name of the project in the file. */
 export const KPI_PROJECT = "layout-contract";
@@ -46,6 +50,8 @@ export interface EngineOnNpm {
   readonly latest: string;
   /** The number of stable versions on npm after the version that the run used. */
   readonly behind: number;
+  /** The last day of the stated hold of this version. It is absent when no hold covers the gap. */
+  readonly heldUntil?: string;
 }
 
 /** The read of npm of one build, with its time. */
@@ -75,6 +81,28 @@ export function enginesCurrent(engines: readonly EngineOnNpm[]): number {
 }
 
 /**
+ * This function marks each engine whose gap has a stated hold. A hold covers the gap only for the version that it states, and only up to its last day.
+ * So a run on another version, or a build after the date, reads as a plain gap. The count of `enginesCurrent` does not change for a hold.
+ *
+ * @param engines - The engines of the run beside npm.
+ * @param holds - The rules of `renovate.json`. The job `engine-hold` compares them with the rows of release-train each day.
+ * @param today - The day of the build in UTC, as `YYYY-MM-DD`.
+ */
+export function withHolds(engines: readonly EngineOnNpm[], holds: ReadonlyMap<string, RenovateHold>, today: string): EngineOnNpm[] {
+  return engines.map((engine) => {
+    const hold = holds.get(`${ENGINE_SCOPE}${engine.engine}`);
+    const until = hold?.until ?? undefined;
+    const covered = until !== undefined && hold?.version === engine.used && engine.used !== engine.latest && today <= until;
+    return covered ? { ...engine, heldUntil: until } : engine;
+  });
+}
+
+/** This function counts the engines of the run that are behind npm with no stated hold. So this count reads 0 only when each gap has its row. */
+export function enginesBehindUnheld(engines: readonly EngineOnNpm[]): number {
+  return engines.filter((engine) => engine.used !== engine.latest && engine.heldUntil === undefined).length;
+}
+
+/**
  * This function tells if a failed read of npm stops a build. A scheduled build stops when the file of the last deploy also has no read of npm.
  * So one fault of the registry passes, and a read that stays broken does not stay hidden.
  * A last file that did not load or does not parse tells nothing, so it passes.
@@ -96,6 +124,7 @@ export function failedReadStops(event: string | undefined, lastKpi: string | und
 function npmMeasures(npm: NpmRead): SiteMeasure[] {
   return [
     { id: "engines-current", value: enginesCurrent(npm.engines), unit: "engines", at: npm.at },
+    { id: "engines-behind-unheld", value: enginesBehindUnheld(npm.engines), unit: "engines", at: npm.at },
     ...npm.engines.map((engine) => ({ id: `engine-releases-behind-${engine.engine}`, value: engine.behind, unit: "releases", at: npm.at })),
   ];
 }

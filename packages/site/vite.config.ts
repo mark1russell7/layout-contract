@@ -2,13 +2,13 @@ import { execFileSync } from "node:child_process";
 import { readdirSync, readFileSync } from "node:fs";
 import { createRequire } from "node:module";
 import { fileURLToPath } from "node:url";
-import { coverEntries, PACK_ENTRIES } from "@layout-contract/joint/browser";
+import { coverEntries, PACK_ENTRIES, renovateHolds } from "@layout-contract/joint/browser";
 import { npmPublishTimes } from "@mark1russell7/site-pages";
 import { siteKpi } from "@mark1russell7/site-pages/vite";
 import { defineConfig, type Plugin } from "vite";
 import { buildCatalog } from "./src/build-catalog.ts";
 import { checkDataFile, type JointData, latestJoint } from "./src/data.ts";
-import { ENGINE_SCOPE, enginesOnNpm, failedReadStops, type NpmRead, siteKpiInput } from "./src/kpi.ts";
+import { ENGINE_SCOPE, enginesOnNpm, failedReadStops, type NpmRead, siteKpiInput, withHolds } from "./src/kpi.ts";
 import { withEngineLinks } from "./src/links.ts";
 import { readStamps, stampFaults, withDataStamp } from "./src/stamps.ts";
 
@@ -82,7 +82,9 @@ function npmEngines(): Plugin {
       if (latest === undefined) return;
       const { times, problems } = await npmPublishTimes({ packages: Object.keys(latest.versions).map((engine) => `${ENGINE_SCOPE}${engine}`) });
       for (const problem of problems) this.warn(problem);
-      npmRead = problems.length > 0 ? undefined : { at: `${new Date().toISOString().slice(0, 19)}Z`, engines: enginesOnNpm(latest.versions, times) };
+      const at = new Date().toISOString().slice(0, 19);
+      const holds = renovateHolds(JSON.parse(readFileSync(new URL("../../renovate.json", import.meta.url), "utf8")));
+      npmRead = problems.length > 0 ? undefined : { at: `${at}Z`, engines: withHolds(enginesOnNpm(latest.versions, times), holds, at.slice(0, 10)) };
       if (npmRead === undefined && failedReadStops(env["GITHUB_EVENT_NAME"], await lastKpi())) this.error("The scheduled build did not read npm, and the last deploy also has no read of npm.");
     },
   };

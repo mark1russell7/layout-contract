@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { JointData } from "./data.ts";
-import { enginesCurrent, enginesOnNpm, failedReadStops, type KpiCatalog, type NpmRead, packersMeasured, siteKpiInput } from "./kpi.ts";
+import { enginesBehindUnheld, enginesCurrent, enginesOnNpm, failedReadStops, type KpiCatalog, type NpmRead, packersMeasured, siteKpiInput, withHolds } from "./kpi.ts";
 
 const run = (date: string, pairs: number, versions: Record<string, string>, packers: readonly string[] = ["shelf", "rows"]): JointData =>
   ({ run: "1", date, pairs, versions, stress: { byPacker: packers.map((id) => ({ id })) } }) as unknown as JointData;
@@ -65,6 +65,43 @@ describe("failedReadStops", () => {
   });
 });
 
+describe("withHolds", () => {
+  const packing = { engine: "packing", used: "0.7.0", latest: "0.9.1", behind: 4 };
+  const holds = new Map([["@mark1russell7/packing", { until: "2026-11-17", version: "0.7.0" }]]);
+
+  it("marks a gap on the held version, up to the last day", () => {
+    expect(withHolds([packing], holds, "2026-11-17")[0]?.heldUntil).toBe("2026-11-17");
+  });
+
+  it("does not mark a gap after the date", () => {
+    expect(withHolds([packing], holds, "2026-11-18")[0]?.heldUntil).toBeUndefined();
+  });
+
+  it("does not mark a run on another version, because the hold states one version", () => {
+    expect(withHolds([{ ...packing, used: "0.2.16" }], holds, "2026-11-10")[0]?.heldUntil).toBeUndefined();
+  });
+
+  it("does not mark an engine that has no rule", () => {
+    expect(withHolds([{ ...packing, engine: "highways" }], holds, "2026-11-10")[0]?.heldUntil).toBeUndefined();
+  });
+
+  it("does not mark an engine with no gap", () => {
+    expect(withHolds([{ ...packing, latest: "0.7.0", behind: 0 }], holds, "2026-11-10")[0]?.heldUntil).toBeUndefined();
+  });
+
+  it("does not mark a rule with no date", () => {
+    expect(withHolds([packing], new Map([["@mark1russell7/packing", { until: null, version: "0.7.0" }]]), "2026-11-10")[0]?.heldUntil).toBeUndefined();
+  });
+
+  it("leaves the count of current engines as it is, and moves only the count of plain gaps", () => {
+    const engines = [packing, { engine: "highways", used: "0.14.0", latest: "0.15.0", behind: 1 }];
+    const marked = withHolds(engines, holds, "2026-11-10");
+    expect(enginesCurrent(marked)).toBe(0);
+    expect(enginesBehindUnheld(marked)).toBe(1);
+    expect(enginesBehindUnheld(withHolds(engines, holds, "2026-11-18"))).toBe(2);
+  });
+});
+
 describe("enginesCurrent", () => {
   it("counts only the engines with the newest version on npm", () => {
     expect(enginesCurrent(npm.engines)).toBe(1);
@@ -111,6 +148,7 @@ describe("siteKpiInput", () => {
       "packers-measured": "2026-10-28T00:00:00Z",
       "routers-on-compare": commitAt,
       "engines-current": npm.at,
+      "engines-behind-unheld": npm.at,
       "engine-releases-behind-highways": npm.at,
       "engine-releases-behind-packing": npm.at,
     });

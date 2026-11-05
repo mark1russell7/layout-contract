@@ -1,5 +1,6 @@
 // The entry of the joint package for a browser: each module that does not use Node. The site packs and routes with it in a Web Worker.
 export * from "./corpus.ts";
+export * from "./engine-hold.ts";
 export * from "./families.ts";
 export * from "./coverage.ts";
 export * from "./open-sizes.ts";

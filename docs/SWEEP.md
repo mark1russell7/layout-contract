@@ -82,6 +82,8 @@ The sweep keeps `packing` 0.7.0 and `highways` 0.14.0 from 2026-11-06 to 2026-11
 - The lock of main is the pin. A sweep that runs engines CI did not read adds a way to fail, so the sweep does not get its own versions.
 - A row in `lag-holds.json` of `release-train` stops the update of each engine to this repository. A rule in `renovate.json` does the same, with the same date.
 - The job `engine-hold` of `night-check.yml` compares the two files. It fails on a missing row, a missing rule, a rule with no date, two different dates or a past date. Unit tests in `engine-hold.test.ts` hold each fault.
+- The job also compares the lock with the version in `allowedVersions` of each rule, in the section `packages` of the lock. A raise by hand changes neither file, and this compare fails on it. A second version beside the held version is also a fault, because this mixes an epoch. A unit test reads the real lock, so the pull request of a raise fails too.
+- The page reads "held to 2026-11-17 by this row" for a run on a held version. Any other gap, and a gap after the date, reads as a plain gap. `docs/SITE.md` has the measures.
 - A change in `release-train` starts no run here, so a difference lives up to 1 day.
 - The engine raise, the one timed run and the fix of the bench stamp move from 2026-11-15 to 2026-11-17. They land with the switch to the engine spaces.
 
