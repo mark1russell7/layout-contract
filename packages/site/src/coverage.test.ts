@@ -324,7 +324,8 @@ describe("the line of the last night", () => {
   it("shows a partial night with its count", () => {
     const html = nightNote(index("2026-11-03", 541), new Date("2026-11-04T10:00:00Z"));
     expect(html).toContain("Partial");
-    expect(html).toContain("541 jobs");
+    expect(html).toContain("541 planned pairs of it gave no value");
+    expect(html).toContain("Before 2026-11-06");
   });
 
   it("is part of the section at the time of the call", async () => {

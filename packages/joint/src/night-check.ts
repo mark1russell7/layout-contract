@@ -6,6 +6,12 @@ export const NIGHT_DUE_HOUR = 16;
 
 const MS_PER_DAY = 86_400_000;
 
+/** The first night with the form of `night.missing` that `noteLost` gives. */
+export const LOST_COUNT_SINCE = "2026-11-06";
+
+/** The note on the older form of the count. The page and the summary of a night show it beside the count. */
+export const LOST_METHOD_NOTE = `Before ${LOST_COUNT_SINCE}, this count was "Jobs without a record": a sum over the rounds of the planned pairs with no record. That form did not count a record with no reference. It also kept a pair of round 1 on the count when round 2 gave its value.`;
+
 /** The state of the last night: `current` with each record, `partial` with records that are missing, or `late` when a due night is absent. */
 export type NightState = "current" | "partial" | "late";
 
@@ -44,7 +50,7 @@ export function nightVerdict(last: string, missing: number | null, due: string):
 /** This function gives the result in one sentence. */
 export function nightLine(v: NightVerdict): string {
   if (v.state === "late") return `The last night of the branch sweep-data is ${v.last}, and the night ${v.due} is due. ${v.lateNights} due ${v.lateNights === 1 ? "night has" : "nights have"} no result.`;
-  if (v.state === "partial") return `The last night is ${v.last}, and it is partial: ${v.missing} jobs have no record.`;
+  if (v.state === "partial") return `The last night is ${v.last}, and it is partial: ${v.missing} planned pairs gave no value. ${LOST_METHOD_NOTE}`;
   return `The last night is ${v.last}, and the night ${v.due} is due.`;
 }
 

@@ -71,6 +71,7 @@ This file lists the items of the roadmap of this repository. The status page of 
 | L107 | later | P2 | An exact rule for a circle beside another shape kind, an obstacle or a polygon container, due 2026-11-28 |
 | L112 | next | P1 | A flip test for each gate check of a measure: an injected fault turns the check red, with a clean copy green in the same job |
 | L113 | in progress | P1 | A CI read of the wait of each pull request gate and release gate, by UTC hour, with the memory gate running and not |
+| L115 | in progress | P1 | A deadline inside each shard with a censored row and a flip, the held configs and the origin of a label in the report, and a count of each planned pair with no value. By 2026-11-08. The bound on a hold follows by 2026-11-12 |
 
 ## Done
 

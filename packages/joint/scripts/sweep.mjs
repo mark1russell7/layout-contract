@@ -4,8 +4,9 @@
 //        [--budget-minutes <wall minutes of the round> --lanes 3 --overhead-minutes 6] [--scale <real minutes of a planned minute>] [--budget-facts <file>]
 //        reads the state of the epoch from the data branch in <dir>, plans round 1, and writes <out>/state.json, <out>/plan.json and <out>/matrix.json
 //        with --design, round 1 runs a Saltelli design of <rows> rows (`planDesign`, L52) instead of a new sample
-//   run --plan <dir> --shard <i> --out <dir> [--deadline-minutes <m>]
+//   run --plan <dir> --shard <i> --out <dir> [--deadline-minutes <m>] [--hard-deadline-minutes <m>]
 //        runs the units of shard <i> of <dir>/plan.json, and writes <out>/records-<round>-<i>.jsonl and <out>/shard-<round>-<i>.json
+//        with --hard-deadline-minutes, a child runs the shard, and the parent stops it at that time, also in its first unit. The parent then keeps each whole record and writes a censored row (L115).
 //   race --night <dir> --records <dir> --out <dir> [--target-minutes 30] [--max-shards 20] [--max-configs 400]
 //        adds the records of round 1 to the state, races the configs, plans round 2, and writes the same files as plan
 //   promote-plan --out <dir> [--target-minutes 30] [--max-shards 20] [--corpus <set>]
@@ -17,10 +18,11 @@
 //        --run-jobs is the output of `gh run view --json jobs`. It gives the wall of the rounds. With no such file, the wall reads "not read".
 //
 // The date is the night of the run in UTC. It seeds the sample, so a rerun of a night has the same plan.
-// Each unit is one call of `runInput` on one input with the pairs and the lane entries of its configs. The records get the config id as their strategy.
+// Each unit is one run of `pairRuns` on one input with the pairs and the lane entries of its configs. The records get the config id as their strategy, and each goes to the file when it ends.
 // Each unit prints `<input id>#<k>: <records> records, <skipped> skipped, <wall ms> ms, <pairs> pairs, <passes> lane passes`. `fit-cost.mjs` reads these lines.
 import { appendFileSync, cpSync, existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
+import { caseProgress, startSupervisedProcess, superviseCases } from "@mark1russell7/rigor-bench/supervise";
 import {
   applyRecords,
   BASELINE_ARM,
@@ -41,6 +43,13 @@ import {
   INCUMBENT,
   iterPlanPairs,
   jointCorpus,
+  labelLine,
+  LOST_METHOD_NOTE,
+  lostLine,
+  lostPairs,
+  noReferenceRecords,
+  noteLost,
+  pairRuns,
   planDesign,
   planRound1,
   plannedWall,
@@ -49,16 +58,20 @@ import {
   promoteMarkdown,
   promotePlan,
   PROMOTE_SEEDS,
+  RACE_NOTE_2026_11_02,
+  raceLines,
   raceNight,
   roundWallsOf,
   runEnv,
-  runInput,
   SET_V2,
   SETS,
+  SHARD_CASE,
   statusCounts,
+  stoppedShard,
   summaryRows,
   summaryTable,
   unitExpected,
+  wholeLines,
 } from "../src/index.ts";
 
 const [command, ...rest] = process.argv.slice(2);
@@ -195,7 +208,10 @@ function readRecords(dir) {
   return { records, shards };
 }
 
-/** This function adds the records and the shard times of a round to the state, and counts the jobs of the plan without a record. */
+/**
+ * This function adds the records and the shard times of a round to the state, and counts the planned pairs that gave no value.
+ * It gives the lines of the records with no reference. These records are in no value. The night keeps them in a file, each with its tag.
+ */
 function applyRound(state, inputs, dir, plan) {
   const { records, shards } = readRecords(dir);
   // A round with jobs and no records examined nothing: the download failed, or each shard stopped. The sweep stops, and the state does not change.
@@ -203,11 +219,13 @@ function applyRound(state, inputs, dir, plan) {
     throw new Error(`Round ${plan.round} has ${plan.units.length} units, but the folder ${dir} has no records (*.jsonl). The sweep expected the records of each shard of the round.`);
   applyRecords(state, records, inputs, plan.date);
   const night = state.nights.find((n) => n.date === plan.date);
+  const kept = noReferenceRecords(state, records).map((record) => JSON.stringify({ tag: "no reference", night: plan.date, round: plan.round, record }) + "\n");
   for (const s of shards)
-    night.shards.push({ round: s.round, shard: s.shard, planned: s.planned, real: s.real, ...(plan.costModel === undefined ? {} : { costModel: plan.costModel }), ...(s.stopped === true ? { stopped: true, plannedDone: s.plannedDone, done: s.done, units: s.units } : {}) });
-  const seen = new Set(records.map((r) => `${r.strategy}|${r.input}`));
-  night.missing += plan.units.reduce((n, u) => n + u.configs.filter((c) => !seen.has(`${c}|${u.input}`)).length, 0);
-  console.log(`round ${plan.round}: ${records.length} records of ${shards.length} shards.`);
+    night.shards.push({ round: s.round, shard: s.shard, planned: s.planned, real: s.real, ...(plan.costModel === undefined ? {} : { costModel: plan.costModel }), ...(s.stopped === true ? { stopped: true, plannedDone: s.plannedDone, done: s.done, units: s.units } : {}), ...(s.censored === undefined ? {} : { censored: s.censored }) });
+  const censored = new Set(shards.flatMap((s) => (s.censored?.configs ?? []).map((c) => `${c}|${s.censored.input}`)));
+  noteLost(night, plan.round, plan.units, lostPairs(state, plan.units, records, censored));
+  console.log(`round ${plan.round}: ${records.length} records of ${shards.length} shards. ${lostLine(night)}`);
+  return kept;
 }
 
 /** The date of today in UTC. */
@@ -246,6 +264,41 @@ if (command === "plan") {
   const out = args.out ?? "records";
   mkdirSync(out, { recursive: true });
   const file = join(out, `records-${plan.round}-${shard}.jsonl`);
+  const shardFile = join(out, `shard-${plan.round}-${shard}.json`);
+  // The folder of the records keeps this file. `readRecords` reads no file with this name.
+  const progressFile = join(out, `progress-${plan.round}-${shard}.log`);
+  const hard = args["hard-deadline-minutes"] === undefined ? null : numberArg("hard-deadline-minutes", 1);
+  if (hard !== null && args.child === undefined) {
+    // One case for the whole shard: the clock starts once in the child, so the budget is a deadline from the start of the shard. The first unit gets no exception.
+    const startedAt = Date.now();
+    const result = await superviseCases({
+      cases: [{ id: SHARD_CASE, budgetMs: hard * 60000 }],
+      progressFile,
+      start: () => startSupervisedProcess([process.execPath, ...process.execArgv, ...process.argv.slice(1), "--child", "on"]),
+      onEnd: () => {},
+    });
+    // A code above 0 or a signal with the case not ended is a crash of the child, for example the limit of the heap. The finished records stay in that case too.
+    const over = result.ends.length > 0;
+    if (over || result.left.length > 0) {
+      const text = existsSync(file) ? readFileSync(file, "utf8") : "";
+      const whole = wholeLines(text);
+      if (whole !== text) writeFileSync(file, whole);
+      let written = null;
+      // A stop can cut the shard file too. A cut file reads as no file.
+      try {
+        written = readJson(shardFile);
+      } catch {
+        written = null;
+      }
+      const row = stoppedShard(plan, shard, written, whole, { startedAt, at: Date.now(), reason: over ? "hard deadline" : "child failed" });
+      writeJson(shardFile, row);
+      console.log(`The shard stopped after ${row.elapsedMinutes?.toFixed(1)} minutes: ${over ? "the hard deadline" : `the child failed with the code ${result.code}`}. The censored row: ${JSON.stringify(row.censored ?? null)}.`);
+      if (!over) process.exit(result.code || 1);
+    }
+    process.exit(0);
+  }
+  const progress = hard === null ? null : caseProgress(progressFile);
+  progress?.start(SHARD_CASE);
   writeFileSync(file, "");
   const { rows } = corpusOf(plan.corpus, plan.seeds);
   const byInput = new Map(rows.map((row) => [row.entry.id, row]));
@@ -255,7 +308,7 @@ if (command === "plan") {
   const start = performance.now();
   // With --deadline-minutes, a unit that the cost model does not see ending before the deadline does not start (L81). The shard then stops cleanly.
   // The expected time of a unit uses the real time of the units that the shard ran (`unitExpected`), so a shard that runs slow stops in time.
-  // The records of each unit are in the file when the unit ends, so a stop keeps the finished work. The next nights plan the rest.
+  // Each record is in the file when its pair ends, so a stop keeps the finished work, also inside a unit. The next nights plan the rest.
   // The shard file is written before each unit as a stopped shard. If the step stops at its timeout, the file gives the units that ended.
   const deadline = args["deadline-minutes"] === undefined ? Infinity : numberArg("deadline-minutes", 1) * 60000;
   const scale = plan.scale ?? 1;
@@ -263,12 +316,12 @@ if (command === "plan") {
   let plannedDone = 0;
   const count = plan.shards[shard].length;
   const writeShard = (stopped) =>
-    writeJson(join(out, `shard-${plan.round}-${shard}.json`), {
+    writeJson(shardFile, {
       round: plan.round,
       shard,
       planned: plan.loads[shard] / 60000,
       real: (performance.now() - start) / 60000,
-      ...(stopped ? { stopped: true, done, units: count, plannedDone: plannedDone / 60000 } : {}),
+      ...(stopped ? { stopped: true, done, units: count, plannedDone: plannedDone / 60000, unitAt: Date.now() } : {}),
     });
   console.log(`round ${plan.round} shard ${shard} of ${plan.shards.length}: ${plan.shards[shard].length} units, ${(plan.loads[shard] / 60000).toFixed(1)} planned minutes`);
   for (const id of plan.shards[shard]) {
@@ -288,19 +341,23 @@ if (command === "plan") {
     const byPair = new Map(runs.map((r) => [r.run.pair, r.id]));
     const t0 = performance.now();
     // With freeRoutes, the runner frees each route after its record (L63). The records do not change.
-    const records = runInput(input, entry.cell, { env, corpus: plan.corpus, pairs, lanes, iterate, freeRoutes: true, ...(commit === undefined ? {} : { commit }) })
-      .filter((r) => byPair.has(r.strategy))
-      .map((r) => ({ ...r, strategy: byPair.get(r.strategy), options: { ...r.options, pair: r.strategy } }));
-    appendFileSync(file, records.map((r) => JSON.stringify(r) + "\n").join(""));
-    const skipped = records.filter((r) => r.skipped !== undefined).length;
+    let written = 0;
+    let skipped = 0;
+    for (const { record } of pairRuns(input, entry.cell, { env, corpus: plan.corpus, pairs, lanes, iterate, freeRoutes: true, ...(commit === undefined ? {} : { commit }) })) {
+      if (!byPair.has(record.strategy)) continue;
+      appendFileSync(file, JSON.stringify({ ...record, strategy: byPair.get(record.strategy), options: { ...record.options, pair: record.strategy } }) + "\n");
+      written++;
+      if (record.skipped !== undefined) skipped++;
+    }
     const passes = runs.reduce((n, r) => n + r.run.passes, 0);
     // The rounds of the iteration chains count as pairs, at `iterPlanPairs` (3 pairs for each round), as the plan counts them.
     const pairCount = runs.length + iterPlanPairs(iterate);
-    console.log(`${unit.id}: ${records.length} records, ${skipped} skipped, ${Math.round(performance.now() - t0)} ms, ${pairCount} pairs, ${passes} lane passes`);
+    console.log(`${unit.id}: ${written} records, ${skipped} skipped, ${Math.round(performance.now() - t0)} ms, ${pairCount} pairs, ${passes} lane passes`);
     done++;
     plannedDone += unit.cost;
   }
   writeShard(done < count);
+  progress?.end(SHARD_CASE);
 } else if (command === "promote-plan") {
   const set = args.corpus ?? SET_V2;
   const date = today();
@@ -338,7 +395,12 @@ if (command === "plan") {
   const state = readJson(join(dir, "state.json"));
   const plan = readJson(join(dir, "plan.json"));
   const { sweep } = corpusOf(state.corpus);
-  applyRound(state, sweep, args.records ?? "records", plan);
+  const kept = applyRound(state, sweep, args.records ?? "records", plan);
+  // This file goes with the night in its artifact. The job summarize adds it to the file of the epoch.
+  if (kept.length > 0) {
+    mkdirSync(args.out ?? "night2", { recursive: true });
+    writeFileSync(join(args.out ?? "night2", "no-reference.jsonl"), kept.join(""));
+  }
   const outcomes = raceNight(state, sweep, { date: plan.date });
   const labels = {};
   for (const o of outcomes) labels[o.label] = (labels[o.label] ?? 0) + 1;
@@ -359,8 +421,9 @@ if (command === "plan") {
   const state = readJson(join(dir, "state.json"));
   const plan = readJson(join(dir, "plan.json"));
   const { sweep } = corpusOf(state.corpus);
-  applyRound(state, sweep, args.records ?? "records", plan);
+  const kept = applyRound(state, sweep, args.records ?? "records", plan);
   const night = state.nights.find((n) => n.date === plan.date);
+  delete night.pending;
   if (args.run) night.run = args.run;
   // A failed read of the jobs does not stop the night. The wall then reads "not read".
   if (args["run-jobs"] !== undefined) night.wall = existsSync(args["run-jobs"]) ? { rounds: roundWallsOf(readJson(args["run-jobs"]).jobs ?? []) } : null;
@@ -372,6 +435,10 @@ if (command === "plan") {
   const epochDir = join(out, "epochs", state.epoch);
   const { summary, ...rest } = state;
   writeJson(join(epochDir, "state.json"), rest, 0);
+  // The records with no reference stay in one file for each epoch, each with its tag. No value reads them (L115).
+  const firstRound = join(dir, "no-reference.jsonl");
+  const allKept = [...(existsSync(firstRound) ? [readFileSync(firstRound, "utf8")] : []), ...kept].join("");
+  if (allKept !== "") appendFileSync(join(epochDir, "no-reference.jsonl"), allKept);
   writeJson(join(epochDir, "summary.json"), { schema: "sweep-summary/1", epoch: state.epoch, ids: baselineIds(), ...summaryTable(summary) }, 0);
   const counts = statusCounts(state);
   const facts = nightFacts(state, night);
@@ -462,12 +529,13 @@ function nightMarkdown(state, night, counts, facts) {
   const lines = [`# Sweep of ${night.date}`, "", `Epoch \`${state.epoch}\`, seed ${night.seed}${night.run ? `, run ${night.run}` : ""}.`, ""];
   lines.push("| Round | Configs | New | Jobs | Units | Shards | Planned minutes | Longest planned shard |", "|---|---|---|---|---|---|---|---|");
   for (const [k, r] of [["1", night.round1], ["2", night.round2]]) if (r) lines.push(`| ${k} | ${r.configs} | ${r.sampled} | ${r.jobs} | ${r.units} | ${r.shards} | ${r.minutes.toFixed(1)} | ${r.longest.toFixed(1)} |`);
-  lines.push("", `Race: ${JSON.stringify(night.race ?? {})}.`, "", `Status counts: ${JSON.stringify(counts)}.`, "");
+  lines.push("", ...raceLines(night.race), "", `Note: ${RACE_NOTE_2026_11_02}`, "", `Status counts: ${JSON.stringify(counts)}.`, "");
   lines.push(`Shards: ${night.shards.length}, the longest ${facts.longestShard.toFixed(1)} real minutes. Planned ${facts.plannedMinutes.toFixed(1)} minutes in all, real ${facts.realMinutes.toFixed(1)}.`);
   const cm = facts.costModel;
   lines.push(`Cost model: scale ${Object.entries(cm.cost).map(([r, c]) => `round ${r} ${c.scale.toFixed(2)}`).join(", ") || "none"}. ${cm.hits} of ${cm.shards} shards within ${cm.within * 100}% of the expected minutes, ${cm.stopped} stopped. Brier ${cm.brier === null ? "none" : cm.brier.toFixed(3)} at p ${cm.p}.`);
   lines.push(...costClaimLines(cm.interval, night.budget));
-  lines.push(`Drift of the baseline arm: ${night.drift} inputs. Values: ${night.values}. Jobs without a record: ${night.missing}.`, "");
+  for (const s of night.shards) if (s.censored !== undefined) lines.push(`Round ${s.round} shard ${s.shard} stopped in the unit \`${s.censored.unit}\` (${s.censored.reason}). The unit took at least ${(s.censored.atLeastMs / 60000).toFixed(1)} minutes, and ${s.censored.configs.length} configs have no record.`);
+  lines.push(`Drift of the baseline arm: ${night.drift} inputs. Values: ${night.values}. ${lostLine(night)}`, "", LOST_METHOD_NOTE, "");
   lines.push("| Baseline config | Headline misses of the reference floor | Inputs |", "|---|---|---|");
   for (const [name, m] of Object.entries(facts.misses)) lines.push(`| \`${name}\` | ${m.misses} | ${m.of} |`);
   const best = Object.entries(state.configs)
@@ -478,6 +546,6 @@ function nightMarkdown(state, night, counts, facts) {
   const num = (x) => (x === undefined ? "" : x.toFixed(4));
   const signs = (s) => (s === undefined ? "" : `${s.wins} / ${s.losses} / ${s.ties}`);
   lines.push("", "| Alive config | Label | Mean of the family means | Mean of the inputs | Families +/-/0 | Sign test p |", "|---|---|---|---|---|---|");
-  for (const [id, c] of best) lines.push(`| \`${id}\` \`${configLabel(c.config)}\` | ${c.label ?? ""} | ${(c.mean ?? 0).toFixed(4)} | ${num(c.pooled)} | ${signs(c.signs)} | ${num(c.signs?.p)} |`);
+  for (const [id, c] of best) lines.push(`| \`${id}\` \`${configLabel(c.config)}\` | ${labelLine(c, night.race?.held?.find((h) => h.config === id)?.missing ?? 0)} | ${(c.mean ?? 0).toFixed(4)} | ${num(c.pooled)} | ${signs(c.signs)} | ${num(c.signs?.p)} |`);
   return lines.join("\n") + "\n";
 }

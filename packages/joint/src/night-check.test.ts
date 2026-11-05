@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { nightDue, nightLine, nightVerdict, readNightIndex } from "./night-check.ts";
+import { LOST_COUNT_SINCE, nightDue, nightLine, nightVerdict, readNightIndex } from "./night-check.ts";
 
 describe("nightDue", () => {
   it("gives yesterday before the hour of the rule, and today after it", () => {
@@ -21,7 +21,8 @@ describe("nightVerdict", () => {
   it("is partial when the due night has missing records", () => {
     const v = nightVerdict("2026-11-03", 541, "2026-11-03");
     expect(v.state).toBe("partial");
-    expect(nightLine(v)).toContain("541 jobs have no record");
+    expect(nightLine(v)).toContain("541 planned pairs gave no value");
+    expect(nightLine(v)).toContain(`Before ${LOST_COUNT_SINCE}`);
   });
 
   it("is late when a due night is absent, also with missing records", () => {
