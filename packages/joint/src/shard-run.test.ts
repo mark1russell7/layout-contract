@@ -8,6 +8,7 @@ import {
   type PairLine,
   pairFactors,
   parsePairLines,
+  repairShard,
   runShard,
   runStamp,
   type ShardRow,
@@ -238,5 +239,39 @@ describe("the cost of each strategy", () => {
     const table = strategyCostTable(strategyCosts(lines), 1);
     expect(table).toContain("| slow | 2 | 3.0 | 75.0 % | 2.0 | a |");
     expect(table).not.toContain("fast");
+  });
+});
+
+describe("the pairs of a time budget", () => {
+  const line = (strategy: string, wallMs: number, tag?: PairLine["tag"]): PairLine => ({ stamp: "s", input: "i", inputHash: "h", strategy, wallMs, ...(tag === undefined ? {} : { tag }) });
+
+  it("leaves a tagged pair out of each cost, so its time does not count as a measurement", () => {
+    const lines = [line("p", 100), line("p", 300_000, "over-budget"), line("q", 0, "not-run")];
+    expect(strategyCosts(lines)).toEqual([{ strategy: "p", pairs: 1, ms: 100, slowestMs: 100, slowestInput: "i" }]);
+    const factors = pairFactors(lines, () => 50);
+    expect(factors.factors.get("p")).toBe(2);
+    expect(factors.factors.has("q")).toBe(false);
+    expect(factors.fallback).toBe(2);
+  });
+
+  it("keeps a whole pair, and removes a cut line and a record with no pair line", () => {
+    const record = (strategy: string): string => JSON.stringify({ input: "i", strategy });
+    const records = `${record("p")}\n${record("q")}\n{"input":"i","stra`;
+    const pairs = `${JSON.stringify(line("p", 1))}\n{"stamp":"s","inp`;
+    const whole = repairShard(records, pairs, "s");
+    expect(whole.records).toBe(`${record("p")}\n`);
+    expect(whole.pairs).toBe(`${JSON.stringify(line("p", 1))}\n`);
+    expect([...whole.keys]).toEqual([doneKey("i", "p")]);
+  });
+
+  it("removes a pair line with no record, so that the pair runs again", () => {
+    const whole = repairShard("", `${JSON.stringify(line("p", 1))}\n`, "s");
+    expect(whole).toEqual({ records: "", pairs: "", keys: new Set() });
+  });
+
+  it("does not change files that are whole, so a repair writes nothing", () => {
+    const records = `${JSON.stringify({ input: "i", strategy: "p" })}\n`;
+    const pairs = `${JSON.stringify(line("p", 1, "over-budget"))}\n`;
+    expect(repairShard(records, pairs, "s")).toMatchObject({ records, pairs });
   });
 });

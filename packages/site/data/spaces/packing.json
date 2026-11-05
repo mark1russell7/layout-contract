@@ -1,6 +1,6 @@
 {
   "schema": "site-space/1",
-  "source": "packing 0.6.1",
+  "source": "packing 0.7.0",
   "date": "2026-11-04",
   "space": {
     "schema": "strategy-space/1",
@@ -321,6 +321,23 @@
                 "min": 0,
                 "max": 32,
                 "default": 8
+              }
+            ],
+            "supports": {
+              "shape": [
+                "circle"
+              ]
+            }
+          },
+          {
+            "id": "circle-quasi-physical",
+            "params": [
+              {
+                "name": "iterations",
+                "kind": "int",
+                "min": 0,
+                "max": 1024,
+                "default": 256
               }
             ],
             "supports": {
@@ -1399,6 +1416,26 @@
       {
         "if": {
           "stage": "placement",
+          "option": "circle-quasi-physical"
+        },
+        "then": {
+          "stage": "size-search",
+          "option": "none"
+        }
+      },
+      {
+        "if": {
+          "stage": "placement",
+          "option": "circle-quasi-physical"
+        },
+        "then": {
+          "stage": "order",
+          "option": "input"
+        }
+      },
+      {
+        "if": {
+          "stage": "placement",
           "option": "push"
         },
         "then": {
@@ -2134,6 +2171,26 @@
             "params": {
               "side": "short"
             }
+          }
+        }
+      },
+      "circle-quasi-physical": {
+        "space": "packing",
+        "stages": {
+          "order": {
+            "option": "input"
+          },
+          "size-search": {
+            "option": "none"
+          },
+          "placement": {
+            "option": "circle-quasi-physical",
+            "params": {
+              "iterations": 256
+            }
+          },
+          "local-search": {
+            "option": "none"
           }
         }
       },

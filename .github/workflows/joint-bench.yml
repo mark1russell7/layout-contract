@@ -14,6 +14,7 @@
 # A manual run with the input cover adds the pairs of each other strategy and each open router to each shard. The default plan does not change.
 # A manual run with the input pairs runs only those pairs of the cover and the baseline pair, so a new strategy needs no whole cover run.
 # A shard stops at a clean point after 330 minutes, so that the job limit does not lose its records. Each shard writes each pair when the pair ends.
+# A manual run with the input pair-budget holds each stage of a pair to a time budget. A pair over it stops with a tag, so one strategy cannot take a shard.
 # A manual run with the input resume-run runs only the pairs that the earlier run did not record, with the same stamp of the code and the same input hashes.
 # Only the times of these jobs count. The benchmark does not run on a local computer.
 name: Joint bench
@@ -48,6 +49,10 @@ on:
         default: false
       pairs:
         description: "Run only these pairs of the cover and the baseline pair, with commas. It replaces cover, lanes and iterate."
+        type: string
+        default: ""
+      pair-budget:
+        description: "The minutes of each stage of a pair, or a list by input size, for example 200:1,5. A pair over it stops with a tag. Empty is no budget."
         type: string
         default: ""
       resume-run:
@@ -174,9 +179,10 @@ jobs:
           CORPUS: ${{ needs.plan.outputs.corpus }}
           COVER: ${{ inputs.cover && 'on' || '' }}
           PAIRS: ${{ inputs.pairs }}
+          PAIR_BUDGET: ${{ inputs.pair-budget }}
         run: |
-          node scripts/bench.mjs resume --corpus "$CORPUS" --records prior-in --out prior ${SLICE:+--slice "$SLICE"} ${PAIRS:+--pairs "$PAIRS"} ${COVER:+--cover on} | tee -a "$GITHUB_STEP_SUMMARY"
-          node scripts/bench.mjs plan --corpus "$CORPUS" --shards "$COUNT" --prior prior/prior-pairs.ndjson ${SLICE:+--slice "$SLICE"} ${PAIRS:+--pairs "$PAIRS"} ${COVER:+--cover on} | tee -a "$GITHUB_STEP_SUMMARY"
+          node scripts/bench.mjs resume --corpus "$CORPUS" --records prior-in --out prior ${SLICE:+--slice "$SLICE"} ${PAIRS:+--pairs "$PAIRS"} ${PAIR_BUDGET:+--pair-budget "$PAIR_BUDGET"} ${COVER:+--cover on} | tee -a "$GITHUB_STEP_SUMMARY"
+          node scripts/bench.mjs plan --corpus "$CORPUS" --shards "$COUNT" --prior prior/prior-pairs.ndjson ${SLICE:+--slice "$SLICE"} ${PAIRS:+--pairs "$PAIRS"} ${PAIR_BUDGET:+--pair-budget "$PAIR_BUDGET"} ${COVER:+--cover on} | tee -a "$GITHUB_STEP_SUMMARY"
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: joint-records-prior
@@ -230,10 +236,11 @@ jobs:
           ITERATE: ${{ inputs.iterate && 'on' || '' }}
           COVER: ${{ inputs.cover && 'on' || '' }}
           PAIRS: ${{ inputs.pairs }}
+          PAIR_BUDGET: ${{ inputs.pair-budget }}
           CONFIRM: ${{ inputs.confirm && 'on' || '' }}
           # 7 inputs of 1000 boxes went above the default heap of approximately 4 GB with 195 pairs in run 40815928586. The runner has 16 GB.
           NODE_OPTIONS: --max-old-space-size=6144
-        run: node scripts/bench.mjs run --corpus "$CORPUS" --shards "$COUNT" --shard "$SHARD" --out records ${SLICE:+--slice "$SLICE"} ${LANES:+--lanes on} ${ITERATE:+--iterate on} ${CONFIRM:+--confirm on} ${PAIRS:+--pairs "$PAIRS"} ${COVER:+--cover on} ${PRIOR:+--prior "$PRIOR"}
+        run: node scripts/bench.mjs run --corpus "$CORPUS" --shards "$COUNT" --shard "$SHARD" --out records ${SLICE:+--slice "$SLICE"} ${LANES:+--lanes on} ${ITERATE:+--iterate on} ${CONFIRM:+--confirm on} ${PAIRS:+--pairs "$PAIRS"} ${PAIR_BUDGET:+--pair-budget "$PAIR_BUDGET"} ${COVER:+--cover on} ${PRIOR:+--prior "$PRIOR"}
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         # A shard that failed or that a person cancelled still keeps each finished pair.
         if: ${{ always() }}
@@ -273,6 +280,7 @@ jobs:
           SLICE: ${{ needs.plan.outputs.slice }}
           CORPUS: ${{ needs.plan.outputs.corpus }}
           CONFIRM: ${{ inputs.confirm && 'on' || '' }}
+          PAIR_BUDGET: ${{ inputs.pair-budget }}
           GH_TOKEN: ${{ github.token }}
         run: |
           ls records | wc -l
@@ -289,7 +297,7 @@ jobs:
           node scripts/bench.mjs analyze --corpus "$CORPUS" --records records --out report ${SLICE:+--slice "$SLICE"} ${subset:+--subset "$subset"} ${jobs:+--jobs "$jobs"} || status=$?
           if [ -f report/report.md ]; then cat report/report.md >> "$GITHUB_STEP_SUMMARY"; fi
           mkdir -p report
-          node scripts/bench.mjs costs --corpus "$CORPUS" --records records > report/pair-costs.md || status=$?
+          node scripts/bench.mjs costs --corpus "$CORPUS" --records records ${PAIR_BUDGET:+--pair-budget "$PAIR_BUDGET"} > report/pair-costs.md || status=$?
           cat report/pair-costs.md >> "$GITHUB_STEP_SUMMARY"
           exit "$status"
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2

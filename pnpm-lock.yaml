@@ -209,17 +209,17 @@ importers:
   packages/joint:
     dependencies:
       '@mark1russell7/highways':
-        specifier: ^0.13.0
-        version: 0.13.0
+        specifier: ^0.14.0
+        version: 0.14.0
       '@mark1russell7/layout-contract':
         specifier: workspace:*
         version: link:../layout-contract
       '@mark1russell7/packing':
-        specifier: ^0.6.1
-        version: 0.6.1
+        specifier: ^0.7.0
+        version: 0.7.0
       '@mark1russell7/rigor-bench':
-        specifier: ^0.2.2
-        version: 0.2.5
+        specifier: ^0.2.8
+        version: 0.2.14
       '@mark1russell7/rigor-generators':
         specifier: ^0.1.3
         version: 0.1.3
@@ -280,14 +280,14 @@ importers:
         specifier: workspace:*
         version: link:../joint
       '@mark1russell7/highways':
-        specifier: ^0.13.0
-        version: 0.13.0
+        specifier: ^0.14.0
+        version: 0.14.0
       '@mark1russell7/layout-contract':
         specifier: workspace:*
         version: link:../layout-contract
       '@mark1russell7/packing':
-        specifier: ^0.6.1
-        version: 0.6.1
+        specifier: ^0.7.0
+        version: 0.7.0
       '@mark1russell7/site-pages':
         specifier: ^0.2.6
         version: 0.2.6
@@ -527,23 +527,27 @@ packages:
     engines: {node: '>=22'}
     hasBin: true
 
-  '@mark1russell7/highways@0.13.0':
-    resolution: {integrity: sha512-D+Uc6kyLV/l6dCB46jVv1PG1iWRjetrAq4Yt14d4p2fngNppxg68qkyeZwR/e9+Qh92uFn6DEt/bkfmtW1AiSg==}
+  '@mark1russell7/highways@0.14.0':
+    resolution: {integrity: sha512-IW6q8FX32iIkJH6ZU+n/xnBMcJu8ytohHhUi0omXH1n0uQVpWTVjxsQDNr/RjxZyAG/abwIlsvpBfaySwu3HPg==}
 
   '@mark1russell7/layout-contract@0.2.21':
     resolution: {integrity: sha512-Mls2V7uo5zGS6o5apBCJAKN3T4oZ3A2yuxUJUBzICDzIWT+YiIP+yOcBfVpjf22cPG5GMr+/abC7UJ4u4bXTlA==}
+    engines: {node: '>=22.12'}
+
+  '@mark1russell7/layout-contract@0.3.12':
+    resolution: {integrity: sha512-kKDWn3eREA/SapN48b1rfCOU/QazabIRPTQO0E1hHbimaBZpn/AHCXtFMkiAXUpAPI1zdi2LsYjLNStkC7eL3Q==}
     engines: {node: '>=22.12'}
 
   '@mark1russell7/layout-contract@0.3.5':
     resolution: {integrity: sha512-zBQVEXtbEcPYbTff+SyNE73xsHcn+TFA4f/es7UWO4XYt7VYZ0B0hd1A/7SFdKL1lcHLRFWDc5bpk7+IBoUYQQ==}
     engines: {node: '>=22.12'}
 
-  '@mark1russell7/packing@0.6.1':
-    resolution: {integrity: sha512-AX/IWfesqar/IUWF1XRPXC3PzwLNQAQzJ7tvlYQ7CSiIpMPO3qmBr9emMHK8h4GyIbH11gQU15iklZ4N0+NlUA==}
+  '@mark1russell7/packing@0.7.0':
+    resolution: {integrity: sha512-4LwJrPD/GtAXespsS39dN2n/HC27ElOnn2IbQ2jOl7jgVuu9Nwn6kiwI8/YPmTvtBDgqtHNaXN4PXH8stjzULA==}
     engines: {node: '>=22.12'}
 
-  '@mark1russell7/rigor-bench@0.2.5':
-    resolution: {integrity: sha512-3QbRoGk1rGx8eaRu74MKUZ5s5P7pb3XTS3bzaSoEbXkDmkRqZgR5IQCwDxWumhaf7NkLwakaZcdG/MYnB6GxNA==}
+  '@mark1russell7/rigor-bench@0.2.14':
+    resolution: {integrity: sha512-ITF8MY2SVe6eL0pDiGf/tyP8NQo2plkxQsxC2PP+bVosy1itbWYuLpix+YV/WnK95mRT0iT1veT76t4U5nRHpQ==}
     engines: {node: '>=22'}
 
   '@mark1russell7/rigor-generators@0.1.1':
@@ -560,6 +564,10 @@ packages:
 
   '@mark1russell7/rigor-statistics@0.1.10':
     resolution: {integrity: sha512-u0uA18ulOXO3f6bJXCulK3J3dTp+7+ruTtAhnrKLfhQmj/czSv5aM27BNA0q1vpVK7uFY2KDIarJhYBTSqVXIQ==}
+    engines: {node: '>=22'}
+
+  '@mark1russell7/rigor-statistics@0.1.11':
+    resolution: {integrity: sha512-5tD7QqLE7Y6wWsoImXuszH3JA5VHwGDHjVzobn/JGtYgo24AFTzXlngEPxfW9A5kHD9GFXgWbkgUCNa0RlLToA==}
     engines: {node: '>=22'}
 
   '@mark1russell7/rigor-statistics@0.1.9':
@@ -580,10 +588,6 @@ packages:
     resolution: {integrity: sha512-wXhE7Kqjm8O0jGkxHBgFRn+d1qe8rffcrfbURPor1knmO6Sf/eQ3uKCqgCsP+PSlSVidaQu8GnUWo1jD3Fdm7A==}
     engines: {node: '>=22.12'}
     hasBin: true
-
-  '@mark1russell7/typeset@0.1.0':
-    resolution: {integrity: sha512-abRnQC3n5+ipPSKrXB8dHgleXN4Y+PiNYqMNh7S6OASzArE5fvHrX5Jfgs/jZrolFXaKb7Zz8hOTmwP+cBrPkw==}
-    engines: {node: '>=22.12'}
 
   '@mark1russell7/typeset@0.1.3':
     resolution: {integrity: sha512-SMDcXnwxUXjzpMNk5+CyVKidSAfj6AHxrMG4VA/2OUUpxGSU8WOyHN06B5QAlTynmqgW3eKqRTDzbQRj1bw5Aw==}
@@ -1748,28 +1752,33 @@ snapshots:
 
   '@mark1russell7/cue@2.1.1': {}
 
-  '@mark1russell7/highways@0.13.0':
+  '@mark1russell7/highways@0.14.0':
     dependencies:
-      '@mark1russell7/layout-contract': 0.3.5
+      '@mark1russell7/layout-contract': 0.3.12
       '@mark1russell7/rigor-generators': 0.1.3
       '@mark1russell7/rigor-statistics': 0.1.10
 
   '@mark1russell7/layout-contract@0.2.21': {}
 
+  '@mark1russell7/layout-contract@0.3.12':
+    dependencies:
+      '@mark1russell7/rigor-generators': 0.1.3
+      '@mark1russell7/typeset': 0.1.3
+
   '@mark1russell7/layout-contract@0.3.5':
     dependencies:
       '@mark1russell7/rigor-generators': 0.1.3
-      '@mark1russell7/typeset': 0.1.0
+      '@mark1russell7/typeset': 0.1.3
 
-  '@mark1russell7/packing@0.6.1':
+  '@mark1russell7/packing@0.7.0':
     dependencies:
       '@mark1russell7/layout-contract': 0.3.5
       '@mark1russell7/rigor-generators': 0.1.3
 
-  '@mark1russell7/rigor-bench@0.2.5':
+  '@mark1russell7/rigor-bench@0.2.14':
     dependencies:
-      '@mark1russell7/rigor-generators': 0.1.3
-      '@mark1russell7/rigor-statistics': 0.1.10
+      '@mark1russell7/rigor-generators': 0.1.5
+      '@mark1russell7/rigor-statistics': 0.1.11
 
   '@mark1russell7/rigor-generators@0.1.1': {}
 
@@ -1778,6 +1787,10 @@ snapshots:
   '@mark1russell7/rigor-generators@0.1.5': {}
 
   '@mark1russell7/rigor-statistics@0.1.10':
+    dependencies:
+      '@mark1russell7/rigor-generators': 0.1.5
+
+  '@mark1russell7/rigor-statistics@0.1.11':
     dependencies:
       '@mark1russell7/rigor-generators': 0.1.5
 
@@ -1796,8 +1809,6 @@ snapshots:
   '@mark1russell7/template-cli@0.1.4':
     dependencies:
       '@clack/prompts': 1.8.1
-
-  '@mark1russell7/typeset@0.1.0': {}
 
   '@mark1russell7/typeset@0.1.3':
     dependencies:

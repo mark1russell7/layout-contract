@@ -41,15 +41,15 @@ This file lists the items of the roadmap of this repository. The status page of 
 
 | ID | Status | Priority | Title |
 | --- | --- | --- | --- |
-| L12 | later | P1 | Routing-aware placement costs |
-| L14 | later | P1 | Port-aware placement |
-| L15 | later | P1 | Joint search |
-| L16 | later | P1 | A learned selector over the pair |
+| L12 | next | P1 | Routing-aware placement costs |
+| L14 | next | P1 | Port-aware placement |
+| L15 | next | P1 | Joint search |
+| L16 | blocked by L36 | P1 | A learned selector over the pair |
 | L25 | later | P3 | A cooperative time budget for portfolio() members |
 | L38 | later | P2 | A select rule learned on the joint records |
-| L48 | later | P1 | Route-first skeleton |
-| L50 | later | P1 | Force-directed refinement after pack |
-| L53 | later | P1 | Mark solved regions in the atlas |
+| L48 | next | P1 | Route-first skeleton |
+| L50 | next | P1 | Force-directed refinement after pack |
+| L53 | blocked by the full cover run | P1 | Mark solved regions in the atlas |
 | L67 | later | P2 | Any objective, answered post hoc by the atlas |
 | L68 | later | P2 | One optimizer with pluggable energy terms |
 | L69 | later | P3 | Learned preferences from pairwise choices |

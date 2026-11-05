@@ -1160,6 +1160,23 @@ In L32, 8 of 11 claims held. The claims from the code held, and the misses were 
 | H10 | `compare` of the headline cell: the gain and its interval for `lanes-iter3.maxrects-cp.corners+corners` | The pairwise comparisons |
 | H11, H12 | `shardTimes`: the step `Run one shard` of each shard | The shard times |
 
+## A time budget for each pair
+
+The plan gives each pair the same price, but the routers differ by more than 100 times at 1000 boxes. One slow strategy can thus take a shard to the deadline.
+
+The option `--pair-budget` (the input `pair-budget` of the workflow) holds each stage of a pair to a time budget. The text `5` gives 5 minutes to each input. The text `200:1,5` gives 1 minute to an input of at most 200 boxes, and 5 minutes to a larger input. The budget is part of the stamp, so records of two budgets do not join.
+
+The stage `route` holds the 2 timed routes of a pair. A budget of 5 minutes is thus 5 minutes for 2 routes.
+
+Routers run in the process of the runner and do not yield, so only a hard stop ends a slow pair. The supervisor of `@mark1russell7/rigor-bench/supervise` runs the pairs of a shard in one child process.
+
+- A stage over the budget stops the child. The pair gets a record with the reason `over budget`, and the record gives the budget as a lower bound of its time. A statistic treats this time as censored, not as a value.
+- A new child runs the pairs that are left. The pairs before it stay on the disk. Only an overrun costs a new child, so the other pairs keep the caches of a normal run.
+- After 2 pairs of one router pass the budget on one input, the other pairs of that router on that input get the reason `not run: over budget on this input`. These records name the 2 pairs. The same rule holds for 2 pack stages of one pack entry. An overrun is measured, and a skip is not.
+- An overrun in a pack stage counts for the pack entry, and an overrun in a route stage counts for the router. A slow router thus does not count against a packer.
+- A tagged pair is a result, so a resume does not run it again. Its time does not go into the costs of the plan. A run with a larger budget has another stamp, and that run can fill these rows.
+- A resume counts the overruns of the earlier run, so a stop does not change the rows. A group with 1 overrun before a stop reaches its limit at the next overrun.
+
 ## The cover of the catalogs
 
 The hand lists of the bench missed strategies and routers. `packages/joint/src/cover.ts` derives the rest from the registries, so a new strategy or a new router joins without a change here.
@@ -1169,7 +1186,7 @@ The hand lists of the bench missed strategies and routers. `packages/joint/src/c
 - `push` starts each item with no earlier place, so it does not test a change of an input. It tests only that the strategy runs.
 - A cell that a strategy does not support gives a skipped record with the reason. A test fails when a strategy runs on no input.
 - Each new entry meets `corners`, `portfolio` and 2 other routers in turn. Each open router meets `maxrects-cp` and `select`.
-- `COVER_EXCEPTIONS` is a closed list. It holds only `hole-degree`, which packs only circles, and L94 removes it. A test fails when the list grows, and when `hole-degree` starts to run.
+- `COVER_EXCEPTIONS` is a closed list. It holds `hole-degree` and `circle-quasi-physical`, which pack only circles, and `exact-strip`, which refuses each strip input of the corpus. L94 removes the three. A test fails when the list grows, and when an exception starts to run.
 - The test reads `strategies`, `composites` and `shapeStrategies` of `packing`. It changes to the single list when `packing` exports one.
 
 The default plan does not change, so the earlier reports stay comparable. A run with `--cover on` has more pairs, so the floors of that run do not compare with the floors of a default run.
