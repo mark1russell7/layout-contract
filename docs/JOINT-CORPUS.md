@@ -32,6 +32,8 @@ The parameters:
 
 `hubs` is not a value of `LayoutCell.edgeShape` yet. It becomes a value at the next breaking change of the contract.
 
+The step `edges` sets the key `data.collection` by shape. The shape `bundled` has a name for each cluster. Each other shape has a random name for each target box, so its key has no meaning. The step `edge-key` (`EDGE_KEY_STEP`) states the key as a dimension with the values `none`, `random` and `cluster`. It does not change the edges in any other way. No set uses this step at this time.
+
 ## The step `spacing` (version 1)
 
 `spacingStep(input, { spacing }, seed)` of `packages/joint/src/spacing.ts` gives a new input. The input does not change. The step is in the joint package, not in the contract.

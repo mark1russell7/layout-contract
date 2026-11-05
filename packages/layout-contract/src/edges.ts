@@ -20,11 +20,27 @@ export interface EdgeStepParams {
   readonly hubBy?: "area" | "random";
 }
 
+/**
+ * The key of the edges of an input, in `data.collection`.
+ * - `none`: the field is absent, so a router with the rule `collection` has no ways.
+ * - `random`: a random name for each target box, so the key has no meaning.
+ * - `cluster`: a name for each cluster of boxes, so the key follows the structure.
+ */
+export type EdgeKey = "none" | "random" | "cluster";
+
+/** The parameters of `edgeKeyStep`. */
+export interface EdgeKeyParams {
+  readonly edgeKey: EdgeKey;
+}
+
 /** The mean count of the edges of each box for each value of `edgeDensity`. */
 export const EDGE_DENSITY: Readonly<Record<EdgeStepParams["edgeDensity"], number>> = /* @__PURE__ */ Object.freeze({ sparse: 0.5, medium: 1.5, dense: 4 });
 
 /** The version of `edgeStep`. A change of its output gives a new version. */
 export const EDGE_STEP_VERSION = 1;
+
+/** The version of `edgeKeyStep`. A change of its output gives a new version. */
+export const EDGE_KEY_STEP_VERSION = 1;
 
 const CLUSTER = 8;
 const CHAIN = 32;
@@ -34,6 +50,26 @@ const FIXED_SHARE = 0.2;
 const COLLECTIONS = ["users", "orders", "items", "events"] as const;
 
 const round3 = (x: number): number => Math.round(x * 1000) / 1000;
+
+/** This function gives the shuffled order of `n` boxes, from the first numbers of the stream `edges`. */
+function shuffledBoxes(n: number, r: () => number): number[] {
+  const perm = Array.from({ length: n }, (_, i) => i);
+  for (let i = n - 1; i > 0; i--) {
+    const j = randomInt(r, 0, i);
+    [perm[i], perm[j]] = [perm[j]!, perm[i]!];
+  }
+  return perm;
+}
+
+/** This function gives the cluster of each box from the shuffled order: each cluster has `CLUSTER` boxes. */
+function clustersOf(perm: readonly number[]): number[] {
+  const clusterOf: number[] = new Array<number>(perm.length);
+  perm.forEach((box, p) => (clusterOf[box] = Math.floor(p / CLUSTER)));
+  return clusterOf;
+}
+
+/** This function gives the key of the boxes of one cluster. */
+const clusterKey = (c: number): string => `${COLLECTIONS[c % COLLECTIONS.length]!}-${c}`;
 
 /**
  * This function gives the input with edges, groups and ports from its topology alone: a joint input has no positions before the pack.
@@ -46,18 +82,13 @@ export function edgeStep(input: LayoutInput, params: EdgeStepParams, seed: numbe
   const n = input.boxes.length;
   const r = stepRandom(seed, "edges");
 
-  const perm = input.boxes.map((_, i) => i);
-  for (let i = n - 1; i > 0; i--) {
-    const j = randomInt(r, 0, i);
-    [perm[i], perm[j]] = [perm[j]!, perm[i]!];
-  }
-  const clusterOf: number[] = new Array<number>(n);
-  perm.forEach((box, p) => (clusterOf[box] = Math.floor(p / CLUSTER)));
+  const perm = shuffledBoxes(n, r);
+  const clusterOf = clustersOf(perm);
   const clusters = Math.ceil(n / CLUSTER);
   const members = (c: number): readonly number[] => perm.slice(c * CLUSTER, (c + 1) * CLUSTER);
   const collectionOf =
     full.edgeShape === "bundled"
-      ? clusterOf.map((c) => `${COLLECTIONS[c % COLLECTIONS.length]!}-${c}`)
+      ? clusterOf.map(clusterKey)
       : input.boxes.map(() => COLLECTIONS[randomInt(r, 0, COLLECTIONS.length - 1)]!);
   const area = (i: number): number => input.boxes[i]!.w * input.boxes[i]!.h;
   const rank = full.hubBy === "area" ? input.boxes.map((_, i) => i).sort((a, b) => area(b) - area(a) || a - b) : perm;
@@ -181,4 +212,33 @@ export function edgeStep(input: LayoutInput, params: EdgeStepParams, seed: numbe
   const stamp: LayoutGenerator = { name: "edges", version: EDGE_STEP_VERSION, params: { ...full }, seed };
   const { hash: _old, ...rest } = input;
   return { ...rest, boxes, edges, steps: [...(input.steps ?? []), stamp] };
+}
+
+/**
+ * This function gives the input with a stated key on each edge. The edges stay the same in all but `data.collection`, so the 3 values of `edgeKey` read one factor.
+ * The key of an edge depends on its target box, as in `edgeStep`.
+ * The value `cluster` uses the clusters of `edgeStep` with the same seed and box order, so this step comes directly after `edgeStep`. On the shape `bundled` it gives the keys of `edgeStep`.
+ * The value `random` uses the stream `edge-key`, so it does not change the numbers of `edgeStep`. The function appends its stamp to `steps`, and removes the old `hash`.
+ * It throws a `RangeError` for an edge with an unknown target.
+ */
+export function edgeKeyStep(input: LayoutInput, params: EdgeKeyParams, seed: number = input.seed ?? 0): LayoutInput {
+  const n = input.boxes.length;
+  const keys = (): readonly string[] => {
+    if (params.edgeKey === "cluster") return clustersOf(shuffledBoxes(n, stepRandom(seed, "edges"))).map(clusterKey);
+    const r = stepRandom(seed, "edge-key");
+    return input.boxes.map(() => COLLECTIONS[randomInt(r, 0, COLLECTIONS.length - 1)]!);
+  };
+  const keyOf = params.edgeKey === "none" ? [] : keys();
+  const indexOf = new Map(input.boxes.map((box, i) => [box.id, i]));
+  const edges = input.edges?.map((edge): LayoutEdge => {
+    const { data: oldData, ...plain } = edge;
+    const { collection: _old, ...data } = oldData ?? {};
+    if (params.edgeKey === "none") return Object.keys(data).length === 0 ? plain : { ...plain, data };
+    const target = indexOf.get(edge.target);
+    if (target === undefined) throw new RangeError(`edgeKeyStep: the edge "${edge.id}" has the unknown target "${edge.target}".`);
+    return { ...plain, data: { ...data, collection: keyOf[target]! } };
+  });
+  const stamp: LayoutGenerator = { name: "edge-key", version: EDGE_KEY_STEP_VERSION, params: { edgeKey: params.edgeKey }, seed };
+  const { hash: _oldHash, edges: _oldEdges, ...rest } = input;
+  return { ...rest, ...(edges === undefined ? {} : { edges }), steps: [...(input.steps ?? []), stamp] };
 }
