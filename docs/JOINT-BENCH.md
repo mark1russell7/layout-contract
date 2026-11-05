@@ -1872,3 +1872,31 @@ The A/A spread compares the incumbent with itself. Only the seed changes between
 The score is only the fill of the inputs that reach the floor. So the report also gives each config in the units of a reader, against the incumbent and the A/A spread of each measure. Those units are fill in points, crossings, overlaps and hard breaks, each as a mean for each layout.
 
 A pass does not change the default. A config that passes also needs the verdict of `time-arms.yml`, so each row keeps its pair id. If L40 changes the default, this test takes the new default as its incumbent. A new default raises the MINOR version, because callers rely on that behavior.
+
+## The explorer record (L104)
+
+The script `packages/joint/scripts/response.ts` turns the records of a run into one file of the format `response-records/1` of `rigor-statistics`. The explorer of `site-pages` reads this file. The sweep cannot give this file, because its state keeps one score for each config and input. The records of `joint-bench.yml` keep each measure.
+
+```
+node scripts/response.ts --records <dir> --corpus <corpus.json> --out <file> [--run <id>] [--seeds <n>] [--folds <n>]
+```
+
+- Each record is one point. The dimensions are the pack, the router and each field of a cell with 2 or more levels. The count is an ordinal dimension on a log scale.
+- The points of one spec are one group, so a fold holds out a whole spec. Thus the fit must have 3 or more specs. Records of one spec stop the fit.
+- A pair with no measures stays a point. Each absent measure states its reason: over budget, not run, or skipped.
+- The measures are fill, spill, crossings, mean detour and time. Crossings and time are on a log scale, with a floor of 0.5.
+- The fit is a ridge fit over stated terms. The terms are each dimension alone, the count with each arm, and the products of a pack and a router. When the products do not fit under the limit of 1023 terms, the pairs with the most points stay.
+
+The first reading is on 186 records of a slice run, with 31 specs, 4 packs and 3 routers. The numbers are the held-out error of the fit and of a plain mean, on the scale of the model.
+
+| Measure | Fit | Mean |
+| --- | --- | --- |
+| `joint.fill` | 0.179 | 0.170 |
+| `joint.spill` | 0.121 | 0.124 |
+| `route.crossings` | 0.536 | 0.615 |
+| `route.detour.mean` | 0.188 | 0.225 |
+| `joint.ms` | 0.361 | 0.502 |
+
+The fit of fill loses to the mean on this slice. This slice is too small to tell if that stays true, so the data of the cover run reads it again.
+
+The cost of a fit of 5761 synthetic points with 829 terms was 92 s on one core and 273 MB. The file had 3.3 MB. A cover run has too many records for a page, so the page uses a stated sample. The sample and the page come with the data of the cover run, because that data has current engines.
