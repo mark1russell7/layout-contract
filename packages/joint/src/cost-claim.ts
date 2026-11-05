@@ -1,6 +1,6 @@
 // The cost claim of a sweep night (roadmap item L111, `docs/SWEEP.md`, "The cost claim").
 // The claim is an interval from past nights of the same cost model. The whole night comes first, because a plan decides by the night. The shards come second.
-import { quantileSorted } from "@mark1russell7/rigor-statistics";
+import { brier, quantileSorted } from "@mark1russell7/rigor-statistics";
 import { jobSpan, type GateJobTime } from "./memory-gate.ts";
 
 /**
@@ -172,13 +172,12 @@ export function roundWallsOf(jobs: readonly (GateJobTime & { readonly name?: str
 }
 
 const sideOf = (real: number, lo: number, hi: number): CostSide => (real < lo ? "low" : real > hi ? "high" : "hit");
-const brierOf = (hit: boolean): number => (COST_INTERVAL.p - (hit ? 1 : 0)) ** 2;
 
 function nightClaim(planned: number, band: CostBand, real: number): CostNightClaim {
   const lo = planned * band.lo;
   const hi = planned * band.hi;
   const side = sideOf(real, lo, hi);
-  return { planned, lo, hi, real, side, brier: brierOf(side === "hit") };
+  return { planned, lo, hi, real, side, brier: brier([{ p: COST_INTERVAL.p, hit: side === "hit" }]) };
 }
 
 function shardClaims(shards: readonly CostShard[], band: CostBand): CostShardClaims {
@@ -190,8 +189,8 @@ function shardClaims(shards: readonly CostShard[], band: CostBand): CostShardCla
     else if (side === "low") low++;
     else high++;
   }
-  const brier = shards.length === 0 ? null : (hits * brierOf(true) + (shards.length - hits) * brierOf(false)) / shards.length;
-  return { lo: band.lo, hi: band.hi, width: band.width, overCap: band.width > COST_INTERVAL.widthCap, shards: shards.length, hits, low, high, stopped, brier };
+  const forecasts = shards.map((_, i) => ({ p: COST_INTERVAL.p, hit: i < hits }));
+  return { lo: band.lo, hi: band.hi, width: band.width, overCap: band.width > COST_INTERVAL.widthCap, shards: shards.length, hits, low, high, stopped, brier: forecasts.length === 0 ? null : brier(forecasts) };
 }
 
 /**
