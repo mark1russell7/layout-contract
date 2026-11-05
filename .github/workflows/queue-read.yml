@@ -1,4 +1,5 @@
-# The read of the wait of each pull request gate and release gate (docs/JOINT-BENCH.md, "The read of the gate waits"). It holds the trial of the memory gate to its stop line.
+# The read of the wait of each pull request gate and release gate (docs/JOINT-BENCH.md, "The read of the gate waits"). It gives the split of these waits by UTC hour.
+# This workflow is a dated tool: remove it when the comparison in that section matches, or on 2026-11-14 at the latest. It does not stop the trial, and it starts no stop of its own.
 # This job has only GitHub API reads, and it holds one slot. The artifact of the last good run is its start, so a read that the rate limit cuts goes on in the next run.
 name: Queue read
 

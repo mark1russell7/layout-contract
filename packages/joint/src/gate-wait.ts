@@ -2,7 +2,7 @@
 // `docs/JOINT-BENCH.md`, "The read of the gate waits", gives the use. The workflow `queue-read.yml` reads the facts from GitHub. This module has no I/O and reads no clock.
 import { quantile } from "@mark1russell7/rigor-statistics";
 
-/** A wait over this count of minutes stops the trial of the memory gate. */
+/** The report counts each wait over this count of minutes. */
 export const GATE_WAIT_LINE = 15;
 
 const GATE_REPO = "layout-contract";
