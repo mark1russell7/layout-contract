@@ -17,6 +17,10 @@ concurrency:
   group: surrogate-pairs-${{ github.ref }}
   cancel-in-progress: false
 
+defaults:
+  run:
+    shell: bash
+
 jobs:
   fit:
     runs-on: ubuntu-latest

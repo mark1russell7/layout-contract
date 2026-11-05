@@ -73,6 +73,10 @@ concurrency:
   group: joint-bench-${{ github.ref }}-${{ (github.event_name == 'workflow_dispatch' || contains(github.event.pull_request.labels.*.name, 'bench:full')) && 'full' || 'slice' }}
   cancel-in-progress: ${{ !(github.event_name == 'workflow_dispatch' || contains(github.event.pull_request.labels.*.name, 'bench:full')) }}
 
+defaults:
+  run:
+    shell: bash
+
 jobs:
   check:
     if: ${{ !inputs.records-run }}
