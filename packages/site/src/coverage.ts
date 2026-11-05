@@ -78,6 +78,36 @@ export interface StepRouteFacts {
   readonly mixed: number;
 }
 
+/** A claim on a whole night: the real minutes, the interval and the side of a miss. */
+export interface CostClaimFacts {
+  readonly lo: number;
+  readonly hi: number;
+  readonly real: number;
+  readonly side: "hit" | "low" | "high";
+}
+
+/** The shard claims of a night. */
+export interface CostShardFacts {
+  readonly hits: number;
+  readonly shards: number;
+  readonly low: number;
+  readonly high: number;
+}
+
+/** The facts of the cost of the last night. A claim is `null` when it has no score, and its status tells why. */
+export interface CostFacts {
+  readonly date: string;
+  readonly jobMinutes: CostClaimFacts | null;
+  readonly jobMinutesStatus: string;
+  readonly wall: CostClaimFacts | null;
+  readonly wallStatus: string;
+  readonly shards: CostShardFacts | null;
+  /** The sentences of the budget of the night, or `null` for a night with no budget. */
+  readonly budget: string | null;
+  /** True when a read of the budget failed, or the budget took the fallback. */
+  readonly thin: boolean;
+}
+
 /** The facts of one epoch in `index.json`. */
 export interface EpochEntry {
   readonly corpus: string;
@@ -88,6 +118,8 @@ export interface EpochEntry {
   readonly missing: number | null;
   /** The step from the epoch before this epoch, or `null` with no step. */
   readonly step: StepFacts | null;
+  /** The cost of the last night, or `null` when the index does not state it. */
+  readonly cost: CostFacts | null;
 }
 
 /** The facts of `index.json` that the page uses. */
@@ -228,6 +260,30 @@ function stepOf(v: unknown): StepFacts | null {
   return { from: v["from"], pairs: v["pairs"], dropped, fill, hard, crossings, routes: stepRoutesOf(v["routes"]) };
 }
 
+function costClaimOf(v: unknown): CostClaimFacts | null {
+  if (!isObject(v)) return null;
+  const { lo, hi, real, side } = v;
+  if (!isFiniteNumber(lo) || !isFiniteNumber(hi) || !isFiniteNumber(real) || (side !== "hit" && side !== "low" && side !== "high")) return null;
+  return { lo, hi, real, side };
+}
+
+/** This function gives the cost facts of an entry, or `null` for an entry from before them or in a bad form. */
+function costOf(v: unknown): CostFacts | null {
+  if (!isObject(v) || typeof v["date"] !== "string" || typeof v["jobMinutesStatus"] !== "string" || typeof v["wallStatus"] !== "string") return null;
+  const s = v["shards"];
+  const shards = isObject(s) && isCount(s["hits"]) && isCount(s["shards"]) && isCount(s["low"]) && isCount(s["high"]) ? { hits: s["hits"], shards: s["shards"], low: s["low"], high: s["high"] } : null;
+  return {
+    date: v["date"],
+    jobMinutes: costClaimOf(v["jobMinutes"]),
+    jobMinutesStatus: v["jobMinutesStatus"],
+    wall: costClaimOf(v["wall"]),
+    wallStatus: v["wallStatus"],
+    shards,
+    budget: typeof v["budget"] === "string" ? v["budget"] : null,
+    thin: v["thin"] === true,
+  };
+}
+
 /** This function checks the value of `index.json`. It gives the facts of the latest epoch, or the list of the problems. */
 export function checkSweepIndex(v: unknown): SweepIndex | string[] {
   if (!isObject(v)) return ["index.json is not an object"];
@@ -240,5 +296,5 @@ export function checkSweepIndex(v: unknown): SweepIndex | string[] {
   if (typeof entry["corpus"] !== "string" || !isCount(entry["nights"]) || typeof entry["last"] !== "string" || !isCount(entry["configs"]))
     return [`the entry of ${latest} has no corpus, nights, last or configs`];
   const missing = isCount(entry["missing"]) ? entry["missing"] : null;
-  return { latest, entry: { corpus: entry["corpus"], nights: entry["nights"], last: entry["last"], configs: entry["configs"], missing, step: stepOf(entry["step"]) } };
+  return { latest, entry: { corpus: entry["corpus"], nights: entry["nights"], last: entry["last"], configs: entry["configs"], missing, step: stepOf(entry["step"]), cost: costOf(entry["cost"]) } };
 }

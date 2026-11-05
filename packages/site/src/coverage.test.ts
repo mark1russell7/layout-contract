@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { addDays, checkSweepIndex, checkTrendRecord, FLAT_WEEK, mainLine, parseTrend, type TrendRecord, weekView } from "./coverage.ts";
-import { type Fetch, guardChart, loadSweep, nightNote, runUrl, skillChart, stepNote, SWEEP_RAW, sweepHtml, trendFileUrl } from "./sweep.ts";
+import { costNote, type Fetch, guardChart, loadSweep, nightNote, runUrl, skillChart, stepNote, SWEEP_RAW, sweepHtml, trendFileUrl } from "./sweep.ts";
 
 const EPOCH = "joint-v2_packing-0.4.1_highways-0.10.0_space-bench-3";
 // The first record of the branch `sweep-data`, as the nightly sweep wrote it.
@@ -93,7 +93,7 @@ describe("the week view", () => {
 
 describe("the index of sweep-data", () => {
   it("gives the latest epoch and its entry", () => {
-    expect(checkSweepIndex(INDEX)).toEqual({ latest: EPOCH, entry: { corpus: "joint-v2", nights: 3, last: "2026-11-03", configs: 219, missing: null, step: null } });
+    expect(checkSweepIndex(INDEX)).toEqual({ latest: EPOCH, entry: { corpus: "joint-v2", nights: 3, last: "2026-11-03", configs: 219, missing: null, step: null, cost: null } });
   });
 
   it("gives the problems of a bad index", () => {
@@ -129,7 +129,7 @@ describe("the section", () => {
 
   it("marks a lambda at the edge, and a flat week", () => {
     const line = [rec("2026-11-03", 0.1), rec("2026-11-10", 0.104, { lambdaAtEdge: true, lambda: 10000 })];
-    const html = sweepHtml({ kind: "ready", index: { latest: EPOCH, entry: { corpus: "joint-v2", nights: 8, last: "2026-11-10", configs: 9, missing: null, step: null } }, line, bad: 1, week: weekView(line) }, 500);
+    const html = sweepHtml({ kind: "ready", index: { latest: EPOCH, entry: { corpus: "joint-v2", nights: 8, last: "2026-11-10", configs: 9, missing: null, step: null, cost: null } }, line, bad: 1, week: weekView(line) }, 500);
     expect(html).toContain("at the edge");
     expect(html).toContain("Flat week: a finding to explain.");
     expect(html).toContain("+0.004");
@@ -248,8 +248,65 @@ describe("the step between two epochs", () => {
   });
 });
 
+describe("the cost of the last night", () => {
+  const claim = (real: number) => ({ lo: 100, hi: 200, real, side: real < 100 ? "low" : real > 200 ? "high" : "hit" });
+  const cost = {
+    date: "2026-11-06",
+    jobMinutes: claim(150),
+    jobMinutesStatus: "scored",
+    wall: claim(120),
+    wallStatus: "scored",
+    shards: { hits: 5, shards: 6, low: 1, high: 0 },
+    budget: "The budget of the gate is 276 minutes, from 3 gates.",
+    thin: false,
+  };
+  const read = (entryCost: unknown) => checkSweepIndex({ schema: "sweep-index/1", latest: EPOCH, epochs: { [EPOCH]: { corpus: "joint-v2", nights: 1, last: "2026-11-06", configs: 9, cost: entryCost } } });
+
+  it("reads the cost of the index, and gives null for an entry from before it or in a bad form", () => {
+    expect(read(cost)).toMatchObject({ entry: { cost: { date: "2026-11-06", jobMinutes: { real: 150, side: "hit" }, shards: { hits: 5 }, thin: false } } });
+    expect(read(undefined)).toMatchObject({ entry: { cost: null } });
+    expect(read({ date: 1 })).toMatchObject({ entry: { cost: null } });
+    expect(read({ ...cost, jobMinutes: { ...claim(150), side: "maybe" } })).toMatchObject({ entry: { cost: { jobMinutes: null } } });
+  });
+
+  it("states the night first, then the shards, then the budget", () => {
+    const read1 = read(cost);
+    if (!("entry" in read1)) throw new Error("the index did not read");
+    const note = costNote(read1.entry.cost);
+    expect(note).toContain("Job time: 150 minutes, claim 100 to 200.");
+    expect(note).toContain("Wall time: 120 minutes, claim 100 to 200.");
+    expect(note).toContain("Shards: 5 of 6 in the claim, 1 under and 0 over.");
+    expect(note).toContain("from 3 gates");
+    expect(note).toContain("badge good");
+    expect(note.indexOf("Job time")).toBeLessThan(note.indexOf("Shards"));
+    expect(costNote(null)).toBe("");
+  });
+
+  it("warns on a miss of the night, and states its side", () => {
+    const of = (c: unknown): string => {
+      const r = read(c);
+      if (!("entry" in r)) throw new Error("the index did not read");
+      return costNote(r.entry.cost);
+    };
+    const over = of({ ...cost, jobMinutes: claim(900) });
+    expect(over).toContain("over the claim");
+    expect(over).toContain("badge warn");
+    expect(of({ ...cost, wall: claim(10) })).toContain("under the claim");
+  });
+
+  it("warns on a thin budget, and states a claim with no score in words", () => {
+    const r = read({ ...cost, jobMinutes: null, jobMinutesStatus: "no history", wall: null, wallStatus: "not read", shards: null, thin: true });
+    if (!("entry" in r)) throw new Error("the index did not read");
+    const note = costNote(r.entry.cost);
+    expect(note).toContain("Job time: no history.");
+    expect(note).toContain("Wall time: not read.");
+    expect(note).toContain("Shards: no history.");
+    expect(note).toContain("badge warn");
+  });
+});
+
 describe("the line of the last night", () => {
-  const index = (last: string, missing: number | null) => ({ latest: EPOCH, entry: { corpus: "joint-v2", nights: 3, last, configs: 9, missing, step: null } });
+  const index = (last: string, missing: number | null) => ({ latest: EPOCH, entry: { corpus: "joint-v2", nights: 3, last, configs: 9, missing, step: null, cost: null } });
 
   it("states the date of a night on time", () => {
     const html = nightNote(index("2026-11-03", 0), new Date("2026-11-04T10:00:00Z"));

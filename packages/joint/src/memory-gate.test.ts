@@ -211,6 +211,17 @@ describe("the expected minutes of a gate", () => {
     expect(cost.jobMinutes).toBe(10);
   });
 
+  it("leaves out a job cancelled in the queue, because its time is a wait and it has no steps", () => {
+    const queued = { conclusion: "cancelled", startedAt: "2026-11-04T00:00:00Z", completedAt: "2026-11-04T09:00:00Z", steps: [] };
+    expect(gateCost([timedJob(0, 10), queued]).jobMinutes).toBe(10);
+    expect(gateCost([timedJob(0, 10), { ...queued, steps: null }]).longest).toBe(10);
+  });
+
+  it("keeps a job cancelled at the time limit, because it ran and its steps show that", () => {
+    const ran = { conclusion: "cancelled", startedAt: "2026-11-04T00:00:00Z", completedAt: "2026-11-04T05:40:00Z", steps: [{ name: "probe" }] };
+    expect(gateCost([timedJob(0, 10), ran]).longest).toBe(340);
+  });
+
   it("refuses a count of lanes that is not a whole number from 1", () => {
     expect(() => gateCost([], 0)).toThrow(RangeError);
     expect(() => gateCost([], 1.5)).toThrow(RangeError);
