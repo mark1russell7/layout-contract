@@ -8,7 +8,7 @@ import { siteKpi } from "@mark1russell7/site-pages/vite";
 import { defineConfig, type Plugin } from "vite";
 import { buildCatalog } from "./src/build-catalog.ts";
 import { checkDataFile, type JointData, latestJoint } from "./src/data.ts";
-import { ENGINE_SCOPE, enginesOnNpm, type NpmRead, siteKpiInput } from "./src/kpi.ts";
+import { ENGINE_SCOPE, enginesOnNpm, failedReadStops, type NpmRead, siteKpiInput } from "./src/kpi.ts";
 import { withEngineLinks } from "./src/links.ts";
 import { readStamps, stampFaults, withDataStamp } from "./src/stamps.ts";
 
@@ -54,10 +54,24 @@ function catalogOfTheRuns(): ReturnType<typeof buildCatalog> {
 /** The read of npm of this build. It stays undefined outside a build, and when npm does not answer. */
 let npmRead: NpmRead | undefined;
 
+/** The file of measures of the last deploy. A build reads it only after a failed read of npm. */
+const LIVE_KPI = "https://mark1russell7.github.io/layout-contract/kpi.json";
+
+/** This function gives the bytes of the file of measures of the last deploy, or `undefined` when they do not load. */
+async function lastKpi(): Promise<string | undefined> {
+  try {
+    const response = await fetch(LIVE_KPI, { signal: AbortSignal.timeout(20_000) });
+    return response.ok ? await response.text() : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
 /**
  * This plugin reads npm once at the start of a build, for the page and for `kpi.json`.
  * The daily build of the Pages workflow reads it again, so the number also follows a release with no commit here.
  * A failed read gives a warning and no measures. A blip of npm does not stop a deploy, and an old value is not a measure.
+ * A second failed read in a row stops a scheduled build, so a broken read does not stay hidden.
  */
 function npmEngines(): Plugin {
   return {
@@ -69,6 +83,7 @@ function npmEngines(): Plugin {
       const { times, problems } = await npmPublishTimes({ packages: Object.keys(latest.versions).map((engine) => `${ENGINE_SCOPE}${engine}`) });
       for (const problem of problems) this.warn(problem);
       npmRead = problems.length > 0 ? undefined : { at: `${new Date().toISOString().slice(0, 19)}Z`, engines: enginesOnNpm(latest.versions, times) };
+      if (npmRead === undefined && failedReadStops(env["GITHUB_EVENT_NAME"], await lastKpi())) this.error("The scheduled build did not read npm, and the last deploy also has no read of npm.");
     },
   };
 }

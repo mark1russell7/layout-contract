@@ -74,6 +74,24 @@ export function enginesCurrent(engines: readonly EngineOnNpm[]): number {
   return engines.filter((engine) => engine.used === engine.latest).length;
 }
 
+/**
+ * This function tells if a failed read of npm stops a build. A scheduled build stops when the file of the last deploy also has no read of npm.
+ * So one fault of the registry passes, and a read that stays broken does not stay hidden.
+ * A last file that did not load or does not parse tells nothing, so it passes.
+ *
+ * @param event - The event of the build, from `GITHUB_EVENT_NAME`.
+ * @param lastKpi - The bytes of `kpi.json` of the last deploy, or `undefined` when they did not load.
+ */
+export function failedReadStops(event: string | undefined, lastKpi: string | undefined): boolean {
+  if (event !== "schedule" || lastKpi === undefined) return false;
+  try {
+    const file = JSON.parse(lastKpi) as { readonly measures?: readonly { readonly id: string }[] };
+    return Array.isArray(file.measures) && !file.measures.some((m) => m.id === "engines-current");
+  } catch {
+    return false;
+  }
+}
+
 /** This function gives the measures that read npm. Each one has the time of the read, because npm can change with no commit here. */
 function npmMeasures(npm: NpmRead): SiteMeasure[] {
   return [

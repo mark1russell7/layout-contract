@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { JointData } from "./data.ts";
-import { enginesCurrent, enginesOnNpm, type KpiCatalog, type NpmRead, packersMeasured, siteKpiInput } from "./kpi.ts";
+import { enginesCurrent, enginesOnNpm, failedReadStops, type KpiCatalog, type NpmRead, packersMeasured, siteKpiInput } from "./kpi.ts";
 
 const run = (date: string, pairs: number, versions: Record<string, string>, packers: readonly string[] = ["shelf", "rows"]): JointData =>
   ({ run: "1", date, pairs, versions, stress: { byPacker: packers.map((id) => ({ id })) } }) as unknown as JointData;
@@ -38,6 +38,30 @@ describe("enginesOnNpm", () => {
 
   it("does not read the versions of another package", () => {
     expect(() => enginesOnNpm({ highways: "0.14.0" }, times)).toThrow("npm has no stable version of @mark1russell7/highways");
+  });
+});
+
+describe("failedReadStops", () => {
+  const withRead = JSON.stringify({ measures: [{ id: "pairs-in-run" }, { id: "engines-current" }] });
+  const withNoRead = JSON.stringify({ measures: [{ id: "pairs-in-run" }] });
+
+  it("stops a scheduled build when the last deploy also has no read of npm", () => {
+    expect(failedReadStops("schedule", withNoRead)).toBe(true);
+  });
+
+  it("passes the first failed read in a row", () => {
+    expect(failedReadStops("schedule", withRead)).toBe(false);
+  });
+
+  it("passes a build that no schedule started", () => {
+    expect(failedReadStops("push", withNoRead)).toBe(false);
+    expect(failedReadStops(undefined, withNoRead)).toBe(false);
+  });
+
+  it("passes when the last file tells nothing", () => {
+    expect(failedReadStops("schedule", undefined)).toBe(false);
+    expect(failedReadStops("schedule", "<html>")).toBe(false);
+    expect(failedReadStops("schedule", "{}")).toBe(false);
   });
 });
 

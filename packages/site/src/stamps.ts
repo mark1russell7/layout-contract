@@ -46,11 +46,16 @@ function pageFaults(page: DataStamps["pages"][number], run: Pick<JointData, "run
   return faults;
 }
 
+/** The words of a page when the build did not read npm. */
+export const NPM_NOT_READ = "npm not read at this build, so the gap is unknown.";
+
 /**
  * This function gives the line that puts the versions of the run beside npm, in words. It tells which versions close the gap.
  * The file `kpi.json` has the same numbers, so the page and the file do not disagree.
+ * With no read of npm, the line tells that, because a page with no line says nothing to a reader.
  */
-export function npmLine(engines: readonly EngineOnNpm[]): string {
+export function npmLine(engines: readonly EngineOnNpm[] | undefined): string {
+  if (engines === undefined) return `<p class="data-stamp">${NPM_NOT_READ}</p>`;
   const behind = engines.filter((e) => e.used !== e.latest);
   const parts = engines.map((e) => `${e.engine} ${e.used}, npm ${e.latest}${e.behind === 0 ? "" : `, ${e.behind} ${e.behind === 1 ? "release" : "releases"} behind`}`);
   const end = behind.length === 0 ? "Each engine has the newest version on npm." : `A run on ${behind.map((e) => `${e.engine} ${e.latest}`).join(" and ")} closes the gap.`;
@@ -64,7 +69,7 @@ export function npmLine(engines: readonly EngineOnNpm[]): string {
  * @param html - The html of the page.
  * @param filename - The path of the page.
  * @param stamps - The content of `data/stamps.json`.
- * @param engines - The engines of the newest run beside npm. Without them, the page has only the stamp line.
+ * @param engines - The engines of the newest run beside npm, or `undefined` when the build did not read npm.
  */
 export function withDataStamp(html: string, filename: string, stamps: DataStamps, engines?: readonly EngineOnNpm[]): string {
   const page = filename.replace(/\\/g, "/").split("/").pop() ?? filename;
@@ -73,5 +78,5 @@ export function withDataStamp(html: string, filename: string, stamps: DataStamps
   if (stamp === undefined && marked) throw new Error(`The page ${page} has the mark of a data stamp, and data/stamps.json has no stamp for it.`);
   if (stamp === undefined) return html;
   if (!marked) throw new Error(`The file data/stamps.json has a stamp for the page ${page}, and the page has no mark.`);
-  return html.replace(MARK, () => `${renderDataStamp(stamp)}${engines === undefined ? "" : npmLine(engines)}`);
+  return html.replace(MARK, () => `${renderDataStamp(stamp)}${npmLine(engines)}`);
 }
