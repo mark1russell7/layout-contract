@@ -992,6 +992,7 @@ export interface SampleOptions extends ShapeFilter {
   readonly seed: number;
   readonly meta?: "skip" | "sample";
   readonly maxTries?: number;
+  readonly draw?: "reject" | "walk";
 }
 
 ### build/index.d.ts#SelectCandidate
