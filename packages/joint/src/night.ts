@@ -140,7 +140,7 @@ export interface NightEntry {
   /** The keys of the lost pairs between the rounds, as `<config>|<input>`. The summary removes this field. */
   pending?: string[];
   /** The planned and the real minutes of each shard. A stop writes the censored row of the unit in progress. */
-  shards: { round: number; shard: number; planned: number; real: number; censored?: CensoredUnit }[];
+  shards: { round: number; shard: number; planned: number; real: number; elapsedMinutes?: number; censored?: CensoredUnit }[];
 }
 
 /** The state of the sweep in one epoch: one corpus, one version of each engine and one version of the space. */

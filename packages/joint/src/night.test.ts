@@ -162,7 +162,7 @@ function stateWithAlive(): ReturnType<typeof emptyState> {
   const state = emptyState("test", "test", INPUTS);
   const base = baselineIds();
   applyRecords(state, INPUTS.flatMap((i) => base.map((c) => record(c, i.id, 0.5))), INPUTS, OPTIONS.date);
-  state.configs.held = { status: "alive", config: { pack: "p", router: "r" }, ran: OPTIONS.date } as unknown as (typeof state.configs)[string];
+  state.configs["held"] = { status: "alive", config: { pack: "p", router: "r" }, ran: OPTIONS.date } as unknown as (typeof state.configs)[string];
   return state;
 }
 
@@ -233,7 +233,7 @@ describe("the label of a config states its origin", () => {
     const state = stateWithAlive();
     applyRecords(state, INPUTS.map((i) => record("held", i.id, 0.5)), INPUTS, "2026-10-29");
     raceNight(state, INPUTS, { date: "2026-10-29", runs: 200, draws: 400 });
-    expect(state.configs.held!.labelFrom).toEqual({ kind: "race", night: "2026-10-29" });
+    expect(state.configs["held"]!.labelFrom).toEqual({ kind: "race", night: "2026-10-29" });
   });
 
   it("keeps the note on the labels of 2026-11-02 with its run", () => {

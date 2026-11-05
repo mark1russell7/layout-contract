@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { SHARD_CASE, stopFlipFindings, stoppedShard, wholeLines, type ShardFile, type StopFlipFacts, type StopFlipRun, type StopPlan } from "./shard-stop.ts";
+import { SHARD_CASE, shardWallMinutes, stopFlipFindings, stoppedShard, wholeLines, type ShardFile, type StopFlipFacts, type StopFlipRun, type StopPlan } from "./shard-stop.ts";
 
 const PLAN: StopPlan = {
   round: 1,
@@ -26,6 +26,14 @@ describe("wholeLines", () => {
 describe("the name of the supervised case", () => {
   it("is one id for the whole shard", () => {
     expect(SHARD_CASE).toBe("shard");
+  });
+});
+
+describe("shardWallMinutes", () => {
+  it("reads the elapsed minutes of a stopped shard, and the real minutes of each other shard", () => {
+    const stopped = stoppedShard(PLAN, 0, IN_U1, line("a", "i0"), STOP);
+    expect(shardWallMinutes(stopped)).toBe(20);
+    expect(shardWallMinutes({ real: 7 })).toBe(7);
   });
 });
 

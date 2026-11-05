@@ -67,6 +67,7 @@ import {
   SETS,
   SHARD_CASE,
   statusCounts,
+  shardWallMinutes,
   stoppedShard,
   summaryRows,
   summaryTable,
@@ -221,7 +222,7 @@ function applyRound(state, inputs, dir, plan) {
   const night = state.nights.find((n) => n.date === plan.date);
   const kept = noReferenceRecords(state, records).map((record) => JSON.stringify({ tag: "no reference", night: plan.date, round: plan.round, record }) + "\n");
   for (const s of shards)
-    night.shards.push({ round: s.round, shard: s.shard, planned: s.planned, real: s.real, ...(plan.costModel === undefined ? {} : { costModel: plan.costModel }), ...(s.stopped === true ? { stopped: true, plannedDone: s.plannedDone, done: s.done, units: s.units } : {}), ...(s.censored === undefined ? {} : { censored: s.censored }) });
+    night.shards.push({ round: s.round, shard: s.shard, planned: s.planned, real: s.real, ...(plan.costModel === undefined ? {} : { costModel: plan.costModel }), ...(s.stopped === true ? { stopped: true, plannedDone: s.plannedDone, done: s.done, units: s.units } : {}), ...(s.elapsedMinutes === undefined ? {} : { elapsedMinutes: s.elapsedMinutes }), ...(s.censored === undefined ? {} : { censored: s.censored }) });
   const censored = new Set(shards.flatMap((s) => (s.censored?.configs ?? []).map((c) => `${c}|${s.censored.input}`)));
   noteLost(night, plan.round, plan.units, lostPairs(state, plan.units, records, censored));
   console.log(`round ${plan.round}: ${records.length} records of ${shards.length} shards. ${lostLine(night)}`);
@@ -484,10 +485,10 @@ function nightFacts(state, night) {
   });
   const better = Object.values(state.configs).filter((c) => c.decided === night.date && c.label === "better").length;
   const planned = night.shards.reduce((s, x) => s + x.planned, 0);
-  const real = night.shards.reduce((s, x) => s + x.real, 0);
+  const real = night.shards.reduce((s, x) => s + shardWallMinutes(x), 0);
   return {
     costModel: costModelScore(night),
-    longestShard: Math.max(0, ...night.shards.map((s) => s.real)),
+    longestShard: Math.max(0, ...night.shards.map(shardWallMinutes)),
     newConfigs: (night.round1?.sampled ?? 0) + (night.round2?.sampled ?? 0),
     raced: night.race?.raced ?? 0,
     dropShare: night.race && night.race.raced > 0 ? night.race.dropped / night.race.raced : null,

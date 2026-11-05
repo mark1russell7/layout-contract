@@ -27,6 +27,14 @@ export interface CensoredUnit {
   readonly reason: ShardStopReason;
 }
 
+/**
+ * This function gives the minutes that a shard held its job. A hard stop keeps the unit in progress out of `real`, so a total of a night reads `elapsedMinutes` for that shard.
+ * The cost history reads `real`, because its ratio is over the planned minutes of the units that ended.
+ */
+export function shardWallMinutes(shard: { readonly real: number; readonly elapsedMinutes?: number }): number {
+  return shard.elapsedMinutes ?? shard.real;
+}
+
 /** The shard file of a run. */
 export interface ShardFile {
   readonly round: number;
