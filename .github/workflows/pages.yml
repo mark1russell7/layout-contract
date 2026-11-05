@@ -8,6 +8,11 @@ name: Pages
 on:
   push:
     branches: [main]
+  # After a release, so that the Releases page has the new version
+  workflow_run:
+    workflows: [Release]
+    types: [completed]
+    branches: [main]
   workflow_dispatch:
   pull_request:
   # The freshness gate reads the date of the data. With no push the gate has no other start, so old data fails on the next morning.

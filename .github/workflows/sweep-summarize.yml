@@ -24,6 +24,10 @@ concurrency:
   group: sweep-summarize-${{ github.ref }}
   cancel-in-progress: false
 
+defaults:
+  run:
+    shell: bash
+
 jobs:
   summarize:
     runs-on: ubuntu-latest

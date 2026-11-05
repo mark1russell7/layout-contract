@@ -61,6 +61,10 @@ env:
   TARGET_MINUTES: ${{ inputs.target-minutes || '30' }}
   MAX_CONFIGS: ${{ inputs.max-configs || '400' }}
 
+defaults:
+  run:
+    shell: bash
+
 jobs:
   plan:
     runs-on: ubuntu-latest
