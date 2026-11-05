@@ -832,6 +832,62 @@ export const EDGE_KEY_STEP: CorpusStep = /* @__PURE__ */ Object.freeze({
   apply: (input: LayoutInput, seed: number, d: DimensionValues) => edgeKeyStep(input, { edgeKey: edgeKeyOf(d) }, seed),
 });
 
+/** The set of `CIRCLE_SCATTERED` when the caller gives no set. */
+const CIRCLE_SET = "circle-v1";
+
+/**
+ * The shared family `circle-scattered`, version 1: circle items of random whole radii in a fixed container, with no obstacles and no edges.
+ *
+ * - The dimension `containerShape` takes `rect` or `circle`. One seed gives the same radii in the 2 containers, so a pair joins on the seed.
+ * - The circles fill approximately half of the container, and the container is at least as large as the largest circle.
+ * - The stream `items` gives each radius, from 8 to 40. The stream `container` gives the width of a rectangle over its side, from 0.80 to 1.25.
+ * - The family has no margin and no gap. Each value comes from whole numbers and `Math.sqrt`, which each engine rounds correctly, so the family is `exact`.
+ */
+export const CIRCLE_SCATTERED: CorpusFamily<LayoutInput> = /* @__PURE__ */ Object.freeze({
+  name: "circle-scattered",
+  version: 1,
+  owner: "layout-contract",
+  meaning: "Circle items of random radii in a fixed rectangle or circle container, which they fill approximately half.",
+  dimensions: /* @__PURE__ */ Object.freeze([/* @__PURE__ */ sharedDimension("count", { default: 40 }), /* @__PURE__ */ sharedDimension("containerShape", { supported: ["rect", "circle"] })]),
+  seeding: "stepRandom(seed, items) gives the radius of each item. stepRandom(seed, container) gives the width over the side of a rectangle, in hundredths.",
+  crossEngine: "exact",
+  generate(seed: number, dims: DimensionValues, context: GenerateContext): LayoutInput {
+    const count = dims["count"];
+    if (typeof count !== "number" || !Number.isInteger(count) || count < 0) throw new RangeError(`circle-scattered: the count is a whole number of 0 or more, not ${String(count)}.`);
+    const containerShape = dims["containerShape"];
+    if (containerShape !== "rect" && containerShape !== "circle") throw new RangeError(`circle-scattered: the container shape is rect or circle, not ${String(containerShape)}.`);
+    const set = context.set ?? CIRCLE_SET;
+    let r = stepRandom(seed, "items");
+    const radii = Array.from({ length: count }, () => randomInt(r, 8, 40));
+    const largest = radii.reduce((m, v) => Math.max(m, v), 1);
+    const squares = radii.reduce((sum, v) => sum + v * v, 0);
+    let container: LayoutInput["container"];
+    if (containerShape === "circle") {
+      const big = Math.max(largest, Math.ceil(Math.sqrt(2 * squares)));
+      container = { w: 2 * big, h: 2 * big, fixed: "size", shape: { kind: "circle", cx: big, cy: big, r: big } };
+    } else {
+      // The circles have the area PI * squares. A rectangle of 6.3 * squares holds them at approximately half, and 6.3 keeps PI out of the input.
+      const area = Math.ceil((63 * squares) / 10);
+      r = stepRandom(seed, "container");
+      const w = Math.max(2 * largest, Math.ceil((Math.sqrt(area) * randomInt(r, 80, 125)) / 100));
+      container = { w, h: Math.max(2 * largest, Math.ceil(area / w)), fixed: "size" };
+    }
+    const body: LayoutInput = {
+      schema: "layout-input/1",
+      id: `${set}/circle-scattered/${containerShape}/s${seed}`,
+      set,
+      family: "circle-scattered",
+      seed,
+      source: "made-up",
+      generator: { name: "circle-scattered", version: 1, params: { count, containerShape }, seed },
+      container,
+      boxes: radii.map((v, i) => ({ id: `c${i}`, w: 2 * v, h: 2 * v, shape: { kind: "circle", cx: v, cy: v, r: v } })),
+      edges: [],
+    };
+    return { ...body, hash: documentHash(body) };
+  },
+});
+
 /** The set of `RECT_SCATTERED` when the caller gives no set. */
 const XCHECK_SET = "xcheck-v1";
 

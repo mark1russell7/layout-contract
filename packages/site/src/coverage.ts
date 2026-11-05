@@ -114,7 +114,7 @@ export interface EpochEntry {
   readonly nights: number;
   readonly last: string;
   readonly configs: number;
-  /** The count of the jobs of the last night with no record, or `null` when the index does not state it. */
+  /** The count of the planned pairs of the last night that gave no value, or `null` when the index does not state it. An older night has the older form of the count (`LOST_METHOD_NOTE`). */
   readonly missing: number | null;
   /** The step from the epoch before this epoch, or `null` with no step. */
   readonly step: StepFacts | null;
@@ -232,6 +232,7 @@ export function weekView(line: readonly TrendRecord[]): WeekView {
 const STEP_ROUTE_LABELS: readonly (readonly [string, string])[] = [
   ["route.detour.mean", "mean detour"],
   ["route.detour.q95", "q95 detour"],
+  ["joint.route.length", "mean route length"],
   ["route.crossings", "routed crossings"],
 ];
 

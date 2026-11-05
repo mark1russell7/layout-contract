@@ -188,11 +188,11 @@ jobs:
           SHARD: ${{ matrix.shard }}
           # The design night of 2026-10-29 (run 40890060521) went above the default heap of approximately 4 GB on inputs of 1000 boxes. The runner has 16 GB.
           NODE_OPTIONS: --max-old-space-size=6144
-        # The deadline is 10 minutes under the timeout of the step. A shard stops cleanly before a unit that does not end in time, and keeps its records.
-        # The step timeout is 20 minutes under the timeout of the job. If one unit runs past the deadline, the step stops and the upload keeps the records of the units that ended.
-        # On 2026-11-03 (run 41573500756), one unit of shard 4 ran past the job timeout, and the job lost the records of 35 units.
-        timeout-minutes: 100
-        run: node scripts/sweep.mjs run --plan night --shard "$SHARD" --out records --deadline-minutes 90
+        # A shard stops cleanly at 90 minutes before a unit that does not end in time. At 100 minutes a parent process stops it, also in its first unit, keeps each finished record and writes a censored row (L115).
+        # The step timeout is only a net, 15 minutes under the timeout of the job. The upload below then has the records.
+        # On 2026-11-01 and 2026-11-03, 3 shards ran past the timeout of the job. A cancelled job leaves no artifact, so 1,057 pairs were lost. A death of the runner still loses a shard.
+        timeout-minutes: 105
+        run: node scripts/sweep.mjs run --plan night --shard "$SHARD" --out records --deadline-minutes 90 --hard-deadline-minutes 100
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         if: ${{ !cancelled() }}
         with:
@@ -273,9 +273,9 @@ jobs:
           SHARD: ${{ matrix.shard }}
           # The design night of 2026-10-29 (run 40890060521) went above the default heap of approximately 4 GB on inputs of 1000 boxes. The runner has 16 GB.
           NODE_OPTIONS: --max-old-space-size=6144
-        # The same deadline and step timeout as round 1.
-        timeout-minutes: 100
-        run: node scripts/sweep.mjs run --plan night2 --shard "$SHARD" --out records --deadline-minutes 90
+        # The same deadlines and step timeout as round 1.
+        timeout-minutes: 105
+        run: node scripts/sweep.mjs run --plan night2 --shard "$SHARD" --out records --deadline-minutes 90 --hard-deadline-minutes 100
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         if: ${{ !cancelled() }}
         with:

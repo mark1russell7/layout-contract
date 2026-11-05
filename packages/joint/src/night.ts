@@ -2,6 +2,7 @@
 // The state is one JSON object. The workflow keeps it on the data branch `sweep-data`, and the script `scripts/sweep.mjs` reads and writes it.
 import { configId, type LayoutRecord, type StrategyConfig, type StrategySpace } from "@mark1russell7/layout-contract";
 import { stepValuesOf } from "./epoch-step.ts";
+import type { CensoredUnit } from "./shard-stop.ts";
 import { saltelliDesign, type SaltelliDesign } from "./sensitivity.ts";
 import { configRun, JOINT_SPACE, type ConfigRun } from "./space.ts";
 import {
@@ -34,6 +35,13 @@ import {
   type SweepJob,
 } from "./sweep.ts";
 
+/** The origin of the label of a config: the race that gave it, and the night of that race. */
+export interface LabelOrigin {
+  /** `screen` is the race on the screen inputs. `race` is the full race on each input. */
+  readonly kind: "screen" | "race";
+  readonly night: string;
+}
+
 /** One config in the state. */
 export interface ConfigEntry {
   readonly config: StrategyConfig;
@@ -43,6 +51,8 @@ export interface ConfigEntry {
   /** The date of the last race of the config, its label and its stratified mean against the incumbent. */
   decided?: string;
   label?: string;
+  /** The origin of the label. A state from before this field has none. */
+  labelFrom?: LabelOrigin;
   mean?: number;
   /** The mean of the inputs, `agree` and the sign test of the family signs of the last race (L37). A state before L37 has none. */
   pooled?: number;
@@ -68,6 +78,16 @@ export interface RoundFacts {
   readonly longest: number;
 }
 
+/** One config that the race of a night held out, because values are missing. The config stays in the state, and round 2 plans the missing inputs. */
+export interface HeldConfig {
+  readonly config: string;
+  readonly status: "screened" | "alive";
+  /** The inputs of the race with no value, and the inputs of that race. */
+  readonly missing: number;
+  readonly of: number;
+  readonly reason: string;
+}
+
 /** The facts of the race of a night. */
 export interface RaceFacts {
   /** The screened configs of the race, and the counts of their outcomes. */
@@ -78,6 +98,28 @@ export interface RaceFacts {
   /** The alive configs with each input, and the count of them that the verdict drops. */
   readonly full: number;
   readonly fullDropped: number;
+  /** The alive configs at the start of the race, and the configs that the race held out. A night from before L115 has neither. */
+  readonly aliveAtStart?: number;
+  readonly held?: readonly HeldConfig[];
+}
+
+/** The counts of the planned pairs of one round that gave no value. */
+export interface LostCounts {
+  readonly planned: number;
+  /** The pairs with no record, the pairs with a record and no reference for their input, and the pairs of a censored unit. */
+  readonly noRecord: number;
+  readonly noReference: number;
+  readonly censored: number;
+}
+
+/** The reason for one planned pair that gave no value. */
+export type LostReason = "no-record" | "no-reference" | "censored";
+
+/** One planned pair of a round that gave no value. */
+export interface LostPair {
+  readonly config: string;
+  readonly input: string;
+  readonly reason: LostReason;
 }
 
 /** One night in the state. */
@@ -90,11 +132,15 @@ export interface NightEntry {
   round2?: RoundFacts;
   /** The count of the inputs where a config of the baseline arm has another score than on an earlier night. The runs are deterministic, so 0 is the expected value. */
   drift: number;
-  /** The jobs that gave a value, and the jobs of the plans without a record. */
+  /** The jobs that gave a value, and the planned pairs that gave no value by the end of the night (`LOST_METHOD_NOTE` of `night-check.ts` gives the older form). */
   values: number;
   missing: number;
-  /** The planned and the real minutes of each shard. */
-  shards: { round: number; shard: number; planned: number; real: number }[];
+  /** The counts of each round. A night from before L115 has none. */
+  lost?: { rounds: Record<string, LostCounts> };
+  /** The keys of the lost pairs between the rounds, as `<config>|<input>`. The summary removes this field. */
+  pending?: string[];
+  /** The planned and the real minutes of each shard. A stop writes the censored row of the unit in progress. */
+  shards: { round: number; shard: number; planned: number; real: number; elapsedMinutes?: number; censored?: CensoredUnit }[];
 }
 
 /** The state of the sweep in one epoch: one corpus, one version of each engine and one version of the space. */
@@ -169,6 +215,104 @@ export function nightOf(state: SweepState, date: string): NightEntry {
     state.nights.push(night);
   }
   return night;
+}
+
+/**
+ * This function gives each planned pair of a round that gave no value. The caller reads it after `applyRecords` and before the race.
+ * A record of an input with no reference gives no value (`applyRecords`), so a count of records alone does not see that pair.
+ */
+export function lostPairs(
+  state: SweepState,
+  units: readonly { readonly input: string; readonly configs: readonly string[] }[],
+  records: readonly { readonly strategy: string; readonly input: string }[],
+  censored: ReadonlySet<string> = new Set(),
+): LostPair[] {
+  const at = indexOf(state);
+  const seen = new Set(records.map((r) => `${r.strategy}|${r.input}`));
+  const lost: LostPair[] = [];
+  for (const unit of units) {
+    const i = at.get(unit.input);
+    for (const config of unit.configs) {
+      const key = `${config}|${unit.input}`;
+      if (!seen.has(key)) {
+        lost.push({ config, input: unit.input, reason: censored.has(key) ? "censored" : "no-record" });
+        continue;
+      }
+      const value = i === undefined ? null : state.values[config]?.[i];
+      if (value === null || value === undefined) lost.push({ config, input: unit.input, reason: "no-reference" });
+    }
+  }
+  return lost;
+}
+
+/** This function gives the records that `applyRecords` read and kept out of each value: a known config on an input with no reference. */
+export function noReferenceRecords<R extends { readonly strategy: string; readonly input: string }>(state: SweepState, records: readonly R[]): R[] {
+  const at = indexOf(state);
+  return records.filter((r) => {
+    const i = at.get(r.input);
+    if (i === undefined || state.configs[r.strategy] === undefined) return false;
+    const reference = state.reference[i];
+    return reference === null || reference === undefined;
+  });
+}
+
+/**
+ * This function adds the lost pairs of a round to a night. `night.missing` counts each planned pair with no value by this round.
+ * A later round that runs a lost pair and gets its value takes it off the count. A pair that a round does not plan again stays on the count.
+ */
+export function noteLost(
+  night: NightEntry,
+  round: number,
+  units: readonly { readonly input: string; readonly configs: readonly string[] }[],
+  lost: readonly LostPair[],
+): void {
+  const count = (reason: LostReason): number => lost.filter((p) => p.reason === reason).length;
+  const planned = units.reduce((n, u) => n + u.configs.length, 0);
+  night.lost = { rounds: { ...night.lost?.rounds, [round]: { planned, noRecord: count("no-record"), noReference: count("no-reference"), censored: count("censored") } } };
+  const lostNow = new Set(lost.map((p) => `${p.config}|${p.input}`));
+  const plannedNow = new Set(units.flatMap((u) => u.configs.map((c) => `${c}|${u.input}`)));
+  const pending = [...(night.pending ?? []).filter((key) => !plannedNow.has(key)), ...lostNow];
+  night.pending = pending;
+  night.missing = pending.length;
+}
+
+/** The note on the race of 2026-11-02. It stays in each summary, because the summary of that night printed the 3 labels with no mark. */
+export const RACE_NOTE_2026_11_02 =
+  "The summary of the night 2026-11-02 printed `full: 0`, `Jobs without a record: 0`, and 3 held configs with the label `better` and no mark. Run 41442420950 printed it, after the first summarize job of run 41384329446 stopped on an error. These 3 labels came from the screen of 2026-11-01. The 13 alive configs of that night each had 12 or 13 inputs with no value.";
+
+/** This function gives the lines of the race of a night. A night with nothing to race reads differently from a night that held each config out. */
+export function raceLines(race: RaceFacts | undefined): string[] {
+  if (race === undefined) return ["Race: none."];
+  const { held, aliveAtStart, ...counts } = race;
+  const lines = [`Race: ${JSON.stringify(counts)}.`];
+  if (aliveAtStart === undefined) return lines;
+  const heldOut = (held ?? []).filter((h) => h.status === "alive").length;
+  lines.push(aliveAtStart === 0 ? "The full race had nothing to race: no config was alive at the start." : `The full race: ${aliveAtStart} alive configs at the start, ${race.full} with each input raced, ${heldOut} held out.`);
+  if ((held ?? []).length > 0) {
+    lines.push("", "| Held config | Status | Inputs with no value | Inputs of the race | Reason |", "|---|---|---|---|---|");
+    for (const h of held ?? []) lines.push(`| \`${h.config}\` | ${h.status} | ${h.missing} | ${h.of} | ${h.reason} |`);
+  }
+  return lines;
+}
+
+/** This function gives the label of a config for a page or a summary. A held config reads as held, and a label from the screen alone reads as that. */
+export function labelLine(entry: Pick<ConfigEntry, "label" | "labelFrom" | "decided">, heldMissing = 0): string {
+  const label = entry.label ?? "";
+  const from = entry.labelFrom;
+  if (heldMissing > 0) return `held, ${heldMissing} inputs missing (${label === "" ? "no label" : `${label} from ${from === undefined ? "a race with no stated origin" : originText(from)}`})`;
+  if (label === "") return "";
+  return from === undefined ? `${label} (origin not stated)` : `${label} (${originText(from)})`;
+}
+
+/** This function gives the origin of a label in words. */
+function originText(from: LabelOrigin): string {
+  return from.kind === "screen" ? `the screen of ${from.night}` : `the full race of ${from.night}`;
+}
+
+/** This function gives the line of the lost pairs of a night. */
+export function lostLine(night: Pick<NightEntry, "missing" | "lost">): string {
+  const rounds = Object.entries(night.lost?.rounds ?? {}).map(([round, c]) => `round ${round}: ${c.noRecord} with no record, ${c.noReference} with no reference, ${c.censored} censored`);
+  return `Planned pairs that gave no value by the end of the night: ${night.missing}${rounds.length === 0 ? "" : ` (${rounds.join("; ")})`}.`;
 }
 
 /** This function gives the inputs of a list that a config has no value for. */
@@ -426,6 +570,18 @@ export function raceNight(state: SweepState, inputs: readonly SweepInput[], opti
   const full = Object.entries(state.configs)
     .filter(([id, c]) => c.status === "alive" && missingOf(state, id, inputs, at).length === 0)
     .map(([id]) => id);
+  const heldOf = (id: string, status: "screened" | "alive", list: readonly SweepInput[], what: string): HeldConfig => {
+    const missing = missingOf(state, id, list, at).length;
+    return { config: id, status, missing, of: list.length, reason: `${missing} of ${list.length} ${what} have no value` };
+  };
+  const taking = new Set([...screened, ...full]);
+  const held = Object.entries(state.configs).flatMap(([id, c]) => {
+    if (taking.has(id)) return [];
+    if (c.status === "screened") return [heldOf(id, "screened", screen, "screen inputs")];
+    return c.status === "alive" ? [heldOf(id, "alive", inputs, "inputs")] : [];
+  });
+  const aliveAtStart = Object.values(state.configs).filter((c) => c.status === "alive").length;
+  const fromFull = new Set(full);
   const first = race(values, screened, { ...common, ...(options.eta === undefined ? {} : { eta: options.eta }) });
   const second = race(values, full, { ...common, eta: Infinity });
   // The race keeps the values of a config of a design, so the design rows stay full.
@@ -435,6 +591,7 @@ export function raceNight(state: SweepState, inputs: readonly SweepInput[], opti
     c.status = o.status;
     c.decided = options.date;
     c.label = o.label;
+    c.labelFrom = { kind: fromFull.has(o.config) ? "race" : "screen", night: options.date };
     c.mean = Number(o.mean.toFixed(6));
     c.pooled = Number(o.pooled.toFixed(6));
     c.agree = o.agree;
@@ -448,6 +605,8 @@ export function raceNight(state: SweepState, inputs: readonly SweepInput[], opti
     alive: first.filter((o) => o.status === "alive").length,
     full: second.length,
     fullDropped: second.filter((o) => o.status === "dropped").length,
+    aliveAtStart,
+    held,
   };
   return [...first, ...second];
 }

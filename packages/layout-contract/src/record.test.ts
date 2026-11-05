@@ -105,6 +105,14 @@ describe("parseLayoutRecord", () => {
     expect(checkLayoutRecord(line({ ...run, because: ["a@10", 2] }))).toEqual(["because is not a list of strings"]);
   });
 
+  it("accepts null on a one-run record only", () => {
+    expect(checkLayoutRecord(line({ ...run, oneRun: true, deterministic: null }))).toEqual([]);
+    const refused = ["deterministic is not a boolean, and the record has no skipped"];
+    expect(checkLayoutRecord(line({ ...run, oneRun: false, deterministic: null }))).toEqual(refused);
+    expect(checkLayoutRecord(line({ ...run, deterministic: null }))).toEqual(refused);
+    expect(checkLayoutRecord(line({ ...run, oneRun: true, deterministic: "yes" }))).toEqual(refused);
+  });
+
   it("accepts the fields of a wall budget", () => {
     expect(checkLayoutRecord(line({ ...run, oneRun: true }))).toEqual([]);
     expect(checkLayoutRecord(line({ ...run, oneRun: false }))).toEqual([]);

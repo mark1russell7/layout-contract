@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { compareMeasure, JOINT_MEASURES, minEffectOf, RECORD_EPS, RECORD_SCALE, type MeasureSpec, type Verdict } from "./index.ts";
+import { compareMeasure, EPS, EPS_STEPS, JOINT_MEASURES, minEffectOf, RECORD_EPS, RECORD_SCALE, type MeasureSpec, type Verdict } from "./index.ts";
 
 /** A small seeded generator, so each run tests the same values. */
 function rng(seed: number): () => number {
@@ -86,6 +86,8 @@ describe("compareMeasure", () => {
 
   it("gives back the grid step of a value from its rounded record, also at half steps and below 0", () => {
     expect(RECORD_EPS).toBe(1 / RECORD_SCALE);
+    expect(Number.isInteger(EPS_STEPS)).toBe(true);
+    expect(EPS_STEPS).toBe(Math.round(1 / EPS));
     const r = rng(29);
     for (let i = 0; i < 20000; i++) {
       const k = Math.round((r() - 0.5) * 2e7);

@@ -2,6 +2,7 @@
 // The claim is an interval from past nights of the same cost model. The whole night comes first, because a plan decides by the night. The shards come second.
 import { brier, quantileSorted } from "@mark1russell7/rigor-statistics";
 import { jobSpan, type GateJobTime } from "./memory-gate.ts";
+import { shardWallMinutes } from "./shard-stop.ts";
 
 /**
  * The form of the claim: the real value is between the q10 and the q90 of past ratios, at probability 0.8.
@@ -32,6 +33,7 @@ export interface CostShard {
   readonly round: number;
   readonly planned: number;
   readonly real: number;
+  readonly elapsedMinutes?: number;
   readonly costModel?: string;
   readonly stopped?: boolean;
   readonly plannedDone?: number;
@@ -202,7 +204,7 @@ export function costClaimScore(night: CostScoredNight): CostClaimScore {
   const plans = Object.values(night.cost ?? {});
   const planned = plans.reduce((sum, r) => sum + (r.plannedMinutes ?? 0), 0);
   const wallPlanned = plans.reduce((sum, r) => sum + (r.plannedWall ?? 0), 0);
-  const real = night.shards.reduce((sum, s) => sum + s.real, 0);
+  const real = night.shards.reduce((sum, s) => sum + shardWallMinutes(s), 0);
   const walls = night.wall === undefined || night.wall === null ? null : Object.values(night.wall.rounds);
   const jobMinutes = history?.round == null || !(planned > 0) ? null : nightClaim(planned, history.round, real);
   const wall = history?.wall == null || walls === null || walls.length === 0 || !(wallPlanned > 0) ? null : nightClaim(wallPlanned, history.wall, walls.reduce((sum, w) => sum + w, 0));

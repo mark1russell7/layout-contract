@@ -288,6 +288,7 @@ describe("the joint measures", () => {
     expect(inside["joint.fill"]).toBeCloseTo(1, 9);
     expect(inside["joint.spill"]).toBe(0);
     expect(inside["joint.straight.length"]).toBeCloseTo(10 / Math.sqrt(200), 9);
+    expect(inside["joint.route.length"]).toBeCloseTo(10, 9);
     expect(inside["joint.aspectError"]).toBeCloseTo(Math.log(2), 9);
     const out = jointMeasures(facts, [{ edge: "e", points: [{ x: 5, y: 5 }, { x: 5, y: 20 }, { x: 15, y: 20 }, { x: 15, y: 5 }] }], 1);
     expect(out["joint.fill"]).toBeCloseTo(200 / (20 * 20), 9);
