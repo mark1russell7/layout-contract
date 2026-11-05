@@ -15,6 +15,7 @@ import {
   spaceSize,
   splitConfig,
   STRATEGY_SPACE_SCHEMA,
+  type MemberRule,
   type OptionSupports,
   type SampleOptions,
   type ShapeKind,
@@ -563,6 +564,71 @@ describe("shape kinds of the options (L46)", () => {
     expect(spaceSize(joint, { levels: 1, shapes: ["circle"] }).base).toBe(6n * spaceSize(route, { levels: 1 }).base);
     expect(enumerateSpace(joint, { mode: "grid", levels: 1, shapes: ["circle"] })).toHaveLength(24);
     expect(spaceShapeKinds(joint)).toEqual(["rect", "circle"]);
+  });
+});
+
+describe("a meta option with no member list", () => {
+  const noList = { min: 0, max: 0, ordered: false };
+  const over = (members: object): StrategySpace => ({
+    schema: STRATEGY_SPACE_SCHEMA,
+    engine: "route",
+    version: "1",
+    stages: [
+      { name: "routing", options: [{ id: "a", params: [] }, { id: "b", params: [] }] },
+      { name: "combine", optional: true, options: [{ id: "portfolio", params: [{ name: "cap", kind: "int", min: 1, max: 3, default: 2 }], members: members as MemberRule }] },
+    ],
+  });
+  const space = over(noList);
+  const config = (members?: readonly StrategyConfig[]): StrategyConfig => ({
+    space: "route",
+    stages: { routing: null, combine: { option: "portfolio", params: { cap: 2 }, ...(members === undefined ? {} : { members }) } },
+  });
+  const member: StrategyConfig = { space: "route", stages: { routing: { option: "a" }, combine: null } };
+
+  it("is a good form of a space and of a config", () => {
+    expect(checkSpace(space)).toEqual([]);
+    expect(checkConfig(space, config([]))).toEqual([]);
+  });
+
+  it("refuses a config that lists a member or gives no list", () => {
+    expect(checkConfig(space, config([member])).map((b) => b.claim)).toEqual(["members"]);
+    expect(checkConfig(space, config()).map((b) => b.claim)).toEqual(["members"]);
+  });
+
+  it("refuses each other rule with a count of 0", () => {
+    for (const rule of [{ min: 0, max: 1, ordered: false }, { min: 1, max: 0, ordered: false }, { min: -1, max: 0, ordered: false }]) {
+      expect(checkSpace(over(rule)).map((b) => b.claim)).toEqual(["members"]);
+    }
+  });
+
+  it("refuses a pool or a view on this form", () => {
+    expect(checkSpace(over({ ...noList, pool: [[]] })).map((b) => b.detail)).toContain("the option combine.portfolio has no member list, so its member rule cannot have a pool or a view");
+    expect(checkSpace(over({ ...noList, view: "bounds" })).map((b) => b.claim)).toEqual(["members"]);
+  });
+
+  it("counts one member list for each value of its params", () => {
+    expect(spaceSize(space, { levels: 3 }).meta).toBe(3n);
+  });
+
+  it("stays out of a default sample, and a meta sample holds it with no members", () => {
+    expect(enumerateSpace(space, { mode: "sample", n: 40, seed: 3 }).filter((c) => c.stages["combine"] !== null)).toEqual([]);
+    const out = enumerateSpace(space, { mode: "sample", n: 40, seed: 3, meta: "sample" });
+    const held = out.filter((c) => c.stages["combine"] !== null);
+    expect(held.length).toBeGreaterThan(0);
+    for (const c of held) expect(c.stages["combine"]!.members).toEqual([]);
+    expect(out.filter((c) => checkConfig(space, c).length > 0)).toEqual([]);
+  });
+
+  it("stays usable when no base config supports the kinds of the input", () => {
+    const shaped: StrategySpace = {
+      ...space,
+      stages: [
+        { name: "routing", options: [{ id: "a", params: [], supports: { shape: ["rect"] } }] },
+        { name: "combine", optional: true, options: [{ id: "portfolio", params: [], supports: { shape: ["rect", "circle"] }, members: noList }] },
+      ],
+    };
+    expect(spaceSize(shaped, { levels: 1, shapes: ["circle"] }).meta).toBe(1n);
+    expect(enumerateSpace(shaped, { mode: "sample", n: 4, seed: 3, meta: "sample", shapes: ["circle"] }).every((c) => c.stages["combine"]?.option === "portfolio")).toBe(true);
   });
 });
 

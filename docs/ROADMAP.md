@@ -68,6 +68,8 @@ This file lists the items of the roadmap of this repository. The status page of 
 | L91 | later | P3 | Align linked boxes so that the edges are straight |
 | L92 | later | P3 | A learned route proxy for the placer |
 | L93 | later | P3 | An exact joint reference for small inputs |
+| L119 | in progress | P1 | A meta option that chooses its members from the input: the member rule with `min` and `max` 0. |
+| L122 | next | P1 | A floor per option for a walk sample: the count per option beside uniform, a floor with its reason, a stratum if an option falls under it, and a test that pins the smallest count. By 2026-11-17. |
 | L121 | later | P3 | The local `permutation` of the strategy space uses `Random.shuffle` of `@mark1russell7/rigor-generators`, after a byte-equal read. |
 | L106 | later | P2 | One name for routes through a shape: `route.through` takes the true shape when the measure of the router is on npm, and the extra key stops |
 | L107 | later | P2 | An exact rule for a circle beside another shape kind, an obstacle or a polygon container, due 2026-11-28 |

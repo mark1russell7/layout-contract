@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.5.3
+
+- PATCH before 1.0.0: `checkSpace` accepts a new form that it refused before, and each space that was good stays good with the same configs.
+- A meta option can have the rule `{ min: 0, max: 0, ordered: false }`. The option chooses its members from the input, and a config of it has the empty list `members`. A `pool` or a `view` on this form is refused.
+- The text of the `members` problem of a bad count changes. It names the new form.
+
 ## 0.5.2
 
 - PATCH before 1.0.0: a new optional option. `SampleOptions` has the option `draw`, with the values `reject` and `walk`. The default is `reject`, and it gives the same configs as before.
