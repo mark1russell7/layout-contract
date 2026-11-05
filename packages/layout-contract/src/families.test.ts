@@ -3,7 +3,7 @@ import { createRequire } from "node:module";
 import { pathToFileURL } from "node:url";
 import { describe, expect, it } from "vitest";
 import { familyOf } from "./corpus.ts";
-import { edgeStep } from "./edges.ts";
+import { edgeKeyStep, edgeStep } from "./edges.ts";
 import {
   composeFamily,
   CORPUS_DIMENSIONS,
@@ -13,6 +13,7 @@ import {
   dimensionAt,
   dimensionSupports,
   dimensionUnit,
+  EDGE_KEY_STEP,
   EDGES_STEP,
   familyKind,
   levelsOf,
@@ -354,6 +355,34 @@ describe("EDGES_STEP", () => {
     expect(() => EDGES_STEP.apply(input, 1, { ...good, edgeShape: "star" })).toThrow(/"edgeShape" is bad/);
     const { ports: _ports, ...noPorts } = good;
     expect(() => EDGES_STEP.apply(input, 1, noPorts)).toThrow(/"ports" is bad: the value is missing/);
+  });
+});
+
+describe("EDGE_KEY_STEP", () => {
+  it("gives the family part and the stamp of the key, after the step of the edges", () => {
+    const reg = createFamilyRegistry([composeFamily(boxFamily(), [EDGES_STEP, EDGE_KEY_STEP])]);
+    const dims = { count: 40, edgeShape: "hubs", edgeDensity: "dense" };
+    const out = reg.generate("boxes+edges+edge-key", 2, { ...dims, edgeKey: "cluster" }, { set: "s" });
+    expect(out.family).toBe("boxes.n40.e-dense.hubs.none.free.key-cluster");
+    expect(out.steps?.at(-1)).toEqual({ name: "edge-key", version: 1, params: { edgeKey: "cluster" }, seed: 2 });
+    const none = reg.generate("boxes+edges+edge-key", 2, dims, { set: "s" });
+    expect(none.family).toBe("boxes.n40.e-dense.hubs.none.free.key-none");
+    expect(none.edges?.every((e) => e.data === undefined)).toBe(true);
+    expect(none.hash).not.toBe(out.hash);
+  });
+
+  it("states one definition with 3 values, for highways and the joint corpus", () => {
+    expect(CORPUS_DIMENSIONS["edgeKey"]!.values).toEqual(["none", "random", "cluster"]);
+    expect(CORPUS_DIMENSIONS["edgeKey"]!.default).toBe("none");
+    expect(CORPUS_DIMENSIONS["edgeKey"]!.engines).toEqual(["highways", "joint"]);
+    expect(EDGES_STEP.dimensions.map((d) => d.name)).not.toContain("edgeKey");
+  });
+
+  it("refuses a missing or a bad value when a caller uses apply with no registry", () => {
+    const input = boxFamily().generate(1, { count: 5 }, { rng: DEFAULT_RNG, random: DEFAULT_RNG(1) });
+    expect(EDGE_KEY_STEP.apply(input, 1, { edgeKey: "random" })).toEqual(edgeKeyStep(input, { edgeKey: "random" }, 1));
+    expect(() => EDGE_KEY_STEP.apply(input, 1, { edgeKey: "name" })).toThrow(/"edgeKey" is bad/);
+    expect(() => EDGE_KEY_STEP.apply(input, 1, {})).toThrow(/"edgeKey" is bad: the value is missing/);
   });
 });
 

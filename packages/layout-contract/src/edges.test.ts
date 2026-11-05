@@ -4,10 +4,12 @@ import {
   checkInput,
   countPortsOffBorder,
   EDGE_DENSITY,
+  edgeKeyStep,
   edgeStep,
   fnv1a32,
   randomInt,
   stepRandom,
+  type EdgeKey,
   type EdgeShape,
   type EdgeStepParams,
   type LayoutInput,
@@ -167,5 +169,76 @@ describe("edgeStep", () => {
       hashOf(edgeStep(base(40, 3), { edgeShape: "hubChain", edgeDensity: "medium", groups: "nested", ports: "fixed" })),
     ];
     expect(pinned).toEqual(["dedf6f7ccb193d40", "f808e8ae593d9bd9", "6b07703b51ca6c23"]);
+  });
+});
+
+describe("edgeKeyStep", () => {
+  const KEYS: readonly EdgeKey[] = ["none", "random", "cluster"];
+  const made = (edgeShape: EdgeShape, seed = 1): LayoutInput => edgeStep(base(120, seed), { edgeShape, edgeDensity: "medium" }, seed);
+  const noKey = (input: LayoutInput): unknown => input.edges?.map(({ data: _data, ...edge }) => edge);
+  const keyOfEdges = (input: LayoutInput): readonly unknown[] => (input.edges ?? []).map((e) => e.data?.["collection"]);
+
+  it("changes only the key of the edges, on each shape and each value", () => {
+    for (const edgeShape of ["random", "clustered", "hubChain", "hubs", "longRange", "tree", "bundled"] as const) {
+      const input = made(edgeShape);
+      for (const edgeKey of KEYS) {
+        const out = edgeKeyStep(input, { edgeKey }, 1);
+        expect(noKey(out), `${edgeShape} ${edgeKey}`).toEqual(noKey(input));
+        expect(out.boxes).toEqual(input.boxes);
+      }
+    }
+  });
+
+  it("removes the field for none, and keeps the other data of an edge", () => {
+    const input = made("hubs");
+    expect(edgeKeyStep(input, { edgeKey: "none" }, 1).edges?.every((e) => e.data === undefined)).toBe(true);
+    const first = input.edges![0]!;
+    const extra: LayoutInput = { ...input, edges: [{ ...first, data: { ...first.data, weight: 2 } }] };
+    expect(edgeKeyStep(extra, { edgeKey: "none" }, 1).edges?.[0]?.data).toEqual({ weight: 2 });
+    expect(edgeKeyStep(extra, { edgeKey: "random" }, 1).edges?.[0]?.data?.["weight"]).toBe(2);
+  });
+
+  it("gives the keys of edgeStep for cluster on the shape bundled", () => {
+    const input = made("bundled", 3);
+    expect(edgeKeyStep(input, { edgeKey: "cluster" }, 3).edges).toEqual(input.edges);
+  });
+
+  it("gives the same key to the edges of one target box, with more names for cluster than for random", () => {
+    const input = made("random");
+    const names = (edgeKey: EdgeKey): number => {
+      const out = edgeKeyStep(input, { edgeKey }, 1);
+      const byTarget = new Map<string, unknown>();
+      for (const e of out.edges!) {
+        const key = e.data?.["collection"];
+        expect(byTarget.get(e.target) ?? key).toBe(key);
+        byTarget.set(e.target, key);
+      }
+      return new Set(byTarget.values()).size;
+    };
+    expect(names("random")).toBe(4);
+    expect(names("cluster")).toBe(15);
+  });
+
+  it("is a function of the seed, and the stream of random is not the stream of edgeStep", () => {
+    const input = made("hubs");
+    expect(edgeKeyStep(input, { edgeKey: "random" }, 1)).toEqual(edgeKeyStep(input, { edgeKey: "random" }, 1));
+    expect(keyOfEdges(edgeKeyStep(input, { edgeKey: "random" }, 2))).not.toEqual(keyOfEdges(edgeKeyStep(input, { edgeKey: "random" }, 1)));
+    expect(keyOfEdges(edgeKeyStep(input, { edgeKey: "random" }, 1))).not.toEqual(keyOfEdges(input));
+  });
+
+  it("appends its stamp, removes the hash, and accepts an input with no edges", () => {
+    const out = edgeKeyStep(made("tree"), { edgeKey: "cluster" }, 1);
+    expect(out.steps?.at(-1)).toEqual({ name: "edge-key", version: 1, params: { edgeKey: "cluster" }, seed: 1 });
+    expect(out.hash).toBeUndefined();
+    const { edges: _edges, ...noEdges } = base(5);
+    expect(edgeKeyStep(noEdges, { edgeKey: "random" }, 1).edges).toBeUndefined();
+    expect(edgeKeyStep(base(5), { edgeKey: "cluster" }, 1).edges).toEqual([]);
+  });
+
+  it("refuses an edge with an unknown target", () => {
+    const input = base(3);
+    const bad: LayoutInput = { ...input, edges: [{ id: "e", source: "b0", target: "nobody" }] };
+    expect(() => edgeKeyStep(bad, { edgeKey: "random" }, 1)).toThrow(/unknown target "nobody"/);
+    expect(edgeKeyStep(bad, { edgeKey: "none" }, 1).edges).toEqual(bad.edges);
   });
 });

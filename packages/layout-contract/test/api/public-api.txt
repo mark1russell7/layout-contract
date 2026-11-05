@@ -4,7 +4,7 @@
 # and private members. The command `api-report check` compares this file with the built .d.ts files.
 # To accept a change of the API, start the build, then `api-report update`, and review the diff.
 
-## . (build/index.d.ts): 298 names
+## . (build/index.d.ts): 303 names
 
 AnyOption: build/index.d.ts#AnyOption
 BALANCE_MEASURE_SUFFIXES: build/index.d.ts#BALANCE_MEASURE_SUFFIXES
@@ -39,8 +39,12 @@ DimensionValues: build/index.d.ts#DimensionValues
 Direction: build/measures-C-Tuv8GU.d.ts#Direction
 EDGES_STEP: build/index.d.ts#EDGES_STEP
 EDGE_DENSITY: build/index.d.ts#EDGE_DENSITY
+EDGE_KEY_STEP: build/index.d.ts#EDGE_KEY_STEP
+EDGE_KEY_STEP_VERSION: build/index.d.ts#EDGE_KEY_STEP_VERSION
 EDGE_STEP_VERSION: build/index.d.ts#EDGE_STEP_VERSION
 EPS: build/index.d.ts#EPS
+EdgeKey: build/index.d.ts#EdgeKey
+EdgeKeyParams: build/index.d.ts#EdgeKeyParams
 EdgeShape: build/index.d.ts#EdgeShape
 EdgeStepParams: build/index.d.ts#EdgeStepParams
 EnumOption: build/index.d.ts#EnumOption
@@ -226,6 +230,7 @@ dimensionAt: build/index.d.ts#dimensionAt
 dimensionSupports: build/index.d.ts#dimensionSupports
 dimensionUnit: build/index.d.ts#dimensionUnit
 documentHash: build/index.d.ts#documentHash
+edgeKeyStep: build/index.d.ts#edgeKeyStep
 edgeStep: build/index.d.ts#edgeStep
 encodeOptionValue: build/index.d.ts#encodeOptionValue
 enumerateSpace: build/index.d.ts#enumerateSpace
@@ -497,11 +502,25 @@ export declare const EDGES_STEP: CorpusStep;
 ### build/index.d.ts#EDGE_DENSITY
 export declare const EDGE_DENSITY: Readonly<Record<EdgeStepParams["edgeDensity"], number>>;
 
+### build/index.d.ts#EDGE_KEY_STEP
+export declare const EDGE_KEY_STEP: CorpusStep;
+
+### build/index.d.ts#EDGE_KEY_STEP_VERSION
+export declare const EDGE_KEY_STEP_VERSION = 1;
+
 ### build/index.d.ts#EDGE_STEP_VERSION
 export declare const EDGE_STEP_VERSION = 1;
 
 ### build/index.d.ts#EPS
 export declare const EPS = 1e-6;
+
+### build/index.d.ts#EdgeKey
+export type EdgeKey = "none" | "random" | "cluster";
+
+### build/index.d.ts#EdgeKeyParams
+export interface EdgeKeyParams {
+  readonly edgeKey: EdgeKey;
+}
 
 ### build/index.d.ts#EdgeShape
 export type EdgeShape = "random" | "clustered" | "hubChain" | "hubs" | "longRange" | "tree" | "bundled";
@@ -1269,6 +1288,9 @@ export declare function dimensionUnit(dim: SpaceParam, value: number): number;
 
 ### build/index.d.ts#documentHash
 export declare function documentHash(doc: object, options?: HashOptions): string;
+
+### build/index.d.ts#edgeKeyStep
+export declare function edgeKeyStep(input: LayoutInput, params: EdgeKeyParams, seed?: number): LayoutInput;
 
 ### build/index.d.ts#edgeStep
 export declare function edgeStep(input: LayoutInput, params: EdgeStepParams, seed?: number): LayoutInput;

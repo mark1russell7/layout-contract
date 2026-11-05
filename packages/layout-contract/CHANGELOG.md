@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.3.12
+
+- PATCH before 1.0.0: new exports and a new row in the shared dimension table, with no break. No existing input changes.
+- The shared dimension `edgeKey` states the key of each edge, in `data.collection`, with the values `none`, `random` and `cluster`. `none` means that the field is absent.
+- The function `edgeKeyStep` and the corpus step `EDGE_KEY_STEP` apply this dimension directly after `edgeStep`. The 3 values change only the key, so a comparison reads one factor. `cluster` on the shape `bundled` gives the keys of `edgeStep`.
+
 ## 0.3.11
 
 - PATCH before 1.0.0: new optional fields of a record, with no break. The schema stays `layout-record/1`.

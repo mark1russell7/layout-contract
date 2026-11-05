@@ -14,6 +14,7 @@ This file lists the items of the roadmap of this repository. The status page of 
 | L95 | done | P1 | Open size families in the joint corpus (`joint-v3`) |
 | L96 | in progress | P2 | Two named tables of the family `recorded` in `rigor-generators`, with source, license and date, as joint inputs and size choices of the site |
 | L98 | done | P2 | Bench: run only chosen rows of the cover |
+| L105 | in progress | P1 | State the key of the edges as a dimension (`edgeKey`), and do not read crossings alone across routers that share segments |
 | L103 | next | P1 | A load factor for each shard from the router `straight`, so a time limit does not depend on the runner |
 | L104 | in progress | P1 | A response explorer on the site, from the records of a joint run: the builder first, the page with the data of the cover run |
 | L102 | in progress | P1 | The strategy catalog: each strategy and option of an engine as JSON (`docs/STRATEGY-CATALOG.md`) |
@@ -62,7 +63,7 @@ This file lists the items of the roadmap of this repository. The status page of 
 | L91 | later | P3 | Align linked boxes so that the edges are straight |
 | L92 | later | P3 | A learned route proxy for the placer |
 | L93 | later | P3 | An exact joint reference for small inputs |
-| L94 | later | P2 | Route around circle items in the joint bench |
+| L94 | next | P1 | Circle items in the joint bench: one shared family and an exact hard rule in the contract (0.4.0), then the joint corpus. Routes read the box until highways routes around the true shape |
 
 ## Done
 
