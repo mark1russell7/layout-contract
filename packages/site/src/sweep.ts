@@ -1,6 +1,6 @@
 // The section "Sweep coverage": the trend of the coverage surrogate, read from the branch `sweep-data` when the page opens.
 // The build does not read the branch, so the page reads it at runtime. A failed read shows a link to the data.
-import { nightDue, nightVerdict } from "@layout-contract/joint/browser";
+import { LOST_METHOD_NOTE, nightDue, nightVerdict } from "@layout-contract/joint/browser";
 import { checkSweepIndex, type CostClaimFacts, type CostFacts, dayOf, FLAT_WEEK, mainLine, parseTrend, type StepFacts, type StepRouteFacts, type SweepIndex, type TrendRecord, type WeekView, weekView } from "./coverage.ts";
 import { esc, pct } from "./ui.ts";
 
@@ -314,7 +314,7 @@ export function nightNote(index: SweepIndex, now: Date): string {
     const nights = v.lateNights === 1 ? "1 night has" : `${v.lateNights} nights have`;
     return `<p class="week-note falling" role="status"><span class="badge bad">Late</span> <strong>${nights} no result.</strong> The last night is ${shortDate(v.last)}, and the night of ${shortDate(v.due)} is due. See ${runs}.</p>`;
   }
-  if (v.state === "partial") return `<p class="week-note flat"><span class="badge warn">Partial</span> The last night is ${shortDate(v.last)}. ${v.missing} jobs of it have no record. See ${runs}.</p>`;
+  if (v.state === "partial") return `<p class="week-note flat"><span class="badge warn">Partial</span> The last night is ${shortDate(v.last)}. ${v.missing} planned pairs of it gave no value. See ${runs}. ${esc(LOST_METHOD_NOTE)}</p>`;
   return `<p class="week-note rising"><span class="badge good">On time</span> The last night is ${shortDate(v.last)}.</p>`;
 }
 

@@ -118,6 +118,25 @@ jobs:
           CORPUS: ${{ inputs.corpus || 'joint-v2' }}
         run: node scripts/bench.mjs smoke --corpus "$CORPUS"
 
+  # The flip of the deadline inside a shard (L115, `docs/SWEEP.md`). A real slow pair runs past the deadline as the first unit: its finished record stays, the row reads censored, and the job ends in time. A no-fault copy runs in the same job.
+  stop-flip:
+    needs: check
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 26
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Stop a slow first unit, and keep what ended
+        working-directory: packages/joint
+        run: node scripts/sweep-stop-flip.ts
+
   plan:
     needs: smoke
     runs-on: ubuntu-latest
@@ -371,7 +390,7 @@ jobs:
   joint-bench-ok:
     name: Joint bench OK
     if: always()
-    needs: [check, smoke, plan, prior, run, analyze, reanalyze]
+    needs: [check, smoke, stop-flip, plan, prior, run, analyze, reanalyze]
     runs-on: ubuntu-latest
     timeout-minutes: 2
     permissions: {}
@@ -380,7 +399,7 @@ jobs:
         env:
           NEEDS: ${{ toJSON(needs) }}
           # The jobs that their own if may skip, separated by spaces. Each other job must pass.
-          ALLOW_SKIP: ${{ inputs.records-run && 'check smoke plan prior run analyze' || (inputs.resume-run && 'reanalyze' || 'prior reanalyze') }}
+          ALLOW_SKIP: ${{ inputs.records-run && 'check smoke stop-flip plan prior run analyze' || (inputs.resume-run && 'reanalyze' || 'prior reanalyze') }}
         run: |
           echo "$NEEDS" | jq -r 'to_entries[] | "\(.key) \(.value.result)"' > results
           cat results

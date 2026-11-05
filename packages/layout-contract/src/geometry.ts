@@ -175,6 +175,17 @@ export function segmentsCross(a: Point, b: Point, c: Point, d: Point): boolean {
   return opposite(orient(c, d, a), orient(c, d, b)) && opposite(orient(a, b, c), orient(a, b, d));
 }
 
+/**
+ * This function gives the point where the segments `ab` and `cd` cross, or `undefined`.
+ * It gives a point exactly when `segmentsCross` is true, so a touch at an end and collinear segments give `undefined`.
+ */
+export function crossingPoint(a: Point, b: Point, c: Point, d: Point): Point | undefined {
+  if (!segmentsCross(a, b, c, d)) return undefined;
+  const from = orient(c, d, a);
+  const t = from / (from - orient(c, d, b));
+  return { x: a.x + t * (b.x - a.x), y: a.y + t * (b.y - a.y) };
+}
+
 /** This function gives the shortest distance from `p` to the segment `ab`. A segment of length 0 is the point `a`. */
 export function pointSegmentDistance(p: Point, a: Point, b: Point): number {
   const dx = b.x - a.x;
