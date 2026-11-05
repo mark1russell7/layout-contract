@@ -17,6 +17,7 @@ const LONGEST = 12;
 
 /** One job, with the fields of the GitHub API that this read uses. */
 export interface ReadJob {
+  readonly status?: string | null;
   readonly conclusion?: string | null;
   readonly created_at?: string | null;
   readonly started_at?: string | null;
@@ -80,8 +81,11 @@ function timeOf(date: string | null | undefined): number | undefined {
   return t > 0 ? t : undefined;
 }
 
+// GitHub gives a job in the queue a `started_at` equal to its `created_at`, so that time is no start. Only the status tells.
+const NOT_STARTED: ReadonlySet<string> = new Set(["queued", "waiting", "pending", "requested"]);
+
 function ranJobs(run: ReadRun): readonly ReadJob[] {
-  return run.jobs.filter((j) => !NOT_RUN.has(j.conclusion ?? "") && timeOf(j.started_at) !== undefined);
+  return run.jobs.filter((j) => !NOT_STARTED.has(j.status ?? "") && !NOT_RUN.has(j.conclusion ?? "") && timeOf(j.started_at) !== undefined);
 }
 
 /** This function gives the kind of a gate run. The queue record of the CI slots has the same rule, so the two reads compare. */

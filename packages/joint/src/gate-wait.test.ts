@@ -47,6 +47,32 @@ describe("parseFacts", () => {
   });
 });
 
+/** This function gives a job in the queue, as GitHub writes it: its start time equals its creation time. */
+function queued(created: number): ReadJob {
+  return { status: "queued", conclusion: null, created_at: at(created), started_at: at(created), completed_at: null };
+}
+
+describe("a job in the queue", () => {
+  it("does not count as a start in the span or in the peak of a gate", () => {
+    const open = gate(24, 3, { status: "in_progress", conclusion: null });
+    const waiting = Array.from({ length: 96 }, () => queued(50));
+    const [span] = gateSpans([{ ...open, jobs: [...open.jobs, ...waiting] }], Date.parse(at(600)));
+    expect(span?.jobs).toBe(24);
+    expect(span?.peak).toBe(3);
+    expect(span?.from).toBe(Date.parse(at(100)));
+  });
+
+  it("does not make a wait of 0", () => {
+    const rows = waitRows([run({ status: "in_progress", conclusion: null, jobs: [queued(0), job(0, 20, 30)] })], []);
+    expect(rows[0]?.firstWait).toBe(20);
+    expect(rows[0]?.jobWait).toBe(20);
+  });
+
+  it("gives no row when no job of the run has started", () => {
+    expect(waitRows([run({ status: "queued", conclusion: null, jobs: [queued(0)] })], [])).toEqual([]);
+  });
+});
+
 describe("gateKind", () => {
   it("reads a release from the file or the name, and a pull request from the event", () => {
     expect(gateKind(run())).toBe("pr");

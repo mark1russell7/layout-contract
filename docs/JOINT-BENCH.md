@@ -1526,6 +1526,7 @@ The limits of this read:
 
 - It reads public repositories only.
 - A cancelled run or a skipped job is not a wait.
+- A job in the queue at the read has no wait yet, because GitHub gives it a start time equal to its creation time. The run stays open, so a later read takes its real start.
 - It shows that a wait and a gate came at one time. It does not show that the gate caused the wait.
 - The rate limit can cut a read. The report states the count of runs left out, and the next run goes on from the artifact.
 
