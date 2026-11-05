@@ -73,6 +73,20 @@ export interface GateJobTime {
   readonly conclusion?: string | null;
   readonly startedAt?: string | null;
   readonly completedAt?: string | null;
+  readonly steps?: readonly unknown[] | null;
+}
+
+/**
+ * This function gives the start and the end of a job that ran, in milliseconds, or `null` for a job that did not run.
+ * A skipped job has no time, and GitHub can give it a start at the year 1. A job cancelled in the queue has a start and an end, but no steps, so its time is a wait.
+ * A job cancelled while it ran has steps, and its time is a real cost.
+ */
+export function jobSpan(job: GateJobTime): { readonly from: number; readonly to: number } | null {
+  if (job.conclusion === "skipped" || job.startedAt == null || job.completedAt == null) return null;
+  if (job.conclusion === "cancelled" && (job.steps?.length ?? 0) === 0) return null;
+  const from = Date.parse(job.startedAt);
+  const to = Date.parse(job.completedAt);
+  return from > 0 && to > from ? { from, to } : null;
 }
 
 /** The expected minutes of one gate from its jobs. */
@@ -88,18 +102,16 @@ export interface GateCost {
 /**
  * This function gives the expected minutes of a gate from its jobs: the larger of the longest job and the job minutes over the lanes.
  * Wall time is not an input. The gate 41433146680 waited 334 of its 704 minutes in its concurrency group, with no job running.
- * A skipped job has no time, and GitHub can give it a start at the year 1. So a job counts only with a real start and a real end.
+ * A job counts only when it ran (`jobSpan`).
  */
 export function gateCost(jobs: readonly GateJobTime[], lanes: number = GATE_LANES): GateCost {
   if (!Number.isInteger(lanes) || lanes < 1) throw new RangeError(`The lanes are a whole number from 1, not ${lanes}.`);
   let longest = 0;
   let jobMinutes = 0;
   for (const job of jobs) {
-    if (job.conclusion === "skipped" || job.startedAt == null || job.completedAt == null) continue;
-    const from = Date.parse(job.startedAt);
-    const to = Date.parse(job.completedAt);
-    if (!(from > 0) || !(to > from)) continue;
-    const minutes = (to - from) / 60000;
+    const span = jobSpan(job);
+    if (span === null) continue;
+    const minutes = (span.to - span.from) / 60000;
     jobMinutes += minutes;
     if (minutes > longest) longest = minutes;
   }

@@ -3,6 +3,7 @@ export * from "./env.ts";
 export * from "./epoch-step.ts";
 export * from "./memory-gate.ts";
 export * from "./config-cost.ts";
+export * from "./cost-claim.ts";
 export * from "./pair-budget.ts";
 export * from "./plan.ts";
 export * from "./shard-run.ts";

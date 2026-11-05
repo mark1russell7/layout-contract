@@ -1,7 +1,7 @@
 // The nightly sweep over the joint space (`docs/SWEEP.md`, roadmap item L35). The workflow `sweep.yml` starts each command. Do not start the runs on a local computer.
 //
 //   plan --data <dir> --out <dir> [--date YYYY-MM-DD] [--target-minutes 30] [--max-shards 20] [--max-configs 400] [--corpus <set>] [--design <rows>]
-//        [--budget-minutes <wall minutes of the round> --lanes 3 --overhead-minutes 6] [--scale <real minutes of a planned minute>]
+//        [--budget-minutes <wall minutes of the round> --lanes 3 --overhead-minutes 6] [--scale <real minutes of a planned minute>] [--budget-facts <file>]
 //        reads the state of the epoch from the data branch in <dir>, plans round 1, and writes <out>/state.json, <out>/plan.json and <out>/matrix.json
 //        with --design, round 1 runs a Saltelli design of <rows> rows (`planDesign`, L52) instead of a new sample
 //   run --plan <dir> --shard <i> --out <dir> [--deadline-minutes <m>]
@@ -12,8 +12,9 @@
 //        plans the promotion test of L61 on its fresh seeds, and writes <out>/plan.json and <out>/matrix.json. The command run reads the seeds from the plan.
 //   promote --plan <dir> --records <dir> --out <dir>
 //        gives the result of the promotion test: <out>/promotion.json and <out>/promotion.md
-//   summarize --night <dir> --records <dir> --data <dir> --out <dir> [--run <id>]
+//   summarize --night <dir> --records <dir> --data <dir> --out <dir> [--run <id>] [--run-jobs <file>]
 //        adds the records of round 2, and writes the new tree of the data branch to <out>, with <out>/night.md for the summary of the job
+//        --run-jobs is the output of `gh run view --json jobs`. It gives the wall of the rounds. With no such file, the wall reads "not read".
 //
 // The date is the night of the run in UTC. It seeds the sample, so a rerun of a night has the same plan.
 // Each unit is one call of `runInput` on one input with the pairs and the lane entries of its configs. The records get the config id as their strategy.
@@ -28,6 +29,9 @@ import {
   gateEstimate,
   BENCH_SPACE_VERSION,
   baselineIds,
+  budgetLine,
+  costClaimScore,
+  costHistory,
   CONFIG_COST,
   CONFIG_COST_ID,
   configLabel,
@@ -39,12 +43,14 @@ import {
   jointCorpus,
   planDesign,
   planRound1,
+  plannedWall,
   planRound2,
   promoteConfigs,
   promoteMarkdown,
   promotePlan,
   PROMOTE_SEEDS,
   raceNight,
+  roundWallsOf,
   runEnv,
   runInput,
   SET_V2,
@@ -125,6 +131,13 @@ function costScale(state, data) {
   return ratios.length === 0 ? CONFIG_COST.scale : ratios[Math.floor(ratios.length / 2)];
 }
 
+/** This function gives each night of the state and of the other epochs of the data branch. */
+function nightsOfAllEpochs(state, data) {
+  const epochs = data === undefined ? "" : join(data, "epochs");
+  const others = epochs !== "" && existsSync(epochs) ? readdirSync(epochs).filter((e) => e !== state.epoch).map((e) => join(epochs, e, "state.json")).filter((file) => existsSync(file)) : [];
+  return [...state.nights, ...others.flatMap((file) => readJson(file).nights)];
+}
+
 /**
  * This function gives the options of the plans of a round. The target is in real minutes, so the plan divides it by the measured scale.
  * With --budget-minutes, the round has at most the waves of shards that end in that wall time on --lanes runners. Each job has --overhead-minutes of setup.
@@ -142,7 +155,11 @@ function planOptions(date, state) {
 function writePlan(out, state, night, options) {
   // The night keeps the scale and the budget of each round, so the summary scores the cost model.
   const entry = state.nights.find((n) => n.date === night.date);
-  entry.cost = { ...(entry.cost ?? {}), [night.round]: { scale: options.scale, budget: options.budget, maxShards: options.maxShards } };
+  // The cost claim comes from the plan, before each shard runs. The history comes once, at round 1, because the race has no other epochs at hand.
+  entry.history ??= costHistory(nightsOfAllEpochs(state, args.data), CONFIG_COST_ID, night.date);
+  entry.cost = { ...(entry.cost ?? {}), [night.round]: { scale: options.scale, budget: options.budget, maxShards: options.maxShards, plannedMinutes: night.facts.minutes, plannedWall: plannedWall(night.facts.longest, night.facts.minutes) } };
+  // A missing file is a night with no budget, for example a dispatch. A thin budget stays on the record, and the page shows it.
+  if (args["budget-facts"] !== undefined && existsSync(args["budget-facts"])) entry.budget = readJson(args["budget-facts"]);
   writeJson(join(out, "state.json"), state, 0);
   writeJson(join(out, "plan.json"), {
     round: night.round,
@@ -345,6 +362,8 @@ if (command === "plan") {
   applyRound(state, sweep, args.records ?? "records", plan);
   const night = state.nights.find((n) => n.date === plan.date);
   if (args.run) night.run = args.run;
+  // A failed read of the jobs does not stop the night. The wall then reads "not read".
+  if (args["run-jobs"] !== undefined) night.wall = existsSync(args["run-jobs"]) ? { rounds: roundWallsOf(readJson(args["run-jobs"]).jobs ?? []) } : null;
   const out = args.out ?? "out";
   const data = args.data ?? "data";
   // The new tree of the data branch: each file of the old tree, and the files of this epoch.
@@ -362,7 +381,7 @@ if (command === "plan") {
   // The first night of an epoch measures the step from the epoch before it. Later nights keep that step.
   const step = index.epochs[state.epoch]?.step ?? (index.latest === undefined || index.latest === state.epoch ? undefined : stepFrom(join(data, "epochs", index.latest, "state.json"), state, sweep));
   index.latest = state.epoch;
-  index.epochs[state.epoch] = { corpus: state.corpus, nights: rest.nights.length, last: plan.date, missing: night.missing, configs: Object.keys(state.configs).length, counts, ...(step === undefined ? {} : { step }) };
+  index.epochs[state.epoch] = { corpus: state.corpus, nights: rest.nights.length, last: plan.date, missing: night.missing, configs: Object.keys(state.configs).length, counts, ...(step === undefined ? {} : { step }), cost: costIndexFacts(night, facts) };
   writeJson(indexFile, index);
   writeFileSync(join(out, "night.md"), nightMarkdown(state, night, counts, facts));
   console.log(readFileSync(join(out, "night.md"), "utf8"));
@@ -380,6 +399,12 @@ function stepFrom(file, state, sweep) {
     { epoch: old.epoch, inputs: old.inputs, hashes: hashesOfState(old, ids, hashes), baseline: baselineOf(old), reference: old.reference },
     { epoch: state.epoch, inputs: ids, hashes, baseline: baselineOf(state), reference: state.reference },
   );
+}
+
+/** This function gives the facts of the cost of a night for the page. */
+function costIndexFacts(night, facts) {
+  const { jobMinutes, jobMinutesStatus, wall, wallStatus, shards, widthCap } = facts.costModel.interval;
+  return { date: night.date, jobMinutes, jobMinutesStatus, wall, wallStatus, shards, widthCap, budget: night.budget === undefined ? null : budgetLine(night.budget), thin: night.budget !== undefined && (night.budget.failedRead !== null || night.budget.fallback) };
 }
 
 /** This function gives the facts of a night that the prediction of `docs/SWEEP.md` scores. */
@@ -407,7 +432,10 @@ function nightFacts(state, night) {
   };
 }
 
-/** This function scores the cost model of a night by Brier: one claim for each shard. A stopped shard is a miss. */
+/**
+ * This function scores the cost model of a night. `interval` holds the claim of the plan (`docs/SWEEP.md`, "The cost claim").
+ * The older claim stays beside it: one claim for each shard at p 0.6 within 25%, scored by Brier, with a stopped shard as a miss.
+ */
 function costModelScore(night) {
   const rows = night.shards.map((s) => {
     const expected = s.planned * (night.cost?.[s.round]?.scale ?? 1);
@@ -415,7 +443,18 @@ function costModelScore(night) {
     return { hit, brier: (COST_CLAIM.p - (hit ? 1 : 0)) ** 2 };
   });
   const hits = rows.filter((r) => r.hit).length;
-  return { ...COST_CLAIM, shards: rows.length, hits, stopped: night.shards.filter((s) => s.stopped === true).length, brier: rows.length === 0 ? null : rows.reduce((s, r) => s + r.brier, 0) / rows.length, cost: night.cost ?? {} };
+  return { ...COST_CLAIM, shards: rows.length, hits, stopped: night.shards.filter((s) => s.stopped === true).length, brier: rows.length === 0 ? null : rows.reduce((s, r) => s + r.brier, 0) / rows.length, cost: night.cost ?? {}, interval: costClaimScore(night) };
+}
+
+/** This function gives the lines of the cost claim of a night. The night comes first, and the shards second. */
+function costClaimLines(c, budget) {
+  const claim = (name, x, status) => (x === null ? `${name}: ${status}, so it has no score.` : `${name}: ${x.real.toFixed(0)} real minutes, claim ${x.lo.toFixed(0)} to ${x.hi.toFixed(0)} from ${x.planned.toFixed(0)} planned, ${x.side}, Brier ${x.brier.toFixed(3)}.`);
+  const lines = ["", `Cost claim at p ${c.p}, from the nights ${c.history?.nights.join(", ") || "none"}:`, "", `- ${claim("Job minutes of the night", c.jobMinutes, c.jobMinutesStatus)}`, `- ${claim("Wall of the rounds of the night", c.wall, c.wallStatus)}`];
+  const s = c.shards;
+  lines.push(s === null ? "- Shards: no history, so they have no score." : `- Shards: ${s.hits} of ${s.shards} in the interval x${s.lo.toFixed(2)} to x${s.hi.toFixed(2)}, ${s.low} low, ${s.high} high, ${s.stopped} stopped. Brier ${s.brier === null ? "none" : s.brier.toFixed(3)}. Width x${s.width.toFixed(2)}${s.overCap ? ` is over the cap x${c.widthCap}` : `, cap x${c.widthCap}`}. ${c.capNote}`);
+  if (budget !== undefined) lines.push(`- ${budgetLine(budget)}`);
+  lines.push("");
+  return lines;
 }
 
 /** This function gives the summary of a night in Markdown. */
@@ -427,6 +466,7 @@ function nightMarkdown(state, night, counts, facts) {
   lines.push(`Shards: ${night.shards.length}, the longest ${facts.longestShard.toFixed(1)} real minutes. Planned ${facts.plannedMinutes.toFixed(1)} minutes in all, real ${facts.realMinutes.toFixed(1)}.`);
   const cm = facts.costModel;
   lines.push(`Cost model: scale ${Object.entries(cm.cost).map(([r, c]) => `round ${r} ${c.scale.toFixed(2)}`).join(", ") || "none"}. ${cm.hits} of ${cm.shards} shards within ${cm.within * 100}% of the expected minutes, ${cm.stopped} stopped. Brier ${cm.brier === null ? "none" : cm.brier.toFixed(3)} at p ${cm.p}.`);
+  lines.push(...costClaimLines(cm.interval, night.budget));
   lines.push(`Drift of the baseline arm: ${night.drift} inputs. Values: ${night.values}. Jobs without a record: ${night.missing}.`, "");
   lines.push("| Baseline config | Headline misses of the reference floor | Inputs |", "|---|---|---|");
   for (const [name, m] of Object.entries(facts.misses)) lines.push(`| \`${name}\` | ${m.misses} | ${m.of} |`);

@@ -118,9 +118,12 @@ jobs:
           estimate="$(cd packages/joint && node scripts/sweep.mjs gate-estimate --runs "$gates")" || { echo "::warning::The estimate of the gate failed. The budget uses 360 minutes." | tee -a "$GITHUB_STEP_SUMMARY"; estimate="360 the fallback"; }
           gate="${estimate%% *}"
           echo "The gate estimate is $gate minutes: ${estimate#* }." | tee -a "$GITHUB_STEP_SUMMARY"
+          fallback=false; if [ "$count" -eq 0 ]; then fallback=true; fi
           if [ "$last" = "$SHA" ]; then gate=0; fi
           end="$(date -u -d "$(date -u +%Y-%m-%d) 14:00" +%s)"
           echo "The window ends at $(date -u -d "@$end" +%H:%M) UTC. The gate takes $gate minutes (the last nightly gate examined ${last:-no commit}). The rounds get $(( (end - now) / 60 - gate )) minutes." | tee -a "$GITHUB_STEP_SUMMARY"
+          # The night record keeps these facts, so a thin budget shows on the page and not only in a warning of this log.
+          jq -n --argjson gateMinutes "$gate" --arg estimate "${estimate#* }" --argjson runsRead "$count" --arg failed "$failed" --argjson fallback "$fallback" --arg windowEnd "$(date -u -d "@$end" +%Y-%m-%dT%H:%MZ)" --arg last "$last" '{gateMinutes: $gateMinutes, estimate: $estimate, runsRead: $runsRead, failedRead: (if $failed == "" then null else $failed end), fallback: $fallback, windowEnd: $windowEnd, lastGate: (if $last == "" then null else $last end)}' > "$RUNNER_TEMP/budget-facts.json" || { echo "::warning::The facts of the budget did not reach the night record." | tee -a "$GITHUB_STEP_SUMMARY"; rm -f "$RUNNER_TEMP/budget-facts.json"; }
           echo "end=$end" >> "$GITHUB_OUTPUT"
           echo "gate=$gate" >> "$GITHUB_OUTPUT"
       - name: Plan round 1
@@ -139,7 +142,7 @@ jobs:
           # Round 1 gets half of the budget, and round 2 gets what is left at the race.
           budget=""
           if [ -n "$END" ]; then budget=$(( ((END - $(date -u +%s)) / 60 - GATE) / 2 )); if [ "$budget" -lt 30 ]; then budget=30; fi; fi
-          node scripts/sweep.mjs plan --data "$RUNNER_TEMP/data" --out night --date "$date" --max-shards "$MAX_SHARDS" --target-minutes "$TARGET_MINUTES" --max-configs "$MAX_CONFIGS" ${DESIGN:+--design "$DESIGN"} ${budget:+--budget-minutes "$budget" --lanes 3}
+          node scripts/sweep.mjs plan --data "$RUNNER_TEMP/data" --out night --date "$date" --max-shards "$MAX_SHARDS" --target-minutes "$TARGET_MINUTES" --max-configs "$MAX_CONFIGS" ${DESIGN:+--design "$DESIGN"} ${budget:+--budget-minutes "$budget" --lanes 3} --budget-facts "$RUNNER_TEMP/budget-facts.json"
           echo "date=$date" >> "$GITHUB_OUTPUT"
           echo "shards=$(cat night/matrix.json | tr -d ' \n')" >> "$GITHUB_OUTPUT"
           if [ -f night/skip.txt ]; then echo "skip=true" >> "$GITHUB_OUTPUT"; else echo "skip=false" >> "$GITHUB_OUTPUT"; fi
@@ -281,6 +284,10 @@ jobs:
     if: ${{ !cancelled() && needs.race.result == 'success' }}
     runs-on: ubuntu-latest
     timeout-minutes: 20
+    # The read of the jobs of this run gives the wall of the rounds.
+    permissions:
+      contents: read
+      actions: read
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -303,10 +310,20 @@ jobs:
         run: |
           mkdir -p "$RUNNER_TEMP/data"
           if git fetch --depth 1 origin sweep-data; then git archive FETCH_HEAD | tar -x -C "$RUNNER_TEMP/data"; fi
+      # A failed read does not stop the night. The wall of the night then reads "not read".
+      - name: Read the jobs of this run
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          read_api() { for pause in 5 20 60; do if "$@"; then return 0; fi; sleep "$pause"; done; "$@"; }
+          if ! read_api gh run view "$GITHUB_RUN_ID" -R "$GITHUB_REPOSITORY" --json jobs > "$RUNNER_TEMP/run-jobs.json"; then
+            rm -f "$RUNNER_TEMP/run-jobs.json"
+            echo "::warning::The read of the jobs of this run failed after 4 tries, so the wall of the night reads not read." | tee -a "$GITHUB_STEP_SUMMARY"
+          fi
       - name: Summarize the night
         working-directory: packages/joint
         run: |
-          node scripts/sweep.mjs summarize --night night2 --records records --data "$RUNNER_TEMP/data" --out "$RUNNER_TEMP/out" --run "$GITHUB_RUN_ID"
+          node scripts/sweep.mjs summarize --night night2 --records records --data "$RUNNER_TEMP/data" --out "$RUNNER_TEMP/out" --run "$GITHUB_RUN_ID" --run-jobs "$RUNNER_TEMP/run-jobs.json"
           cat "$RUNNER_TEMP/out/night.md" >> "$GITHUB_STEP_SUMMARY"
       # The trend of the coverage surrogate (L52, docs/SWEEP.md, "The trend"). The fit of the variant blocks takes approximately 5 s and 300 MB.
       # The step appends one record to epochs/<epoch>/surrogate-trend.jsonl of the new tree, so the job publish pushes it with the night.

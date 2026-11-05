@@ -150,7 +150,7 @@ Since L81, a night uses its measured cost, a budget of wall time, a rotation and
 5. A shard stops before a unit that does not end 105 minutes after the start of the shard, 15 minutes under the limit of the job. It keeps the records of the units that it ran. The first unit always runs. The shard file gives `stopped`, the count of the units that ran, and their planned minutes.
 6. The job `publish` runs when a shard was cancelled. Before L81, the implicit `success()` skipped it, so the nights from 2026-10-30 to 2026-11-01 did not reach the branch. The tree of 2026-11-01 came back from the artifact of its run.
 
-The summary scores the cost model by Brier. Each shard is one claim, at p 0.6: its real minutes are within 25% of its planned minutes times the scale. A stopped shard is a miss.
+The summary scores the cost claim of the plan (see "The cost claim"). The older claim stays beside it in the night record: each shard within 25% of its planned minutes times the scale, at p 0.6. A stopped shard is a miss of that claim. That older claim is no longer the target, because it held on 9 of 47 past shards.
 
 The prediction for the first night with the budget:
 
@@ -550,6 +550,33 @@ The test of the models on the night of 2026-11-02 (run [41384329446](https://git
 - The scale of the old model does not fit the new model. Thus the old shards do not count for `costScale`.
 - The spread that is left comes in part from sizes. At 1000 boxes, the factor of a router can be half or 1.5 times its value over all inputs. A factor for each class of size is a next step.
 - The first night after this change scores the factors (the prediction `layout-stack-L81-cost-factors`).
+
+### The cost claim
+
+The Brier score of the older claim was over 0.25 on 3 of 3 scored nights: 0.3225, 0.36 and 0.26. The best fit of a scale reads 17 of 47 shards within 25%, and a Brier score of 0.25 at p 0.6 asks for 26. The misses are on both sides, so no fixed change of the scale repairs them.
+
+The claim is an interval at p 0.8. The real value is between the q10 and the q90 of past ratios of real over planned. A plan decides by the night, so the night comes first.
+
+1. **The night.** The claim covers the job minutes and the wall time of the whole night. This claim tells if a night fits its budget, and when the page gets data.
+2. **Each shard.** The second claim uses the shard ratios. A stopped shard is a miss on the high side.
+
+The rules of the claim:
+
+- The history is the last 5 earlier nights of the same cost model (`costModel`), from all epochs. The plan of round 1 reads it once, and the night record keeps it. So a later fact does not move the band.
+- A band has at least 3 ratios. With fewer, the claim reads "no history" and has no score.
+- Each miss states its side, high or low, for each night. A miss on one side is a bias that a change can repair.
+- The wall of a round is the first start to the last end of its jobs. The wall of a night is the sum of its rounds, so it does not count the jobs between two rounds. If the read of the jobs fails, the wall reads "not read" and has no score.
+- `PAST_ROUND_WALLS` gives the walls of 11-03 and 11-05, so that the wall has a band on the first nights.
+- The planned value of round 2 comes after the race. So the night claim is known in full only after the plan of round 2.
+- The night record keeps the facts of its budget (`budget`): the gate minutes, the gates that it read, a failed read and the fallback. The page shows a thin budget with a warning.
+
+The limits of the claim, stated before the first scored night:
+
+- **The back-test is under the line.** Over the 47 shards of 11-02, 11-03 and 11-05, the interval held on 29 (62%). The mean width is x3.92, with 9 low and 9 high. These shards mix two cost models. A Brier score of 0.25 at p 0.8 asks for 65%, so the prediction for the next 3 scored nights is not a pass.
+- **The cap of the width came after the data.** The cap x5 is provisional, because the back-test had read widths of x3.7 to x4.8. So it tests nothing yet. The first same-model read is x5.16 over 15 shards, already over the cap.
+- **A wider interval buys hits.** So each night reports the width and the hits together. The partner of the width is a control: the q10 to the q90 of real shard minutes with the plan ignored. The control held on 28 of 47, at a mean width of x4.43, with 16 low and 3 high.
+- **The control tests the fill, not the model.** The planner fills each shard to the target, so the plan varies little inside a night. On units, the Spearman correlation of plan cost and real time reads 0.84 to 0.92. The model ranks units well, and does not tell one shard's time.
+- **Three nights are few.** The back-test of the night claim holds on 2 of 3 nights for job minutes (931 to 1,219 against 1,125, 211 to 320 against 354, 69 to 169 against 108). The first of these has a history of 2 rounds, so it proves almost nothing. A pass on the next 3 nights is reported as read.
 
 ## The settings of the repository
 
