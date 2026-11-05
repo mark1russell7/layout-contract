@@ -4,8 +4,14 @@ import type { Supports } from "./record.ts";
 import { type AnyOption, declarationIssues, type ListItem, type NoDefaultReason, optionIssue, type OptionScale, type ValueOption } from "./strategy-options.ts";
 import type { ParamValue, StrategySpace } from "./strategy-space.ts";
 
-/** The schema of a strategy catalog. A new field is a new version of the schema. */
-export const STRATEGY_CATALOG_SCHEMA = "strategy-catalog/1";
+/** The newest schema of a strategy catalog. A new field is a new version of the schema. */
+export const STRATEGY_CATALOG_SCHEMA = "strategy-catalog/2";
+
+/** The schemas that `parseStrategyCatalog` reads, oldest first. Schema 2 adds the field `output` of an entry. */
+export const STRATEGY_CATALOG_SCHEMAS: readonly ["strategy-catalog/1", "strategy-catalog/2"] = ["strategy-catalog/1", STRATEGY_CATALOG_SCHEMA];
+
+/** The name of one schema of a strategy catalog. */
+export type StrategyCatalogSchema = (typeof STRATEGY_CATALOG_SCHEMAS)[number];
 
 /**
  * The dimension of `supports` that tells who owns the positions of the nodes. The value `host` means that the strategy keeps the positions that the host gives.
@@ -25,6 +31,60 @@ export interface CatalogLimit {
 
 /** The kind of a strategy: it places on its own, it wraps other strategies, or it is for one shape of item. */
 export type StrategyKind = "single" | "composite" | "shape";
+
+/** The output properties that tell if the numbers of a result are whole: the positions and the sizes. The parser examines the class of these properties. */
+export const OUTPUT_GRID_PROPERTIES: readonly string[] = ["position-grid", "size-grid"];
+
+/** The class of a grid property of an output. */
+export type OutputGridClass = "whole" | "near-whole" | "fractional" | "untested";
+
+/** The largest distance from a whole number for a near-whole value. A value at a larger distance is fractional. */
+export const OUTPUT_NEAR_WHOLE = 1e-9;
+
+/** The fewest packed inputs for the class `whole` or `near-whole`. A fraction needs no such count, because one counterexample is a proof. */
+export const OUTPUT_CLASS_MIN_INPUTS = 30;
+
+/** What one read of an output covers. The row states no promise beyond this evidence. */
+export interface OutputEvidence {
+  /** The count of inputs that the strategy packed in this read. */
+  readonly inputs: number;
+  /** The count of inputs with a fractional value of the property. A grid property must have this field. */
+  readonly fractionalInputs?: number;
+  /** The count of inputs with a near-whole value and no fractional value of the property. A grid property must have this field. */
+  readonly nearWholeInputs?: number;
+  /** The input family or the study of the read. */
+  readonly source: string;
+  /** The name of the options of the read, for example `default`. */
+  readonly optionSet: string;
+  /** The version of the catalog that the read used. */
+  readonly catalogVersion: string;
+}
+
+/** One property of the output of a strategy, as a read found it. An entry has one row for each pair of `property` and `optionSet`. */
+export interface OutputRow {
+  /** The property, for example `position-grid`. */
+  readonly property: string;
+  /** The class of the property. For a grid property, `outputGridClass` gives the only class that the evidence permits. */
+  readonly class: string;
+  readonly evidence: OutputEvidence;
+}
+
+/** The counts that decide the class of a grid property. */
+export interface OutputGridCounts {
+  readonly inputs: number;
+  readonly fractionalInputs: number;
+  readonly nearWholeInputs: number;
+}
+
+/**
+ * This function gives the class of a grid property from its counts. One fractional input gives `fractional` at any count.
+ * With no fraction, fewer than `OUTPUT_CLASS_MIN_INPUTS` inputs give `untested`. Each other read gives `near-whole` or `whole`.
+ */
+export function outputGridClass(counts: OutputGridCounts): OutputGridClass {
+  if (counts.fractionalInputs > 0) return "fractional";
+  if (counts.inputs < OUTPUT_CLASS_MIN_INPUTS) return "untested";
+  return counts.nearWholeInputs > 0 ? "near-whole" : "whole";
+}
 
 /** One strategy of a catalog. */
 export interface CatalogEntry {
@@ -51,6 +111,8 @@ export interface CatalogEntry {
   readonly optIn: boolean;
   /** The value `true` tells that the strategy is a baseline of a bench. It has `optIn` true, and a chooser does not offer it. */
   readonly baseline?: true;
+  /** The reads of the output of the strategy. A file with this field has the schema 2. */
+  readonly output?: readonly OutputRow[];
   /** The declarations of the options, in the order of a form. */
   readonly options: Readonly<Record<string, AnyOption>>;
 }
@@ -64,7 +126,7 @@ export interface StrategyCatalogSource {
 
 /** A catalog document: the form that `writeStrategyCatalog` writes and `parseStrategyCatalog` reads. */
 export interface StrategyCatalog extends StrategyCatalogSource {
-  readonly schema: typeof STRATEGY_CATALOG_SCHEMA;
+  readonly schema: StrategyCatalogSchema;
   /** The npm version of the engine. */
   readonly version: string;
 }
@@ -148,13 +210,15 @@ const STRATEGY_KINDS: readonly string[] = ["single", "composite", "shape"];
 const NO_DEFAULT_REASONS: readonly NoDefaultReason[] = ["unset", "required", "derived", "function"];
 const SCALES: readonly OptionScale[] = ["linear", "log"];
 const TOP_FIELDS: readonly string[] = ["schema", "engine", "version", "strategies"];
-const ENTRY_FIELDS: readonly string[] = ["key", "id", "step", "family", "kind", "describe", "supports", "limits", "deterministic", "determinismNote", "optIn", "baseline", "options"];
+const ENTRY_FIELDS: readonly string[] = ["key", "id", "step", "family", "kind", "describe", "supports", "limits", "deterministic", "determinismNote", "optIn", "baseline", "output", "options"];
 const COMMON_FIELDS: readonly string[] = ["type", "describe", "default", "noDefault", "when"];
 const NUMBER_FIELDS: readonly string[] = [...COMMON_FIELDS, "min", "max", "step", "scale", "special", "marks", "values"];
 const ENUM_FIELDS: readonly string[] = [...COMMON_FIELDS, "values", "custom"];
 const STRATEGY_FIELDS: readonly string[] = [...COMMON_FIELDS, "step", "kinds", "optionsKey", "inlineOptions", "optIn", "needs"];
 const MEMBER_FIELDS: readonly string[] = ["strategy", "options", "id"];
 const LIST_FIELDS: readonly string[] = [...COMMON_FIELDS, "of", "min", "max"];
+const ROW_FIELDS: readonly string[] = ["property", "class", "evidence"];
+const EVIDENCE_FIELDS: readonly string[] = ["inputs", "fractionalInputs", "nearWholeInputs", "source", "optionSet", "catalogVersion"];
 /** The fields of a declaration, in the order of the file. */
 const OPTION_ORDER: readonly string[] = ["type", "describe", "min", "max", "step", "scale", "special", "marks", "values", "custom", "kinds", "optionsKey", "inlineOptions", "optIn", "needs", "of", "default", "noDefault", "when"];
 
@@ -394,8 +458,51 @@ function checkLimits(at: string, limits: unknown, faults: string[]): void {
   }
 }
 
+/** This function adds the faults of the evidence of one output row. */
+function checkEvidence(at: string, property: unknown, rowClass: unknown, raw: unknown, faults: string[]): void {
+  if (!isFields(raw)) {
+    faults.push(`${at}: "evidence" is not an object.`);
+    return;
+  }
+  refuseUnknown(`${at}: the evidence`, raw, EVIDENCE_FIELDS, faults);
+  for (const f of ["source", "optionSet", "catalogVersion"]) if (!isText(raw[f])) faults.push(`${at}: the evidence field "${f}" is not a text.`);
+  const count = (v: unknown): v is number => Number.isInteger(v) && (v as number) >= 0;
+  if (!count(raw["inputs"])) faults.push(`${at}: the evidence field "inputs" is not a count.`);
+  const grid = OUTPUT_GRID_PROPERTIES.includes(property as string);
+  for (const f of ["fractionalInputs", "nearWholeInputs"]) if (grid ? !count(raw[f]) : raw[f] !== undefined && !count(raw[f])) faults.push(`${at}: the evidence field "${f}" is not a count.`);
+  const [inputs, fractionalInputs, nearWholeInputs] = [raw["inputs"], raw["fractionalInputs"], raw["nearWholeInputs"]];
+  if (!grid || !count(inputs) || !count(fractionalInputs) || !count(nearWholeInputs)) return;
+  if (fractionalInputs + nearWholeInputs > inputs) faults.push(`${at}: the fractional and near-whole counts are more than the inputs.`);
+  const expected = outputGridClass({ inputs, fractionalInputs, nearWholeInputs });
+  if (rowClass !== expected) faults.push(`${at}: the evidence gives the class "${expected}".`);
+}
+
+/** This function adds the faults of the field `output` of one entry. */
+function checkOutput(at: string, raw: unknown, schema: unknown, faults: string[]): void {
+  if (schema === STRATEGY_CATALOG_SCHEMAS[0]) faults.push(`${at}: the field "output" needs the schema ${STRATEGY_CATALOG_SCHEMA}.`);
+  if (!Array.isArray(raw) || raw.length === 0) {
+    faults.push(`${at}: "output" is not a list with rows.`);
+    return;
+  }
+  const seen = new Set<string>();
+  (raw as readonly unknown[]).forEach((row, i) => {
+    const place = `${at}: the output row ${i}`;
+    if (!isFields(row)) {
+      faults.push(`${place} is not an object.`);
+      return;
+    }
+    refuseUnknown(place, row, ROW_FIELDS, faults);
+    for (const f of ["property", "class"]) if (!isText(row[f])) faults.push(`${place}: "${f}" is not a text.`);
+    checkEvidence(place, row["property"], row["class"], row["evidence"], faults);
+    const optionSet = isFields(row["evidence"]) ? row["evidence"]["optionSet"] : undefined;
+    const name = JSON.stringify([row["property"], optionSet]);
+    if (seen.has(name)) faults.push(`${place}: the property and the option set are not unique.`);
+    seen.add(name);
+  });
+}
+
 /** This function restores one entry of a file. */
-function readEntry(at: string, raw: unknown, faults: string[]): CatalogEntry | undefined {
+function readEntry(at: string, raw: unknown, schema: unknown, faults: string[]): CatalogEntry | undefined {
   if (!isFields(raw)) {
     faults.push(`${at} is not an object.`);
     return undefined;
@@ -411,6 +518,7 @@ function readEntry(at: string, raw: unknown, faults: string[]): CatalogEntry | u
   if (raw["baseline"] === true && raw["optIn"] !== true) faults.push(`${at}: a baseline has "optIn" true.`);
   if (!isFields(raw["supports"]) || !Object.values(raw["supports"]).every(isTextList)) faults.push(`${at}: "supports" is not a record of text lists.`);
   checkLimits(at, raw["limits"], faults);
+  if (raw["output"] !== undefined) checkOutput(at, raw["output"], schema, faults);
   if (isText(raw["id"]) && raw["key"] !== catalogKey(raw["id"], raw["step"] as string | undefined)) faults.push(`${at}: the key does not follow from "step" and "id".`);
   if (!isFields(raw["options"])) {
     faults.push(`${at}: "options" is not an object.`);
@@ -443,6 +551,7 @@ function readEntry(at: string, raw: unknown, faults: string[]): CatalogEntry | u
     ...(determinismNote === undefined ? {} : { determinismNote }),
     optIn: raw["optIn"] as boolean,
     ...(raw["baseline"] === true ? { baseline: true as const } : {}),
+    ...(raw["output"] === undefined ? {} : { output: raw["output"] as readonly OutputRow[] }),
     options,
   };
 }
@@ -512,20 +621,21 @@ function checkReferences(entries: readonly CatalogEntry[], faults: string[]): vo
 }
 
 /**
- * This function reads a catalog from parsed JSON. It refuses each unknown field and each other schema.
+ * This function reads a catalog from parsed JSON, in each schema of `STRATEGY_CATALOG_SCHEMAS`. It refuses each unknown field and each other schema.
  * It gives the catalog with its `Infinity` values restored, or the list of all faults.
  */
 export function parseStrategyCatalog(value: unknown): StrategyCatalogParse {
   const faults: string[] = [];
   if (!isFields(value)) return { ok: false, faults: ["The catalog is not an object."] };
   refuseUnknown("The catalog", value, TOP_FIELDS, faults);
-  if (value["schema"] !== STRATEGY_CATALOG_SCHEMA) faults.push(`The schema is not ${STRATEGY_CATALOG_SCHEMA}.`);
+  const schema = value["schema"];
+  if (!(STRATEGY_CATALOG_SCHEMAS as readonly unknown[]).includes(schema)) faults.push(`The schema is not one of ${STRATEGY_CATALOG_SCHEMAS.join(", ")}.`);
   if (!isText(value["engine"])) faults.push(`"engine" is not a text.`);
   if (!isText(value["version"])) faults.push(`"version" is not a text.`);
   if (!Array.isArray(value["strategies"])) return { ok: false, faults: [...faults, `"strategies" is not a list.`] };
   const entries: CatalogEntry[] = [];
   (value["strategies"] as readonly unknown[]).forEach((raw, i) => {
-    const entry = readEntry(`The strategy ${isFields(raw) && isText(raw["key"]) ? raw["key"] : i}`, raw, faults);
+    const entry = readEntry(`The strategy ${isFields(raw) && isText(raw["key"]) ? raw["key"] : i}`, raw, schema, faults);
     if (entry !== undefined) entries.push(entry);
   });
   for (let i = 1; i < entries.length; i++) {
@@ -536,7 +646,7 @@ export function parseStrategyCatalog(value: unknown): StrategyCatalogParse {
   // A bad entry is not in the list, so each reference to it would give a false fault.
   if (faults.length === 0) checkReferences(entries, faults);
   if (faults.length > 0) return { ok: false, faults };
-  return { ok: true, catalog: { schema: STRATEGY_CATALOG_SCHEMA, engine: value["engine"] as string, version: value["version"] as string, strategies: entries } };
+  return { ok: true, catalog: { schema: schema as StrategyCatalogSchema, engine: value["engine"] as string, version: value["version"] as string, strategies: entries } };
 }
 
 /** This function gives the file form of a number. A value that is not finite becomes its name, and `NaN` stays for the writer to refuse. */
@@ -582,6 +692,23 @@ function writeOption(option: AnyOption | ListItem): Fields {
   return out;
 }
 
+/** This function gives the file form of one output row, with the fields in the order of the file. */
+function writeRow(row: OutputRow): unknown {
+  const e = row.evidence;
+  return {
+    property: row.property,
+    class: row.class,
+    evidence: {
+      inputs: e.inputs,
+      ...(e.fractionalInputs === undefined ? {} : { fractionalInputs: e.fractionalInputs }),
+      ...(e.nearWholeInputs === undefined ? {} : { nearWholeInputs: e.nearWholeInputs }),
+      source: e.source,
+      optionSet: e.optionSet,
+      catalogVersion: e.catalogVersion,
+    },
+  };
+}
+
 /** This function gives the file form of an entry, with its fields in the order of the file. */
 function writeEntry(e: CatalogEntry): Fields {
   const options = Object.fromEntries(Object.entries(e.options).map(([key, o]) => [key, writeOption(o)]));
@@ -598,6 +725,7 @@ function writeEntry(e: CatalogEntry): Fields {
     ...(e.determinismNote === undefined ? {} : { determinismNote: e.determinismNote }),
     optIn: e.optIn,
     ...(e.baseline === true ? { baseline: true } : {}),
+    ...(e.output === undefined ? {} : { output: e.output.map(writeRow) }),
     options,
   };
 }
@@ -613,11 +741,13 @@ function unsafeValues(v: unknown, at: string): string[] {
 
 /**
  * This function gives the text of the catalog file, sorted by key. The same source and version give the same bytes.
+ * The file has the oldest schema that holds it, so a catalog with no `output` stays valid for a reader of the schema 1.
  * The caller gives the version from `package.json`. The function throws an error if the file breaks a rule of the format.
  */
 export function writeStrategyCatalog(source: StrategyCatalogSource, version: string): string {
   const strategies = [...source.strategies].sort((a, b) => (a.key < b.key ? -1 : a.key > b.key ? 1 : 0)).map(writeEntry);
-  const doc = { schema: STRATEGY_CATALOG_SCHEMA, engine: source.engine, version, strategies };
+  const schema = source.strategies.some((e) => e.output !== undefined) ? STRATEGY_CATALOG_SCHEMA : STRATEGY_CATALOG_SCHEMAS[0];
+  const doc = { schema, engine: source.engine, version, strategies };
   const unsafe = unsafeValues(doc, "catalog");
   if (unsafe.length > 0) throw new Error(`The catalog of ${source.engine} has values that JSON cannot hold: ${unsafe.join(" ")}`);
   const text = `${JSON.stringify(doc, null, 2)}\n`;
