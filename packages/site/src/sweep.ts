@@ -1,7 +1,7 @@
 // The section "Sweep coverage": the trend of the coverage surrogate, read from the branch `sweep-data` when the page opens.
 // The build does not read the branch, so the page reads it at runtime. A failed read shows a link to the data.
 import { nightDue, nightVerdict } from "@layout-contract/joint/browser";
-import { checkSweepIndex, dayOf, FLAT_WEEK, mainLine, parseTrend, type StepFacts, type StepRouteFacts, type SweepIndex, type TrendRecord, type WeekView, weekView } from "./coverage.ts";
+import { checkSweepIndex, type CostClaimFacts, type CostFacts, dayOf, FLAT_WEEK, mainLine, parseTrend, type StepFacts, type StepRouteFacts, type SweepIndex, type TrendRecord, type WeekView, weekView } from "./coverage.ts";
 import { esc, pct } from "./ui.ts";
 
 const REPO = "https://github.com/mark1russell7/layout-contract";
@@ -350,6 +350,18 @@ function stepRoutesNote(step: StepFacts): string {
   return `<p class="week-note"><span class="badge">Routes</span> ${step.routes.map(stepRouteText).join("; ")}. A pack change also moves a detour, because the straight length is its denominator, so a move in a detour alone is no change of a router. A router that shares segments cuts the crossings, so that count alone is no win.</p>`;
 }
 
+/** This function gives the line on the cost of the last night. The whole night comes first, and each miss states its side. */
+export function costNote(cost: CostFacts | null): string {
+  if (cost === null) return "";
+  const claim = (name: string, c: CostClaimFacts | null, status: string): string =>
+    c === null ? `${name}: ${esc(status)}.` : `${name}: ${Math.round(c.real)} minutes, claim ${Math.round(c.lo)} to ${Math.round(c.hi)}${c.side === "hit" ? "" : c.side === "low" ? ", under the claim" : ", over the claim"}.`;
+  const shards = cost.shards === null ? "Shards: no history." : `Shards: ${cost.shards.hits} of ${cost.shards.shards} in the claim, ${cost.shards.low} under and ${cost.shards.high} over.`;
+  const missed = cost.jobMinutes?.side === "low" || cost.jobMinutes?.side === "high" || cost.wall?.side === "low" || cost.wall?.side === "high";
+  const badge = cost.thin || missed ? "warn" : "good";
+  const budget = cost.budget === null ? "" : ` ${esc(cost.budget)}`;
+  return `<p class="week-note"><span class="badge ${badge}">Cost</span> The night of ${shortDate(cost.date)}, at probability 0.8. ${claim("Job time", cost.jobMinutes, cost.jobMinutesStatus)} ${claim("Wall time", cost.wall, cost.wallStatus)} ${shards}${budget}</p>`;
+}
+
 /** The width of the charts before the page measures the section, in pixels. */
 const START_WIDTH = 640;
 
@@ -366,7 +378,7 @@ export function sweepHtml(state: SweepState, width: number = START_WIDTH, now: D
   const latest = line.at(-1);
   const bads = bad > 0 ? `<p class="hint">${bad} ${bad === 1 ? "line" : "lines"} of the file did not pass the check. The page skips them.</p>` : "";
   const source = `<a href="${trendFileUrl(index.latest)}"><code>surrogate-trend.jsonl</code></a>`;
-  const night = `${nightNote(index, now)}${stepNote(index.entry.step)}`;
+  const night = `${nightNote(index, now)}${stepNote(index.entry.step)}${costNote(index.entry.cost)}`;
   if (latest === undefined)
     return `<p class="dataline"><span class="badge">L52</span> Data of ${source} · epoch <code>${esc(index.latest)}</code></p>${night}${weekNote(week)}${bads}`;
   return `

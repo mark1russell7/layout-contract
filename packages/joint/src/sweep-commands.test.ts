@@ -71,6 +71,9 @@ describe("the commands of the sweep script", () => {
     const index1 = JSON.parse(readFileSync(join(tree, "index.json"), "utf8")) as { latest: string };
     const state1 = JSON.parse(readFileSync(join(tree, "epochs", index1.latest, "state.json"), "utf8")) as { nights: { shards: { costModel?: string }[] }[] };
     expect(state1.nights[0]!.shards.map((s) => s.costModel)).toEqual([CONFIG_COST_ID, CONFIG_COST_ID]);
+    // The first night has no history, so its claim has no score, and its page facts state that.
+    const costOfFirst = JSON.parse(readFileSync(join(tree, "index.json"), "utf8")) as { epochs: Record<string, { cost: unknown }> };
+    expect(costOfFirst.epochs[index1.latest]!.cost).toMatchObject({ jobMinutes: null, jobMinutesStatus: "no history", wallStatus: "no history", shards: null, budget: null, thin: false });
 
     // The second night reads the state of the first night, and the check compares its tree with the tree of the first night.
     const second = night("2026-01-02", tree, tree);
@@ -118,7 +121,7 @@ describe("the command of the sweep script that reads the last gates", () => {
   it("gives the fallback when the folder holds no gate", { timeout: 60_000 }, () => {
     const text = start("sweep.mjs", ["gate-estimate", "--runs", join(dir, "no-gates")]);
     expect(text.split(" ")[0]).toBe("360");
-    expect(text).toContain("no gate, so the fallback");
+    expect(text).toContain("no gate with job times, so the fallback");
   });
 });
 
