@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.4.0
+
+- MINOR before 1.0.0: the meaning of two hard counts changes on circles and on shaped containers. So a caller can read a different number for one placement. Each count on rectangles in a rectangle container stays the same.
+- `no-overlap`: `countOverlaps` and `packHard` count two circles by the distance of their centers, with the stated tolerance. A pair whose boxes overlap and whose circles do not is no longer a break.
+- `in-container`: `countOutside` and `packHard` count a circle in a circle container by distance, also when the size is free.
+- The default of `exactContainer` is `true`, as the note of 0.2.x stated for the next breaking version. A box of a shaped container with the size `fixed` must stay inside the shape. With `{ exactContainer: false }`, the old count stays.
+- `PACK_HARD_RULES` lists `circle` as exact for these 2 rules, with a stated `limit`. A circle beside another shape kind or an obstacle counts by the bounding box. A circle in a polygon or an ellipse container also counts by the bounding box. These inputs read as `safe`, and `checkShapes` refuses them at its default level. The date of the fix is 2026-11-28 (L107).
+- The new field `hardRule` of `LayoutRecord` states the version of these rules. `HARD_RULE_VERSION` is 2. `hardRuleOf` gives 1 for a record without the field, where a count over 0 on a circle proves nothing. The schema stays `layout-record/1`.
+- New exports: `shapesOverlap`, the rule for one pair, `circleOverlaps`, `circlesOutside`, `placedCircle`, `PlacedCircle`, `inputShapeLevel`, `ShapeInput`, `ShapeLimit`, `hardRuleOf` and `HARD_RULE_VERSION`.
+- These tests compare squared distances, with the tolerance of each rule. They use no exact predicate: a rule with a tolerance does not need the exact sign.
+
 ## 0.3.12
 
 - PATCH before 1.0.0: new exports and a new row in the shared dimension table, with no break. No existing input changes.

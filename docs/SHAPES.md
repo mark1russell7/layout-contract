@@ -67,7 +67,7 @@ Thus each input, record and hash of 0.2.12 stays the same.
 | `joint.straight.crossings` | each kind | It reads the centers of the bounding boxes. |
 | `joint.stability.mean`, `joint.stability.moved` | each kind | They read the positions and the width `W` of the bounding boxes. |
 | `joint.proxy.rank`, `joint.ms` | each kind | They read the ranks of lengths and the time. |
-| `no-overlap`, `in-container` | `rect`, and `safe` for `polygon`, `circle` and `free` | They test the bounding boxes. For a different kind, the count is an upper bound, not the exact count. |
+| `no-overlap`, `in-container` | `rect` and `circle`, and `safe` for `polygon` and `free` | Two circles, and a circle in a circle container, count by distance since 0.4.0. Each other test reads the bounding boxes, and the count is an upper bound. The section "The rule on circles" tells the limit. |
 | `locked-kept`, `complete` | each kind | They read only the positions and the ids. |
 
 `PACK_HARD_RULES` gives the kinds of the 4 hard rules of a pack. A measure that supports only `rect` keeps its exact values.
@@ -78,7 +78,7 @@ Thus each input, record and hash of 0.2.12 stays the same.
 
 - A kind is in `shapes` (exact) or in `safe`, not in the two lists. `shapeSupportProblems(uses)` refuses a kind in the two lists, an unknown kind and a kind two times in one list.
 - `ruleLevel(rule, kind)` gives `exact`, `safe` or `none`. A rule without `shapes` is exact on `rect` (`DEFAULT_SHAPES`).
-- `no-overlap` and `in-container` are exact on `rect` and safe on `polygon`, `circle` and `free`. A shape is inside its bounding box, so the count of the bounding boxes is an upper bound.
+- `no-overlap` and `in-container` are exact on `rect` and `circle`, and safe on `polygon` and `free`. A shape is inside its bounding box, so the count of the bounding boxes is an upper bound.
 - By default, `checkShapes` refuses a safe kind, as before. With `{ level: "safe" }`, it accepts a safe kind. Use it only when the run claims that a rule has no break.
 - A break of a safe kind tells that the count is only safe.
 
@@ -90,6 +90,24 @@ Thus each input, record and hash of 0.2.12 stays the same.
 | `checkShapes` | Yes, through `shapeLevel`. The default level `exact` keeps each refusal of 0.2.15. | Yes, through `shapeLevel`. |
 | `shapeSupportProblems` | Yes. It refuses an overlap of the two lists. | Yes. It refuses an overlap of each two lists. |
 | `packages/joint`, `packages/site` | No file reads `ShapeSupport.shapes`, so they do not change. | No. |
+
+### The rule on circles (0.4.0)
+
+`HARD_RULE_VERSION` is 2 since 0.4.0. A record states the version in `hardRule`, and `hardRuleOf` gives 1 for a record without the field.
+
+| Pair | Test | Level |
+|---|---|---|
+| Two circles | The distance of the centers against the two radii and the two margins, less the tolerance | Exact |
+| A circle in a circle container | The distance of the centers, the radius, the margin and the inset, against the radius of the container plus the tolerance | Exact |
+| A circle in a rectangle container | The bounding box of the circle | Exact when the margin has one value |
+| A circle beside another kind or an obstacle | The bounding boxes | `safe`, until 2026-11-28 (L107) |
+| A circle in a polygon or an ellipse container | The corners of the bounding box | `safe`, until 2026-11-28 (L107) |
+
+- The margin of a circle is the largest side of its margin.
+- `shapesOverlap(a, b, tolerance, gap)` is the rule for one pair. A reader that needs the same test uses this function, and it does not write a copy.
+- `inputShapeLevel(rule, kind, input)` gives the level for one input. It reads the field `limit` of the rule. `checkShapes` uses it, so at its default level it refuses an input that the limit names.
+- On a record of version 1, a count on a circle is by its bounding box. A count over 0 proves nothing, so no page reads it as a fault.
+- These tests compare squared distances with the tolerance of the rule. A rule with a tolerance does not need an exact sign, so they use no predicate of `@mark1russell7/predicates`.
 
 ### The bound of a measure (0.2.17)
 
@@ -189,4 +207,4 @@ A packer that places an item that is not a `rect` does these steps:
 2. It declares `shapes` on each of its `pack.*` measure specs. A spec without `shapes` stays on `rect`. A kind with only a bound value goes in `bound`.
 3. Before a run, it starts `checkShapes` with its measures and `PACK_HARD_RULES`, and `checkConfig` with `shapes`. It refuses a run on a break.
 4. It writes the box with its `shape`, and keeps `w` and `h` as the bounding size of the shape.
-5. It asks the contract for the exact overlap and containment tests of a kind before it claims `no-overlap` or `in-container` on that kind.
+5. It asks the contract for the exact overlap and containment tests of a kind before it claims `no-overlap` or `in-container` on that kind. Circles have these tests since 0.4.0.
