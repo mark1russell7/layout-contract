@@ -1494,6 +1494,24 @@ The first gate with 3 jobs at once was run `41042609930`, after the sweep of the
 
 The mean Brier score of N1-N3 is 0.082. The claim on the time of the sweep in [SWEEP.md](SWEEP.md) is also a miss. With it, the mean of the night is 0.151.
 
+### The read of the gate waits
+
+The workflow `queue-read.yml` reads the wait of each pull request gate and each release gate of the public repositories. It runs each morning at 08:09 UTC and at the end of each run of the memory probe. Its artifact `queue-read` holds the facts, the rows and the report, and its summary shows the report.
+
+The report gives two waits for each run:
+
+- The job wait is the largest job start minus job creation. GitHub makes a job with `needs` when the job before it ends, so this does not count earlier jobs. It does count the `max-parallel` of the run itself.
+- The first wait is the first job start minus the start of the run. Nothing of the run itself holds its first job. A rerun counts from the start of its new try, so the time between tries is no wait.
+
+A wait counts as under a memory gate when it overlaps the span of that gate. The report also gives the span of each gate and the peak count of jobs at one time. A wait over 15 minutes because of the gate stops the trial.
+
+The limits of this read:
+
+- It reads public repositories only.
+- A cancelled run or a skipped job is not a wait.
+- It shows that a wait and a gate came at one time. It does not show that the gate caused the wait.
+- The rate limit can cut a read. The report states the count of runs left out, and the next run goes on from the artifact.
+
 ### The prediction for the first run of the gate
 
 I wrote these claims before the run. The model of memory and of the time in CI is weak (L79), so those claims have a p of 0.6 or less. M2 has more because bench-4 measured it. The peaks of bench-4 are shard peaks: the RSS of a shard includes the inputs before it. Thus a probe of one input alone can have a lower peak.
