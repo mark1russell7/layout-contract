@@ -1511,6 +1511,33 @@ The first gate with 3 jobs at once was run `41042609930`, after the sweep of the
 
 The mean Brier score of N1-N3 is 0.082. The claim on the time of the sweep in [SWEEP.md](SWEEP.md) is also a miss. With it, the mean of the night is 0.151.
 
+### The read of the gate waits
+
+The workflow `queue-read.yml` reads the wait of each pull request gate and each release gate of the public repositories. It runs each morning at 08:09 UTC and at the end of each run of the memory probe. Its artifact `queue-read` holds the facts, the rows and the report, and its summary shows the report.
+
+The report gives two waits for each run:
+
+- The job wait is the largest job start minus job creation. GitHub makes a job with `needs` when the job before it ends, so this does not count earlier jobs. It does count the `max-parallel` of the run itself.
+- The first wait is the first job start minus the start of the run. Nothing of the run itself holds its first job. A rerun counts from the start of its new try, so the time between tries is no wait.
+
+A wait counts as under a memory gate when it overlaps the span of that gate. The report also gives the span of each gate and the peak count of jobs at one time. This read does not stop the trial, and it starts no stop of its own.
+
+The limits of this read:
+
+- It reads public repositories only.
+- A cancelled run or a skipped job is not a wait.
+- A job in the queue at the read has no wait yet, because GitHub gives it a start time equal to its creation time. The run stays open, so a later read takes its real start.
+- It shows that a wait and a gate came at one time. It does not show that the gate caused the wait.
+- The rate limit can cut a read. The report states the count of runs left out, and the next run goes on from the artifact.
+
+This workflow is a dated tool. It ends when one night of its rows matches the queue record of the CI slots, or on 2026-11-14 at the latest. Then the workflow goes, and anything still of use moves to that record.
+
+The two sources match on a night when all of these hold, over the public repositories:
+
+- The largest job wait of each run differs by at most 1 minute. Both read the same two times from GitHub, so a larger difference is a fault of a read.
+- The count of runs with a wait over 15 minutes is equal.
+- At most 5 % of the runs are in only one source.
+
 ### The trial of the gate with 6 jobs at once
 
 The gate of 2026-11-04 (run `41769223049`) took 607 minutes with 1,440 job minutes on 3 lanes. Its longest job took 303 minutes, for 3 seeds of the dense input with hubs: 82, 108 and 112 minutes. The nightly gate has 6 jobs at once for 3 nights, and the total of the job minutes does not change. This is a stated exception to the limit of 3. A dispatch keeps 3.

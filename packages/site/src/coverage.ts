@@ -62,6 +62,20 @@ export interface StepFacts {
   readonly fill: number;
   readonly hard: number;
   readonly crossings: number;
+  /** The route values of the step. A step from before this field has none. */
+  readonly routes: readonly StepRouteFacts[];
+}
+
+/** The facts of one route value of a step. */
+export interface StepRouteFacts {
+  readonly label: string;
+  /** The median ratio of new to old, or `null` when no pair has a ratio. */
+  readonly median: number | null;
+  readonly n: number;
+  readonly noOld: number;
+  readonly noNew: number;
+  readonly oldZero: number;
+  readonly mixed: number;
 }
 
 /** The facts of one epoch in `index.json`. */
@@ -182,6 +196,25 @@ export function weekView(line: readonly TrendRecord[]): WeekView {
   return { kind, latest, prior, change };
 }
 
+/** The route values of a step and their words on the page. */
+const STEP_ROUTE_LABELS: readonly (readonly [string, string])[] = [
+  ["route.detour.mean", "mean detour"],
+  ["route.detour.q95", "q95 detour"],
+  ["route.crossings", "routed crossings"],
+];
+
+/** This function gives the route values that `routes` of a step holds. A value in a bad form is left out, so it does not read as a pass. */
+function stepRoutesOf(routes: unknown): StepRouteFacts[] {
+  if (!isObject(routes)) return [];
+  return STEP_ROUTE_LABELS.flatMap(([name, label]) => {
+    const metric = routes[name];
+    if (!isObject(metric) || !isCount(metric["noOld"]) || !isCount(metric["noNew"]) || !isCount(metric["oldZero"]) || !isCount(metric["mixed"])) return [];
+    const ratio = metric["ratio"];
+    const read = isObject(ratio) && isFiniteNumber(ratio["median"]) && isCount(ratio["n"]) ? { median: ratio["median"], n: ratio["n"] } : { median: null, n: 0 };
+    return [{ label, ...read, noOld: metric["noOld"], noNew: metric["noNew"], oldZero: metric["oldZero"], mixed: metric["mixed"] }];
+  });
+}
+
 /** This function examines `index.json` of the branch `sweep-data`. It gives the latest epoch and its entry, or the problems. */
 function stepOf(v: unknown): StepFacts | null {
   if (!isObject(v) || typeof v["from"] !== "string" || !isCount(v["pairs"]) || !isObject(v["dropped"]) || !isObject(v["metrics"])) return null;
@@ -192,7 +225,7 @@ function stepOf(v: unknown): StepFacts | null {
   const [fill, hard, crossings] = [storedRatio("joint.fill"), storedRatio("hard"), storedRatio("joint.straight.crossings")];
   if (fill === null || hard === null || crossings === null) return null;
   const dropped = Object.values(v["dropped"]).reduce<number>((sum, n) => sum + (typeof n === "number" ? n : 0), 0);
-  return { from: v["from"], pairs: v["pairs"], dropped, fill, hard, crossings };
+  return { from: v["from"], pairs: v["pairs"], dropped, fill, hard, crossings, routes: stepRoutesOf(v["routes"]) };
 }
 
 /** This function checks the value of `index.json`. It gives the facts of the latest epoch, or the list of the problems. */

@@ -1,6 +1,7 @@
 // The state of the sweep and the steps of one night (`docs/SWEEP.md`): plan round 1, apply the records, race, plan round 2.
 // The state is one JSON object. The workflow keeps it on the data branch `sweep-data`, and the script `scripts/sweep.mjs` reads and writes it.
 import { configId, type LayoutRecord, type StrategyConfig, type StrategySpace } from "@mark1russell7/layout-contract";
+import { stepValuesOf } from "./epoch-step.ts";
 import { saltelliDesign, type SaltelliDesign } from "./sensitivity.ts";
 import { configRun, JOINT_SPACE, type ConfigRun } from "./space.ts";
 import {
@@ -110,6 +111,8 @@ export interface SweepState {
   readonly values: Record<string, (number | null)[]>;
   /** The pick values of the baseline arm on each input, as the last night gave them. */
   readonly reference: (Reference | null)[];
+  /** The route values of the baseline arm on each input, for the step between two epochs. No verdict reads them. A state from before this field gets it at its first record. */
+  stepValues?: (Reference | null)[];
   readonly summary: SummaryRow[];
   readonly nights: NightEntry[];
   /** The Saltelli designs of the design nights (`planDesign`). The race keeps the values of their configs. */
@@ -338,7 +341,10 @@ export function applyRecords(state: SweepState, records: readonly LayoutRecord[]
     if (i === undefined || input === undefined) continue;
     const mine = new Map(list.map((r) => [r.strategy, r]));
     const tonight = base.map((id) => mine.get(id));
-    if (tonight.every((r) => r !== undefined)) state.reference[i] = tonight.map((r) => pickOf(r!));
+    if (tonight.every((r) => r !== undefined)) {
+      state.reference[i] = tonight.map((r) => pickOf(r!));
+      (state.stepValues ??= state.inputs.map(() => null))[i] = tonight.map((r) => stepValuesOf(r!));
+    }
     const reference = state.reference[i];
     if (reference === null || reference === undefined) continue;
     const scores = new Map<string, number>();
