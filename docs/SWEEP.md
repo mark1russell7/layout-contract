@@ -258,6 +258,11 @@ A new engine version starts a new epoch, and the trend of each epoch starts agai
 - A pair counts only when the input id, the input hash, the config id and `BENCH_SPACE_VERSION` are equal. Each other pair drops, and the step states the count.
 - The field `inputHashes` of a state has the hash of each input. An older state has no such field, so `LEGACY_INPUT_LISTS` has the hash of its list, from the manifest at its last night.
 - The step is a measure of the engines. It does not extend the skill line, and the charts stop that line at the step.
+- The step also reads route values: `route.detour.mean`, `route.detour.q95` and `route.crossings`. The field `stepValues` of a state keeps them apart from the pick values. The 5 levels of the pick stay as they are, so no verdict moves.
+- A pair with no old value reads "no old value", and it does not read as a pass. Old nights are not filled, so a state from before the field reads this on each pair. The step then states that it reads routes only by violation and cap counts.
+- A pack change also moves a detour, because the straight length is its denominator. A move in a detour alone does not read as a change of a router.
+- A router that shares segments cuts `route.crossings`, so that count alone is no win.
+- A ratio of `route.crossings` needs the same method on both sides. A sample on one side and a full count on the other side gives no ratio, and the step counts the pair.
 
 ### The check of each night
 

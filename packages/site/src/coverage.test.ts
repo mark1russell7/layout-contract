@@ -192,10 +192,50 @@ describe("the step between two epochs", () => {
   });
 
   it("states the ratios and the dropped pairs, or that no pair passed", () => {
-    const facts = { from: "old-epoch", pairs: 909, dropped: 3, fill: 1.002, hard: 1, crossings: 0.98 };
+    const facts = { from: "old-epoch", pairs: 909, dropped: 3, fill: 1.002, hard: 1, crossings: 0.98, routes: [] };
     expect(stepNote(facts)).toContain("fill ×1.002, hard constraints ×1.000 and crossings ×0.980, over 909 pairs, with 3 dropped");
     expect(stepNote({ ...facts, pairs: 0 })).toContain("no pair passed the rule");
     expect(stepNote(null)).toBe("");
+  });
+
+  it("reads the route values of a step, and leaves out a value in a bad form", () => {
+    const routes = {
+      "route.detour.mean": { ratio: { n: 900, median: 1.01, q10: 1, q90: 1.1 }, noOld: 9, noNew: 0, oldZero: 0, mixed: 0 },
+      "route.detour.q95": { ratio: null, noOld: 909, noNew: 0, oldZero: 0, mixed: 0 },
+      "route.crossings": { ratio: { n: 800 }, noOld: 0 },
+    };
+    const entry = { corpus: "joint-v2", nights: 1, last: "2026-11-05", configs: 9, step: { ...step, routes } };
+    const read = checkSweepIndex({ schema: "sweep-index/1", latest: EPOCH, epochs: { [EPOCH]: entry } });
+    expect(read).toMatchObject({
+      entry: {
+        step: {
+          routes: [
+            { label: "mean detour", median: 1.01, n: 900, noOld: 9 },
+            { label: "q95 detour", median: null, n: 0, noOld: 909 },
+          ],
+        },
+      },
+    });
+  });
+
+  it("reads a step from before the route values as a step with none", () => {
+    const entry = { corpus: "joint-v2", nights: 1, last: "2026-11-05", configs: 9, step };
+    expect(checkSweepIndex({ schema: "sweep-index/1", latest: EPOCH, epochs: { [EPOCH]: entry } })).toMatchObject({ entry: { step: { routes: [] } } });
+  });
+
+  it("states the route values with their limits, and no old value is no pass", () => {
+    const facts = { from: "old-epoch", pairs: 909, dropped: 3, fill: 1.002, hard: 1, crossings: 0.98 };
+    const route = { label: "mean detour", median: 1.01, n: 900, noOld: 9, noNew: 0, oldZero: 0, mixed: 0 };
+    const shown = stepNote({ ...facts, routes: [route] });
+    expect(shown).toContain("mean detour ×1.010 over 900 pairs, 9 with no old value");
+    expect(shown).toContain("a move in a detour alone is no change of a router");
+    expect(shown).toContain("that count alone is no win");
+    const none = stepNote({ ...facts, routes: [{ ...route, median: null, n: 0, noOld: 909 }] });
+    expect(none).toContain("mean detour: no ratio (909 with no old value)");
+    expect(none).toContain("The step reads routes only by violation and cap counts.");
+    expect(none).not.toContain("mean detour ×");
+    const old = stepNote({ ...facts, routes: [] });
+    expect(old).toContain("This step has no route values. The step reads routes only by violation and cap counts.");
   });
 
   it("marks the step on the chart and stops the line there", () => {
