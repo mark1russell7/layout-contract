@@ -58,6 +58,7 @@ const kpi = (await fetch("kpi.json")
   .catch(() => undefined)) as { project?: string; at?: string; measures?: unknown[] } | undefined;
 check("the file of measures names this project", kpi?.project === "layout-contract", kpi?.project);
 check("the file of measures has a data time", !Number.isNaN(Date.parse(kpi?.at ?? "")), kpi?.at);
-check("the file of measures has 4 measures", kpi?.measures?.length === 4, kpi?.measures?.length);
+// With no answer from npm the build leaves out the 3 measures that read npm.
+check("the file of measures has 6 measures, or 3 with no read of npm", kpi?.measures?.length === 6 || kpi?.measures?.length === 3, kpi?.measures?.length);
 
 export {};
