@@ -76,7 +76,7 @@ For a grid property, the parser refuses a class that the counts do not give. `ou
 2. With no fraction, fewer than `OUTPUT_CLASS_MIN_INPUTS` (30) inputs give `untested`. The row keeps the count.
 3. With no fraction and at least 30 inputs, a near-whole input gives `near-whole`. Otherwise the class is `whole`.
 
-The class `whole` tells what the read found, and it does not mean always whole. With no fraction in 30 inputs, the rule of three gives an upper bound of approximately 10 % at 95 % on the share of inputs with a fraction. A larger count in `evidence.inputs` gives a smaller bound.
+The class `whole` tells what the read found, and it does not mean always whole. This bound is on the share of inputs with a fraction. With no fraction in 30 inputs, the rule of three gives approximately 10 % at 95 %. A larger count in `evidence.inputs` gives a smaller bound.
 
 A new property needs no new schema. The parser examines only the form of its row.
 
