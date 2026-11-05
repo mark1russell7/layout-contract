@@ -71,7 +71,15 @@ jobs:
       - name: Run the bench
         working-directory: packages/layout-contract
         run: |
-          node scripts/bench-text.mjs --base "$RUNNER_TEMP/base/node_modules/@mark1russell7/layout-contract/build/text.js" --head build/text.js | tee -a "$GITHUB_STEP_SUMMARY"
+          base="$RUNNER_TEMP/base/node_modules/@mark1russell7/layout-contract/build/text.js"
+          # The flip test of this step: a head file that does not exist crashes the bench, and this pipe must then fail. So a crash under `tee` cannot pass as green. The crash text in the log is expected.
+          if node scripts/bench-text.mjs --base "$base" --head build/no-such-text.js 2>&1 | tee "$RUNNER_TEMP/flip.txt"; then
+            echo "::error::The bench with a missing head file passed. A crash under this pipe reads as green."
+            exit 1
+          fi
+          grep -q "no-such-text" "$RUNNER_TEMP/flip.txt"
+          echo "The flip test passed: a crash of the bench fails this pipe." >> "$GITHUB_STEP_SUMMARY"
+          node scripts/bench-text.mjs --base "$base" --head build/text.js | tee -a "$GITHUB_STEP_SUMMARY"
 
   text-bench-ok:
     name: Text bench OK
