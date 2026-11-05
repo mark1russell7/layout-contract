@@ -57,7 +57,7 @@ The claim is for the default options, as `deterministic` is, so an entry has one
 | `number`, `integer` | `min`, `max`, `step`, `scale`, `special`, `marks`, `values` |
 | `boolean` | no other fields |
 | `enum` | `values`, `custom` |
-| `strategy` | `step`, `kinds`, `optionsKey`, `inlineOptions`, `optIn` |
+| `strategy` | `step`, `kinds`, `optionsKey`, `inlineOptions`, `optIn`, `needs` |
 | `list` | `of`, `min`, `max` |
 | `object` | no other fields |
 | `function` | no other fields, and a form cannot set it from JSON |
@@ -94,13 +94,14 @@ JSON has no form for `Infinity`, and `JSON.stringify(Infinity)` gives `null` wit
 
 - The value is the `key` of an entry of the same catalog. A reference does not go to another engine.
 - `step`, `kinds` and `optIn` limit the choice. `optIn: false` leaves out the opt-in strategies, for an engine that finds a member only in its default set. `catalogChoices(strategies, declaration)` gives the strategies that an option offers, so no chooser keeps a copy of this rule. It does not give a baseline. Without a declaration, it gives each strategy that a chooser offers.
+- `needs` gives a value that a chosen strategy must take, by dimension of `supports`. An example is `{ "obstacleMove": "fixed" }`, for a strategy that packs around locked items. A strategy that does not list the dimension has no declared limit, so the option offers it.
 - `optionsKey` names the option that holds the options of the chosen strategy. A form renders that option from the chosen entry.
 - `inlineOptions: true` is the other form: the value holds its options. The value is a key or an object `{ "strategy": "maxrects", "options": { "rule": "bl" }, "id": "maxrects-bl" }`, and `options` and `id` are optional. The options of the value have the JSON form of the declarations of the chosen entry. A declaration does not have both forms.
 - A list of members is a `list` with `of`: `{ "type": "list", "of": { "type": "strategy", "kinds": ["single"], "inlineOptions": true }, "min": 2, "max": 8 }`. An item has no sibling option, so `of` does not have `optionsKey`.
 
 ## The check of an engine
 
-`checkCatalog(source, registry, options)` has one set of rules for each engine. Its result has `faults`, `notRun` and `notMatched`. A good catalog has no fault, and a test states the two counts.
+`checkCatalog(source, registry, options)` has one set of rules for each engine. Its result has `faults`, `notRun`, `notMatched` and `spaceOnly`. A good catalog has no fault, and a test states the three counts.
 
 1. Each key of the live defaults has a declaration.
 2. Each declaration has a `default` or a `noDefault`.
@@ -110,8 +111,20 @@ JSON has no form for `Infinity`, and `JSON.stringify(Infinity)` gives `null` wit
 6. `limits` equals the limits in the code.
 7. Each entry with `deterministic: true` runs two times on a fixture, with the same output bytes. An entry that cannot run goes to `notRun`, by name. The output of the fixture holds no times.
 8. Each `SupportProbe` runs each entry. The refusal and `supports` agree. A probe on a dimension that an entry does not list expects the engine to take the value, so a refusal is a fault.
-9. Each param of a space is inside the declaration of its option. A stage option or a param without a match goes to `notMatched`.
+9. Each param of a space is inside the declaration of its option, through its route. A stage option or a param without a match or a route goes to `notMatched`.
 10. With `refusesChoice`, each strategy that an option offers runs as the value of that option. A refusal is a fault, because a chooser offers only what works.
+
+### The routes of a space
+
+A param of a space can hold another form of the value of its option. The option `paramRoutes` of the check states the route, because the route is engine code and the file does not hold code. The key is `<stage>/<option>.<param>`, or `<stage>/<option>` for a stage option.
+
+| Route | Meaning |
+| --- | --- |
+| `{ "value": toOption }` | The check examines `toOption(value)` against the declaration. The result `undefined` means that this value sets no option. |
+| `{ "option": "name" }` | The option has another name. A route can also have `value`. |
+| `{ "spaceOnly": "reason" }` | The place sets no option. The place goes to `spaceOnly`, with its reason. |
+
+A route that matches nothing is a fault, and so is a route that names an absent option. A `spaceOnly` route on a param that is an option is also a fault. Thus each route stays true when the space changes.
 
 ## The relation to the strategy space
 

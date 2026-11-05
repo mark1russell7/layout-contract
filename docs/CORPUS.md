@@ -88,6 +88,7 @@ A dimension is a `CorpusDimension`. It is a `SpaceParam` of `docs/STRATEGY-SPACE
 | `edgeDensity` | `enum` | `sparse`, `medium`, `dense` | `medium` | | `highways`, `joint` | The mean count of the edges of each item: 0.5, 1.5 or 4. |
 | `edgeShape` | `enum` | `random`, `clustered`, `hubChain`, `hubs`, `longRange`, `tree`, `bundled` | `random` | | `highways`, `joint` | The topology of the edges. |
 | `ports` | `enum` | `free`, `sides`, `fixed` | `free` | | `highways`, `joint` | The ports of the edges. |
+| `edgeKey` | `enum` | `none`, `random`, `cluster` | `none` | | `highways`, `joint` | The key of each edge in `data.collection`: absent, a random name for each target box, or a name for each cluster of boxes. |
 | `hubBy` | `enum` | `area`, `random`, when `edgeShape` is `hubs` or `tree` | `area` | | `joint` | The order of the hubs. The value `random` adds `.hub-random` to the family of the input. |
 | `spacing` | `enum` | `stress`, `gap`, `margin`, `both` | `both` | | `joint` | The split of the route clearance (`docs/JOINT-CORPUS.md`). |
 | `margin` | `real` | 0 to 32 | 0 | `linear` | `packing`, `joint` | The margin of each item. |
@@ -139,6 +140,7 @@ A `CorpusStep` changes an input after its base family, with the same seed. `comp
 - The input gets the hash of `options.hash`. The default is `documentHash`.
 - The composed family is `libm-dependent` when the base or a step is `libm-dependent`.
 - `EDGES_STEP` is the step `edges` of `edgeStep`. Its family part is `e-<edgeDensity>.<edgeShape>.<groups>.<ports>`. The value `random` of `hubBy` adds `.hub-random`. The step is `libm-dependent`, because the shape `hubs` uses `**`.
+- `EDGE_KEY_STEP` is the step `edge-key` of `edgeKeyStep`. It comes directly after `EDGES_STEP`, and it changes only `data.collection`. Its family part is `key-<edgeKey>`. The step is `exact`.
 
 ## The browser safety
 
@@ -177,6 +179,7 @@ Each cell tells the family that reads the dimension in each engine. "Own" tells 
 | `edgeDensity` | none | own: `edgesPerNode` of the fixtures | `EDGES_STEP` |
 | `edgeShape` | none | own: the fixture kind | `EDGES_STEP` |
 | `ports` | none | own: `fixedPorts` of the fixtures | `EDGES_STEP` |
+| `edgeKey` | none | none at this time | `EDGE_KEY_STEP`, not in a set at this time |
 | `hubBy` | none | none | `EDGES_STEP` |
 | `spacing` | none | none | `SPACING_STEP` of `joint-v2` |
 | `openSize` | none | none | `OPEN_SIZES_STEP` of `joint-v3` |

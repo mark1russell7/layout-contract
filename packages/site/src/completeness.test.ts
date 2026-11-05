@@ -1,13 +1,14 @@
 // The completeness test of the joint pages: each strategy and each option of the engines has a place on the compare page and in the playground.
-import { iterEntries, JOINT_SPACE, laneEntries, laneSpace, OPEN_ROUTERS, PACK_ENTRIES, pairId, ROUTERS } from "@layout-contract/joint/browser";
+import { COVER_EXCEPTIONS, coverEntries, iterEntries, JOINT_SPACE, laneEntries, laneSpace, OPEN_ROUTERS, PACK_ENTRIES, pairId, ROUTERS } from "@layout-contract/joint/browser";
 import { checkSpace } from "@mark1russell7/layout-contract";
 import { describe, expect, it } from "vitest";
 import manifestText from "../../joint/corpus/joint-v2/corpus.json?raw";
 import { buildCatalog } from "./build-catalog.ts";
-import { LANE_STAGE, laneFormSpace, LANE_TEXT, PACK_STAGE, ROUTE_STAGE, VARIANT_TEXT } from "./catalog.ts";
+import { exceptionNote, LANE_STAGE, laneFormSpace, LANE_TEXT, PACK_STAGE, ROUTE_STAGE, VARIANT_TEXT } from "./catalog.ts";
 import { declaredOptions, inForms, packExtraKeys, registryIds } from "./engines.ts";
 import { formHtml } from "./form.ts";
 import { PRESETS } from "./inputs.ts";
+import { esc } from "./ui.ts";
 
 const versions = { packing: "test", highways: "test", contract: "test" };
 const catalog = buildCatalog(manifestText, versions);
@@ -19,9 +20,25 @@ const spaceOf = (engine: string) => (engine === "packing" ? catalog.pack : catal
 describe("the lists of the joint pages", () => {
   it("has each strategy of the registry of packing, and marks the entries of the benchmark", () => {
     expect([...new Set(packs.map((p) => p.strategy))].sort()).toEqual([...ids.packing].sort());
-    const shown = PACK_ENTRIES.filter(inForms);
-    expect(catalog.benchPacks.map((p) => p.id)).toEqual(shown.map((e) => e.id));
-    for (const p of catalog.extraPacks) expect(shown.some((e) => e.strategy === p.strategy)).toBe(false);
+    expect(catalog.benchPacks.map((p) => p.id)).toEqual(PACK_ENTRIES.map((e) => e.id));
+    for (const p of catalog.extraPacks) expect(PACK_ENTRIES.some((e) => e.strategy === p.strategy)).toBe(false);
+  });
+
+  it("gives each chip the id of a bench entry, and only an exception has another id", () => {
+    const bench = [...PACK_ENTRIES, ...coverEntries()].map((e) => e.id);
+    const chips = packs.map((p) => p.id);
+    expect(bench.filter((id) => !chips.includes(id))).toEqual([]);
+    expect(chips.filter((id) => !bench.includes(id)).sort()).toEqual(Object.keys(COVER_EXCEPTIONS).sort());
+  });
+
+  it("names each exception in words, with the roadmap item that ends it", () => {
+    const note = exceptionNote(catalog.packExceptions);
+    for (const [id, e] of Object.entries(COVER_EXCEPTIONS)) {
+      expect(note).toContain(`<code>${id}</code>`);
+      expect(note).toContain(esc(e.reason));
+      expect(note).toContain(`Roadmap item ${e.removedBy}`);
+    }
+    expect(exceptionNote({})).toBe("");
   });
 
   it("holds the waiting text until a cover run lands", () => {
@@ -32,6 +49,21 @@ describe("the lists of the joint pages", () => {
       expect(s in catalog.packExceptions).toBe(false);
     }
     expect(buildCatalog(manifestText, versions, true).packWaiting).toEqual([]);
+  });
+
+  it("gives the chips of the compare page that the newest run does not hold", () => {
+    const ids = [...catalog.benchPacks, ...catalog.extraPacks].map((p) => p.id);
+    expect(catalog.packNoResult).toEqual([]);
+    expect(buildCatalog(manifestText, versions, false, ids).packNoResult).toEqual([]);
+    expect(buildCatalog(manifestText, versions, false, ids.slice(1)).packNoResult).toEqual(ids.slice(0, 1));
+  });
+
+  it("tags the seven chips of run 40743187036 that no other tag covers", () => {
+    const measured = ["maxrects-baf", "maxrects-bl", "maxrects-blsf", "maxrects-bssf", "maxrects-cp", "rows", "select", "shelf", "shelf-best", "shelf-first", "shelf-first-input", "shelf-next", "skyline"];
+    const built = buildCatalog(manifestText, versions, false, measured);
+    const chips = [...built.benchPacks, ...built.extraPacks];
+    const untagged = chips.filter((p) => built.packExceptions[p.strategy] === undefined && !built.packWaiting.includes(p.strategy));
+    expect(untagged.map((p) => p.id).filter((id) => built.packNoResult.includes(id)).sort()).toEqual(["anneal-maxrects-bl-k16", "anneal-skyline-k16", "genetic-maxrects-bl-k16", "maxrects-bl-graph-bfs", "pack", "rows-graph-bfs", "tabu-maxrects-bl-k16"]);
   });
 
   it("tags only the strategies of the closed list of exceptions", () => {
@@ -52,10 +84,11 @@ describe("the lists of the joint pages", () => {
     expect(options("highways").sort()).toEqual([...ids.highways].sort());
   });
 
-  it("has a pair of the joint space for each pack entry and each router, and each lane pair and iteration pair", () => {
+  it("has a pair of the joint space for each pack entry of the forms and each router, and each lane pair and iteration pair", () => {
     const named = Object.keys(catalog.joint.named ?? {});
-    expect(named).toHaveLength(packs.length * catalog.routers.length + catalog.jointPairs.length);
-    for (const p of packs) for (const r of catalog.routers) expect(named).toContain(`${p.id}+${r}`);
+    const inSpace = packs.filter(inForms);
+    expect(named).toHaveLength(inSpace.length * catalog.routers.length + catalog.jointPairs.length);
+    for (const p of inSpace) for (const r of catalog.routers) expect(named).toContain(`${p.id}+${r}`);
     for (const j of catalog.jointPairs) expect(named).toContain(j.pair);
   });
 

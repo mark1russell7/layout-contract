@@ -340,11 +340,11 @@ export function checkDataFile(path: string, text: string): Problems {
   }
   if (path.startsWith("spaces/") || path.startsWith("examples/")) return checkSpaceFile(value);
   if (path === "news.json") return checkNews(value);
+  if (path === "stamps.json") return isObj(value) && value["schema"] === "data-stamp/1" ? [] : ["the file does not have the schema data-stamp/1"];
   return [`the path ${path} is not a known data file`];
 }
 
-/** This function gives the latest joint result: the newest date, and then the largest run id. A cover run comes first only when the files hold no default run, because its floors do not compare. */
+/** This function gives the latest joint result: the newest date, and then the largest run id. A cover run comes first as each other run does. Its floors do not compare with older runs, so the page tells this. */
 export function latestJoint(files: readonly JointData[]): JointData | undefined {
-  const defaults = files.filter((f) => f.cover !== true);
-  return [...(defaults.length > 0 ? defaults : files)].sort((a, b) => (a.date === b.date ? b.run.localeCompare(a.run, "en", { numeric: true }) : b.date.localeCompare(a.date)))[0];
+  return [...files].sort((a, b) => (a.date === b.date ? b.run.localeCompare(a.run, "en", { numeric: true }) : b.date.localeCompare(a.date)))[0];
 }

@@ -1,7 +1,7 @@
 // The shared corpus generator (`docs/CORPUS.md`): the dimension schema, the family registry and the seeded random numbers.
 // An engine owns its families and gives them to a registry. This file imports no engine and no API of Node, so a browser can run it.
 import type { FamilyBy } from "./corpus.ts";
-import { edgeStep, type EdgeStepParams } from "./edges.ts";
+import { EDGE_KEY_STEP_VERSION, edgeKeyStep, edgeStep, type EdgeKey, type EdgeStepParams } from "./edges.ts";
 import { documentHash } from "./hash.ts";
 import type { LayoutInput, Obstacle } from "./input.ts";
 import { mulberry32, randomInt, stepRandom } from "./random.ts";
@@ -227,6 +227,7 @@ export const CORPUS_DIMENSIONS: Readonly<Record<string, CorpusDimension>> = /* @
   edgeDensity: /* @__PURE__ */ choice("edgeDensity", ["sparse", "medium", "dense"], "medium", "The mean count of the edges of each item: 0.5, 1.5 or 4.", [H, J]),
   edgeShape: /* @__PURE__ */ choice("edgeShape", ["random", "clustered", "hubChain", "hubs", "longRange", "tree", "bundled"], "random", "The topology of the edges.", [H, J]),
   ports: /* @__PURE__ */ choice("ports", ["free", "sides", "fixed"], "free", "The ports of the edges: free, a side for each end, or fixed ports.", [H, J]),
+  edgeKey: /* @__PURE__ */ choice("edgeKey", ["none", "random", "cluster"], "none", "The key of each edge in `data.collection`: absent, a random name for each target box, or a name for each cluster of boxes.", [H, J]),
   hubBy: /* @__PURE__ */ withWhen(
     /* @__PURE__ */ choice("hubBy", ["area", "random"], "area", "The order of the hubs of the shapes hubs and tree: the largest item first, or random.", [J]),
     /* @__PURE__ */ Object.freeze({ param: "edgeShape", in: /* @__PURE__ */ Object.freeze(["hubs", "tree"]) }),
@@ -803,6 +804,32 @@ export const EDGES_STEP: CorpusStep = /* @__PURE__ */ Object.freeze({
   crossEngine: "libm-dependent",
   familyPart: (d: DimensionValues) => `e-${d["edgeDensity"]}.${d["edgeShape"]}.${d["groups"]}.${d["ports"]}${d["hubBy"] === "random" ? ".hub-random" : ""}`,
   apply: (input: LayoutInput, seed: number, d: DimensionValues) => edgeStep(input, edgeParams(d), seed),
+});
+
+/** The dimension of `EDGE_KEY_STEP`, from the shared table. */
+const EDGE_KEY_DIMENSIONS: readonly CorpusDimension[] = /* @__PURE__ */ Object.freeze(/* @__PURE__ */ ["edgeKey"].map((n) => CORPUS_DIMENSIONS[n]!));
+
+/** This function gives the value of `edgeKey`. It throws a `RangeError` for a missing or a bad value. */
+function edgeKeyOf(d: DimensionValues): EdgeKey {
+  const value = Object.hasOwn(d, "edgeKey") ? d["edgeKey"] : undefined;
+  const bad = value === undefined ? "the value is missing" : paramProblem(EDGE_KEY_DIMENSIONS[0]!, value);
+  if (bad !== undefined) throw new RangeError(`EDGE_KEY_STEP: the dimension "edgeKey" is bad: ${bad}.`);
+  return value as EdgeKey;
+}
+
+/**
+ * The step `edge-key` of `edgeKeyStep` (version 1), as a corpus step. It comes directly after `EDGES_STEP`. Its family part is `key-<edgeKey>`.
+ */
+export const EDGE_KEY_STEP: CorpusStep = /* @__PURE__ */ Object.freeze({
+  name: "edge-key",
+  version: EDGE_KEY_STEP_VERSION,
+  owner: "layout-contract",
+  meaning: "The key of each edge: absent, with no meaning, or with the meaning of a cluster of boxes.",
+  dimensions: EDGE_KEY_DIMENSIONS,
+  seeding: "stepRandom(seed, step) for the value random. The value cluster reads the stream edges again, as edgeStep does.",
+  crossEngine: "exact",
+  familyPart: (d: DimensionValues) => `key-${d["edgeKey"]}`,
+  apply: (input: LayoutInput, seed: number, d: DimensionValues) => edgeKeyStep(input, { edgeKey: edgeKeyOf(d) }, seed),
 });
 
 /** The set of `RECT_SCATTERED` when the caller gives no set. */

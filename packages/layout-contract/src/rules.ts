@@ -1,5 +1,5 @@
-import { boundsOf, grow, overlapOf, type Rect, type Region } from "./geometry.ts";
-import type { LayoutBox, LayoutInput, Obstacle, PairGap, Port } from "./input.ts";
+import { boundsOf, grow, marginSides, overlapOf, type Margin, type Rect, type Region } from "./geometry.ts";
+import type { LayoutBox, LayoutContainer, LayoutInput, Obstacle, PairGap, Port } from "./input.ts";
 import { applyPack, type PackOutput } from "./output.ts";
 import { SHAPE_KIND_IDS, shapeKindProblem, type ShapeSupport } from "./shapes.ts";
 import { DEFAULT_TOLERANCE, EPS, RECORD_EPS } from "./tolerance.ts";
@@ -13,32 +13,92 @@ export function placedRect(box: LayoutBox): Rect | undefined {
 }
 
 /**
- * This function counts the pairs of placed boxes whose insides, with their margins, overlap by more than `tolerance` on each axis.
- * A box with a shape counts as its bounding box. That area is larger, thus the count is safe.
+ * The version of the rules that count `no-overlap` and `in-container`. A record states it in `LayoutRecord.hardRule`.
+ *
+ * - Version 1 counts each shape by its bounding box. On a circle, that count is an upper bound. A count over 0 proves nothing.
+ * - Version 2 counts two circles, and a circle in a circle container, by the distance of the centers. The other pairs stay on the bounding box.
+ */
+export const HARD_RULE_VERSION = 2;
+
+/** A circle at its place on the board: its center and its radius, without a margin. */
+export interface PlacedCircle {
+  readonly cx: number;
+  readonly cy: number;
+  readonly r: number;
+}
+
+/** This function gives the circle of a placed box. A box without a position, or with another shape, gives `undefined`. */
+export function placedCircle(box: LayoutBox): PlacedCircle | undefined {
+  if (box.shape?.kind !== "circle" || box.x === undefined || box.y === undefined) return undefined;
+  return { cx: box.x + box.shape.cx, cy: box.y + box.shape.cy, r: box.shape.r };
+}
+
+/** This function gives the largest side of a margin. A circle has one distance to the things near it, so its margin is this side. */
+function marginReach(margin: Margin | undefined): number {
+  const m = marginSides(margin);
+  return Math.max(m.top, m.right, m.bottom, m.left);
+}
+
+/** This function tells if the centers of two circles are nearer than `need`. It compares the squares, so it does not take a root. */
+function nearerThan(a: PlacedCircle, b: PlacedCircle, need: number): boolean {
+  if (need <= 0) return false;
+  const dx = a.cx - b.cx;
+  const dy = a.cy - b.cy;
+  return dx * dx + dy * dy < need * need;
+}
+
+/**
+ * This function tells if two placed boxes break `no-overlap`. It is the rule for one pair of `countOverlaps`.
+ *
+ * - Two circles break the rule when their centers are nearer than the two radii and the two margins, less `tolerance`. The margin of a circle is the largest side of its margin.
+ * - Another pair breaks the rule when the bounding boxes with their margins overlap by more than `tolerance` on each axis. With a shape that is not a rectangle, this test is an upper bound.
+ * - With `gap`, the gap replaces the two margins. Two circles are then apart by the two radii and the gap. For another pair, one box grows by the gap.
+ * - A box without a position does not overlap.
+ */
+export function shapesOverlap(a: LayoutBox, b: LayoutBox, tolerance: number = DEFAULT_TOLERANCE.overlap, gap?: number): boolean {
+  const ca = placedCircle(a);
+  const cb = placedCircle(b);
+  if (ca !== undefined && cb !== undefined) return nearerThan(ca, cb, ca.r + cb.r + (gap ?? marginReach(a.margin) + marginReach(b.margin)) - tolerance);
+  const ra = placedRect(a);
+  const rb = placedRect(b);
+  if (ra === undefined || rb === undefined) return false;
+  const o = gap === undefined ? overlapOf(grow(ra, a.margin), grow(rb, b.margin)) : overlapOf(grow(ra, gap), rb);
+  return o.x > tolerance && o.y > tolerance;
+}
+
+/** This function gives the gap of each pair of `pairGaps` by `pairKey`. The first entry of a pair wins. A pair of one box has no gap. */
+function gapsOf(pairGaps: readonly PairGap[] | undefined): Map<string, number> {
+  const gaps = new Map<string, number>();
+  for (const p of pairGaps ?? []) {
+    const key = pairKey(p.a, p.b);
+    if (p.a !== p.b && !gaps.has(key)) gaps.set(key, p.gap);
+  }
+  return gaps;
+}
+
+/**
+ * This function counts the pairs of placed boxes that break `no-overlap`. `shapesOverlap` is the rule for one pair.
+ * Two circles count by the distance of their centers. Each other pair counts by the bounding boxes, so a circle beside another shape is an upper bound (roadmap item L107).
  *
  * A pair of `pairGaps`, in either order, uses its `gap` in place of the two margins. One box grows by the gap, and the other box does not grow.
  * Thus the pair breaks the rule only when the boxes are nearer than the gap on each axis. The other pairs do not change.
  */
 export function countOverlaps(boxes: readonly LayoutBox[], tolerance: number = DEFAULT_TOLERANCE.overlap, pairGaps?: readonly PairGap[]): number {
-  if (pairGaps === undefined || pairGaps.length === 0) return marginOverlaps(boxes, tolerance, undefined);
-  const gaps = new Map<string, number>();
-  for (const p of pairGaps) {
-    const key = pairKey(p.a, p.b);
-    if (p.a !== p.b && !gaps.has(key)) gaps.set(key, p.gap);
-  }
-  const raw = new Map<string, Rect>();
+  const circles = circleOverlaps(boxes, tolerance, pairGaps);
+  if (pairGaps === undefined || pairGaps.length === 0) return circles + marginOverlaps(boxes, tolerance, undefined);
+  const gaps = gapsOf(pairGaps);
+  const raw = new Map<string, LayoutBox>();
   for (const box of boxes) {
-    const r = placedRect(box);
-    if (r !== undefined && !raw.has(box.id)) raw.set(box.id, r);
+    if (placedRect(box) !== undefined && !raw.has(box.id)) raw.set(box.id, box);
   }
-  let count = marginOverlaps(boxes, tolerance, gaps);
+  let count = circles + marginOverlaps(boxes, tolerance, gaps);
   for (const [key, gap] of gaps) {
     const [a, b] = JSON.parse(key) as [string, string];
-    const ra = raw.get(a);
-    const rb = raw.get(b);
-    if (ra === undefined || rb === undefined) continue;
-    const o = overlapOf(grow(ra, gap), rb);
-    if (o.x > tolerance && o.y > tolerance) count++;
+    const ba = raw.get(a);
+    const bb = raw.get(b);
+    if (ba === undefined || bb === undefined) continue;
+    if (placedCircle(ba) !== undefined && placedCircle(bb) !== undefined) continue;
+    if (shapesOverlap(ba, bb, tolerance, gap)) count++;
   }
   return count;
 }
@@ -46,12 +106,50 @@ export function countOverlaps(boxes: readonly LayoutBox[], tolerance: number = D
 /** This function gives the key of a pair of box ids, with the same key for each order. */
 const pairKey = (a: string, b: string): string => JSON.stringify(a < b ? [a, b] : [b, a]);
 
-/** This function counts the overlaps of the boxes with their margins. It skips the pairs of `skip`. Without `skip`, it is the rule of 0.2.13. */
+/**
+ * This function counts the pairs of placed circles that break `no-overlap`, by the distance of their centers. Each other box does not count.
+ *
+ * - Two circles break the rule when their centers are nearer than the two radii, the two margins and `gap`, less `tolerance`.
+ * - The margin of a circle is the largest side of its margin.
+ * - A pair of `pairGaps` is apart by the two radii and its gap, in place of the margins and `gap`.
+ * - `gap` has the default 0. The rule `no-overlap` does not read `LayoutInput.gap`, so `countOverlaps` gives no value. An engine that keeps the gap between circles gives it here.
+ */
+export function circleOverlaps(boxes: readonly LayoutBox[], tolerance: number = DEFAULT_TOLERANCE.overlap, pairGaps?: readonly PairGap[], gap = 0): number {
+  const gaps = gapsOf(pairGaps);
+  const discs: { readonly id: string; readonly c: PlacedCircle; readonly reach: number }[] = [];
+  const first = new Map<string, PlacedCircle>();
+  for (const box of boxes) {
+    const c = placedCircle(box);
+    if (c === undefined) continue;
+    discs.push({ id: box.id, c, reach: c.r + marginReach(box.margin) + gap / 2 });
+    if (!first.has(box.id)) first.set(box.id, c);
+  }
+  discs.sort((a, b) => a.c.cx - a.reach - (b.c.cx - b.reach));
+  let count = 0;
+  for (let i = 0; i < discs.length; i++) {
+    const a = discs[i]!;
+    for (let j = i + 1; j < discs.length; j++) {
+      const b = discs[j]!;
+      if (b.c.cx - b.reach >= a.c.cx + a.reach - tolerance) break;
+      if (gaps.has(pairKey(a.id, b.id))) continue;
+      if (nearerThan(a.c, b.c, a.reach + b.reach - tolerance)) count++;
+    }
+  }
+  for (const [key, g] of gaps) {
+    const [a, b] = JSON.parse(key) as [string, string];
+    const ca = first.get(a);
+    const cb = first.get(b);
+    if (ca !== undefined && cb !== undefined && nearerThan(ca, cb, ca.r + cb.r + g - tolerance)) count++;
+  }
+  return count;
+}
+
+/** This function counts the overlaps by the bounding boxes with their margins. It skips the pairs of `skip` and the pairs of two circles. */
 function marginOverlaps(boxes: readonly LayoutBox[], tolerance: number, skip: ReadonlyMap<string, number> | undefined): number {
-  const rects: { readonly id: string; readonly r: Rect }[] = [];
+  const rects: { readonly id: string; readonly r: Rect; readonly circle: boolean }[] = [];
   for (const box of boxes) {
     const r = placedRect(box);
-    if (r !== undefined) rects.push({ id: box.id, r: grow(r, box.margin) });
+    if (r !== undefined) rects.push({ id: box.id, r: grow(r, box.margin), circle: box.shape?.kind === "circle" });
   }
   rects.sort((a, b) => a.r.x - b.r.x);
   let count = 0;
@@ -60,6 +158,7 @@ function marginOverlaps(boxes: readonly LayoutBox[], tolerance: number, skip: Re
     for (let j = i + 1; j < rects.length; j++) {
       const b = rects[j]!.r;
       if (b.x >= a.x + a.w - tolerance) break;
+      if (rects[i]!.circle && rects[j]!.circle) continue;
       if (skip !== undefined && skip.has(pairKey(rects[i]!.id, rects[j]!.id))) continue;
       const o = overlapOf(a, b);
       if (o.x > tolerance && o.y > tolerance) count++;
@@ -72,23 +171,65 @@ function marginOverlaps(boxes: readonly LayoutBox[], tolerance: number, skip: Re
 export interface ContainerTest {
   /**
    * With `true`, a box of a shaped container with the size `fixed` must stay inside the shape, not only inside its bounding box.
-   * The default is `false`. The default changes to `true` at the next breaking version.
+   * A circle in a circle container is tested by distance. The default is `true` since 0.4.0. With `false`, only the bounding box counts.
    */
   readonly exactContainer?: boolean;
+}
+
+/** This function gives the circle of a circle container. A free size reads its radius from `w`, and the corner of the shape stays. Another container, or a free size without `w`, gives `undefined`. */
+function containerCircle(c: LayoutContainer): PlacedCircle | undefined {
+  const s = c.shape;
+  if (s?.kind !== "circle") return undefined;
+  if (c.fixed === "size") return s;
+  if (c.w === undefined) return undefined;
+  const r = c.w / 2;
+  return { cx: s.cx - s.r + r, cy: s.cy - s.r + r, r };
+}
+
+/** This function tells if a circle goes out of a circle container. The reach is the center distance, the radius and `extra`. It compares the squares. */
+function circleOutside(disc: PlacedCircle, extra: number, ring: PlacedCircle, tolerance: number): boolean {
+  const room = ring.r + tolerance - disc.r - extra;
+  if (room < 0) return true;
+  const dx = disc.cx - ring.cx;
+  const dy = disc.cy - ring.cy;
+  return dx * dx + dy * dy > room * room;
+}
+
+/**
+ * This function counts the placed circles that go out of a circle container, by the distance of the centers.
+ *
+ * - The reach of a circle is the sum of the center distance, the radius, the largest side of the margin and the inset.
+ * - A circle breaks the rule when its reach is more than the container radius plus `tolerance`.
+ * - A container with a free size reads its radius from `w`, and its center is the corner of the shape plus that radius. `applyPack` writes that `w`.
+ * - Each other box does not count. The function throws a `RangeError` for a container that is not a circle.
+ */
+export function circlesOutside(input: LayoutInput, tolerance: number = DEFAULT_TOLERANCE.overlap): number {
+  const c = input.container;
+  const ring = c === undefined ? undefined : containerCircle(c);
+  if (c === undefined || ring === undefined) throw new RangeError("The function circlesOutside needs a circle container, with w when its size is free.");
+  let count = 0;
+  for (const box of input.boxes) {
+    const disc = placedCircle(box);
+    if (disc !== undefined && circleOutside(disc, marginReach(box.margin) + (c.inset ?? 0), ring, tolerance)) count++;
+  }
+  return count;
 }
 
 /**
  * This function counts the placed boxes that go out of the container.
  * Each box with its margin must stay inside the container made smaller by `inset`. Only the fixed sides of the size count. A shaped container counts as its bounding box.
  *
- * With `exactContainer`, a box of a shaped container with the size `fixed` also counts when `rectInRegion` tells that it is not inside the shape.
+ * With `exactContainer`, the default, a box of a shaped container with the size `fixed` also counts when it is not inside the shape, by `rectInRegion`.
  * For that test, the box grows by `inset` and becomes smaller by `tolerance` on each side. A shaped container with a free side keeps the bounding test only.
+ * A circle in a circle container does not use `rectInRegion`. It counts by distance, as in `circlesOutside`, also when the size is free.
  * An input without a container gives 0.
  */
 export function countOutside(input: LayoutInput, tolerance: number = DEFAULT_TOLERANCE.overlap, options: ContainerTest = {}): number {
   const c = input.container;
   if (c === undefined) return 0;
-  const shape = options.exactContainer === true && c.fixed === "size" ? c.shape : undefined;
+  const exact = options.exactContainer !== false;
+  const shape = exact && c.fixed === "size" ? c.shape : undefined;
+  const ring = exact ? containerCircle(c) : undefined;
   const area = c.shape === undefined ? { x: 0, y: 0, w: c.w ?? Infinity, h: c.h ?? Infinity } : boundsOf(c.shape);
   const inset = c.inset ?? 0;
   const fixW = c.fixed === "size" || c.fixed === "width";
@@ -100,8 +241,11 @@ export function countOutside(input: LayoutInput, tolerance: number = DEFAULT_TOL
     const r = grow(r0, box.margin);
     const outX = r.x < area.x + inset - tolerance || r.x + r.w > area.x + area.w - inset + tolerance;
     const outY = r.y < area.y + inset - tolerance || r.y + r.h > area.y + area.h - inset + tolerance;
+    const disc = ring === undefined ? undefined : placedCircle(box);
     if ((fixW && outX) || (fixH && outY)) count++;
-    else if (shape !== undefined && !rectInRegion(shape, shrink(grow(r, inset), tolerance))) count++;
+    else if (ring !== undefined && disc !== undefined) {
+      if (circleOutside(disc, marginReach(box.margin) + inset, ring, tolerance)) count++;
+    } else if (shape !== undefined && !rectInRegion(shape, shrink(grow(r, inset), tolerance))) count++;
   }
   return count;
 }
@@ -131,13 +275,23 @@ export interface PackHard {
 
 /**
  * The hard rules of a pack, with the shape kinds that each rule supports.
- * `no-overlap` and `in-container` test the bounding box of a shape. That count is exact only for a `rect`.
- * For the other kinds, the count is safe: a shape is inside its bounding box, so the count is an upper bound. A count of 0 tells that the rule has no break.
+ * `no-overlap` and `in-container` are exact for a `rect` and a `circle`. `limit` tells the inputs where the count of a circle is only safe (roadmap item L107).
+ * For the other kinds, these rules test the bounding box. The count is safe: a shape is inside its bounding box, so the count is an upper bound. A count of 0 tells that the rule has no break.
  * `locked-kept` and `complete` read only the positions and the ids, so they support each kind.
  */
 export const PACK_HARD_RULES: readonly ShapeSupport<keyof PackHard>[] = /* @__PURE__ */ Object.freeze([
-  { id: "no-overlap", shapes: ["rect"], safe: ["polygon", "circle", "free"] },
-  { id: "in-container", shapes: ["rect"], safe: ["polygon", "circle", "free"] },
+  {
+    id: "no-overlap",
+    shapes: ["rect", "circle"],
+    safe: ["polygon", "free"],
+    limit: { reads: "neighbours", because: "A circle beside another shape kind or an obstacle counts by its bounding box.", until: "2026-11-28" },
+  },
+  {
+    id: "in-container",
+    shapes: ["rect", "circle"],
+    safe: ["polygon", "free"],
+    limit: { reads: "container", because: "A circle in a polygon or an ellipse container counts by its bounding box.", until: "2026-11-28" },
+  },
   { id: "locked-kept", shapes: SHAPE_KIND_IDS },
   { id: "complete", shapes: SHAPE_KIND_IDS },
 ] as const);
@@ -312,7 +466,7 @@ export function countObstacleHits(
 /**
  * This function gives the count of each hard rule of the output of a packer.
  * It applies the output with `applyPack`. Only the placed boxes and the locked boxes count for the overlaps and the container.
- * `no-overlap` counts the pairs of boxes and the pairs of a box and an obstacle. A pair of `pairGaps` uses its gap in place of the margins.
+ * `no-overlap` counts the pairs of boxes and the pairs of a box and an obstacle. A pair of `pairGaps` uses its gap in place of the margins. `HARD_RULE_VERSION` tells the version of these counts.
  *
  * A locked box without a placement, or with a move of more than `RECORD_EPS`, breaks `locked-kept`.
  * A locked box without a position in the input is a bad input, not a break. `checkInput` finds it.

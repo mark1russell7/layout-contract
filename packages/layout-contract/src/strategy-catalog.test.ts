@@ -9,13 +9,14 @@ import {
   decodeOptionValue,
   encodeOptionValue,
   NODE_POSITIONS_DIMENSION,
+  type ParamRoute,
   parseStrategyCatalog,
   type RegistryEntry,
   STRATEGY_CATALOG_SCHEMA,
   type StrategyCatalogSource,
   writeStrategyCatalog,
 } from "./strategy-catalog.ts";
-import type { AnyOption } from "./strategy-options.ts";
+import type { AnyOption, OptionSchema } from "./strategy-options.ts";
 import { STRATEGY_SPACE_SCHEMA, type StrategySpace } from "./strategy-space.ts";
 
 const shelf: CatalogEntry = {
@@ -373,7 +374,7 @@ describe("the builders", () => {
 
 describe("the check against the engine", () => {
   it("passes a good catalog", () => {
-    expect(checkCatalog(source, registry)).toEqual({ faults: [], notRun: [], notMatched: [] });
+    expect(checkCatalog(source, registry)).toEqual({ faults: [], notRun: [], notMatched: [], spaceOnly: [] });
   });
 
   it("finds a strategy on one side only, and a difference of optIn", () => {
@@ -441,10 +442,100 @@ describe("the check against the engine", () => {
       stages: [{ name: "placement", options: [{ id, params }] }],
     });
     const check = (s: StrategySpace) => checkCatalog(source, registry, { spaces: [s] });
-    expect(check(space([{ name: "gap", kind: "real", min: 0, max: 5, default: 1 }]))).toEqual({ faults: [], notRun: [], notMatched: [] });
+    expect(check(space([{ name: "gap", kind: "real", min: 0, max: 5, default: 1 }]))).toEqual({ faults: [], notRun: [], notMatched: [], spaceOnly: [] });
     expect(check(space([{ name: "fit", kind: "enum", values: ["first", "worst"], default: "first" }])).faults[0]).toContain("outside the declaration");
     expect(check(space([{ name: "gap", kind: "real", min: 0, max: 50, default: 1 }])).faults[0]).toContain("out of the range");
     expect(check(space([{ name: "other", kind: "bool", default: true }])).notMatched).toEqual(["placement/shelf.other"]);
     expect(check(space([], "order")).notMatched).toEqual(["placement/order"]);
+  });
+
+  describe("with routes", () => {
+    type Params = StrategySpace["stages"][number]["options"][number]["params"];
+    const space = (params: Params, id = "shelf"): StrategySpace => ({
+      schema: STRATEGY_SPACE_SCHEMA,
+      engine: "packing",
+      version: "1",
+      stages: [{ name: "placement", options: [{ id, params }] }],
+    });
+    const check = (s: StrategySpace, paramRoutes: Readonly<Record<string, ParamRoute>>) => checkCatalog(source, registry, { spaces: [s], paramRoutes });
+    const fit: Params = [{ name: "fit", kind: "enum", values: ["none", "first"], default: "none" }];
+
+    it("examines the value of the option, not the value of the param", () => {
+      expect(check(space(fit), {}).faults[0]).toContain("takes first, best, not none");
+      const none = (value: unknown): unknown => (value === "none" ? undefined : value);
+      expect(check(space(fit), { "placement/shelf.fit": { value: none } })).toEqual({ faults: [], notRun: [], notMatched: [], spaceOnly: [] });
+      const bad = (value: unknown): unknown => (value === "none" ? "worst" : value);
+      expect(check(space(fit), { "placement/shelf.fit": { value: bad } }).faults[0]).toContain("takes first, best, not worst");
+    });
+
+    it("reads the option of a route with another name", () => {
+      const params: Params = [{ name: "mode", kind: "enum", values: ["first"], default: "first" }];
+      expect(check(space(params), { "placement/shelf.mode": { option: "fit" } }).faults).toEqual([]);
+      expect(check(space(params), { "placement/shelf.mode": { option: "gone" } }).faults).toEqual(['shelf: the route "placement/shelf.mode" names "gone", and the strategy has no such option.']);
+    });
+
+    it("gives a fault for a route that fails", () => {
+      const fail = (): unknown => {
+        throw new Error("no such name");
+      };
+      const plain = (): unknown => {
+        throw "plain";
+      };
+      expect(check(space(fit), { "placement/shelf.fit": { value: fail } }).faults[0]).toBe('shelf: the route "placement/shelf.fit" fails on none: no such name');
+      expect(check(space(fit), { "placement/shelf.fit": { value: plain } }).faults[0]).toBe('shelf: the route "placement/shelf.fit" fails on none: plain');
+    });
+
+    it("moves a stated param and a stated stage option out of notMatched, with the reason", () => {
+      const flag: Params = [{ name: "flag", kind: "bool", default: true }];
+      expect(check(space(flag), { "placement/shelf.flag": { spaceOnly: "The flag turns on other params." } })).toEqual({ faults: [], notRun: [], notMatched: [], spaceOnly: ["placement/shelf.flag: The flag turns on other params."] });
+      expect(check(space([], "none"), { "placement/none": { spaceOnly: "This step does nothing." } })).toEqual({ faults: [], notRun: [], notMatched: [], spaceOnly: ["placement/none: This step does nothing."] });
+    });
+
+    it("refuses a statement that the strategy contradicts", () => {
+      expect(check(space(fit), { "placement/shelf.fit": { spaceOnly: "It is not an option." } }).faults).toEqual(['shelf: the route "placement/shelf.fit" says that the param is only in the space, and the strategy has this option.']);
+    });
+
+    it("refuses a route that matches nothing, and a statement with no reason", () => {
+      expect(check(space([]), { "placement/shelf.gone": { spaceOnly: "It left the space." } }).faults).toEqual(['The route "placement/shelf.gone" matches nothing in the spaces.']);
+      const unmatched = check(space([], "order"), { "placement/order": { option: "x" } });
+      expect(unmatched.notMatched).toEqual(["placement/order"]);
+      expect(unmatched.faults).toEqual(['The route "placement/order" matches nothing in the spaces.']);
+      expect(check(space([], "order"), { "placement/order": { spaceOnly: " " } }).faults).toEqual(['The route "placement/order" has no reason.']);
+    });
+  });
+});
+
+describe("the field needs", () => {
+  const entry = (key: string, supports: Readonly<Record<string, readonly string[]>>): CatalogEntry => ({ ...shelf, key, id: key, supports, limits: {}, options: {} });
+  const strategies = [entry("free", {}), entry("moves", { obstacleMove: ["fixed", "move"] }), entry("still", { obstacleMove: [] })];
+
+  it("offers only the strategies that take the value, and a strategy with no such dimension", () => {
+    const needs = { obstacleMove: "fixed" };
+    expect(catalogChoices(strategies, { type: "strategy", describe: "x", needs }).map((e) => e.key)).toEqual(["free", "moves"]);
+    expect(catalogChoices(strategies, { type: "list", describe: "x", of: { type: "strategy", needs } }).map((e) => e.key)).toEqual(["free", "moves"]);
+  });
+
+  it("goes through the file, and a default outside it is a fault", () => {
+    const owner: CatalogEntry = { ...wrap, options: { member: { type: "strategy", describe: "The member.", needs: { itemShape: "rect" }, default: "shelf" } } };
+    const doc = { engine: "packing", strategies: [owner, shelf] };
+    const parsed = parseStrategyCatalog(JSON.parse(writeStrategyCatalog(doc, "1.2.3")));
+    expect(parsed.ok && parsed.catalog.strategies[0]?.options["member"]).toMatchObject({ needs: { itemShape: "rect" } });
+    const refused: CatalogEntry = { ...wrap, options: { member: { type: "strategy", describe: "The member.", needs: { itemShape: "circle" }, default: "shelf" } } };
+    expect(() => writeStrategyCatalog({ engine: "packing", strategies: [refused, shelf] }, "1.2.3")).toThrow("is not a strategy that the option takes");
+  });
+
+  it("refuses a value that is not a record of texts", () => {
+    expect(faultsOf("aspect-fit", (e) => (optionsOf(e)["strategy"]!["needs"] = { itemShape: 1 }))).toEqual(['The strategy aspect-fit: the option "strategy": "needs" is not a record of texts.']);
+    expect(faultsOf("aspect-fit", (e) => (optionsOf(e)["strategy"]!["needs"] = "rect"))).toEqual(['The strategy aspect-fit: the option "strategy": "needs" is not a record of texts.']);
+  });
+});
+
+describe("OptionSchema", () => {
+  it("takes a strategy declaration for a plain string, and only an enum for a union of strings", () => {
+    const plain: OptionSchema<{ member: string }> = { member: { type: "strategy", describe: "The member." } };
+    const named: OptionSchema<{ fit: "a" | "b" }> = { fit: { type: "enum", describe: "The fit.", values: ["a", "b"] } };
+    // @ts-expect-error A union of strings has only the enum declaration.
+    const wrong: OptionSchema<{ fit: "a" | "b" }> = { fit: { type: "strategy", describe: "The fit." } };
+    expect([plain.member.type, named.fit.type, wrong.fit.type]).toEqual(["strategy", "enum", "strategy"]);
   });
 });

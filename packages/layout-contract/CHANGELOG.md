@@ -1,5 +1,38 @@
 # Changelog
 
+## 0.4.0
+
+- MINOR before 1.0.0: the meaning of two hard counts changes on circles and on shaped containers. So a caller can read a different number for one placement. Each count on rectangles in a rectangle container stays the same.
+- `no-overlap`: `countOverlaps` and `packHard` count two circles by the distance of their centers, with the stated tolerance. A pair whose boxes overlap and whose circles do not is no longer a break.
+- `in-container`: `countOutside` and `packHard` count a circle in a circle container by distance, also when the size is free.
+- The default of `exactContainer` is `true`, as the note of 0.2.x stated for the next breaking version. A box of a shaped container with the size `fixed` must stay inside the shape. With `{ exactContainer: false }`, the old count stays.
+- `PACK_HARD_RULES` lists `circle` as exact for these 2 rules, with a stated `limit`. A circle beside another shape kind or an obstacle counts by the bounding box. A circle in a polygon or an ellipse container also counts by the bounding box. These inputs read as `safe`, and `checkShapes` refuses them at its default level. The date of the fix is 2026-11-28 (L107).
+- The new field `hardRule` of `LayoutRecord` states the version of these rules. `HARD_RULE_VERSION` is 2. `hardRuleOf` gives 1 for a record without the field, where a count over 0 on a circle proves nothing. The schema stays `layout-record/1`.
+- New exports: `shapesOverlap`, the rule for one pair, `circleOverlaps`, `circlesOutside`, `placedCircle`, `PlacedCircle`, `inputShapeLevel`, `ShapeInput`, `ShapeLimit`, `hardRuleOf` and `HARD_RULE_VERSION`.
+- These tests compare squared distances, with the tolerance of each rule. They use no exact predicate: a rule with a tolerance does not need the exact sign.
+
+## 0.3.12
+
+- PATCH before 1.0.0: new exports and a new row in the shared dimension table, with no break. No existing input changes.
+- The shared dimension `edgeKey` states the key of each edge, in `data.collection`, with the values `none`, `random` and `cluster`. `none` means that the field is absent.
+- The function `edgeKeyStep` and the corpus step `EDGE_KEY_STEP` apply this dimension directly after `edgeStep`. The 3 values change only the key, so a comparison reads one factor. `cluster` on the shape `bundled` gives the keys of `edgeStep`.
+
+## 0.3.11
+
+- PATCH before 1.0.0: new optional fields of a record, with no break. The schema stays `layout-record/1`.
+- The field `oneRun` of `LayoutRecord` marks a record with one time. A measure of the pair chose 1 timed repeat and no warm-up. A time gate reads this mark, not a list of strategies.
+- The field `budgetMs` of `LayoutRecord` tells the wall budget of a pair. The field `msAtLeast` tells the lower limit of a censored time. The field `because` tells the pairs that caused a skip.
+- `checkLayoutRecord` examines the types of these fields.
+
+## 0.3.10
+
+- PATCH before 1.0.0: a new optional field, a new optional check option, a new result list and a wider type, with no break. The first engine catalog found these gaps.
+- The schema stays `strategy-catalog/1`, because no engine has published a file of that schema at this time.
+- The field `needs` of a `strategy` option or item gives the values that a chosen strategy must take, by dimension of `supports`. `catalogChoices` reads it, so a chooser does not offer a strategy that the engine refuses.
+- The option `paramRoutes` of `checkCatalog` states how a param of a space reaches an option. A route can name another option, or give the option value of a param value. A route can also state, with a reason, that the place is only in the space.
+- The result of `checkCatalog` has the new list `spaceOnly`. A route that matches nothing is a fault, and so is a `spaceOnly` route on a param that is an option.
+- `OptionDeclaration` of a plain `string` also takes a `strategy` declaration, so an option that holds a strategy key has no local type.
+
 ## 0.3.9
 
 - PATCH before 1.0.0: new exports, with no break.

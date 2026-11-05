@@ -87,13 +87,14 @@ describe("countOutside with exactContainer", () => {
   ];
 
   for (const [name, input, count] of cases) {
-    it(`counts a box in ${name} as ${count}, and 0 without the option`, () => {
+    it(`counts a box in ${name} as ${count} by default, and 0 with the option false`, () => {
       expect(countOutside(input, undefined, exact)).toBe(count);
-      expect(countOutside(input)).toBe(0);
+      expect(countOutside(input)).toBe(count);
       expect(countOutside(input, undefined, { exactContainer: false })).toBe(0);
       const output = { placements: input.boxes.map((b) => ({ id: b.id, x: b.x!, y: b.y! })), overflow: [], size: { w: 100, h: 100 }, moved: [] };
       expect(packHard(input, output, undefined, exact)["in-container"]).toBe(count);
-      expect(packHard(input, output)["in-container"]).toBe(0);
+      expect(packHard(input, output)["in-container"]).toBe(count);
+      expect(packHard(input, output, undefined, { exactContainer: false })["in-container"]).toBe(0);
     });
   }
 

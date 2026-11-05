@@ -17,8 +17,9 @@ export interface EngineVersions {
  * This function gives the catalog of the joint pages, with the joint space of `jointSpace`.
  * It makes each input of `joint-v2`, and it throws when the hash of an input is not the hash of the committed manifest.
  * The value `coverRun` tells that `data/joint/` holds a cover run, so no entry waits for one.
+ * The value `measuredPacks` holds the pack entries of the newest run. With no value, no entry has the tag of a missing result.
  */
-export function buildCatalog(manifestText: string, versions: EngineVersions, coverRun = false): JointCatalog {
+export function buildCatalog(manifestText: string, versions: EngineVersions, coverRun = false, measuredPacks?: readonly string[]): JointCatalog {
   const catalog = engineCatalog({ ...versions }, coverRun);
   const manifest = JSON.parse(manifestText) as { readonly inputs: readonly { readonly id: string; readonly hash: string }[] };
   const committed = new Map(manifest.inputs.map((e) => [e.id, e.hash]));
@@ -36,5 +37,7 @@ export function buildCatalog(manifestText: string, versions: EngineVersions, cov
     }
   });
   const { count: _count, ...grid } = GRID_DIMENSIONS_V2;
-  return { ...catalog, inputs, grid: { ...grid, sizes: [...(grid["sizes"] ?? []), ...RECORDED_SIZE_NAMES] }, compareMaxBoxes: COMPARE_MAX_BOXES };
+  const chips = [...catalog.benchPacks, ...catalog.extraPacks].map((p) => p.id);
+  const packNoResult = measuredPacks === undefined ? [] : chips.filter((id) => !measuredPacks.includes(id));
+  return { ...catalog, packNoResult, inputs, grid: { ...grid, sizes: [...(grid["sizes"] ?? []), ...RECORDED_SIZE_NAMES] }, compareMaxBoxes: COMPARE_MAX_BOXES };
 }

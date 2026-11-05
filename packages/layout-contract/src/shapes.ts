@@ -17,7 +17,7 @@ export interface ShapeGeometry {
   readonly area: boolean;
   /** The test that the shape is inside a region: `rectInRegion` for a `rect`. */
   readonly contains: boolean;
-  /** The test that two shapes overlap: `overlapOf` for two `rect` shapes. */
+  /** The test that two shapes of this kind overlap: `overlapOf` for two `rect` shapes, `shapesOverlap` for two `circle` shapes. */
   readonly overlap: boolean;
 }
 
@@ -33,12 +33,12 @@ export interface ShapeKindSpec {
 
 /**
  * The declared shape kinds, in their order. Only `rect` has all of its geometry.
- * `polygon` and `circle` have their bounding box and their exact area. `free` has its bounding box only.
+ * `polygon` and `circle` have their bounding box and their exact area. A `circle` also has the overlap test of two circles. `free` has its bounding box only.
  */
 export const SHAPE_KINDS: readonly ShapeKindSpec[] = /* @__PURE__ */ Object.freeze([
   { id: "rect", fields: ["w", "h"], regions: ["rect"], geometry: { bounds: true, area: true, contains: true, overlap: true } },
   { id: "polygon", fields: ["points", "holes?"], regions: ["polygon"], geometry: { bounds: true, area: true, contains: false, overlap: false } },
-  { id: "circle", fields: ["cx", "cy", "r"], regions: ["circle"], geometry: { bounds: true, area: true, contains: false, overlap: false } },
+  { id: "circle", fields: ["cx", "cy", "r"], regions: ["circle"], geometry: { bounds: true, area: true, contains: false, overlap: true } },
   { id: "free", fields: ["w", "h", "shape?"], regions: ["rect", "polygon", "circle", "ellipse"], geometry: { bounds: true, area: false, contains: false, overlap: false } },
 ] as const);
 
@@ -63,6 +63,22 @@ export interface ShapeSupport<Id extends string = string> {
    * A kind is in one list only: `shapes`, `safe` or `bound.shapes`. `docs/SHAPES.md` tells what a bound value proves.
    */
   readonly bound?: ShapeBound;
+  /** The inputs where the exact count of this rule is only safe, with the reason and the date of the fix. `inputShapeLevel` reads it. */
+  readonly limit?: ShapeLimit;
+}
+
+/**
+ * A stated limit of an exact rule on circles. An input that the limit names gets the level `safe` for each kind that is exact.
+ *
+ * - `neighbours`: the input has a circle beside another shape kind or an obstacle.
+ * - `container`: the input has a circle in a container that is a polygon or an ellipse.
+ */
+export interface ShapeLimit {
+  readonly reads: "neighbours" | "container";
+  /** The reason, in words. */
+  readonly because: string;
+  /** The date of the fix, as `YYYY-MM-DD`. */
+  readonly until: string;
 }
 
 /**
@@ -111,14 +127,40 @@ export function shapeLevel(use: Pick<ShapeSupport, "shapes" | "safe" | "bound">,
   return use.bound?.shapes.includes(kind) === true ? "bound" : "none";
 }
 
+/** The parts of an input that `inputShapeLevel` and `checkShapes` read. */
+export type ShapeInput = Pick<LayoutInput, "id" | "boxes"> & Partial<Pick<LayoutInput, "obstacles" | "container">>;
+
+/** This function tells if a limit names an input. An input without a circle box is not in a limit. */
+function inLimit(limit: ShapeLimit, input: ShapeInput): boolean {
+  const kinds = shapeKindsOf(input);
+  if (!kinds.includes("circle")) return false;
+  if (limit.reads === "neighbours") return kinds.length > 1 || (input.obstacles?.length ?? 0) > 0;
+  const shape = input.container?.shape?.kind;
+  return shape === "polygon" || shape === "ellipse";
+}
+
+/**
+ * This function gives the level of a measure or a rule on a shape kind for one input. It is `shapeLevel` with the `limit` of the rule.
+ * When the limit names the input, the level `exact` becomes `safe`. Each other level does not change.
+ */
+export function inputShapeLevel(use: Pick<ShapeSupport, "shapes" | "safe" | "bound" | "limit">, kind: ShapeKind, input: ShapeInput): ShapeLevel {
+  const level = shapeLevel(use, kind);
+  return level === "exact" && use.limit !== undefined && inLimit(use.limit, input) ? "safe" : level;
+}
+
 /**
  * This function gives the problems of a list of measures and rules. An empty list tells that the list is good.
  * It refuses an unknown kind, a kind two times in one list, and a kind in more than one of `shapesOf`, `safe` and `bound.shapes`.
  * It also refuses a `bound` without a list of kinds, and a `side` that is not `upper` or `lower`.
+ * It also refuses a `limit` with a bad `reads` or a bad `until`.
  */
 export function shapeSupportProblems(uses: readonly ShapeSupport[]): string[] {
   const out: string[] = [];
   for (const use of uses) {
+    if (use.limit !== undefined) {
+      if (use.limit.reads !== "neighbours" && use.limit.reads !== "container") out.push(`${use.id}: the limit reads ${String(use.limit.reads)}, not neighbours or container`);
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(String(use.limit.until))) out.push(`${use.id}: the limit date ${String(use.limit.until)} is not YYYY-MM-DD`);
+    }
     const bound: unknown = use.bound;
     const isBound = typeof bound === "object" && bound !== null && !Array.isArray(bound);
     if (bound !== undefined && !isBound) out.push(`${use.id}: the bound value is not an object with shapes and a side`);
@@ -222,13 +264,13 @@ export interface ShapeCheck {
  * By default, a kind of `safe` or of `bound.shapes` is a break, because the result is not exact.
  * With the level `safe`, a kind of `safe` is not a break. With the level `bound`, a kind of `safe` and a kind of `bound.shapes` are not a break.
  */
-export function checkShapes(input: Pick<LayoutInput, "id" | "boxes">, uses: readonly ShapeSupport[], options: ShapeCheck = {}): ClaimBreak[] {
+export function checkShapes(input: ShapeInput, uses: readonly ShapeSupport[], options: ShapeCheck = {}): ClaimBreak[] {
   const kinds = shapeKindsOf(input);
   const out: ClaimBreak[] = [];
   for (const use of uses) {
     const shapes = shapesOf(use);
     for (const kind of kinds) {
-      const level = shapeLevel(use, kind);
+      const level = inputShapeLevel(use, kind, input);
       const accepts = level === "exact" || (level === "safe" && (options.level === "safe" || options.level === "bound")) || (level === "bound" && options.level === "bound");
       if (accepts) continue;
       const ids = input.boxes.filter((b) => shapeKindOf(b) === kind).map((b) => b.id);

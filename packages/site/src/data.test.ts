@@ -122,14 +122,15 @@ describe("jointData", () => {
     expect(latestJoint([a, b, c])?.run).toBe("10");
   });
 
-  it("keeps a default run first when a cover run is newer", () => {
+  it("gives a newer cover run first, and keeps an older cover run behind a newer default run", () => {
     const a = jointData(report, facts);
     const cover = jointData(report, { ...facts, run: "99", date: "2027-01-01", cover: true });
     expect(cover.cover).toBe(true);
     expect(a.cover).toBeUndefined();
     expect(checkJoint(cover)).toEqual([]);
     expect(checkJoint({ ...cover, cover: "yes" })).toContain("joint.cover is not a boolean");
-    expect(latestJoint([a, cover])?.run).toBe(a.run);
+    expect(latestJoint([a, cover])?.run).toBe("99");
     expect(latestJoint([cover])?.run).toBe("99");
+    expect(latestJoint([{ ...cover, date: "2020-01-01" }, a])?.run).toBe(a.run);
   });
 });

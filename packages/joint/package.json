@@ -30,6 +30,6 @@
     "@mark1russell7/packing": "^0.7.0",
     "@mark1russell7/rigor-bench": "^0.2.8",
     "@mark1russell7/rigor-generators": "^0.1.3",
-    "@mark1russell7/rigor-statistics": "^0.1.5"
+    "@mark1russell7/rigor-statistics": "^0.1.10"
   }
 }

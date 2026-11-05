@@ -2,6 +2,7 @@
 // This file does not import the engines. `src/engines.ts` makes the catalog at build time, and the pages read it as data.
 import type { IterEntry, LaneEntry } from "@layout-contract/joint/browser";
 import { canonicalConfig, configId, type ParamValue, type SpaceParam, type StageChoice, type StageOption, type StrategyConfig, type StrategySpace } from "@mark1russell7/layout-contract";
+import { esc } from "./ui.ts";
 
 /** The value of an `enum` param that tells "do not set this option": the engine uses its own default. */
 export const OMIT = "(default)";
@@ -33,6 +34,8 @@ export interface PackChoice {
   readonly id: string;
   readonly strategy: string;
   readonly options: Readonly<Record<string, unknown>>;
+  /** The mode of the pack, for a strategy that needs another mode than the mode of the input. */
+  readonly mode?: string;
 }
 
 /** One router entry: an id, a router of `highways` and its options. It is the `RouterEntry` of the joint runner. */
@@ -121,12 +124,14 @@ export interface JointCatalog {
   readonly about: { readonly packing: Readonly<Record<string, string>>; readonly highways: Readonly<Record<string, string>> };
   /** The pack entries of the joint benchmark (`PACK_ENTRIES`). */
   readonly benchPacks: readonly PackChoice[];
-  /** One pack entry for each strategy of `packing` that no entry of the benchmark uses. */
+  /** The entries of the cover run, and one entry for each strategy that no joint input can run. */
   readonly extraPacks: readonly PackChoice[];
   /** The closed list of the strategies that no joint input can run, with the reason of each. */
-  readonly packExceptions: Readonly<Record<string, { readonly reason: string }>>;
+  readonly packExceptions: Readonly<Record<string, { readonly reason: string; readonly removedBy: string }>>;
   /** The strategies that have no bench result until the first cover run ends. This list is empty when `data/joint/` holds a cover run. */
   readonly packWaiting: readonly string[];
+  /** The ids of the pack chips of the compare page with no result in the newest run of `data/joint/`. A new run moves this list. */
+  readonly packNoResult: readonly string[];
   /** The routers of the joint benchmark (`ROUTERS`). */
   readonly routers: readonly string[];
   /** The open routers of the playground (`OPEN_ROUTERS`): the other highway strategies and the member forms of the portfolio. */
@@ -189,6 +194,12 @@ export function packConfig(space: StrategySpace, entry: Omit<PackChoice, "id">):
   if (option.members === undefined) return { space: space.engine, stages: { [PACK_STAGE]: { option: entry.strategy, params: paramsOfOptions(option, entry.options) } } };
   const members = strategy === undefined ? [] : [packConfig(space, { strategy, options: inner ?? {} })];
   return { space: space.engine, stages: { [PACK_STAGE]: { option: entry.strategy, params: paramsOfOptions(option, rest), members } } };
+}
+
+/** This function gives the line that names each strategy with no joint input, with its reason in words and the roadmap item that ends it. */
+export function exceptionNote(exceptions: JointCatalog["packExceptions"]): string {
+  const rows = Object.entries(exceptions).map(([id, e]) => `<code>${esc(id)}</code>: ${esc(e.reason)} Roadmap item ${esc(e.removedBy)} ends this limit.`);
+  return rows.length === 0 ? "" : `<p class="hint">No joint input can run these strategies, so they have no bench result. ${rows.join(" ")}</p>`;
 }
 
 /** This function gives the config of the route space for a router entry. */

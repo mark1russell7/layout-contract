@@ -111,7 +111,7 @@ byId("playground").innerHTML = `
     <div id="pg-recipes" class="recipes"></div>
     <details class="more"><summary>Or start from a pair of the benchmark</summary>
     <label class="field wide"><span class="field-name">Pair</span><select id="pg-named">${named.map((n) => `<option value="${esc(n)}">${esc(n)}</option>`).join("")}</select></label>
-    <p class="hint">The ${named.length} pairs: ${catalog.benchPacks.length + catalog.extraPacks.length} pack entries × ${catalog.routers.length} routers, and ${catalog.jointPairs.length} joint pairs with lanes. The router list of step 4 also has ${catalog.openRouters.length} open routers that the benchmark does not race.${catalog.packWaiting.length > 0 ? ` These routers and ${catalog.packWaiting.length} strategies have no bench result: they are waiting for the first cover run.` : ""}</p>
+    <p class="hint">The ${named.length} pairs: ${Object.keys(catalog.pack.named ?? {}).length} pack entries × ${catalog.routers.length} routers, and ${catalog.jointPairs.length} joint pairs with lanes. The router list of step 4 also has ${catalog.openRouters.length} open routers that the benchmark does not race.${catalog.packWaiting.length > 0 ? ` These routers and ${catalog.packWaiting.length} strategies have no bench result: they are waiting for the first cover run.` : ""}</p>
     </details>
   </div>
   <div class="two">
@@ -240,7 +240,7 @@ function renderResult(view: PairView, record: LayoutRecord): void {
       </div>
       <p class="hint">The floor and the score compare a pair with the other pairs of the input. <a href="compare.html#${esc(new URLSearchParams({ input: pickedText(picked) }).toString())}">Compare each pair</a> to see them.</p>
       ${Object.keys(view.breaks).length === 0 ? `<p class="dataline"><span class="badge good">No hard breaks</span></p>` : `<h3>The hard breaks</h3><table class="table"><tbody>${rows(view.breaks, Object.keys(view.breaks))}</tbody></table>`}
-      <details class="more"><summary>Each measure (${joint.length + others.length})</summary><div class="scroll"><table class="table"><tbody>${rows(m, [...joint, ...others])}</tbody></table></div></details>
+      <details class="more"><summary>Each measure (${joint.length + others.length})</summary><div class="scroll scroll-cue" tabindex="0" aria-label="Each measure"><table class="table"><tbody>${rows(m, [...joint, ...others])}</tbody></table></div></details>
       <details class="more"><summary>The record (<code>layout-record/1</code>)</summary><pre class="code">${esc(JSON.stringify(record, null, 2))}</pre></details>
     </div>`;
 }
