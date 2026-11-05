@@ -73,6 +73,14 @@ describe("the checks", () => {
     expect(checkNews({ schema: "site-news/1", items: [{ ...item, prs: [0] }] }).length).toBe(1);
   });
 
+  it("refuses a version typed in a news item, because the release page has the versions", () => {
+    const item = { date: "2026-10-01", item: "L1", title: "t", summary: "s", prs: [1] };
+    expect(checkNews({ schema: "site-news/1", items: [item] })).toEqual([]);
+    expect(checkNews({ schema: "site-news/1", items: [{ ...item, release: "0.2.12" }] }).join()).toMatch(/typed version/);
+    expect(checkNews({ schema: "site-news/1", items: [{ ...item, title: "highways 0.8.1 in the bench" }] }).join()).toMatch(/title has a typed version/);
+    expect(checkNews({ schema: "site-news/1", items: [{ ...item, summary: "Version 0.2.11 adds this." }] }).join()).toMatch(/summary has a typed version/);
+  });
+
   it("refuses a space file without a space", () => {
     expect(checkSpaceFile({ schema: "site-space/1", source: "x", date: "2026-10-28" })).toEqual(["space file.space is not an object"]);
   });

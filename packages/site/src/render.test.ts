@@ -61,6 +61,8 @@ describe("the sections", () => {
     const root = fakeRoot();
     renderNews(asElement(root), news);
     for (const item of news!.items) for (const pr of item.prs) expect(root.innerHTML).toContain(`/pull/${pr}"`);
+    expect(root.innerHTML).toContain('href="releases/"');
+    expect(root.innerHTML).not.toContain("npmjs.com");
   });
 
   it("shows a note when no data is there", () => {

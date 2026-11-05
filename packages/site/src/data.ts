@@ -120,8 +120,6 @@ export interface NewsItem {
   readonly date: string;
   readonly item: string;
   readonly title: string;
-  /** The npm version of `@mark1russell7/layout-contract` that the entry released, if any. */
-  readonly release?: string;
   readonly prs: readonly number[];
   readonly summary: string;
 }
@@ -280,6 +278,9 @@ export function checkJoint(v: unknown): Problems {
   return out;
 }
 
+/** The form of a version in the text of a news item. */
+const TYPED_VERSION = /\b\d+\.\d+\.\d+\b/;
+
 /** This function gives the problems of the news file. The items go from the newest date to the oldest. */
 export function checkNews(v: unknown): Problems {
   const out: Problems = [];
@@ -294,7 +295,9 @@ export function checkNews(v: unknown): Problems {
     need(out, n, "item", "string", a);
     need(out, n, "title", "string", a);
     need(out, n, "summary", "string", a);
-    if (n["release"] !== undefined) need(out, n, "release", "string", a);
+    // The release page is the one list of versions. It reads the changelog and the tags at each build, so a version typed here goes out of date.
+    if (n["release"] !== undefined) out.push(`${a}.release is a typed version: the release page has the versions`);
+    for (const field of ["title", "summary"]) if (TYPED_VERSION.test(String(n[field]))) out.push(`${a}.${field} has a typed version: the release page has the versions`);
     const prs = n["prs"];
     if (!Array.isArray(prs) || !prs.every((p) => Number.isInteger(p) && (p as number) > 0)) out.push(`${a}.prs is not a list of PR numbers`);
     const prev = i > 0 && isObj(items[i - 1]) ? (items[i - 1] as Obj)["date"] : undefined;

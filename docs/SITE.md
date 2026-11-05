@@ -78,7 +78,7 @@ The field `space` is the value of `packSpace` or `routeSpace`, as JSON. The site
 
 ### A news item
 
-Add the item at the top of `items` in `packages/site/data/news.json`. Take the date and the pull request numbers from `git log` of `main`. The field `release` is the npm version of `@mark1russell7/layout-contract`, when the item has one.
+Add the item at the top of `items` in `packages/site/data/news.json`. Take the date and the pull request numbers from `git log` of `main`. Do not type a version in an item. The release page has the versions, from the changelog and the tags, and the data check refuses a typed version.
 
 ### The sweep maps
 
