@@ -223,7 +223,7 @@ export function spearman(xs: readonly number[], ys: readonly number[]): number |
 
 /**
  * This function gives the `joint.*` measures of one pack and one route, without the time.
- * An input without edges has no `joint.straight.*`, `joint.spill` or `joint.proxy.rank` values.
+ * An input without edges has no `joint.straight.*`, `joint.spill`, `joint.route.length` or `joint.proxy.rank` values.
  * A board without boxes has `joint.fill` 1 and `joint.aspectError` 0, as `pack.fill` and `pack.aspectError` of `packing`.
  */
 export function jointMeasures(facts: PlacementFacts, routes: readonly JointRoute[], edgeCount: number, targetAspect = 1): Record<string, number> {
@@ -246,6 +246,7 @@ export function jointMeasures(facts: PlacementFacts, routes: readonly JointRoute
     if (facts.bounds !== undefined) for (let i = 1; i < r.points.length; i++) inside += insideLength(r.points[i - 1]!, r.points[i]!, facts.bounds);
   }
   out["joint.spill"] = total > 0 ? Math.max(0, total - inside) / total : 0;
+  out["joint.route.length"] = routes.length > 0 ? total / routes.length : 0;
   out["joint.straight.crossings"] = facts.crossings;
   const straightSum = [...facts.straight.values()].reduce((s, v) => s + v, 0);
   out["joint.straight.length"] = facts.scale > 0 ? straightSum / facts.scale / facts.straight.size : 0;

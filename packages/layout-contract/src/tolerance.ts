@@ -1,6 +1,9 @@
 /** The epsilon for the float compares in an engine. */
 export const EPS = 1e-6;
 
+/** The count of `EPS` steps in one layout unit. It is the integer equal to `1 / EPS`. */
+export const EPS_STEPS = 1_000_000;
+
 /**
  * The count of grid steps in one unit of a written file. A file rounds each number `v` to `Math.round(v * RECORD_SCALE) / RECORD_SCALE`.
  * Use a multiplication by this value, not a division by `RECORD_EPS`. The two differ at some half steps.

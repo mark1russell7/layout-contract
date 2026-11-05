@@ -2,6 +2,7 @@
 import type { ClaimBreak } from "./corpus.ts";
 import { canonicalJson, sha256Hex } from "./hash.ts";
 import { stepRandom } from "./random.ts";
+import { holds, walkPlan, walkPoint } from "./space-walk.ts";
 import { isShapeKind, SHAPE_KIND_IDS, type ShapeKind } from "./shapes.ts";
 
 /** The schema of a strategy space. */
@@ -41,7 +42,10 @@ export interface SpaceParam {
   readonly when?: ParamWhen;
 }
 
-/** The rule of the members of a meta option: a count from `min` to `max`. Members with `ordered: false` are sorted by their `configId`. */
+/**
+ * The rule of the members of a meta option: a count from `min` to `max`. Members with `ordered: false` are sorted by their `configId`.
+ * With `min` and `max` 0, the option chooses its members from the input, so a config lists none. This form has no `pool` and no `view`.
+ */
 export interface MemberRule {
   readonly min: number;
   readonly max: number;
@@ -164,6 +168,14 @@ export interface SampleOptions extends ShapeFilter {
   readonly meta?: "skip" | "sample";
   /** The largest count of option draws. The default is the larger value of 1000 and `100 * n`. */
   readonly maxTries?: number;
+  /**
+   * How a point keeps the constraints. With `reject` (the default), a point that breaks a constraint draws again.
+   * With `walk`, a point draws its stages from the largest to the smallest. Each stage draws only from the options that keep the constraints with the stages before it.
+   * A space whose constraints reject most draws gets its sample with `walk`. The two values give different configs for one seed.
+   * A sample of `walk` is not uniform over the valid configs. Each option of the largest stage gets an equal share, whatever count of valid configs it has.
+   * Thus a mean over this sample is not a mean of the space.
+   */
+  readonly draw?: "reject" | "walk";
 }
 
 /** The options of `enumerateSpace`. */
@@ -245,14 +257,6 @@ function partOf(space: StrategySpace, stage: string): { readonly space: Strategy
 /** This function gives the prefix of the innermost part of each stage. */
 const prefixes = (space: StrategySpace): Map<string, string> => new Map(space.stages.map((s) => [s.name, partOf(space, s.name).prefix]));
 
-const refMatches = (ref: OptionRef, choices: ReadonlyMap<string, string | null>): boolean => (choices.get(ref.stage) ?? null) === ref.option;
-
-/** This function tells if the option choices keep a constraint. */
-function holds(c: SpaceConstraint, choices: ReadonlyMap<string, string | null>): boolean {
-  if (!refMatches(c.if, choices)) return true;
-  return "not" in c.then ? !refMatches(c.then.not, choices) : refMatches(c.then, choices);
-}
-
 const describe = (c: SpaceConstraint): string => {
   const ref = (r: OptionRef): string => `${r.stage}=${r.option ?? "null"}`;
   return "not" in c.then ? `if ${ref(c.if)} then not ${ref(c.then.not)}` : `if ${ref(c.if)} then ${ref(c.then)}`;
@@ -315,8 +319,11 @@ function optionProblems(stage: SpaceStage, o: StageOption): Problem[] {
   if (o.supports !== undefined) out.push(...supportsProblems(o.supports, at));
   if (o.members !== undefined) {
     const { min, max, ordered } = o.members;
-    if (!Number.isInteger(min) || !Number.isInteger(max) || min < 1 || min > max || typeof ordered !== "boolean")
-      out.push(["members", `${at} has a member rule without whole counts 1 <= min <= max and a boolean ordered`]);
+    const noList = min === 0 && max === 0;
+    if (!Number.isInteger(min) || !Number.isInteger(max) || (!noList && (min < 1 || min > max)) || typeof ordered !== "boolean")
+      out.push(["members", `${at} has a member rule without whole counts 1 <= min <= max or min = max = 0, and a boolean ordered`]);
+    if (noList && (o.members.pool !== undefined || o.members.view !== undefined))
+      out.push(["members", `${at} has no member list, so its member rule cannot have a pool or a view`]);
     const pool: unknown = o.members.pool;
     if (pool !== undefined && (!Array.isArray(pool) || pool.length === 0 || !pool.every((entry: unknown) => Array.isArray(entry))))
       out.push(["pool", `${at} has a pool that is not a list of one or more member lists`]);
@@ -837,7 +844,7 @@ const memberSpaces = /* @__PURE__ */ new WeakMap<StageOption, StrategySpace>();
  * A different meta option has one when its members have a base config. `restrict` keeps only the pool entries that fit.
  */
 const hasMembers = (space: StrategySpace, stage: string, o: StageOption): boolean =>
-  o.members === undefined || o.members.pool !== undefined || combos(memberSpaces.get(o) ?? partOf(space, stage).space, 1, false, 0n).length > 0;
+  o.members === undefined || o.members.max === 0 || o.members.pool !== undefined || combos(memberSpaces.get(o) ?? partOf(space, stage).space, 1, false, 0n).length > 0;
 
 /** This function tells if a restricted space has a config. A base config counts. With `meta`, a meta config counts when each of its meta options has a member list. */
 const hasConfig = (space: StrategySpace, meta: boolean): boolean =>
@@ -949,11 +956,11 @@ const subSeed = (seed: number, step: string): number => Math.floor(stepRandom(se
  * This function gives a sample of a space: Latin hypercube strata over the options, the params and the member counts.
  * `canon` is the space of `canonicalConfig`: the space before a shape filter. A member of an option with `view: "bounds"` can have an option that the filter removed.
  */
-function sampleConfigs(space: StrategySpace, n: number, seed: number, meta: boolean, maxTries: number, canon: StrategySpace = space): StrategyConfig[] {
+function sampleConfigs(space: StrategySpace, n: number, seed: number, meta: boolean, maxTries: number, canon: StrategySpace = space, walk = false): StrategyConfig[] {
   const stages = space.stages;
   const prefix = prefixes(space);
-  // A stage without options can stay empty in a part with a meta option of `view: "bounds"`, because that option replaces the stage.
-  const bounded = new Set(stages.filter((s) => meta && s.options.some((o) => memberSpaces.has(o))).map((s) => prefix.get(s.name)!));
+  // A stage without options can stay empty in a part with a meta option of `view: "bounds"` or with no member list, because that option replaces the stage.
+  const bounded = new Set(stages.filter((s) => meta && s.options.some((o) => memberSpaces.has(o) || o.members?.max === 0)).map((s) => prefix.get(s.name)!));
   const lists = stages.map((s) => {
     const list: (StageOption | null)[] = s.options.filter((o) => meta || o.members === undefined);
     if (s.optional) list.push(null);
@@ -968,15 +975,17 @@ function sampleConfigs(space: StrategySpace, n: number, seed: number, meta: bool
     if (!usable.has(o)) usable.set(o, hasMembers(space, s.name, o));
     return usable.get(o)!;
   };
+  const plan = walk ? walkPlan(stages, lists, space.constraints ?? [], n) : null;
   const points: Map<string, StageOption | null>[] = [];
   let tries = 0;
   for (let round = 0; points.length < n; round++) {
     const r = stepRandom(seed, `options:${round}`);
-    const columns = lists.map((list) => permutation(n, r).map((p) => list[Math.floor((p * list.length) / n)]!));
+    const picks = walk ? lists.map(() => permutation(n, r)) : [];
+    const columns = walk ? [] : lists.map((list) => permutation(n, r).map((p) => list[Math.floor((p * list.length) / n)]!));
     for (let i = 0; i < n && points.length < n; i++) {
-      if (tries >= maxTries) throw new Error(`The constraints of the space ${space.engine} remove too many points: ${points.length} of ${n} configs after ${tries} tries.`);
+      if (tries >= maxTries) throw new Error(`The constraints of the space ${space.engine} remove too many points: ${points.length} of ${n} configs after ${tries} tries.${walk ? "" : ' The option draw: "walk" gets a sample of a space with many constraints.'}`);
       tries++;
-      const choices = new Map<string, StageOption | null>(stages.map((s, k) => [s.name, columns[k]![i]!]));
+      const choices = plan !== null ? walkPoint(plan, picks, i) : new Map<string, StageOption | null>(stages.map((s, k) => [s.name, columns[k]![i]!]));
       const metaPart = new Map<string, string>();
       for (const s of stages) {
         const o = choices.get(s.name);
@@ -1003,7 +1012,7 @@ function sampleConfigs(space: StrategySpace, n: number, seed: number, meta: bool
           values[active[j]!]![k]![p.name] = sampleValue(p, (stratum + r()) / active.length);
         });
       }
-      if (o.members === undefined) continue;
+      if (o.members === undefined || o.members.max === 0) continue;
       const fixed = o.members.pool;
       if (fixed !== undefined) {
         const r = stepRandom(seed, `pool-entry:${s.name}:${o.id}`);
@@ -1015,7 +1024,7 @@ function sampleConfigs(space: StrategySpace, n: number, seed: number, meta: bool
       const part = memberSpaces.get(o) ?? partOf(space, s.name).space;
       const poolSize = Math.max(n, 4 * o.members.max, 8);
       const seen = new Set<string>();
-      const pool = sampleConfigs(part, poolSize, subSeed(seed, `pool:${s.name}:${o.id}`), false, Math.max(1000, 100 * poolSize)).filter((c) => {
+      const pool = sampleConfigs(part, poolSize, subSeed(seed, `pool:${s.name}:${o.id}`), false, Math.max(1000, 100 * poolSize), part, walk).filter((c) => {
         const id = idOf(c);
         return seen.has(id) ? false : (seen.add(id), true);
       });
@@ -1045,6 +1054,7 @@ function sampleConfigs(space: StrategySpace, n: number, seed: number, meta: bool
  * - The mode `grid` gives each grid point without a meta option, in a stable order. Stages, options and values go in the order of the space.
  * - The mode `sample` gives `n` configs of a seeded Latin hypercube. The options of a stage get equal strata, and each active param gets its own strata.
  * - A sample draws again when a point breaks a constraint. After `maxTries` draws, it throws an `Error`. Two sampled configs can be equal.
+ * - With `draw: "walk"`, each stage draws only from the options that keep the constraints with the stages before it. The largest stage keeps its equal strata.
  * - With `shapes`, only the options that support each kind of the list count. Without `shapes`, the result does not change.
  * - A meta option with a `pool` gives only the entries of its pool. With `shapes`, only the entries whose members support each kind count.
  * - A sample draws again when a point chooses a meta option without a member list. `spaceSize` gives such an option 0.
@@ -1062,10 +1072,12 @@ export function enumerateSpace(space: StrategySpace, options: EnumerateOptions):
   if (!Number.isInteger(options.seed)) throw new RangeError(`The seed ${options.seed} is not a whole number.`);
   const meta = options.meta ?? "skip";
   if (meta !== "skip" && meta !== "sample") throw new RangeError(`The option meta is ${String(meta)}, not skip or sample.`);
+  const draw = options.draw ?? "reject";
+  if (draw !== "reject" && draw !== "walk") throw new RangeError(`The option draw is ${String(draw)}, not reject or walk.`);
   if (options.n === 0) return [];
   const kept = restrict(space, options.shapes);
   try {
-    return sampleConfigs(kept, options.n, options.seed, meta === "sample", options.maxTries ?? Math.max(1000, 100 * options.n), space);
+    return sampleConfigs(kept, options.n, options.seed, meta === "sample", options.maxTries ?? Math.max(1000, 100 * options.n), space, draw === "walk");
   } catch (error) {
     // Only a space without a config for the shape kinds gives the RangeError. A different failure keeps its own error.
     if (options.shapes !== undefined && !hasConfig(kept, meta === "sample")) throw noSample(space, kept, options.shapes, meta === "sample");

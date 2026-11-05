@@ -232,6 +232,7 @@ export function weekView(line: readonly TrendRecord[]): WeekView {
 const STEP_ROUTE_LABELS: readonly (readonly [string, string])[] = [
   ["route.detour.mean", "mean detour"],
   ["route.detour.q95", "q95 detour"],
+  ["joint.route.length", "mean route length"],
   ["route.crossings", "routed crossings"],
 ];
 

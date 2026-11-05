@@ -17,7 +17,9 @@ This file lists the items of the roadmap of this repository. The status page of 
 | L94 | in progress | P1 | Circle items in the joint bench: one shared family and an exact hard rule in the contract (0.4.0), then the joint corpus. Routes read the box until highways routes around the true shape |
 | L108 | in progress | P2 | The news of the site holds no typed version. The release page is the one list of versions |
 | L111 | in progress | P2 | The cost claim of the sweep is an interval for the whole night, then for each shard, and the night record states the inputs of its budget |
-| L110 | in progress | P1 | The step between two sweep nights reads route values: detour and routed crossings, then the route length through the contract |
+| L110 | in progress | P1 | The step between two sweep nights reads route values: detour, routed crossings and the route length of the contract (`joint.route.length`) |
+| L109 | in progress | P2 | The point where two segments cross has its home in the contract, beside `segmentsCross`, and gives a point exactly when that function is true |
+| L118 | in progress | P1 | A sample of a space whose constraints reject most draws: the option `draw: "walk"` of `enumerateSpace`. |
 | L105 | in progress | P1 | State the key of the edges as a dimension (`edgeKey`), and do not read crossings alone across routers that share segments |
 | L103 | next | P1 | A load factor for each shard from the router `straight`, so a time limit does not depend on the runner |
 | L104 | in progress | P1 | A response explorer on the site, from the records of a joint run: the builder first, the page with the data of the cover run |
@@ -67,9 +69,14 @@ This file lists the items of the roadmap of this repository. The status page of 
 | L91 | later | P3 | Align linked boxes so that the edges are straight |
 | L92 | later | P3 | A learned route proxy for the placer |
 | L93 | later | P3 | An exact joint reference for small inputs |
+| L119 | in progress | P1 | A meta option that chooses its members from the input: the member rule with `min` and `max` 0. |
+| L122 | next | P1 | A floor per option for a walk sample: the count per option beside uniform, a floor with its reason, a stratum if an option falls under it, and a test that pins the smallest count. By 2026-11-17. |
+| L121 | later | P3 | The local `permutation` of the strategy space uses `Random.shuffle` of `@mark1russell7/rigor-generators`, after a byte-equal read. |
 | L106 | later | P2 | One name for routes through a shape: `route.through` takes the true shape when the measure of the router is on npm, and the extra key stops |
 | L107 | later | P2 | An exact rule for a circle beside another shape kind, an obstacle or a polygon container, due 2026-11-28 |
 | L112 | next | P1 | A flip test for each gate check of a measure: an injected fault turns the check red, with a clean copy green in the same job |
+| L116 | next | P1 | A bound on a held config: a config that misses the same planned input on 2 nights in a row gets a censored row for that input and goes into the full race, by 2026-11-12 |
+| L117 | next | P1 | One timed run over 60 s on the joint runner, with a same-twice check that can go red and its flip, in the engine epoch of 2026-11-15 |
 | L113 | in progress | P1 | A CI read of the wait of each pull request gate and release gate, by UTC hour, with the memory gate running and not |
 | L116 | in progress | P1 | A held config cannot stay out of the full race for ever: a censored row after 2 planned nights with a miss, a limit of 0.5 % of the inputs, a plan in part, and kept records that give a value once their reference returns. By 2026-11-12 |
 

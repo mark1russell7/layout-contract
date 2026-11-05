@@ -1,5 +1,29 @@
 # Changelog
 
+## 0.5.3
+
+- PATCH before 1.0.0: `checkSpace` accepts a new form that it refused before, and each space that was good stays good with the same configs.
+- A meta option can have the rule `{ min: 0, max: 0, ordered: false }`. The option chooses its members from the input, and a config of it has the empty list `members`. A `pool` or a `view` on this form is refused.
+- The text of the `members` problem of a bad count changes. It names the new form.
+
+## 0.5.2
+
+- PATCH before 1.0.0: a new optional option. `SampleOptions` has the option `draw`, with the values `reject` and `walk`. The default is `reject`, and it gives the same configs as before.
+- With `walk`, a point draws its stages from the largest to the smallest. Each stage draws only from the options that keep the constraints with the stages before it. A member list of a meta option draws its pool with the same draw.
+- A sample of `walk` is not uniform over the valid configs. `docs/STRATEGY-SPACE.md` states the difference on `routeSpace` of `highways` 0.15.0.
+- The error of a failed `reject` sample names `draw: "walk"`. The start of the text does not change.
+
+## 0.5.1
+
+- PATCH before 1.0.0: new exports, one new measure and one wider check, with no change to a type or to an old measure.
+- `CIRCLE_SCATTERED` is the shared family `circle-scattered`: circle items in a fixed rectangle or circle container, which they fill approximately half. Its input takes the exact rules of 0.4.0, because it has only circles and no obstacles.
+- `segmentThroughShape` tells if a segment goes through a placed box. A circle box reads its circle, and each other kind reads its bounding box.
+- `countLinksThroughShapes` counts the routes that go through a box that is not one of their ends. `ShapeLink` is its route.
+- `crossingPoint` gives the point where two segments cross. It gives a point exactly when `segmentsCross` is true.
+- `EPS_STEPS` is the count of `EPS` steps in one layout unit.
+- `JOINT_MEASURES` has the new diagnostic `joint.route.length`: the mean length of the routes in layout units. No verdict reads it.
+- `checkLayoutRecord` accepts `deterministic: null` on a record with `oneRun: true`, because such a pair can have no second run to compare. It still refuses `null` on each other record without `skipped`. The type of the field does not change. A reader with an older contract refuses such a record.
+
 ## 0.5.0
 
 - MINOR before 1.0.0: a break. A reader with an older contract refuses a file of the schema `strategy-catalog/2`. `STRATEGY_CATALOG_SCHEMA` has a new value, and the type of `StrategyCatalog.schema` is wider.

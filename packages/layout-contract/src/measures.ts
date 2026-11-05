@@ -49,6 +49,7 @@ export type JointMeasureId =
   | "joint.stability.mean"
   | "joint.stability.moved"
   | "joint.proxy.rank"
+  | "joint.route.length"
   | "joint.ms";
 
 /** The shape kinds of a joint measure that reads only the bounding boxes, the centers and the positions of the boxes. */
@@ -69,6 +70,7 @@ export const JOINT_MEASURES: readonly MeasureSpec<JointMeasureId>[] = /* @__PURE
   { id: "joint.stability.mean", minEffect: 0.005, unit: "W", direction: "lower", min: 0, max: Infinity, floor: 0, tol: 0.005, role: "change-guard", shapes: BOUNDS_ONLY },
   { id: "joint.stability.moved", minEffect: 0.02, unit: "0 to 1", direction: "lower", min: 0, max: 1, floor: 0, tol: 0.02, role: "change-guard", shapes: BOUNDS_ONLY },
   { id: "joint.proxy.rank", unit: "-1 to 1", direction: "higher", min: -1, max: 1, role: "diagnostic", shapes: BOUNDS_ONLY },
+  { id: "joint.route.length", unit: "layout units for each route", direction: "lower", min: 0, max: Infinity, role: "diagnostic", shapes: BOUNDS_ONLY },
   { id: "joint.ms", unit: "milliseconds", direction: "lower", min: 0, max: Infinity, role: "time", shapes: BOUNDS_ONLY },
 ] as const);
 
