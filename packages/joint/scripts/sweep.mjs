@@ -47,6 +47,7 @@ import {
   LOST_METHOD_NOTE,
   lostLine,
   lostPairs,
+  sameTwiceLine,
   noReferenceRecords,
   noteLost,
   pairRuns,
@@ -449,7 +450,7 @@ if (command === "plan") {
   // The first night of an epoch measures the step from the epoch before it. Later nights keep that step.
   const step = index.epochs[state.epoch]?.step ?? (index.latest === undefined || index.latest === state.epoch ? undefined : stepFrom(join(data, "epochs", index.latest, "state.json"), state, sweep));
   index.latest = state.epoch;
-  index.epochs[state.epoch] = { corpus: state.corpus, nights: rest.nights.length, last: plan.date, missing: night.missing, configs: Object.keys(state.configs).length, counts, ...(step === undefined ? {} : { step }), cost: costIndexFacts(night, facts) };
+  index.epochs[state.epoch] = { corpus: state.corpus, nights: rest.nights.length, last: plan.date, missing: night.missing, ...(night.sameTwice === undefined ? {} : { differ: night.sameTwice.differ }), configs: Object.keys(state.configs).length, counts, ...(step === undefined ? {} : { step }), cost: costIndexFacts(night, facts) };
   writeJson(indexFile, index);
   writeFileSync(join(out, "night.md"), nightMarkdown(state, night, counts, facts));
   console.log(readFileSync(join(out, "night.md"), "utf8"));
@@ -537,6 +538,7 @@ function nightMarkdown(state, night, counts, facts) {
   lines.push(...costClaimLines(cm.interval, night.budget));
   for (const s of night.shards) if (s.censored !== undefined) lines.push(`Round ${s.round} shard ${s.shard} stopped in the unit \`${s.censored.unit}\` (${s.censored.reason}). The unit took at least ${(s.censored.atLeastMs / 60000).toFixed(1)} minutes, and ${s.censored.configs.length} configs have no record.`);
   lines.push(`Drift of the baseline arm: ${night.drift} inputs. Values: ${night.values}. ${lostLine(night)}`, "", LOST_METHOD_NOTE, "");
+  if (night.sameTwice !== undefined) lines.push(sameTwiceLine(night.sameTwice), "");
   lines.push("| Baseline config | Headline misses of the reference floor | Inputs |", "|---|---|---|");
   for (const [name, m] of Object.entries(facts.misses)) lines.push(`| \`${name}\` | ${m.misses} | ${m.of} |`);
   const best = Object.entries(state.configs)
