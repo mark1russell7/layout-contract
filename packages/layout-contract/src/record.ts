@@ -42,6 +42,17 @@ export interface LayoutRecord {
   /** The time of each timed repeat, in milliseconds. */
   readonly msRuns?: readonly number[];
   /**
+   * The value is `true` when a measure of the pair chose 1 timed repeat and no warm-up.
+   * Then `ms` is one time, so a time gate does not read this record.
+   */
+  readonly oneRun?: boolean;
+  /** The wall budget of the pair of a strategy and an input, in milliseconds. */
+  readonly budgetMs?: number;
+  /** The lower limit of the time of a pair that a stop ended, in milliseconds. This time is censored, so a mean does not read it. */
+  readonly msAtLeast?: number;
+  /** The pairs that caused a skip, for example the pairs over budget that stopped the larger inputs of a strategy. */
+  readonly because?: readonly string[];
+  /**
    * The first 16 hex characters of the SHA-256 of the canonical output of the stage.
    * The packer hashes its placements by the order of the ids. The router hashes its routes by the order of the edge ids.
    */
@@ -106,6 +117,7 @@ const STAGES: readonly string[] = ["pack", "route", "joint"];
 const RECORD_STRINGS = ["step", "strategy", "corpus", "input", "inputHash", "set"] as const;
 const RECORD_NUMBERS = ["seed", "nodes", "edges", "ms"] as const;
 const RECORD_OPTIONAL_STRINGS = ["prediction", "outputHash", "skipped", "commit"] as const;
+const RECORD_OPTIONAL_NUMBERS = ["budgetMs", "msAtLeast"] as const;
 const ENV_STRINGS = ["node", "os", "arch", "runner", "cpu"] as const;
 const ENV_OPTIONAL_STRINGS = ["mode", "context"] as const;
 
@@ -150,6 +162,10 @@ export function checkLayoutRecord(value: unknown): string[] {
   if (shapes !== undefined && (!Array.isArray(shapes) || !shapes.every(isShapeKind))) out.push("shapes is not a list of shape kinds");
   const msRuns = v["msRuns"];
   if (msRuns !== undefined && (!Array.isArray(msRuns) || !msRuns.every((n) => typeof n === "number"))) out.push("msRuns is not a list of numbers");
+  if (v["oneRun"] !== undefined && typeof v["oneRun"] !== "boolean") out.push("oneRun is not a boolean");
+  for (const key of RECORD_OPTIONAL_NUMBERS) if (v[key] !== undefined && typeof v[key] !== "number") out.push(`${key} is not a number`);
+  const because = v["because"];
+  if (because !== undefined && (!Array.isArray(because) || !because.every((s) => typeof s === "string"))) out.push("because is not a list of strings");
   if (v["env"] !== undefined) out.push(...envProblems(v["env"]));
   const deterministic = v["deterministic"];
   if (v["skipped"] === undefined) {

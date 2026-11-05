@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.3.11
+
+- PATCH before 1.0.0: new optional fields of a record, with no break. The schema stays `layout-record/1`.
+- The field `oneRun` of `LayoutRecord` marks a record with one time. A measure of the pair chose 1 timed repeat and no warm-up. A time gate reads this mark, not a list of strategies.
+- The fields `budgetMs`, `msAtLeast` and `because` of `LayoutRecord` tell the wall budget of a pair, the lower limit of a censored time and the pairs that caused a skip.
+- `checkLayoutRecord` examines the types of these fields.
+
 ## 0.3.10
 
 - PATCH before 1.0.0: a new optional field, a new optional check option, a new result list and a wider type, with no break. The first engine catalog found these gaps.

@@ -606,6 +606,10 @@ export interface LayoutRecord {
   readonly prediction?: string;
   readonly ms: number;
   readonly msRuns?: readonly number[];
+  readonly oneRun?: boolean;
+  readonly budgetMs?: number;
+  readonly msAtLeast?: number;
+  readonly because?: readonly string[];
   readonly outputHash?: string;
   readonly env?: RunEnv;
   readonly skipped?: string;
