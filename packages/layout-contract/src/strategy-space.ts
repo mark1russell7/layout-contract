@@ -42,7 +42,10 @@ export interface SpaceParam {
   readonly when?: ParamWhen;
 }
 
-/** The rule of the members of a meta option: a count from `min` to `max`. Members with `ordered: false` are sorted by their `configId`. */
+/**
+ * The rule of the members of a meta option: a count from `min` to `max`. Members with `ordered: false` are sorted by their `configId`.
+ * With `min` and `max` 0, the option chooses its members from the input, so a config lists none. This form has no `pool` and no `view`.
+ */
 export interface MemberRule {
   readonly min: number;
   readonly max: number;
@@ -316,8 +319,11 @@ function optionProblems(stage: SpaceStage, o: StageOption): Problem[] {
   if (o.supports !== undefined) out.push(...supportsProblems(o.supports, at));
   if (o.members !== undefined) {
     const { min, max, ordered } = o.members;
-    if (!Number.isInteger(min) || !Number.isInteger(max) || min < 1 || min > max || typeof ordered !== "boolean")
-      out.push(["members", `${at} has a member rule without whole counts 1 <= min <= max and a boolean ordered`]);
+    const noList = min === 0 && max === 0;
+    if (!Number.isInteger(min) || !Number.isInteger(max) || (!noList && (min < 1 || min > max)) || typeof ordered !== "boolean")
+      out.push(["members", `${at} has a member rule without whole counts 1 <= min <= max or min = max = 0, and a boolean ordered`]);
+    if (noList && (o.members.pool !== undefined || o.members.view !== undefined))
+      out.push(["members", `${at} has no member list, so its member rule cannot have a pool or a view`]);
     const pool: unknown = o.members.pool;
     if (pool !== undefined && (!Array.isArray(pool) || pool.length === 0 || !pool.every((entry: unknown) => Array.isArray(entry))))
       out.push(["pool", `${at} has a pool that is not a list of one or more member lists`]);
@@ -838,7 +844,7 @@ const memberSpaces = /* @__PURE__ */ new WeakMap<StageOption, StrategySpace>();
  * A different meta option has one when its members have a base config. `restrict` keeps only the pool entries that fit.
  */
 const hasMembers = (space: StrategySpace, stage: string, o: StageOption): boolean =>
-  o.members === undefined || o.members.pool !== undefined || combos(memberSpaces.get(o) ?? partOf(space, stage).space, 1, false, 0n).length > 0;
+  o.members === undefined || o.members.max === 0 || o.members.pool !== undefined || combos(memberSpaces.get(o) ?? partOf(space, stage).space, 1, false, 0n).length > 0;
 
 /** This function tells if a restricted space has a config. A base config counts. With `meta`, a meta config counts when each of its meta options has a member list. */
 const hasConfig = (space: StrategySpace, meta: boolean): boolean =>
@@ -953,8 +959,8 @@ const subSeed = (seed: number, step: string): number => Math.floor(stepRandom(se
 function sampleConfigs(space: StrategySpace, n: number, seed: number, meta: boolean, maxTries: number, canon: StrategySpace = space, walk = false): StrategyConfig[] {
   const stages = space.stages;
   const prefix = prefixes(space);
-  // A stage without options can stay empty in a part with a meta option of `view: "bounds"`, because that option replaces the stage.
-  const bounded = new Set(stages.filter((s) => meta && s.options.some((o) => memberSpaces.has(o))).map((s) => prefix.get(s.name)!));
+  // A stage without options can stay empty in a part with a meta option of `view: "bounds"` or with no member list, because that option replaces the stage.
+  const bounded = new Set(stages.filter((s) => meta && s.options.some((o) => memberSpaces.has(o) || o.members?.max === 0)).map((s) => prefix.get(s.name)!));
   const lists = stages.map((s) => {
     const list: (StageOption | null)[] = s.options.filter((o) => meta || o.members === undefined);
     if (s.optional) list.push(null);
@@ -1006,7 +1012,7 @@ function sampleConfigs(space: StrategySpace, n: number, seed: number, meta: bool
           values[active[j]!]![k]![p.name] = sampleValue(p, (stratum + r()) / active.length);
         });
       }
-      if (o.members === undefined) continue;
+      if (o.members === undefined || o.members.max === 0) continue;
       const fixed = o.members.pool;
       if (fixed !== undefined) {
         const r = stepRandom(seed, `pool-entry:${s.name}:${o.id}`);

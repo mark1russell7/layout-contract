@@ -57,6 +57,9 @@ A meta option chooses between whole configs, or wraps them. Examples are a portf
 - The member rule can have a `pool`: a fixed list of member lists. Each entry is a list of whole configs of the space of the members.
 - With a `pool`, the members of a config are the members of one entry. An unordered rule compares the sorted `configId` values of the members.
 - The `pool` is part of the space, not of a config. Thus a `pool` does not change a `configId`.
+- The rule `{ "min": 0, "max": 0, "ordered": false }` states an option that chooses its members from the input. A config of this option has the empty list `members`.
+- This form has no `pool` and no `view`. Each other rule with a count of 0 is not good.
+- A default sample has no meta option, so it does not hold this option. A sample with `meta: "sample"` holds it.
 
 ```json
 { "id": "cell-portfolio", "params": [], "members": { "min": 11, "max": 11, "ordered": false, "pool": [[{ "space": "packing", "stages": {} }]] } }
@@ -118,7 +121,7 @@ With `{ shapes }`, it also finds `shape`: a chosen option that does not support 
 - An `enum` param has each value, and a `bool` param has 2 values.
 - The result has two counts. `base` counts the configs without a meta option. `meta` counts the configs with a meta option. Each count is a `bigint`.
 - When the meta count is more than `maxMeta` (default `10n ** 18n`), `meta` is `null`.
-- A meta option with a `pool` counts each entry one time. Without a `pool`, it counts each list of base configs with a good count.
+- A meta option with a `pool` counts each entry one time. Without a `pool`, it counts each list of base configs with a good count. An option with no member list counts one list.
 - An example is `cell-portfolio` of `packing`, with 1 list of 11 members. Without a `pool`, the meta count of `packing` at 3 levels is approximately 1.49e25. With the `pool`, it is approximately 1.72e15.
 - With `shapes`, `spaceSize` and `enumerateSpace` count only the options that support each kind. Without `shapes`, the result does not change.
 - With `shapes`, a `pool` keeps only the entries whose members support each kind. A meta option without such an entry does not count.
