@@ -75,6 +75,22 @@ The parts are local copies of the bench options. Both engines publish their spac
 2. Write a `JointAdapter` that gives the pack entry and the router of a config of these spaces.
 3. Change `BENCH_SPACE_VERSION`. The new version starts a new epoch of the data.
 
+## One pair of engines to 11-17
+
+The sweep keeps `packing` 0.7.0 and `highways` 0.14.0 from 2026-11-06 to 2026-11-17. A new engine version starts a new epoch, and rows of the old epoch do not join the new one. Thus 11 nights of one epoch give more than 2 days of an earlier raise.
+
+- The lock of main is the pin. A sweep that runs engines CI did not read adds a way to fail, so the sweep does not get its own versions.
+- A row in `lag-holds.json` of `release-train` stops the update of each engine to this repository. A rule in `renovate.json` does the same, with the same date.
+- The job `engine-hold` of `night-check.yml` compares the two files. It fails on a missing row, a missing rule, a rule with no date, two different dates or a past date. Unit tests in `engine-hold.test.ts` hold each fault.
+- A change in `release-train` starts no run here, so a difference lives up to 1 day.
+- The engine raise, the one timed run and the fix of the bench stamp move from 2026-11-15 to 2026-11-17. They land with the switch to the engine spaces.
+
+**A way to break the hold.** A fix to a fault in a published claim can come sooner. This needs one stated line from the maintainer. The pull request of that raise then holds a constant with the date and the reason, and `night.md` prints it.
+
+**The raise is measured.** Before the raise merges, a read runs both engine versions on the baselines and the alive configs, in the form of the carry read. The read states the effect of the raise on the rows. This covers each change that lands by that date.
+
+**The end of the hold.** The rows leave `lag-holds.json` first, and the Renovate rule leaves with the raise. The job `engine-hold` can read a fault between these two merges. On 2026-11-18 a remaining row or rule is a fault.
+
 ## The plan of a night
 
 The date of the night in UTC gives the seed `YYYYMMDD`. Thus a rerun of a night has the same plan. A second run of a date that the state has already does nothing.

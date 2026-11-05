@@ -1,4 +1,11 @@
 {
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
-  "extends": ["github>mark1russell7/template//renovate/default"]
+  "extends": ["github>mark1russell7/template//renovate/default"],
+  "packageRules": [
+    {
+      "description": "Held to 2026-11-17, with the same date in lag-holds.json of release-train. The sweep keeps one pair of engines for one epoch (docs/SWEEP.md). The job engine-hold of night-check.yml compares the two dates.",
+      "matchPackageNames": ["@mark1russell7/packing", "@mark1russell7/highways"],
+      "enabled": false
+    }
+  ]
 }

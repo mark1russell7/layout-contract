@@ -44,3 +44,20 @@ jobs:
         env:
           ENDED: ${{ github.event_name == 'workflow_run' && github.event.workflow_run.event == 'schedule' && '--ended' || '' }}
         run: node scripts/night-check.ts "$RUNNER_TEMP/index.json" $ENDED
+  # The hold of the engines is in two repositories (docs/SWEEP.md, "One pair of engines to 11-17"). This job fails when the two
+  # differ or when the date has passed. A change in release-train starts no run here, so a difference lives up to 1 day.
+  engine-hold:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 26
+      - name: Read the hold rows of release-train
+        run: curl --fail --silent --show-error --retry 3 --output "$RUNNER_TEMP/lag-holds.json" https://raw.githubusercontent.com/mark1russell7/release-train/main/lag-holds.json
+      - name: Compare the rows with the Renovate rule
+        working-directory: packages/joint
+        run: node scripts/hold-check.ts ../../renovate.json "$RUNNER_TEMP/lag-holds.json"
