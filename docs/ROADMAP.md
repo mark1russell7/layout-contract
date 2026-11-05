@@ -66,6 +66,8 @@ This file lists the items of the roadmap of this repository. The status page of 
 | L93 | later | P3 | An exact joint reference for small inputs |
 | L106 | later | P2 | One name for routes through a shape: `route.through` takes the true shape when the measure of the router is on npm, and the extra key stops |
 | L107 | later | P2 | An exact rule for a circle beside another shape kind, an obstacle or a polygon container, due 2026-11-28 |
+| L112 | next | P1 | A flip test for each gate check of a measure: an injected fault turns the check red, with a clean copy green in the same job |
+| L113 | in progress | P1 | A CI read of the wait of each pull request gate and release gate, by UTC hour, with the memory gate running and not |
 
 ## Done
 
