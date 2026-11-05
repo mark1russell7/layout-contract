@@ -1,5 +1,18 @@
 # Changelog
 
+## 0.5.3
+
+- PATCH before 1.0.0: `checkSpace` accepts a new form that it refused before, and each space that was good stays good with the same configs.
+- A meta option can have the rule `{ min: 0, max: 0, ordered: false }`. The option chooses its members from the input, and a config of it has the empty list `members`. A `pool` or a `view` on this form is refused.
+- The text of the `members` problem of a bad count changes. It names the new form.
+
+## 0.5.2
+
+- PATCH before 1.0.0: a new optional option. `SampleOptions` has the option `draw`, with the values `reject` and `walk`. The default is `reject`, and it gives the same configs as before.
+- With `walk`, a point draws its stages from the largest to the smallest. Each stage draws only from the options that keep the constraints with the stages before it. A member list of a meta option draws its pool with the same draw.
+- A sample of `walk` is not uniform over the valid configs. `docs/STRATEGY-SPACE.md` states the difference on `routeSpace` of `highways` 0.15.0.
+- The error of a failed `reject` sample names `draw: "walk"`. The start of the text does not change.
+
 ## 0.5.1
 
 - PATCH before 1.0.0: new exports, one new measure and one wider check, with no change to a type or to an old measure.

@@ -32,7 +32,7 @@ export interface SiteKpi {
 }
 
 /** The parts of the catalog that the measures read. */
-export type KpiCatalog = Pick<JointCatalog, "about" | "routers">;
+export type KpiCatalog = Pick<JointCatalog, "about">;
 
 /** One bench entry: its id in the run, and the strategy of `packing` that it uses. */
 export interface BenchEntry {
@@ -137,15 +137,29 @@ export function packersMeasured(run: JointData, catalog: KpiCatalog, entries: re
 }
 
 /**
+ * This function counts the routers with a row in the run that are entries of the registry of `highways`.
+ * A router in a list of the site with no row does not count, because a list is not a comparison.
+ * A row of a router outside the registry, for example a member form of the portfolio, does not count.
+ *
+ * @param run - The joint run. Its rows are the routers of `stress.byRouter`.
+ * @param keyed - The names of the router and highway entries of the registry of the pinned `highways`.
+ */
+export function routersOnCompare(run: JointData, keyed: readonly string[]): number {
+  const names = new Set(keyed);
+  return new Set(run.stress.byRouter.map((router) => router.id).filter((id) => names.has(id))).size;
+}
+
+/**
  * This function gives the input of the writer. It gives undefined when no joint run exists, because the time of the data is then not known.
  *
  * @param files - The data files of `data/joint/`.
  * @param catalog - The catalog of the build.
  * @param npm - The read of npm of this build. Without it, the file has no measure that reads npm, because an old value is not a measure.
  * @param entries - The bench entries of the joint package.
- * @param commitAt - The time of the commit of the build, in UTC. The catalog of the build has this time, so an old run does not age it.
+ * @param commitAt - The time of the commit of the build, in UTC. The registry of the build has this time, so an old run does not age it.
+ * @param keyed - The names of the router and highway entries of the registry of the pinned `highways`, from `keyedRouterNames`.
  */
-export function siteKpiInput(files: readonly JointData[], catalog: KpiCatalog, npm: NpmRead | undefined, entries: readonly BenchEntry[], commitAt: string): SiteKpi | undefined {
+export function siteKpiInput(files: readonly JointData[], catalog: KpiCatalog, npm: NpmRead | undefined, entries: readonly BenchEntry[], commitAt: string, keyed: readonly string[]): SiteKpi | undefined {
   const run = latestJoint(files);
   if (run === undefined) return undefined;
   const at = `${run.date}T00:00:00Z`;
@@ -155,7 +169,8 @@ export function siteKpiInput(files: readonly JointData[], catalog: KpiCatalog, n
     measures: [
       { id: "pairs-in-run", value: run.pairs, unit: "pairs", at },
       { id: "packers-measured", value: packersMeasured(run, catalog, entries), unit: "packers", at },
-      { id: "routers-on-compare", value: catalog.routers.length, unit: "routers", at: commitAt },
+      { id: "routers-on-compare", value: routersOnCompare(run, keyed), unit: "routers", at },
+      { id: "routers-keyed", value: new Set(keyed).size, unit: "routers", at: commitAt },
       ...(npm === undefined ? [] : npmMeasures(npm)),
     ],
   };

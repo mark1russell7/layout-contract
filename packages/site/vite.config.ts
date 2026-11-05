@@ -7,6 +7,7 @@ import { npmPublishTimes } from "@mark1russell7/site-pages";
 import { siteKpi } from "@mark1russell7/site-pages/vite";
 import { defineConfig, type Plugin } from "vite";
 import { buildCatalog } from "./src/build-catalog.ts";
+import { keyedRouterNames } from "./src/engines.ts";
 import { checkDataFile, type JointData, latestJoint } from "./src/data.ts";
 import { ENGINE_SCOPE, enginesOnNpm, failedReadStops, type NpmRead, siteKpiInput, withHolds } from "./src/kpi.ts";
 import { withEngineLinks } from "./src/links.ts";
@@ -133,7 +134,7 @@ function commitTime(): string {
 
 /** This function gives the input of `kpi.json`. A build without a joint run has no data to report, so it stops. */
 function kpiInput(): NonNullable<ReturnType<typeof siteKpiInput>> {
-  const input = siteKpiInput(jointFiles(), catalogOfTheRuns(), npmRead, [...PACK_ENTRIES, ...coverEntries()], commitTime());
+  const input = siteKpiInput(jointFiles(), catalogOfTheRuns(), npmRead, [...PACK_ENTRIES, ...coverEntries()], commitTime(), keyedRouterNames());
   if (input === undefined) throw new Error("data/joint/ has no run, so kpi.json has no time of the data.");
   return input;
 }
