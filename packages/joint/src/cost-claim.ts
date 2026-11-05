@@ -233,7 +233,8 @@ export interface BudgetFacts {
 
 /** This function gives the sentences of the budget of a night. A thin budget states what it lacks. */
 export function budgetLine(budget: BudgetFacts): string {
-  const read = `The budget of the gate is ${budget.gateMinutes} minutes, from ${budget.runsRead} ${budget.runsRead === 1 ? "gate" : "gates"}.`;
+  // A gate that already ran on this commit does not run again, so the plan holds no time for it.
+  const read = budget.gateMinutes === 0 ? "The gate already ran on this commit, so the budget holds no time for it." : `The budget of the gate is ${budget.gateMinutes} minutes, from ${budget.runsRead} ${budget.runsRead === 1 ? "gate" : "gates"}.`;
   const failed = budget.failedRead === null ? "" : ` The read of ${budget.failedRead} failed after 4 tries, so the budget uses only the runs that it read.`;
   const fallback = budget.fallback ? " The estimate is the fallback, because no gate has job times." : "";
   return `${read}${failed}${fallback}`;

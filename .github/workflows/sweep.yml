@@ -118,7 +118,7 @@ jobs:
           estimate="$(cd packages/joint && node scripts/sweep.mjs gate-estimate --runs "$gates")" || { echo "::warning::The estimate of the gate failed. The budget uses 360 minutes." | tee -a "$GITHUB_STEP_SUMMARY"; estimate="360 the fallback"; }
           gate="${estimate%% *}"
           echo "The gate estimate is $gate minutes: ${estimate#* }." | tee -a "$GITHUB_STEP_SUMMARY"
-          fallback=false; if [ "$count" -eq 0 ]; then fallback=true; fi
+          case "$estimate" in *fallback*) fallback=true;; *) fallback=false;; esac
           if [ "$last" = "$SHA" ]; then gate=0; fi
           end="$(date -u -d "$(date -u +%Y-%m-%d) 14:00" +%s)"
           echo "The window ends at $(date -u -d "@$end" +%H:%M) UTC. The gate takes $gate minutes (the last nightly gate examined ${last:-no commit}). The rounds get $(( (end - now) / 60 - gate )) minutes." | tee -a "$GITHUB_STEP_SUMMARY"

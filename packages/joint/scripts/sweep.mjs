@@ -353,7 +353,7 @@ if (command === "plan") {
     const cost = gateCost(jobs);
     return `${files[i].replace(/\.json$/, "")}: longest job ${Math.round(cost.longest)}, ${Math.round(cost.jobMinutes)} job minutes`;
   });
-  console.log(`${gateEstimate(gates)} the median at ${GATE_LANES} lanes over ${parts.length === 0 ? "no gate, so the fallback" : parts.join("; ")}`);
+  console.log(`${gateEstimate(gates)} the median at ${GATE_LANES} lanes over ${gates.every((jobs) => !(gateCost(jobs).jobMinutes > 0)) ? "no gate with job times, so the fallback" : parts.join("; ")}`);
 } else if (command === "summarize") {
   const dir = args.night ?? "night2";
   const state = readJson(join(dir, "state.json"));

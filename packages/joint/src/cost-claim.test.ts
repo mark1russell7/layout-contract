@@ -164,6 +164,10 @@ describe("budgetLine", () => {
     expect(budgetLine({ ...facts, runsRead: 1, failedRead: "the run 41" })).toBe("The budget of the gate is 276 minutes, from 1 gate. The read of the run 41 failed after 4 tries, so the budget uses only the runs that it read.");
   });
 
+  it("does not state a time for a gate that already ran on this commit", () => {
+    expect(budgetLine({ ...facts, gateMinutes: 0 })).toBe("The gate already ran on this commit, so the budget holds no time for it.");
+  });
+
   it("states the fallback", () => {
     expect(budgetLine({ ...facts, gateMinutes: 360, runsRead: 0, fallback: true })).toContain("the fallback");
   });

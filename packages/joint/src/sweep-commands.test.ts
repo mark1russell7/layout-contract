@@ -121,7 +121,7 @@ describe("the command of the sweep script that reads the last gates", () => {
   it("gives the fallback when the folder holds no gate", { timeout: 60_000 }, () => {
     const text = start("sweep.mjs", ["gate-estimate", "--runs", join(dir, "no-gates")]);
     expect(text.split(" ")[0]).toBe("360");
-    expect(text).toContain("no gate, so the fallback");
+    expect(text).toContain("no gate with job times, so the fallback");
   });
 });
 
