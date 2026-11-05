@@ -49,6 +49,10 @@ import {
   lostPairs,
   noReferenceRecords,
   noteLost,
+  noteMisses,
+  applyKept,
+  censoredLines,
+  waitingLine,
   pairRuns,
   planDesign,
   planRound1,
@@ -229,6 +233,9 @@ function applyRound(state, inputs, dir, plan) {
   return kept;
 }
 
+/** The file of the night with the kept records of the earlier nights of the epoch. */
+const KEPT_EARLIER = "kept-earlier.jsonl";
+
 /** The date of today in UTC. */
 const today = () => new Date().toISOString().slice(0, 10);
 
@@ -256,6 +263,9 @@ if (command === "plan") {
     const options = planOptions(date, state);
     if (args.design !== undefined) writePlan(out, state, planDesign(state, sweep, { ...options, n: numberArg("design", 0) }), options);
     else writePlan(out, state, planRound1(state, sweep, options), options);
+    // The race has no data branch, so the kept records of the epoch go with the night in its artifact.
+    const keptFile = join(dirname(file), "no-reference.jsonl");
+    if (existsSync(keptFile)) cpSync(keptFile, join(out, KEPT_EARLIER));
   }
 } else if (command === "run") {
   const dir = args.plan ?? "night";
@@ -402,6 +412,10 @@ if (command === "plan") {
     mkdirSync(args.out ?? "night2", { recursive: true });
     writeFileSync(join(args.out ?? "night2", "no-reference.jsonl"), kept.join(""));
   }
+  // A kept record gives a value once its reference returns. A kept file comes only from the plan of this night, so the records of this round wait for the next night.
+  const keptEarlier = join(dir, KEPT_EARLIER);
+  const given = applyKept(state, existsSync(keptEarlier) ? readFileSync(keptEarlier, "utf8").split("\n").filter((line) => line.trim() !== "").map((line) => JSON.parse(line)) : [], plan.date);
+  console.log(`Kept records that gave a value: ${given}.`);
   const outcomes = raceNight(state, sweep, { date: plan.date });
   const labels = {};
   for (const o of outcomes) labels[o.label] = (labels[o.label] ?? 0) + 1;
@@ -424,6 +438,7 @@ if (command === "plan") {
   const { sweep } = corpusOf(state.corpus);
   const kept = applyRound(state, sweep, args.records ?? "records", plan);
   const night = state.nights.find((n) => n.date === plan.date);
+  noteMisses(state, night);
   delete night.pending;
   if (args.run) night.run = args.run;
   // A failed read of the jobs does not stop the night. The wall then reads "not read".
@@ -537,6 +552,7 @@ function nightMarkdown(state, night, counts, facts) {
   lines.push(...costClaimLines(cm.interval, night.budget));
   for (const s of night.shards) if (s.censored !== undefined) lines.push(`Round ${s.round} shard ${s.shard} stopped in the unit \`${s.censored.unit}\` (${s.censored.reason}). The unit took at least ${(s.censored.atLeastMs / 60000).toFixed(1)} minutes, and ${s.censored.configs.length} configs have no record.`);
   lines.push(`Drift of the baseline arm: ${night.drift} inputs. Values: ${night.values}. ${lostLine(night)}`, "", LOST_METHOD_NOTE, "");
+  lines.push(waitingLine(night), `Kept records that gave a value on this night: ${night.kept ?? 0}.`, "", ...censoredLines(state), "");
   lines.push("| Baseline config | Headline misses of the reference floor | Inputs |", "|---|---|---|");
   for (const [name, m] of Object.entries(facts.misses)) lines.push(`| \`${name}\` | ${m.misses} | ${m.of} |`);
   const best = Object.entries(state.configs)
@@ -547,6 +563,6 @@ function nightMarkdown(state, night, counts, facts) {
   const num = (x) => (x === undefined ? "" : x.toFixed(4));
   const signs = (s) => (s === undefined ? "" : `${s.wins} / ${s.losses} / ${s.ties}`);
   lines.push("", "| Alive config | Label | Mean of the family means | Mean of the inputs | Families +/-/0 | Sign test p |", "|---|---|---|---|---|---|");
-  for (const [id, c] of best) lines.push(`| \`${id}\` \`${configLabel(c.config)}\` | ${labelLine(c, night.race?.held?.find((h) => h.config === id)?.missing ?? 0)} | ${(c.mean ?? 0).toFixed(4)} | ${num(c.pooled)} | ${signs(c.signs)} | ${num(c.signs?.p)} |`);
+  for (const [id, c] of best) lines.push(`| \`${id}\` \`${configLabel(c.config)}\` | ${labelLine(c, night.race?.held?.find((h) => h.config === id)?.missing ?? 0, night.race?.held?.find((h) => h.config === id)?.noRead === true)} | ${(c.mean ?? 0).toFixed(4)} | ${num(c.pooled)} | ${signs(c.signs)} | ${num(c.signs?.p)} |`);
   return lines.join("\n") + "\n";
 }

@@ -1,8 +1,9 @@
 import { describe, expect, it } from "vitest";
 import type { LayoutRecord } from "@mark1russell7/layout-contract";
 import { nightLine, nightVerdict } from "./night-check.ts";
-import { applyRecords, emptyState, labelLine, lostLine, lostPairs, noReferenceRecords, noteLost, planRound1, planRound2, raceLines, raceNight, RACE_NOTE_2026_11_02, statusCounts, valueMaps } from "./night.ts";
-import { baselineIds, type SweepInput } from "./sweep.ts";
+import { applyRecords, emptyState, labelLine, lostLine, lostPairs, noReferenceRecords, noteLost, planRound1, planRound2, raceLines, raceNight, RACE_NOTE_2026_11_02, statusCounts, valueMaps, applyKept, censoredLimit, censoredLines, nightOf, noteMisses, settleRows, waitingLine } from "./night.ts";
+import { configRun } from "./space.ts";
+import { baselineIds, jobCost, SWEEP_FILL, takeBudget, type SweepInput } from "./sweep.ts";
 
 /** The inputs of a test: 4 specs with 3 seeds each. Spec `d` is a stress spec. */
 const INPUTS: SweepInput[] = ["a", "b", "c", "d"].flatMap((s) =>
@@ -134,7 +135,12 @@ describe("a night of the sweep on small inputs", () => {
     for (const id of waited) expect(state.configs[id]!.ran).toBeUndefined();
     // The next night takes the configs that waited before the configs of the night before.
     const third = planRound1(state, INPUTS, { ...small, date: "2026-10-30" });
-    expect(planned(third).slice(0, Math.min(waited.length, planned(third).length))).toEqual(waited.slice(0, Math.min(waited.length, planned(third).length)));
+    const again = planned(third);
+    const waitedThere = again.filter((id) => waited.includes(id));
+    expect(waitedThere.length).toBeGreaterThan(0);
+    expect(waitedThere).toEqual(waited.slice(0, waitedThere.length));
+    // A config of the night before, such as the config that ran in part, comes only after each config that waited.
+    if (again.length > waitedThere.length) expect(waitedThere).toEqual(waited);
   });
 
   it("gives no drift for a value with more digits than the state stores", () => {
@@ -302,5 +308,224 @@ describe("the count of the planned pairs that gave no value", () => {
     noteLost(night, 1, units, lostPairs(clean, units, all));
     expect(night.missing).toBe(0);
     expect(nightVerdict(OPTIONS.date, night.missing, OPTIONS.date).state).toBe("current");
+  });
+});
+
+describe("a pair that misses on 2 planned nights gets a censored row (L116)", () => {
+  const RACE = { runs: 200, draws: 400 };
+  const DATES = ["2026-11-10", "2026-11-11", "2026-11-12"];
+  const NEVER = INPUTS[0]!.id;
+
+  /** This function gives a state with an alive config that has each value except on the inputs of a list. */
+  function aliveWithout(...absent: string[]): ReturnType<typeof stateWithAlive> {
+    const state = stateWithAlive();
+    applyRecords(state, INPUTS.filter((i) => !absent.includes(i.id)).map((i) => record("held", i.id, 0.5)), INPUTS, "2026-11-09");
+    return state;
+  }
+
+  /** This function runs one night on a state: the race, and then a plan of a list of inputs that gives no record. A flag leaves the rule out, as a fault copy of the code. */
+  function missNight(state: ReturnType<typeof stateWithAlive>, date: string, planned: readonly string[], rule = true): void {
+    raceNight(state, INPUTS, { date, ...RACE });
+    const units = planned.map((input) => ({ input, configs: ["held"] }));
+    const night = nightOf(state, date);
+    noteLost(night, 2, units, lostPairs(state, units, []));
+    if (rule) noteMisses(state, night);
+    delete night.pending;
+  }
+
+  it("brings a config with a synthetic input that never records to the full race on the third night", () => {
+    const state = aliveWithout(NEVER);
+    missNight(state, DATES[0]!, [NEVER]);
+    expect(state.nights.at(-1)!.race!.full).toBe(0);
+    expect(state.configs["held"]!.censored).toBeUndefined();
+    missNight(state, DATES[1]!, [NEVER]);
+    expect(state.nights.at(-1)!.race!.full).toBe(0);
+    expect(state.configs["held"]!.censored?.[NEVER]).toEqual({ input: NEVER, tag: "censored", reason: "no-record", nights: DATES.slice(0, 2), atLeastMs: null });
+    raceNight(state, INPUTS, { date: DATES[2]!, ...RACE });
+    const race = state.nights.at(-1)!.race!;
+    expect(race.full).toBe(1);
+    expect(race.withRows).toBe(1);
+    expect(race.held).toEqual([]);
+    expect(raceLines(race).join("\n")).toContain("1 of the raced configs have censored rows");
+    expect(state.configs["held"]!.labelFrom).toEqual({ kind: "race", night: DATES[2] });
+    // The input of the row has no value, so it never counts for the config.
+    expect(valueMaps(state).get("held")?.has(NEVER)).toBe(false);
+    expect(labelLine(state.configs["held"]!)).toContain("1 censored inputs");
+  });
+
+  it("holds the config on the third night in a fault copy with no rule, which is the flip of the test above", () => {
+    const state = aliveWithout(NEVER);
+    missNight(state, DATES[0]!, [NEVER], false);
+    missNight(state, DATES[1]!, [NEVER], false);
+    raceNight(state, INPUTS, { date: DATES[2]!, ...RACE });
+    const race = state.nights.at(-1)!.race!;
+    expect(race.full).toBe(0);
+    expect(race.withRows).toBeUndefined();
+    expect(race.held?.[0]).toMatchObject({ config: "held", missing: 1 });
+    expect(race.held?.[0]?.noRead).toBeUndefined();
+  });
+
+  it("does not count a night that did not plan the pair, and does not clear the count on that night", () => {
+    const state = aliveWithout(NEVER);
+    missNight(state, DATES[0]!, [NEVER]);
+    missNight(state, DATES[1]!, []);
+    expect(state.configs["held"]!.misses?.[NEVER]?.nights).toEqual([DATES[0]]);
+    expect(state.configs["held"]!.censored).toBeUndefined();
+    missNight(state, DATES[2]!, [NEVER]);
+    expect(state.configs["held"]!.censored?.[NEVER]?.nights).toEqual([DATES[0], DATES[2]]);
+  });
+
+  it("clears the miss and the row when the pair gets a value", () => {
+    const state = aliveWithout(NEVER);
+    missNight(state, DATES[0]!, [NEVER]);
+    missNight(state, DATES[1]!, [NEVER]);
+    applyRecords(state, [record("held", NEVER, 0.5)], INPUTS, DATES[2]!);
+    settleRows(state);
+    expect(state.configs["held"]!.misses).toBeUndefined();
+    expect(state.configs["held"]!.censored).toBeUndefined();
+  });
+
+  it("writes the lower bound of a stopped shard on the row, and the largest bound of the nights", () => {
+    const state = aliveWithout(NEVER);
+    const bound = (date: string, atLeastMs: number): void => {
+      const night = nightOf(state, date);
+      night.shards.push({ round: 2, shard: 0, planned: 1, real: 1, censored: { unit: "u", input: NEVER, configs: ["held"], atLeastMs, reason: "hard deadline" } });
+      const units = [{ input: NEVER, configs: ["held"] }];
+      noteLost(night, 2, units, lostPairs(state, units, [], new Set([`held|${NEVER}`])));
+      noteMisses(state, night);
+    };
+    bound(DATES[0]!, 90_000);
+    bound(DATES[1]!, 60_000);
+    expect(state.configs["held"]!.censored?.[NEVER]).toMatchObject({ reason: "censored", atLeastMs: 90_000 });
+    expect(censoredLines(state).join("\n")).toContain("| censored | 2026-11-10, 2026-11-11 | 1.5 min |");
+  });
+
+  it("gives no read to a config over the limit, and that config never reaches the race", () => {
+    expect(censoredLimit(303)).toBe(2);
+    expect(censoredLimit(12)).toBe(1);
+    const [a, b] = [INPUTS[0]!.id, INPUTS[1]!.id];
+    const state = aliveWithout(a, b);
+    missNight(state, DATES[0]!, [a, b]);
+    missNight(state, DATES[1]!, [a, b]);
+    raceNight(state, INPUTS, { date: DATES[2]!, ...RACE });
+    const race = state.nights.at(-1)!.race!;
+    expect(race.full).toBe(0);
+    expect(race.held?.[0]).toMatchObject({ config: "held", missing: 2, noRead: true });
+    expect(race.held?.[0]?.reason).toContain("2 censored rows, so it reads no read");
+    expect(labelLine(state.configs["held"]!, 2, true)).toMatch(/^no read, 2 censored inputs/);
+    // A row at the limit stays a race, so the flip of the limit is the config above.
+    delete state.configs["held"]!.censored![b];
+    applyRecords(state, [record("held", b, 0.5)], INPUTS, DATES[2]!);
+    raceNight(state, INPUTS, { date: "2026-11-13", ...RACE });
+    expect(state.nights.at(-1)!.race!.full).toBe(1);
+  });
+
+  it("reads the screen share with the rows counted as absent, so the outcome of the screen does not move", () => {
+    const state = stateWithAlive();
+    const screen = INPUTS.filter((i) => i.seed === 1);
+    state.configs["fresh"] = { status: "screened", config: { pack: "p", router: "r" }, first: "2026-11-09" } as unknown as (typeof state.configs)[string];
+    state.values["fresh"] = INPUTS.map(() => null);
+    // Each screen input has a censored row, so the plan owes nothing and the screen share still fails.
+    state.configs["fresh"]!.censored = Object.fromEntries(screen.map((i) => [i.id, { input: i.id, tag: "censored", reason: "no-record", nights: DATES.slice(0, 2), atLeastMs: null }]));
+    raceNight(state, INPUTS, { date: DATES[0]!, ...RACE });
+    const race = state.nights.at(-1)!.race!;
+    expect(race.raced).toBe(0);
+    expect(race.held?.find((h) => h.config === "fresh")).toMatchObject({ status: "screened", missing: screen.length, noRead: true });
+  });
+
+  it("clears a row with no reference when the reference returns, so the plan has the pair again", () => {
+    const state = aliveWithout(NEVER);
+    state.reference[0] = null;
+    missNight(state, DATES[0]!, [NEVER]);
+    missNight(state, DATES[1]!, [NEVER]);
+    expect(state.configs["held"]!.censored?.[NEVER]?.reason).toBe("no-reference");
+    applyKept(state, [], DATES[2]!);
+    expect(state.configs["held"]!.censored?.[NEVER]).toBeDefined();
+    applyRecords(state, baselineIds().map((c) => record(c, NEVER, 0.5)), INPUTS, DATES[2]!);
+    applyKept(state, [], DATES[2]!);
+    expect(state.configs["held"]!.censored).toBeUndefined();
+    expect(state.configs["held"]!.misses).toBeUndefined();
+    raceNight(state, INPUTS, { date: DATES[2]!, ...RACE });
+    expect(state.nights.at(-1)!.race!.held?.[0]).toMatchObject({ config: "held", missing: 1 });
+  });
+
+  it("gives a value from a kept record only after its reference returns, and no summary row", () => {
+    const state = aliveWithout(NEVER);
+    state.reference[0] = null;
+    const kept = [{ record: record("held", NEVER, 0.5) }, { record: record("not-a-config", NEVER, 0.5) }];
+    expect(applyKept(state, kept, DATES[0]!)).toBe(0);
+    expect(nightOf(state, DATES[0]!).kept).toBeUndefined();
+    applyRecords(state, baselineIds().map((c) => record(c, NEVER, 0.5)), INPUTS, DATES[0]!);
+    const rows = state.summary.length;
+    expect(applyKept(state, kept, DATES[0]!)).toBe(1);
+    expect(state.values["held"]![0]).toBeTypeOf("number");
+    expect(nightOf(state, DATES[0]!).kept).toBe(1);
+    expect(state.summary).toHaveLength(rows);
+    // A second read gives nothing, because the value stands.
+    expect(applyKept(state, kept, DATES[1]!)).toBe(0);
+  });
+
+  it("gives no value from a kept record to a config that the race dropped", () => {
+    const state = aliveWithout(NEVER);
+    state.configs["held"]!.status = "dropped";
+    expect(applyKept(state, [{ record: record("held", NEVER, 0.5) }], DATES[0]!)).toBe(0);
+  });
+
+  it("keeps a baseline config out of the rule", () => {
+    const state = aliveWithout(NEVER);
+    const [base] = baselineIds();
+    const night = nightOf(state, DATES[0]!);
+    night.pending = [`${base}|${NEVER}`];
+    noteMisses(state, night);
+    expect(state.configs[base!]!.misses).toBeUndefined();
+  });
+});
+
+describe("a plan cannot hold a config for ever because of its cost (L116)", () => {
+  /** This function gives a state with 3 real alive configs with no values, and the planned cost of the first of the rotation. Configs with no date and no mean have the order of their ids. */
+  function threeAlive(): { state: ReturnType<typeof emptyState>; ids: string[]; costOfFirst: number } {
+    const state = emptyState("test", "test", INPUTS);
+    const first = planRound1(state, INPUTS, { ...OPTIONS, maxShards: 4 });
+    const base = new Set(baselineIds());
+    applyRecords(state, first.plan.units.flatMap((u) => u.configs.filter((c) => base.has(c)).map((c) => record(c, u.input, 0.5))), INPUTS, OPTIONS.date);
+    const ids = Object.keys(first.configs).filter((id) => !base.has(id)).slice(0, 3).sort();
+    for (const id of Object.keys(state.configs)) if (state.configs[id]!.status === "screened") state.configs[id]!.status = ids.includes(id) ? "alive" : "dropped";
+    const run = configRun(state.configs[ids[0]!]!.config);
+    return { state, ids, costOfFirst: INPUTS.reduce((s, i) => s + jobCost(run, i), 0) };
+  }
+
+  it("runs the first config that does not fit in part, and counts the rest as waiting", () => {
+    const { state, ids, costOfFirst } = threeAlive();
+    const target = costOfFirst / 2 / SWEEP_FILL;
+    const plan = planRound2(state, INPUTS, { ...OPTIONS, date: "2026-10-30", target, maxShards: 1, maxConfigs: 0, maxUnit: target });
+    const jobsOf = (id: string): number => plan.plan.units.filter((u) => u.configs.includes(id)).length;
+    const planned = ids.map(jobsOf);
+    const inPart = planned.filter((n) => n > 0 && n < INPUTS.length);
+    // takeBudget alone, the fault copy of this plan, gives 0 jobs here, because the first config does not fit.
+    expect(takeBudget([ids[0]], () => costOfFirst, target * SWEEP_FILL).taken).toEqual([]);
+    expect(inPart).toHaveLength(1);
+    expect(planned.filter((n) => n === 0)).toHaveLength(2);
+    const waiting = nightOf(state, "2026-10-30").waiting?.[2];
+    expect(waiting?.configs).toBe(3);
+    expect(waiting?.pairs).toBe(INPUTS.length * 3 - inPart[0]!);
+    expect(waitingLine(nightOf(state, "2026-10-30"))).toContain(`round 2: 3 configs, ${waiting?.pairs} pairs`);
+  });
+
+  it("moves the date of a config in part, so the configs behind it come first on the next night", () => {
+    const { state, ids, costOfFirst } = threeAlive();
+    const target = costOfFirst / 2 / SWEEP_FILL;
+    const options = { ...OPTIONS, target, maxShards: 1, maxConfigs: 0, maxUnit: target };
+    const first = planRound2(state, INPUTS, { ...options, date: "2026-10-30" });
+    const took = ids.filter((id) => first.plan.units.some((u) => u.configs.includes(id)));
+    expect(took).toHaveLength(1);
+    applyRecords(state, first.plan.units.flatMap((u) => u.configs.map((c) => record(c, u.input, 0.5))), INPUTS, "2026-10-30");
+    const second = planRound2(state, INPUTS, { ...options, date: "2026-10-31" });
+    const next = ids.filter((id) => second.plan.units.some((u) => u.configs.includes(id)));
+    expect(next).toHaveLength(1);
+    expect(next).not.toEqual(took);
+  });
+
+  it("reads not read on a night from before the field", () => {
+    expect(waitingLine({})).toBe("Waiting for the budget: not read.");
   });
 });
