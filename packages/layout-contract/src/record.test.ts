@@ -98,5 +98,17 @@ describe("parseLayoutRecord", () => {
     expect(checkLayoutRecord(line({ ...run, tolerance: { overlap: "x" } }))).toEqual(["tolerance.overlap is not a number"]);
     expect(checkLayoutRecord(line({ ...run, shapes: ["hexagon"] }))).toEqual(["shapes is not a list of shape kinds"]);
     expect(checkLayoutRecord(line({ ...run, msRuns: [1, "2"] }))).toEqual(["msRuns is not a list of numbers"]);
+    expect(checkLayoutRecord(line({ ...run, oneRun: 1 }))).toEqual(["oneRun is not a boolean"]);
+    expect(checkLayoutRecord(line({ ...run, budgetMs: "30000" }))).toEqual(["budgetMs is not a number"]);
+    expect(checkLayoutRecord(line({ ...run, msAtLeast: "30000" }))).toEqual(["msAtLeast is not a number"]);
+    expect(checkLayoutRecord(line({ ...run, because: "a@10" }))).toEqual(["because is not a list of strings"]);
+    expect(checkLayoutRecord(line({ ...run, because: ["a@10", 2] }))).toEqual(["because is not a list of strings"]);
+  });
+
+  it("accepts the fields of a wall budget", () => {
+    expect(checkLayoutRecord(line({ ...run, oneRun: true }))).toEqual([]);
+    expect(checkLayoutRecord(line({ ...run, oneRun: false }))).toEqual([]);
+    expect(checkLayoutRecord(line({ ...run, measures: {}, deterministic: null, skipped: "over budget", budgetMs: 30000, msAtLeast: 30000 }))).toEqual([]);
+    expect(checkLayoutRecord(line({ ...run, measures: {}, deterministic: null, skipped: "not run", budgetMs: 30000, because: ["a@10", "b@10"] }))).toEqual([]);
   });
 });
