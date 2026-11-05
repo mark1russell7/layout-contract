@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import type { GenerateContext } from "./families.ts";
 import {
   CIRCLE_SCATTERED,
   PACK_HARD_RULES,
@@ -21,6 +22,9 @@ const make = (seed: number, containerShape: string, count?: number): LayoutInput
 
 const RECT_HASHES = ["e5e08a6bdd513075", "0d7b08993763cb54", "0f9abb4f55ea95ef"];
 const CIRCLE_HASHES = ["4e9e9f8797afbbc4", "3fae0722f924fb9a", "1a47aecbf2104203"];
+
+// The generator refuses these values before it reads its context.
+const NO_CONTEXT = {} as GenerateContext;
 
 const radiusOf = (b: LayoutBox): number => (b.shape as { r: number }).r;
 const circleArea = (i: LayoutInput): number => i.boxes.reduce((sum, b) => sum + Math.PI * radiusOf(b) ** 2, 0);
@@ -94,8 +98,8 @@ describe("the family circle-scattered", () => {
   it("refuses a container that it does not support, and a bad count", () => {
     expect(() => make(1, "polygon")).toThrow(RangeError);
     expect(() => make(1, "hexagon")).toThrow(RangeError);
-    expect(() => CIRCLE_SCATTERED.generate(1, { count: 1.5, containerShape: "rect" }, {})).toThrow(RangeError);
-    expect(() => CIRCLE_SCATTERED.generate(1, { count: 1, containerShape: "ellipse" }, {})).toThrow(RangeError);
+    expect(() => CIRCLE_SCATTERED.generate(1, { count: 1.5, containerShape: "rect" }, NO_CONTEXT)).toThrow(RangeError);
+    expect(() => CIRCLE_SCATTERED.generate(1, { count: 1, containerShape: "ellipse" }, NO_CONTEXT)).toThrow(RangeError);
   });
 });
 
