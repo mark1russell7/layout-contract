@@ -210,6 +210,15 @@ export function pairId(pack: string, router: string): string {
   return `${pack}${PAIR_SEPARATOR}${router}`;
 }
 
+/** A stage of a pair. The stage `pack` of a pack entry starts on its first pair. */
+export type PairPhase = "pack" | "route";
+
+/** The record of a pair that did not finish: the reason of its skip, and the facts that the option `budget` of the record holds. */
+export interface PairTag {
+  readonly reason: string;
+  readonly facts: Readonly<Record<string, unknown>>;
+}
+
 /** The options of `runInput`. */
 export interface RunOptions {
   /** The pack entries. The default is `PACK_ENTRIES`. */
@@ -229,6 +238,10 @@ export interface RunOptions {
   readonly commit?: string;
   /** The clock in milliseconds. The default is `performance.now`. */
   readonly now?: () => number;
+  /** This function is called before each stage of a pair. A time budget starts its clock here. */
+  readonly onStart?: (pair: string, phase: PairPhase) => void;
+  /** The pairs that did not finish in an earlier process. Each gives its tagged record, with no pack and no route. */
+  readonly tags?: ReadonlyMap<string, PairTag>;
   /**
    * The lane pairs of the joint strategy of L13 (`laneEntries`). The default is none, so the default plan does not change.
    * Each lane pair gives one more record after the records of the pack entries and the routers.
@@ -593,8 +606,14 @@ export function* pairRuns(input: LayoutInput, cell: Readonly<Record<string, unkn
   };
 
   for (const entry of packs) {
-    const mine = only === undefined ? routers : routers.filter((router) => only.has(pairId(entry.id, router)));
+    const chosen = only === undefined ? routers : routers.filter((router) => only.has(pairId(entry.id, router)));
+    for (const router of chosen) {
+      const tag = options.tags?.get(pairId(entry.id, router));
+      if (tag !== undefined) yield { record: skippedRecord(entry, router, tag.reason, undefined, { budget: tag.facts }) };
+    }
+    const mine = chosen.filter((router) => !options.tags?.has(pairId(entry.id, router)));
     if (mine.length === 0) continue;
+    options.onStart?.(pairId(entry.id, mine[0]!), "pack");
     const run = packOnce(entry, inputFor(entry), cell, seed, now, packInput);
     packRuns.set(entry.id, run);
     if (!run.ok) {
@@ -603,6 +622,7 @@ export function* pairRuns(input: LayoutInput, cell: Readonly<Record<string, unkn
     }
     const g = groupOf(run, entry.id);
     for (const router of mine) {
+      options.onStart?.(pairId(entry.id, router), "route");
       const freed = g.freed.get(router);
       if (freed !== undefined) {
         yield { record: recordOf(entry, router, run, g, freed, run.ms, run.ms + freed.ms, run.deterministic && freed.deterministic), packed: g.packed, pack: run.output };

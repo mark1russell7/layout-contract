@@ -21,10 +21,13 @@ export interface CoverException {
 
 /**
  * The closed list of the strategies with no entry. A test fails when the list has another strategy, and when this strategy starts to run.
- * The joint corpora have only rectangle items, and `hole-degree` packs only circles.
+ * The joint corpora have only rectangle items, and `hole-degree` and `circle-quasi-physical` pack only circles.
+ * The strategy `exact-strip` refuses each strip input of the corpora.
  */
 export const COVER_EXCEPTIONS: Readonly<Record<string, CoverException>> = Object.freeze({
   "hole-degree": { reason: "The strategy packs only circle items, and each joint input has only rectangle items.", removedBy: "L94" },
+  "circle-quasi-physical": { reason: "The strategy packs only circle items, and each joint input has only rectangle items.", removedBy: "L94" },
+  "exact-strip": { reason: "The strategy takes at most 16 items with no gap and no margin, and each strip input of the joint corpus breaks one of these limits.", removedBy: "L94" },
 });
 
 /**

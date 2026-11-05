@@ -3,7 +3,7 @@
 // `fit-cost.mjs` needs the logs of a full run, so it is not here.
 // A crash at load time or in a command then fails the pull request, not the night. The night of 2026-11-02 failed in summarize on such a crash.
 import { execFileSync } from "node:child_process";
-import { cpSync, existsSync, mkdtempSync, readFileSync, renameSync, rmSync, writeFileSync } from "node:fs";
+import { cpSync, existsSync, mkdirSync, mkdtempSync, readFileSync, renameSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterAll, describe, expect, it } from "vitest";
@@ -101,6 +101,24 @@ describe("the commands of the sweep script", () => {
     expect(step).toMatchObject({ from: old, dropped: { space: 0, input: 0, hash: 0, config: 0 } });
     expect(step.pairs).toBeGreaterThan(0);
     expect(step.metrics["joint.fill"]).toMatchObject({ median: 1, q10: 1, q90: 1 });
+  });
+});
+
+describe("the command of the sweep script that reads the last gates", () => {
+  it("gives the estimate as its first word, from the jobs of each gate", { timeout: 60_000 }, () => {
+    const gates = join(dir, "gates");
+    mkdirSync(gates);
+    const jobs = [{ name: "probe", conclusion: "success", startedAt: "2026-11-04T00:00:00Z", completedAt: "2026-11-04T05:03:00Z" }];
+    writeFileSync(join(gates, "1.json"), JSON.stringify({ headSha: "a", jobs }));
+    const text = start("sweep.mjs", ["gate-estimate", "--runs", gates]);
+    expect(text.split(" ")[0]).toBe("303");
+    expect(text).toContain("1: longest job 303, 303 job minutes");
+  });
+
+  it("gives the fallback when the folder holds no gate", { timeout: 60_000 }, () => {
+    const text = start("sweep.mjs", ["gate-estimate", "--runs", join(dir, "no-gates")]);
+    expect(text.split(" ")[0]).toBe("360");
+    expect(text).toContain("no gate, so the fallback");
   });
 });
 

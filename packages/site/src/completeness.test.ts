@@ -67,8 +67,8 @@ describe("the lists of the joint pages", () => {
   });
 
   it("tags only the strategies of the closed list of exceptions", () => {
-    expect(Object.keys(catalog.packExceptions)).toEqual(["hole-degree"]);
-    expect(packs.some((p) => p.strategy === "hole-degree")).toBe(true);
+    expect(Object.keys(catalog.packExceptions)).toEqual(["hole-degree", "circle-quasi-physical", "exact-strip"]);
+    for (const s of Object.keys(catalog.packExceptions)) expect(packs.some((p) => p.strategy === s), s).toBe(true);
   });
 
   it("has each router of the registry of highways, as a router of the benchmark or an open router", () => {
