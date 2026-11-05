@@ -21,6 +21,7 @@ A joint run packs an input, and then routes the edges of the same input. The `jo
 | `joint.stability.mean` | `W` | lower | 0 | 0.005 | 0.005 | guard on change pairs |
 | `joint.stability.moved` | 0 to 1 | lower | 0 | 0.02 | 0.02 | guard on change pairs |
 | `joint.proxy.rank` | -1 to 1 | higher | none | none | none | diagnostic |
+| `joint.route.length` | layout units for each route | lower | none | none | none | diagnostic |
 | `joint.ms` | milliseconds | lower | none | none | none | time |
 
 ## The definitions
@@ -36,6 +37,7 @@ A joint run packs an input, and then routes the edges of the same input. The `jo
 - `joint.stability.moved` is the share of the boxes and the edges that stay and move more than `joint.stability.movedMin` times `W`. The value of `joint.stability.movedMin` is 0.01.
 - `route.stability.moved` counts a route as moved above 1 unit of the board. Thus on a large board, `joint.stability.moved` and `route.stability.moved` are different.
 - `joint.proxy.rank` is the Spearman rank correlation, over the edges, between the straight length and the length of the route. A value near 1 tells that `joint.straight.length` is a good proxy for the length of the routes. Then a packer can optimize the proxy.
+- `joint.route.length` is the sum of the lengths of the routes, divided by the count of the routes. A shared stretch counts once for each route, so this value is not the ink. A pack change moves this value too, so it reads no router alone. It stays beside `route.detour.*`, because the denominator of a detour moves with the pack.
 - `joint.ms` is the time of the pack plus the time of the route, in milliseconds. The time test of the promotion rule uses it.
 
 ## The minimum effects

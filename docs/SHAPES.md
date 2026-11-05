@@ -66,7 +66,7 @@ Thus each input, record and hash of 0.2.12 stays the same.
 | `joint.aspectError`, `joint.spill` | each kind | They read the hull of the bounding boxes. |
 | `joint.straight.crossings` | each kind | It reads the centers of the bounding boxes. |
 | `joint.stability.mean`, `joint.stability.moved` | each kind | They read the positions and the width `W` of the bounding boxes. |
-| `joint.proxy.rank`, `joint.ms` | each kind | They read the ranks of lengths and the time. |
+| `joint.proxy.rank`, `joint.route.length`, `joint.ms` | each kind | They read the ranks of lengths, the points of the routes and the time. |
 | `no-overlap`, `in-container` | `rect` and `circle`, and `safe` for `polygon` and `free` | Two circles, and a circle in a circle container, count by distance since 0.4.0. Each other test reads the bounding boxes, and the count is an upper bound. The section "The rule on circles" tells the limit. |
 | `locked-kept`, `complete` | each kind | They read only the positions and the ids. |
 
@@ -104,6 +104,7 @@ Thus each input, record and hash of 0.2.12 stays the same.
 | A circle in a polygon or an ellipse container | The corners of the bounding box | `safe`, until 2026-11-28 (L107) |
 
 - The margin of a circle is the largest side of its margin.
+- `segmentThroughShape(a, b, box, tolerance)` reads a route against the true circle. A part longer than `Tolerance.through` inside the circle made that much smaller counts. `countLinksThroughShapes` counts the routes. Each other kind reads its bounding box.
 - `shapesOverlap(a, b, tolerance, gap)` is the rule for one pair. A reader that needs the same test uses this function, and it does not write a copy.
 - `inputShapeLevel(rule, kind, input)` gives the level for one input. It reads the field `limit` of the rule. `checkShapes` uses it, so at its default level it refuses an input that the limit names.
 - On a record of version 1, a count on a circle is by its bounding box. A count over 0 proves nothing, so no page reads it as a fault.

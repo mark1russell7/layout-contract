@@ -11,8 +11,9 @@ export const STEP_METRICS: readonly string[] = Object.freeze(["joint.fill", "har
  * The route values of a step. The state keeps them apart from the pick values, so no verdict reads them.
  * A pack change also moves a detour, because the straight length is its denominator. A move in a detour alone is no change of a router.
  * A router that shares segments cuts `route.crossings`, so that count alone is no win.
+ * The plain `joint.route.length` stays beside a detour, because its denominator does not move it. A pack change moves it too.
  */
-export const STEP_ROUTE_METRICS: readonly string[] = Object.freeze(["route.detour.mean", "route.detour.q95", "route.crossings"]);
+export const STEP_ROUTE_METRICS: readonly string[] = Object.freeze(["route.detour.mean", "route.detour.q95", "joint.route.length", "route.crossings"]);
 
 /** The 0-or-1 measure that marks a route value as an estimate from a sample. An estimate over a full count is no ratio, because an estimate can read up to 16 % off. */
 const STEP_ROUTE_ESTIMATE: Readonly<Record<string, string>> = Object.freeze({ "route.crossings": "route.crossings.estimated" });

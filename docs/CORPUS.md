@@ -201,6 +201,16 @@ Each cell tells the family that reads the dimension in each engine. "Own" tells 
 - `rect-scattered` has two copies today: `generators.ts` of `packing` and `bench/screen/generators.ts` of `highways`.
 - `layout-contract` has the one shared copy: `RECT_SCATTERED`, with the owner `layout-contract`. Both engines accepted the move. Each engine registers it and removes its own copy.
 
+## The family `circle-scattered`
+
+`CIRCLE_SCATTERED` is version 1, with the owner `layout-contract`. It gives the circle items of L94.
+
+- It has 2 dimensions: `count`, with the default 40, and `containerShape`, with the values `rect` and `circle`.
+- The set is `context.set`. Without it, the set is `circle-v1`. The id holds the container shape, so 2 inputs of one seed have different ids.
+- The stream `items` gives the radii, so one seed has the same radii in the 2 containers.
+- The container is fixed. The circles fill approximately half of it, and the container is at least as large as the largest circle.
+- It has no obstacles, no edges, no margin and no gap. So its input takes the exact rules of `docs/SHAPES.md`.
+
 ## The family `rect-scattered`
 
 `RECT_SCATTERED` is version 1 of the generator of `docs/FORMAT.md` of `packing`.

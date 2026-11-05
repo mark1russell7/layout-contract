@@ -1,4 +1,4 @@
-import { boundsOf, grow, marginSides, overlapOf, type Margin, type Rect, type Region } from "./geometry.ts";
+import { boundsOf, grow, marginSides, overlapOf, type Margin, type Point, type Rect, type Region } from "./geometry.ts";
 import type { LayoutBox, LayoutContainer, LayoutInput, Obstacle, PairGap, Port } from "./input.ts";
 import { applyPack, type PackOutput } from "./output.ts";
 import { SHAPE_KIND_IDS, shapeKindProblem, type ShapeSupport } from "./shapes.ts";
@@ -211,6 +211,109 @@ export function circlesOutside(input: LayoutInput, tolerance: number = DEFAULT_T
   for (const box of input.boxes) {
     const disc = placedCircle(box);
     if (disc !== undefined && circleOutside(disc, marginReach(box.margin) + (c.inset ?? 0), ring, tolerance)) count++;
+  }
+  return count;
+}
+
+/** This function gives the length of the part of the segment `ab` inside a circle. A radius of 0 or less gives 0. */
+function partInCircle(a: Point, b: Point, cx: number, cy: number, r: number): number {
+  if (r <= 0) return 0;
+  const dx = b.x - a.x;
+  const dy = b.y - a.y;
+  const fx = a.x - cx;
+  const fy = a.y - cy;
+  const l2 = dx * dx + dy * dy;
+  if (l2 === 0) return 0;
+  const half = fx * dx + fy * dy;
+  const inner = half * half - l2 * (fx * fx + fy * fy - r * r);
+  if (inner <= 0) return 0;
+  const root = Math.sqrt(inner);
+  const t0 = Math.max(0, (-half - root) / l2);
+  const t1 = Math.min(1, (-half + root) / l2);
+  return t1 > t0 ? (t1 - t0) * Math.sqrt(l2) : 0;
+}
+
+/** This function gives the length of the part of the segment `ab` inside the open box from (`x0`, `y0`) to (`x1`, `y1`). A box with no inside gives 0. */
+function partInBox(a: Point, b: Point, x0: number, y0: number, x1: number, y1: number): number {
+  if (x1 <= x0 || y1 <= y0) return 0;
+  const dx = b.x - a.x;
+  const dy = b.y - a.y;
+  let t0 = 0;
+  let t1 = 1;
+  for (const [from, d, lo, hi] of [[a.x, dx, x0, x1], [a.y, dy, y0, y1]] as const) {
+    if (d === 0) {
+      if (from <= lo || from >= hi) return 0;
+      continue;
+    }
+    const ta = (lo - from) / d;
+    const tb = (hi - from) / d;
+    t0 = Math.max(t0, Math.min(ta, tb));
+    t1 = Math.min(t1, Math.max(ta, tb));
+    if (t0 > t1) return 0;
+  }
+  return (t1 - t0) * Math.sqrt(dx * dx + dy * dy);
+}
+
+/**
+ * This function tells if the segment `ab` goes through a placed box, by the rule of `Tolerance.through`.
+ * A part of the segment longer than `tolerance` is inside the shape made `tolerance` smaller.
+ *
+ * - A circle box reads its circle. Each other kind reads its bounding box, so on a polygon or a free shape the answer is an upper bound.
+ * - The margin of the box does not count. A box without a position gives `false`.
+ */
+export function segmentThroughShape(a: Point, b: Point, box: LayoutBox, tolerance: number = DEFAULT_TOLERANCE.through): boolean {
+  const disc = placedCircle(box);
+  if (disc !== undefined) return partInCircle(a, b, disc.cx, disc.cy, disc.r - tolerance) > tolerance;
+  const r = placedRect(box);
+  if (r === undefined) return false;
+  return partInBox(a, b, r.x + tolerance, r.y + tolerance, r.x + r.w - tolerance, r.y + r.h - tolerance) > tolerance;
+}
+
+/** A route between two boxes: the ids of its ends and its points. `countLinksThroughShapes` reads it. */
+export interface ShapeLink {
+  readonly source: string;
+  readonly target: string;
+  readonly points: readonly Point[];
+}
+
+/**
+ * This function counts the routes that go through a placed box that is not one of their two ends, by `segmentThroughShape`.
+ * A route counts once, also when it goes through more than one box.
+ */
+export function countLinksThroughShapes(boxes: readonly LayoutBox[], links: readonly ShapeLink[], tolerance: number = DEFAULT_TOLERANCE.through): number {
+  const placed = boxes.flatMap((box) => {
+    const r = placedRect(box);
+    return r === undefined ? [] : [{ box, r }];
+  });
+  placed.sort((p, q) => p.r.x - q.r.x);
+  const widest = placed.reduce((m, p) => Math.max(m, p.r.w), 0);
+  const firstAt = (x: number): number => {
+    let lo = 0;
+    let hi = placed.length;
+    while (lo < hi) {
+      const mid = (lo + hi) >>> 1;
+      if (placed[mid]!.r.x < x) lo = mid + 1;
+      else hi = mid;
+    }
+    return lo;
+  };
+  let count = 0;
+  for (const link of links) {
+    let hit = false;
+    for (let i = 1; i < link.points.length && !hit; i++) {
+      const a = link.points[i - 1]!;
+      const b = link.points[i]!;
+      const left = Math.min(a.x, b.x);
+      const right = Math.max(a.x, b.x);
+      const top = Math.min(a.y, b.y);
+      const bottom = Math.max(a.y, b.y);
+      for (let k = firstAt(left - widest); k < placed.length && placed[k]!.r.x < right && !hit; k++) {
+        const { box, r } = placed[k]!;
+        if (r.x + r.w <= left || r.y >= bottom || r.y + r.h <= top) continue;
+        if (box.id !== link.source && box.id !== link.target && segmentThroughShape(a, b, box, tolerance)) hit = true;
+      }
+    }
+    if (hit) count++;
   }
   return count;
 }

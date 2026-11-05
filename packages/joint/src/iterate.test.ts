@@ -152,6 +152,8 @@ describe("runInput with iteration pairs", () => {
       expect(r.measures["iter.best"]).toBeLessThanOrEqual(r.measures["iter.rounds"]!);
       expect(ITER_STOPS[r.measures["iter.stop"]!]).toBeDefined();
       expect(r.measures["time.lanes.ms"]).toBeGreaterThanOrEqual(0);
+      // `ms` minus `pack.ms` is the route time of all rounds, so it holds at least the best round.
+      expect(r.ms - r.measures["pack.ms"]!).toBeGreaterThanOrEqual(r.measures["route.ms"]! - 1e-6);
       expect(r.hard["pack.no-overlap"]).toBe(0);
       expect((r.options as { iterate: { base: string } }).iterate.base).toBe("rows+corners");
       // The best round never loses to round 1.
