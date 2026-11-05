@@ -10,7 +10,7 @@ const MS_PER_DAY = 86_400_000;
 export const LOST_COUNT_SINCE = "2026-11-06";
 
 /** The note on the older form of the count. The page and the summary of a night show it beside the count. */
-export const LOST_METHOD_NOTE = `Before ${LOST_COUNT_SINCE}, this count was "Jobs without a record": a sum over the rounds of the planned pairs with no record. That form did not count a record with no reference. It also kept a pair of round 1 on the count when round 2 gave its value.`;
+export const LOST_METHOD_NOTE: string = `Before ${LOST_COUNT_SINCE}, this count was "Jobs without a record": a sum over the rounds of the planned pairs with no record. That form did not count a record with no reference. It also kept a pair of round 1 on the count when round 2 gave its value.`;
 
 /** The state of the last night: `current` with each record, `partial` with records that are missing, or `late` when a due night is absent. */
 export type NightState = "current" | "partial" | "late";
