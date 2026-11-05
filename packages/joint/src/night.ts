@@ -341,6 +341,25 @@ function finish(
   return planJobs(round, jobs, configs, fresh.length, inputs, options);
 }
 
+/** One-off read on this branch: the plan of stated configs and the baseline arm on stated inputs. */
+export function planStated(state: SweepState, inputs: readonly SweepInput[], request: { readonly inputs: readonly string[]; readonly configs: Readonly<Record<string, StrategyConfig>> }, options: PlanOptions): NightPlan {
+  const space = options.space ?? JOINT_SPACE;
+  const known = new Set(inputs.map((i) => i.id));
+  for (const id of request.inputs) if (!known.has(id)) throw new Error(`The corpus has no input ${id}.`);
+  for (const [id, config] of Object.entries(request.configs)) {
+    const now = configId(space, config);
+    if (now !== id) throw new Error(`The config ${id} has the id ${now} on this space.`);
+    state.configs[id] = { config, status: "alive", first: options.date };
+    state.values[id] = state.inputs.map(() => null);
+  }
+  const ids = [...baselineIds(space), ...Object.keys(request.configs)];
+  const jobs: SweepJob[] = ids.flatMap((config) => request.inputs.map((input) => ({ config, input })));
+  nightOf(state, options.date);
+  const plan = finish(state, 1, jobs, [], inputs, options);
+  nightOf(state, options.date).round1 = plan.facts;
+  return plan;
+}
+
 /** This function gives the plan of a list of jobs: the units, the shards and the facts of the round. The promotion test uses it with no state. */
 export function planJobs(
   round: 1 | 2,

@@ -51,6 +51,7 @@ import {
   noteLost,
   pairRuns,
   planDesign,
+  planStated,
   planRound1,
   plannedWall,
   planRound2,
@@ -243,7 +244,7 @@ if (command === "plan") {
   const file = join(args.data ?? "data", "epochs", epoch, "state.json");
   // The data branch keeps the summary in its own file, so the state of the branch has no summary.
   const summaryFile = join(dirname(file), "summary.json");
-  const state = existsSync(file) ? { ...readJson(file), summary: existsSync(summaryFile) ? summaryRows(readJson(summaryFile)) : [] } : emptyState(epoch, set, sweep, undefined, date);
+  const state = existsSync(file) && args.carry === undefined ? { ...readJson(file), summary: existsSync(summaryFile) ? summaryRows(readJson(summaryFile)) : [] } : emptyState(epoch, set, sweep, undefined, date);
   console.log(existsSync(file) ? `The epoch ${epoch} has ${state.nights.length} nights.` : `The epoch ${epoch} is new.`);
   const out = args.out ?? "night";
   if (state.nights.some((n) => n.date === date)) {
@@ -254,7 +255,8 @@ if (command === "plan") {
     writeJson(join(out, "matrix.json"), []);
   } else {
     const options = planOptions(date, state);
-    if (args.design !== undefined) writePlan(out, state, planDesign(state, sweep, { ...options, n: numberArg("design", 0) }), options);
+    if (args.carry !== undefined) writePlan(out, state, planStated(state, sweep, readJson(args.carry), options), options);
+    else if (args.design !== undefined) writePlan(out, state, planDesign(state, sweep, { ...options, n: numberArg("design", 0) }), options);
     else writePlan(out, state, planRound1(state, sweep, options), options);
   }
 } else if (command === "run") {

@@ -1,0 +1,675 @@
+{
+ "seed": "layout-stack/L122/carry-read/2026-11-05",
+ "method": "strata by family and size, largest remainder, at least 1 each, order by sha256 of seed and id",
+ "from": "joint-v2_packing-0.4.1_highways-0.10.0_space-bench-3",
+ "inputs": [
+  "joint-v2/cards.freeWidth.n100.e-dense.bundled.flat.sides.sp-gap/s1",
+  "joint-v2/cards.freeAspect.n100.e-dense.clustered.flat.fixed.sp-gap/s1",
+  "joint-v2/cards.freeWidth.n100.e-sparse.longRange.none.sides.sp-both/s1",
+  "joint-v2/dashboard.freeAspect.n10.e-medium.hubs.flat.fixed.sp-both/s1",
+  "joint-v2/dashboard.fixed.n10.e-sparse.longRange.flat.sides.sp-gap/s1",
+  "joint-v2/dashboard.freeHeight.n10.e-sparse.random.none.sides.sp-margin/s1",
+  "joint-v2/edge-cases.oversize.n12.e-medium.random.none.free.sp-gap/s1",
+  "joint-v2/edge-cases.empty.e-medium.random.none.free.sp-both/s1",
+  "joint-v2/gallery.freeArea.n100.e-dense.hubs.nested.sides.sp-stress/s1",
+  "joint-v2/gallery.freeAspect.n100.e-medium.random.nested.free.sp-gap/s1",
+  "joint-v2/rect-grid.freeArea.circle.none.identical.n10.e-dense.tree.none.free.sp-margin/s1",
+  "joint-v2/rect-grid.fixed.ellipse.edge.identical.n10.e-sparse.hubs.nested.sides.sp-gap/s1",
+  "joint-v2/rect-grid.freeHeight.holes.center.identical.n10.e-dense.longRange.nested.free.sp-gap/s1",
+  "joint-v2/rect-grid.freeArea.ellipse.touching.nearIdentical.n10.e-sparse.hubs.nested.free.sp-stress/s1",
+  "joint-v2/rect-grid.freeArea.polygon.edge.heavyTail.n10.e-sparse.clustered.nested.sides.sp-both/s1",
+  "joint-v2/rect-grid.fixed.rect.wall.extremeAspect.n100.e-dense.tree.flat.free.sp-gap/s1",
+  "joint-v2/rect-grid.freeHeight.convex.wall.identical.n100.e-dense.longRange.flat.sides.sp-gap/s1",
+  "joint-v2/rect-grid.freeArea.rect.touching.uniform.n100.e-medium.tree.none.sides.sp-stress/s1",
+  "joint-v2/rect-grid.freeHeight.circle.edge.heavyTail.n100.e-medium.longRange.none.sides.sp-both/s1",
+  "joint-v2/rect-grid.freeHeight.ellipse.scattered.identical.n100.e-dense.random.nested.sides.sp-stress/s1",
+  "joint-v2/rect-grid.freeArea.holes.corridors.extremeAspect.n100.e-sparse.bundled.flat.sides.sp-stress/s1",
+  "joint-v2/rect-grid.freeWidth.circle.edge.bimodal.n100.e-dense.random.none.free.sp-stress/s1",
+  "joint-v2/rect-grid.freeWidth.holes.scattered.uniform.n1000.e-medium.clustered.flat.free.sp-margin/s1",
+  "joint-v2/rect-grid.freeWidth.convex.edge.extremeAspect.n1000.e-medium.bundled.nested.fixed.sp-margin/s1",
+  "joint-v2/rect-grid.freeArea.holes.center.nearIdentical.n1000.e-medium.random.none.fixed.sp-gap/s1",
+  "joint-v2/rect-grid.freeWidth.circle.touching.extremeAspect.n1000.e-medium.clustered.nested.sides.sp-stress/s1",
+  "joint-v2/rect-grid.freeAspect.rect.edge.nearIdentical.n1000.e-sparse.hubChain.flat.fixed.sp-margin/s1",
+  "joint-v2/rect-grid.fixed.polygon.touching.bimodal.n1000.e-dense.longRange.flat.free.sp-margin/s1",
+  "joint-v2/word-cloud.freeHeight.n100.e-sparse.hubs.flat.fixed.sp-stress/s1",
+  "joint-v2/word-cloud.freeHeight.n100.e-dense.clustered.flat.free.sp-both/s1"
+ ],
+ "configs": {
+  "28a784ce1fe188e4": {
+   "space": "joint",
+   "stages": {
+    "packing.entry": {
+     "option": "anneal-skyline-k16",
+     "params": {}
+    },
+    "highways.router": {
+     "option": "trunks",
+     "params": {}
+    },
+    "lanes.mode": {
+     "option": "sides",
+     "params": {
+      "passes": 2,
+      "clearance": 9,
+      "space": 2,
+      "cap": 2
+     }
+    }
+   }
+  },
+  "7c995af3ca9fa85b": {
+   "space": "joint",
+   "stages": {
+    "packing.entry": {
+     "option": "maxrects-bl",
+     "params": {}
+    },
+    "highways.router": {
+     "option": "corners",
+     "params": {}
+    },
+    "lanes.mode": {
+     "option": "max",
+     "params": {
+      "passes": 3,
+      "clearance": 2,
+      "space": 2,
+      "cap": 3
+     }
+    }
+   }
+  },
+  "171902d995136829": {
+   "space": "joint",
+   "stages": {
+    "packing.entry": {
+     "option": "rows",
+     "params": {}
+    },
+    "highways.router": {
+     "option": "search",
+     "params": {}
+    },
+    "lanes.mode": {
+     "option": "sides",
+     "params": {
+      "passes": 2,
+      "clearance": 5,
+      "space": 4,
+      "cap": 9
+     }
+    }
+   }
+  },
+  "69f3ede5bd0ca40f": {
+   "space": "joint",
+   "stages": {
+    "packing.entry": {
+     "option": "shelf-first-input",
+     "params": {}
+    },
+    "highways.router": {
+     "option": "search",
+     "params": {}
+    },
+    "lanes.mode": {
+     "option": "iter",
+     "params": {
+      "rounds": 3
+     }
+    }
+   }
+  },
+  "32723c9806006b90": {
+   "space": "joint",
+   "stages": {
+    "packing.entry": {
+     "option": "rows",
+     "params": {}
+    },
+    "highways.router": {
+     "option": "corners",
+     "params": {}
+    },
+    "lanes.mode": {
+     "option": "iter",
+     "params": {
+      "rounds": 2
+     }
+    }
+   }
+  },
+  "6f2a2c7f4994ab34": {
+   "space": "joint",
+   "stages": {
+    "packing.entry": {
+     "option": "maxrects-baf",
+     "params": {}
+    },
+    "highways.router": {
+     "option": "trunks",
+     "params": {}
+    },
+    "lanes.mode": {
+     "option": "iter",
+     "params": {
+      "rounds": 2
+     }
+    }
+   }
+  },
+  "49a9d41d93545bec": {
+   "space": "joint",
+   "stages": {
+    "packing.entry": {
+     "option": "tabu-maxrects-bl-k16",
+     "params": {}
+    },
+    "highways.router": {
+     "option": "corners",
+     "params": {}
+    },
+    "lanes.mode": null
+   }
+  },
+  "e8b8cce35b72f24c": {
+   "space": "joint",
+   "stages": {
+    "packing.entry": {
+     "option": "maxrects-bl",
+     "params": {}
+    },
+    "highways.router": {
+     "option": "portfolio",
+     "params": {}
+    },
+    "lanes.mode": {
+     "option": "iter",
+     "params": {
+      "rounds": 2
+     }
+    }
+   }
+  },
+  "08123cfec1998cbc": {
+   "space": "joint",
+   "stages": {
+    "packing.entry": {
+     "option": "genetic-maxrects-bl-k16",
+     "params": {}
+    },
+    "highways.router": {
+     "option": "corners",
+     "params": {}
+    },
+    "lanes.mode": {
+     "option": "iter",
+     "params": {
+      "rounds": 2
+     }
+    }
+   }
+  },
+  "61e8109ce9f29574": {
+   "space": "joint",
+   "stages": {
+    "packing.entry": {
+     "option": "maxrects-cp",
+     "params": {}
+    },
+    "highways.router": {
+     "option": "search",
+     "params": {}
+    },
+    "lanes.mode": {
+     "option": "iter",
+     "params": {
+      "rounds": 3
+     }
+    }
+   }
+  },
+  "c204711f5be8123c": {
+   "space": "joint",
+   "stages": {
+    "packing.entry": {
+     "option": "pack",
+     "params": {}
+    },
+    "highways.router": {
+     "option": "corners",
+     "params": {}
+    },
+    "lanes.mode": null
+   }
+  },
+  "b9e97d31935efa08": {
+   "space": "joint",
+   "stages": {
+    "packing.entry": {
+     "option": "maxrects-bl",
+     "params": {}
+    },
+    "highways.router": {
+     "option": "trunks",
+     "params": {}
+    },
+    "lanes.mode": {
+     "option": "max",
+     "params": {
+      "passes": 2,
+      "clearance": 5,
+      "space": 2,
+      "cap": 13
+     }
+    }
+   }
+  },
+  "b888fa8f645555e9": {
+   "space": "joint",
+   "stages": {
+    "packing.entry": {
+     "option": "shelf",
+     "params": {}
+    },
+    "highways.router": {
+     "option": "search",
+     "params": {}
+    },
+    "lanes.mode": {
+     "option": "sides",
+     "params": {
+      "passes": 1,
+      "clearance": 4,
+      "space": 6,
+      "cap": 5
+     }
+    }
+   }
+  },
+  "2c05d89068eaa002": {
+   "space": "joint",
+   "stages": {
+    "packing.entry": {
+     "option": "anneal-skyline-k16",
+     "params": {}
+    },
+    "highways.router": {
+     "option": "search",
+     "params": {}
+    },
+    "lanes.mode": {
+     "option": "max",
+     "params": {
+      "passes": 1,
+      "clearance": 10,
+      "space": 4,
+      "cap": 6
+     }
+    }
+   }
+  },
+  "5575047d3179c73f": {
+   "space": "joint",
+   "stages": {
+    "packing.entry": {
+     "option": "shelf-first",
+     "params": {}
+    },
+    "highways.router": {
+     "option": "corners",
+     "params": {}
+    },
+    "lanes.mode": {
+     "option": "sides",
+     "params": {
+      "passes": 3,
+      "clearance": 2,
+      "space": 3,
+      "cap": 6
+     }
+    }
+   }
+  },
+  "df29d84d17b317d4": {
+   "space": "joint",
+   "stages": {
+    "packing.entry": {
+     "option": "genetic-maxrects-bl-k16",
+     "params": {}
+    },
+    "highways.router": {
+     "option": "trunks",
+     "params": {}
+    },
+    "lanes.mode": {
+     "option": "sides",
+     "params": {
+      "passes": 1,
+      "clearance": 10,
+      "space": 4,
+      "cap": 11
+     }
+    }
+   }
+  },
+  "99996f2b5d18e4a6": {
+   "space": "joint",
+   "stages": {
+    "packing.entry": {
+     "option": "maxrects-bl",
+     "params": {}
+    },
+    "highways.router": {
+     "option": "shared-all",
+     "params": {}
+    },
+    "lanes.mode": {
+     "option": "iter",
+     "params": {
+      "rounds": 2
+     }
+    }
+   }
+  },
+  "cd1e57c4cf079f4b": {
+   "space": "joint",
+   "stages": {
+    "packing.entry": {
+     "option": "tabu-maxrects-bl-k16",
+     "params": {}
+    },
+    "highways.router": {
+     "option": "portfolio",
+     "params": {}
+    },
+    "lanes.mode": {
+     "option": "iter",
+     "params": {
+      "rounds": 3
+     }
+    }
+   }
+  },
+  "0ea8b0c284ae24b8": {
+   "space": "joint",
+   "stages": {
+    "packing.entry": {
+     "option": "select",
+     "params": {}
+    },
+    "highways.router": {
+     "option": "search",
+     "params": {}
+    },
+    "lanes.mode": {
+     "option": "sides",
+     "params": {
+      "passes": 3,
+      "clearance": 3,
+      "space": 5,
+      "cap": 7
+     }
+    }
+   }
+  },
+  "db4d051033c96d3f": {
+   "space": "joint",
+   "stages": {
+    "packing.entry": {
+     "option": "shelf-first-input",
+     "params": {}
+    },
+    "highways.router": {
+     "option": "corners",
+     "params": {}
+    },
+    "lanes.mode": {
+     "option": "sides",
+     "params": {
+      "passes": 1,
+      "clearance": 6,
+      "space": 5,
+      "cap": 13
+     }
+    }
+   }
+  },
+  "4b6f09ec66255913": {
+   "space": "joint",
+   "stages": {
+    "packing.entry": {
+     "option": "shelf-first",
+     "params": {}
+    },
+    "highways.router": {
+     "option": "search",
+     "params": {}
+    },
+    "lanes.mode": {
+     "option": "max",
+     "params": {
+      "passes": 2,
+      "clearance": 8,
+      "space": 2,
+      "cap": 5
+     }
+    }
+   }
+  },
+  "b87fc6cdd21f661f": {
+   "space": "joint",
+   "stages": {
+    "packing.entry": {
+     "option": "maxrects-blsf",
+     "params": {}
+    },
+    "highways.router": {
+     "option": "search",
+     "params": {}
+    },
+    "lanes.mode": {
+     "option": "iter",
+     "params": {
+      "rounds": 1
+     }
+    }
+   }
+  },
+  "0bb343f45ccf6b15": {
+   "space": "joint",
+   "stages": {
+    "packing.entry": {
+     "option": "skyline",
+     "params": {}
+    },
+    "highways.router": {
+     "option": "corners",
+     "params": {}
+    },
+    "lanes.mode": {
+     "option": "max",
+     "params": {
+      "passes": 2,
+      "clearance": 2,
+      "space": 3,
+      "cap": 16
+     }
+    }
+   }
+  },
+  "9912441b9414d8f8": {
+   "space": "joint",
+   "stages": {
+    "packing.entry": {
+     "option": "shelf",
+     "params": {}
+    },
+    "highways.router": {
+     "option": "corners",
+     "params": {}
+    },
+    "lanes.mode": {
+     "option": "sides",
+     "params": {
+      "passes": 3,
+      "clearance": 7,
+      "space": 4,
+      "cap": 2
+     }
+    }
+   }
+  },
+  "f708c8f4ac258412": {
+   "space": "joint",
+   "stages": {
+    "packing.entry": {
+     "option": "shelf-best",
+     "params": {}
+    },
+    "highways.router": {
+     "option": "shared-all",
+     "params": {}
+    },
+    "lanes.mode": {
+     "option": "sides",
+     "params": {
+      "passes": 3,
+      "clearance": 5,
+      "space": 2,
+      "cap": 3
+     }
+    }
+   }
+  },
+  "93a8fafe9c332a50": {
+   "space": "joint",
+   "stages": {
+    "packing.entry": {
+     "option": "maxrects-bl",
+     "params": {}
+    },
+    "highways.router": {
+     "option": "search",
+     "params": {}
+    },
+    "lanes.mode": {
+     "option": "max",
+     "params": {
+      "passes": 2,
+      "clearance": 10,
+      "space": 3,
+      "cap": 2
+     }
+    }
+   }
+  },
+  "886ce912ded897fa": {
+   "space": "joint",
+   "stages": {
+    "packing.entry": {
+     "option": "maxrects-baf",
+     "params": {}
+    },
+    "highways.router": {
+     "option": "corners",
+     "params": {}
+    },
+    "lanes.mode": {
+     "option": "iter",
+     "params": {
+      "rounds": 3
+     }
+    }
+   }
+  },
+  "547654dff0eabb6d": {
+   "space": "joint",
+   "stages": {
+    "packing.entry": {
+     "option": "select",
+     "params": {}
+    },
+    "highways.router": {
+     "option": "trunks",
+     "params": {}
+    },
+    "lanes.mode": {
+     "option": "iter",
+     "params": {
+      "rounds": 2
+     }
+    }
+   }
+  },
+  "339e2cb1676b0e5a": {
+   "space": "joint",
+   "stages": {
+    "packing.entry": {
+     "option": "pack",
+     "params": {}
+    },
+    "highways.router": {
+     "option": "search",
+     "params": {}
+    },
+    "lanes.mode": {
+     "option": "sides",
+     "params": {
+      "passes": 2,
+      "clearance": 7,
+      "space": 7,
+      "cap": 1
+     }
+    }
+   }
+  },
+  "3ad740f7921ed241": {
+   "space": "joint",
+   "stages": {
+    "packing.entry": {
+     "option": "shelf-next",
+     "params": {}
+    },
+    "highways.router": {
+     "option": "search",
+     "params": {}
+    },
+    "lanes.mode": null
+   }
+  },
+  "2afce9b15dae291c": {
+   "space": "joint",
+   "stages": {
+    "packing.entry": {
+     "option": "anneal-skyline-k16",
+     "params": {}
+    },
+    "highways.router": {
+     "option": "corners",
+     "params": {}
+    },
+    "lanes.mode": null
+   }
+  },
+  "e4a8689a12ab2904": {
+   "space": "joint",
+   "stages": {
+    "packing.entry": {
+     "option": "maxrects-bssf",
+     "params": {}
+    },
+    "highways.router": {
+     "option": "corners",
+     "params": {}
+    },
+    "lanes.mode": {
+     "option": "iter",
+     "params": {
+      "rounds": 1
+     }
+    }
+   }
+  }
+ }
+}
