@@ -157,6 +157,31 @@ It also compares the hash of the routes of the router and of `routeConfig` on 8 
 
 **Gap:** the other 75 routers are `portfolio` and 74 member forms, for example `corners-side` and `w2a:shared-ways+stretch`. `routeSpace` does not name them, and `highways` gives no function from a member form to a config. So a joint space of `productSpace(packSpace, routeSpace)` reaches only the named routers of the cover at this time. The packing engine has `configOfStrategy` for this job.
 
+## A sample of a space with many constraints
+
+A sample of `enumerateSpace` draws each stage alone, and it draws again when a point breaks a constraint. This default fails on a space whose constraints reject most draws. On `routeSpace` of `highways` 0.15.0, the 360 constraints kept 27 of 40,000 draws, so a sample of 400 configs throws.
+
+The option `draw: "walk"` gets the sample of such a space. A point draws its stages from the largest to the smallest. Each stage draws only from the options that keep the constraints with the stages before it.
+
+- The largest stage keeps its equal strata. A smaller stage has equal strata only over the options that stay open.
+- A point can still fail when a rule asks for an option that another rule refuses. It then draws again and counts against `maxTries`.
+- The default stays `reject`, so a seeded sample of each current user does not change. The two values give different configs for one seed.
+- A member list of a meta option draws its pool with the same draw.
+
+A sample of `walk` is not uniform over the valid configs. Each option of the largest stage gets an equal share, whatever count of valid configs it has. Thus a mean over this sample is not a mean of the space. Each record of such a sample states its draw.
+
+This table shows the size of the difference on `routeSpace` of `highways` 0.15.0. The uniform column reads the 38,558 valid combinations of the grid at one level. The walk column reads 3,200 configs with the seed 20261105.
+
+| Stage | Option | Uniform | Walk |
+| --- | --- | --- | --- |
+| `routing` | `search` | 32.53 % | 1.50 % |
+| `routing` | `straight` | 1 combination | 1.50 % |
+| `grouping` | none | 55.96 % | 91.06 % |
+| `gate` | none | 42.46 % | 24.22 % |
+| `levels` | none | 72.11 % | 98.50 % |
+
+The total variation against uniform reads 0.818 on `routing`. It reads 0.015 to 0.016 on `plugs` and 0.186 to 0.364 on the other stages, over the seeds 20261105, 3 and 77. A routing option has 1 to 12,544 valid combinations, and the median is 28.
+
 ## An example space
 
 The example has a packer and a router. The stage names are examples. Each engine gives its own names.

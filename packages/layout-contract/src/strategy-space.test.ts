@@ -18,6 +18,7 @@ import {
   type OptionSupports,
   type SampleOptions,
   type ShapeKind,
+  type SpaceStage,
   type StageOption,
   type StrategyConfig,
   type StrategySpace,
@@ -330,6 +331,121 @@ describe("enumerateSpace", () => {
     };
     expect(spaceSize(closed, { levels: 3 }).base).toBe(0n);
     expect(() => enumerateSpace(closed, { mode: "sample", n: 5, seed: 1, maxTries: 50 })).toThrow(/remove too many points/);
+  });
+});
+
+describe("the walk draw of a sample", () => {
+  // 40 routers, and each router permits only its own 2 of the 12 options of each smaller stage. Few draws of the default keep these constraints.
+  const small = (name: string, count: number): SpaceStage => ({ name, optional: true, options: Array.from({ length: count }, (_, i) => ({ id: `${name}${i}`, params: [] })) });
+  const routers = Array.from({ length: 40 }, (_, i) => ({ id: `r${i}`, params: [{ name: "w", kind: "int" as const, min: 1, max: 9, default: 1 }] }));
+  const tightOver = (names: readonly string[]): StrategySpace => ({
+    schema: STRATEGY_SPACE_SCHEMA,
+    engine: "tight",
+    version: "1",
+    stages: [small(names[0]!, 12), { name: "router", options: routers }, ...names.slice(1).map((name) => small(name, 12))],
+    constraints: routers.flatMap((r, i) =>
+      names.flatMap((stage) =>
+        Array.from({ length: 12 }, (_, k) => k)
+          .filter((k) => k !== i % 12 && k !== (i + 1) % 12)
+          .map((k) => ({ if: { stage: "router", option: r.id }, then: { not: { stage, option: `${stage}${k}` } } })),
+      ),
+    ),
+  });
+  const tight = tightOver(["a", "b", "c"]);
+  const options = { mode: "sample", n: 200, seed: 7 } as const;
+
+  it("gives a full sample where the default draw throws", () => {
+    expect(() => enumerateSpace(tight, { ...options, maxTries: 2000 })).toThrow(/remove too many points: \d+ of 200 configs after 2000 tries\. The option draw: "walk" gets a sample/);
+    // A walk that keeps each constraint draws each point one time, so 200 tries are sufficient for 200 configs.
+    const out = enumerateSpace(tight, { ...options, draw: "walk", maxTries: 200 });
+    expect(out).toHaveLength(200);
+    for (const c of out) expect(checkConfig(tight, c)).toEqual([]);
+  });
+
+  it("keeps the equal strata of the largest stage, and draws from each permitted option", () => {
+    const out = enumerateSpace(tight, { ...options, draw: "walk" });
+    const count = (stage: string): Map<string, number> => {
+      const m = new Map<string, number>();
+      for (const c of out) m.set(c.stages[stage]?.option ?? "none", (m.get(c.stages[stage]?.option ?? "none") ?? 0) + 1);
+      return m;
+    };
+    const shares = [...count("router").values()];
+    expect(shares).toHaveLength(40);
+    expect(Math.max(...shares) - Math.min(...shares)).toBeLessThanOrEqual(1);
+    expect(count("a").size).toBe(13);
+    expect(count("b").size).toBe(13);
+  });
+
+  it("is not uniform over the valid configs: each option of the largest stage gets an equal share", () => {
+    // The option x0 permits 1 option of y, and each other option of x permits 9 options of y.
+    const space: StrategySpace = {
+      schema: STRATEGY_SPACE_SCHEMA,
+      engine: "share",
+      version: "1",
+      stages: [
+        { name: "x", options: Array.from({ length: 10 }, (_, i) => ({ id: `x${i}`, params: [] })) },
+        { name: "y", options: Array.from({ length: 9 }, (_, i) => ({ id: `y${i}`, params: [] })) },
+      ],
+      constraints: [{ if: { stage: "x", option: "x0" }, then: { stage: "y", option: "y0" } }],
+    };
+    const share = (list: readonly StrategyConfig[]): number => list.filter((c) => c.stages["x"]?.option === "x0").length / list.length;
+    expect(share(enumerateSpace(space, { mode: "grid", levels: 1 }))).toBeCloseTo(1 / 82, 10);
+    expect(share(enumerateSpace(space, { mode: "sample", n: 100, seed: 11, draw: "walk" }))).toBeCloseTo(0.1, 10);
+  });
+
+  it("draws the member lists of a meta option with the walk", () => {
+    // A reject draw of the pool of this space throws, so this sample holds only if the member lists use the walk.
+    const deep = tightOver(["a", "b", "c", "d", "e", "f"]);
+    const meta: StrategySpace = { ...deep, stages: [...deep.stages, { name: "combine", optional: true, options: [{ id: "best", params: [], members: { min: 2, max: 2, ordered: false } }] }] };
+    const out = enumerateSpace(meta, { ...options, meta: "sample", draw: "walk" });
+    expect(out).toHaveLength(200);
+    for (const c of out) expect(checkConfig(meta, c)).toEqual([]);
+    expect(out.some((c) => c.stages["combine"] != null)).toBe(true);
+  });
+
+  it("is deterministic, and the seed moves it", () => {
+    const a = enumerateSpace(tight, { ...options, draw: "walk" });
+    expect(enumerateSpace(tight, { ...options, draw: "walk" })).toEqual(a);
+    expect(enumerateSpace(tight, { ...options, seed: 8, draw: "walk" })).not.toEqual(a);
+  });
+
+  it("follows a rule that asks for an option of a later stage", () => {
+    const stages: SpaceStage[] = [
+      { name: "x", options: [{ id: "x0", params: [] }, { id: "x1", params: [] }, { id: "x2", params: [] }] },
+      { name: "y", options: [{ id: "y0", params: [] }, { id: "y1", params: [] }] },
+    ];
+    const space: StrategySpace = { schema: STRATEGY_SPACE_SCHEMA, engine: "ask", version: "1", stages, constraints: [{ if: { stage: "x", option: "x0" }, then: { stage: "y", option: "y1" } }] };
+    const out = enumerateSpace(space, { mode: "sample", n: 30, seed: 3, draw: "walk" });
+    expect(out).toHaveLength(30);
+    for (const c of out) expect(checkConfig(space, c)).toEqual([]);
+    expect(out.some((c) => c.stages["x"]?.option === "x0")).toBe(true);
+  });
+
+  it("keeps a meta option of a part apart from the other stages of that part", () => {
+    const base: StrategySpace = {
+      schema: STRATEGY_SPACE_SCHEMA,
+      engine: "meta",
+      version: "1",
+      stages: [
+        { name: "place", options: [{ id: "p0", params: [] }, { id: "p1", params: [] }, { id: "p2", params: [] }] },
+        { name: "combine", optional: true, options: [{ id: "best", params: [], members: { min: 2, max: 2, ordered: false } }] },
+      ],
+    };
+    const out = enumerateSpace(base, { mode: "sample", n: 40, seed: 5, meta: "sample", draw: "walk" });
+    expect(out).toHaveLength(40);
+    for (const c of out) expect(checkConfig(base, c)).toEqual([]);
+    expect(out.some((c) => c.stages["combine"] != null)).toBe(true);
+  });
+
+  it("throws when no config keeps the constraints, and refuses another value", () => {
+    const closed: StrategySpace = { ...tight, constraints: [{ if: { stage: "router", option: "r0" }, then: { stage: "router", option: "r1" } }, ...routers.slice(1).map((r) => ({ if: { stage: "router", option: r.id }, then: { stage: "router", option: "r0" } }))] };
+    expect(() => enumerateSpace(closed, { ...options, n: 5, draw: "walk", maxTries: 50 })).toThrow(/remove too many points: \d+ of 5 configs after 50 tries\.$/);
+    expect(() => enumerateSpace(tight, { ...options, draw: "other" as never })).toThrow(RangeError);
+  });
+
+  it("leaves the default draw as it was", () => {
+    const open: StrategySpace = { ...tight, constraints: [] };
+    expect(enumerateSpace(open, { ...options, draw: "reject" })).toEqual(enumerateSpace(open, options));
   });
 });
 
