@@ -85,6 +85,7 @@ import {
   limitRepeatsFor,
   refitLimits,
   refitMarkdown,
+  refitRefusal,
   memoryGate,
   manifestJson,
   PACK_ENTRIES,
@@ -780,14 +781,12 @@ function refitPullRequest(id, trailer, bodyEnd) {
   run("gh", ["run", "download", String(id), "--name", "memory-refit", "--dir", join(work, "artifact")]);
   const refit = JSON.parse(readFileSync(join(work, "artifact", "refit.json"), "utf8"));
   const body = readFileSync(join(work, "artifact", "refit.md"), "utf8");
-  if (refit.data == null) throw new RangeError(`The refit of the run ${id} is refused: ${refit.refused.join(" ")}`);
-  if (refit.run !== id) throw new RangeError(`The artifact of the run ${id} holds the refit of the run ${refit.run}.`);
   run("git", ["fetch", "-q", "origin", "main"]);
-  const ancestor = spawnSync("git", ["merge-base", "--is-ancestor", refit.head, "origin/main"]);
-  if (ancestor.status !== 0) throw new RangeError(`The commit ${refit.head} of the probes is not an ancestor of origin/main, so the refit is refused.`);
-  // A refit that main took after the commit of the probes makes this refit old.
-  const changed = spawnSync("git", ["diff", "--quiet", refit.head, "origin/main", "--", "data/memory-limits.json"]);
-  if (changed.status !== 0) throw new RangeError(`The file data/memory-limits.json changed on origin/main after the commit ${refit.head} of the probes, so the refit is refused.`);
+  // The refusals are in `refitRefusal`, and its tests examine each of them. A refit that main took after the commit of the probes makes this refit old.
+  const ancestor = spawnSync("git", ["merge-base", "--is-ancestor", refit.head, "origin/main"]).status === 0;
+  const limitsChanged = ancestor && spawnSync("git", ["diff", "--quiet", refit.head, "origin/main", "--", "data/memory-limits.json"]).status !== 0;
+  const refusal = refitRefusal(refit, id, { ancestor, limitsChanged });
+  if (refusal !== undefined) throw new RangeError(refusal);
   // The change of each input, before the push.
   console.log(body);
   const branch = `memory-refit-${id}`;

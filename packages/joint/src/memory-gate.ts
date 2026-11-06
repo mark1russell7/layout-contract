@@ -507,3 +507,30 @@ export function refitMarkdown(refit: Refit, run: RefitRun, source: LimitSource =
     "The gate does not change its own limits. Read the change of each input before the merge.",
   ].join("\n") + "\n";
 }
+
+/** The file `refit.json` of the artifact memory-refit: the run of the refit, its reasons of refusal and its new limit data. */
+export interface RefitFile extends RefitRun {
+  readonly refused: readonly string[];
+  readonly data: LimitData | null | undefined;
+}
+
+/** The facts of git that the command `refit-pr` reads before it pushes a refit. */
+export interface RefitAncestry {
+  /** True when the commit of the probes is an ancestor of `origin/main`. */
+  readonly ancestor: boolean;
+  /** True when `data/memory-limits.json` changed on `origin/main` after the commit of the probes. */
+  readonly limitsChanged: boolean;
+}
+
+/**
+ * This function gives the reason why the command `refit-pr` refuses the refit of the run `id`, or `undefined` for a refit that it can push.
+ * It refuses a refused refit, the artifact of another run, and a refit of a commit that main does not hold.
+ * It also refuses a refit of a commit before a change of the limit file on main.
+ */
+export function refitRefusal(file: RefitFile, id: number, git: RefitAncestry): string | undefined {
+  if (file.data == null) return `The refit of the run ${id} is refused: ${file.refused.join(" ")}`;
+  if (file.run !== id) return `The artifact of the run ${id} holds the refit of the run ${file.run}.`;
+  if (!git.ancestor) return `The commit ${file.head} of the probes is not an ancestor of origin/main, so the refit is refused.`;
+  if (git.limitsChanged) return `The file data/memory-limits.json changed on origin/main after the commit ${file.head} of the probes, so the refit is refused.`;
+  return undefined;
+}

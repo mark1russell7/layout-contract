@@ -29,6 +29,7 @@ import {
   REFIT_PROBES,
   refitLimits,
   refitMarkdown,
+  refitRefusal,
   sourceOf,
   STEP_FUNCTION,
   STEP_LINE_MB,
@@ -373,5 +374,38 @@ describe("the refit of the limits", () => {
     expect(bad((d) => { d["engines"] = { node: "26.13.0" }; })).toThrow("The limit data has no version of highways.");
     expect(bad((d) => { d["head"] = "main"; })).toThrow(/is a commit/);
     expect(bad((d) => { d["runs"] = []; })).toThrow(/run ids/);
+  });
+});
+
+describe("the refusals of the command refit-pr", () => {
+  const data = { ...LIMIT_DATA, runs: [7], head: "ef71e84" };
+  const file = { run: 7, url: "https://example.test/7", head: "ef71e84000", refused: [], data };
+  const clean = { ancestor: true, limitsChanged: false };
+
+  it("passes a valid refit of this run on a commit of main with no later change of the limits", () => {
+    expect(refitRefusal(file, 7, clean)).toBeUndefined();
+  });
+
+  it("refuses a refused refit, and passes the same file with its data", () => {
+    expect(refitRefusal({ ...file, refused: ["The input a has 4 probes with values, and a refit needs 5."], data: null }, 7, clean)).toBe(
+      "The refit of the run 7 is refused: The input a has 4 probes with values, and a refit needs 5.",
+    );
+    expect(refitRefusal({ ...file, data: undefined }, 7, clean)).toMatch(/^The refit of the run 7 is refused/);
+  });
+
+  it("refuses the artifact of another run", () => {
+    expect(refitRefusal(file, 8, clean)).toBe("The artifact of the run 8 holds the refit of the run 7.");
+  });
+
+  it("refuses a commit that is not an ancestor of main, and passes when it is", () => {
+    expect(refitRefusal(file, 7, { ...clean, ancestor: false })).toBe("The commit ef71e84000 of the probes is not an ancestor of origin/main, so the refit is refused.");
+    expect(refitRefusal(file, 7, { ...clean, ancestor: true })).toBeUndefined();
+  });
+
+  it("refuses a commit before a change of the limit file on main, and passes without the change", () => {
+    expect(refitRefusal(file, 7, { ...clean, limitsChanged: true })).toBe(
+      "The file data/memory-limits.json changed on origin/main after the commit ef71e84000 of the probes, so the refit is refused.",
+    );
+    expect(refitRefusal(file, 7, { ...clean, limitsChanged: false })).toBeUndefined();
   });
 });
