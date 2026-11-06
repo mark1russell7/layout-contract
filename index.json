@@ -74,7 +74,120 @@
      }
     }
    }
+  },
+  "joint-v2_packing-0.7.0_highways-0.14.0_space-bench-3": {
+   "corpus": "joint-v2",
+   "nights": 1,
+   "last": "2026-11-06",
+   "missing": 280,
+   "configs": 40,
+   "counts": {
+    "baseline": 3,
+    "screened": 0,
+    "alive": 6,
+    "dropped": 20,
+    "halved": 11,
+    "design": 0
+   },
+   "step": {
+    "from": "joint-v2_packing-0.6.1_highways-0.13.0_space-bench-3",
+    "to": "joint-v2_packing-0.7.0_highways-0.14.0_space-bench-3",
+    "pairs": 888,
+    "dropped": {
+     "space": 0,
+     "input": 0,
+     "hash": 0,
+     "config": 0,
+     "missing": 21
+    },
+    "metrics": {
+     "joint.fill": {
+      "n": 888,
+      "median": 1,
+      "q10": 1,
+      "q90": 1
+     },
+     "hard": {
+      "n": 507,
+      "median": 1,
+      "q10": 1,
+      "q90": 1
+     },
+     "joint.straight.crossings": {
+      "n": 766,
+      "median": 1,
+      "q10": 1,
+      "q90": 1
+     }
+    },
+    "routes": {
+     "route.detour.mean": {
+      "ratio": null,
+      "noOld": 888,
+      "noNew": 0,
+      "oldZero": 0,
+      "mixed": 0
+     },
+     "route.detour.q95": {
+      "ratio": null,
+      "noOld": 888,
+      "noNew": 0,
+      "oldZero": 0,
+      "mixed": 0
+     },
+     "joint.route.length": {
+      "ratio": null,
+      "noOld": 888,
+      "noNew": 0,
+      "oldZero": 0,
+      "mixed": 0
+     },
+     "route.crossings": {
+      "ratio": null,
+      "noOld": 888,
+      "noNew": 0,
+      "oldZero": 0,
+      "mixed": 0
+     }
+    }
+   },
+   "cost": {
+    "date": "2026-11-06",
+    "jobMinutes": {
+     "planned": 312.8830774363317,
+     "lo": 210.2205909105122,
+     "hi": 700.0380092731483,
+     "real": 511.4382379523167,
+     "side": "hit",
+     "brier": 0.03999999999999998
+    },
+    "jobMinutesStatus": "scored",
+    "wall": {
+     "planned": 104.2943591454439,
+     "lo": 87.02347449780267,
+     "hi": 345.70807487188114,
+     "real": 244.01666666666665,
+     "side": "hit",
+     "brier": 0.03999999999999998
+    },
+    "wallStatus": "scored",
+    "shards": {
+     "lo": 0.6442949786864827,
+     "hi": 3.3247722987573742,
+     "width": 5.160326261638034,
+     "overCap": true,
+     "shards": 19,
+     "hits": 13,
+     "low": 3,
+     "high": 3,
+     "stopped": 3,
+     "brier": 0.22947368421052639
+    },
+    "widthCap": 5,
+    "budget": "The budget of the gate is 276 minutes, from 3 gates.",
+    "thin": false
+   }
   }
  },
- "latest": "joint-v2_packing-0.6.1_highways-0.13.0_space-bench-3"
+ "latest": "joint-v2_packing-0.7.0_highways-0.14.0_space-bench-3"
 }
