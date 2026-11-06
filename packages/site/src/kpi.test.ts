@@ -1,11 +1,14 @@
 import { describe, expect, it } from "vitest";
 import type { JointData } from "./data.ts";
-import { enginesCurrent, enginesOnNpm, failedReadStops, type KpiCatalog, type NpmRead, packersMeasured, siteKpiInput } from "./kpi.ts";
+import { enginesCurrent, enginesOnNpm, failedReadStops, type KpiCatalog, type NpmRead, packersMeasured, routersOnCompare, siteKpiInput } from "./kpi.ts";
 
-const run = (date: string, pairs: number, versions: Record<string, string>, packers: readonly string[] = ["shelf", "rows"]): JointData =>
-  ({ run: "1", date, pairs, versions, stress: { byPacker: packers.map((id) => ({ id })) } }) as unknown as JointData;
+const run = (date: string, pairs: number, versions: Record<string, string>, packers: readonly string[] = ["shelf", "rows"], routers: readonly string[] = ["corners", "trunks"]): JointData =>
+  ({ run: "1", date, pairs, versions, stress: { byPacker: packers.map((id) => ({ id })), byRouter: routers.map((id) => ({ id })) } }) as unknown as JointData;
 
-const catalog: KpiCatalog = { about: { packing: { shelf: "a", rows: "b", anneal: "c", skyline: "d" }, highways: {} }, routers: ["corners", "trunks"] };
+const catalog: KpiCatalog = { about: { packing: { shelf: "a", rows: "b", anneal: "c", skyline: "d" }, highways: {} } };
+
+/** The router and highway entries of a registry of `highways`. */
+const keyed = ["corners", "trunks", "steiner"];
 
 const commitAt = "2026-11-04T12:00:00Z";
 
@@ -95,21 +98,22 @@ describe("packersMeasured", () => {
 
 describe("siteKpiInput", () => {
   it("gives no input without a run, because the time of the data is not known", () => {
-    expect(siteKpiInput([], catalog, npm, entries, commitAt)).toBeUndefined();
+    expect(siteKpiInput([], catalog, npm, entries, commitAt, keyed)).toBeUndefined();
   });
 
   it("takes the time of the data from the latest run, not from the build", () => {
-    const input = siteKpiInput([run("2026-10-20", 90, {}), run("2026-10-28", 130, {})], catalog, npm, entries, commitAt);
+    const input = siteKpiInput([run("2026-10-20", 90, {}), run("2026-10-28", 130, {})], catalog, npm, entries, commitAt, keyed);
     expect(input?.at).toBe("2026-10-28T00:00:00Z");
     expect(input?.measures.find((m) => m.id === "pairs-in-run")?.value).toBe(130);
   });
 
   it("gives each measure the time of its own data, so an old run does not age the measures of the build", () => {
-    const input = siteKpiInput([run("2026-10-28", 130, {})], catalog, npm, entries, commitAt);
+    const input = siteKpiInput([run("2026-10-28", 130, {})], catalog, npm, entries, commitAt, keyed);
     expect(Object.fromEntries(input?.measures.map((m) => [m.id, m.at]) ?? [])).toEqual({
       "pairs-in-run": "2026-10-28T00:00:00Z",
       "packers-measured": "2026-10-28T00:00:00Z",
-      "routers-on-compare": commitAt,
+      "routers-on-compare": "2026-10-28T00:00:00Z",
+      "routers-keyed": commitAt,
       "engines-current": npm.at,
       "engine-releases-behind-highways": npm.at,
       "engine-releases-behind-packing": npm.at,
@@ -117,19 +121,38 @@ describe("siteKpiInput", () => {
   });
 
   it("counts the releases behind for each engine", () => {
-    const input = siteKpiInput([run("2026-10-28", 130, {})], catalog, npm, entries, commitAt);
+    const input = siteKpiInput([run("2026-10-28", 130, {})], catalog, npm, entries, commitAt, keyed);
     expect(input?.measures.find((m) => m.id === "engines-current")?.value).toBe(1);
     expect(input?.measures.find((m) => m.id === "engine-releases-behind-packing")?.value).toBe(2);
   });
 
   it("leaves out each measure that reads npm when the read failed", () => {
-    const input = siteKpiInput([run("2026-10-28", 130, {})], catalog, undefined, entries, commitAt);
-    expect(input?.measures.map((m) => m.id)).toEqual(["pairs-in-run", "packers-measured", "routers-on-compare"]);
+    const input = siteKpiInput([run("2026-10-28", 130, {})], catalog, undefined, entries, commitAt, keyed);
+    expect(input?.measures.map((m) => m.id)).toEqual(["pairs-in-run", "packers-measured", "routers-on-compare", "routers-keyed"]);
   });
 
   it("counts only the strategies of the latest run", () => {
-    const input = siteKpiInput([run("2026-10-20", 90, {}, ["shelf", "rows", "skyline"]), run("2026-10-28", 130, {}, ["shelf"])], catalog, npm, entries, commitAt);
+    const input = siteKpiInput([run("2026-10-20", 90, {}, ["shelf", "rows", "skyline"], ["corners", "trunks", "steiner"]), run("2026-10-28", 130, {}, ["shelf"], ["corners"])], catalog, npm, entries, commitAt, keyed);
     expect(input?.measures.find((m) => m.id === "packers-measured")?.value).toBe(1);
-    expect(input?.measures.find((m) => m.id === "routers-on-compare")?.value).toBe(2);
+    expect(input?.measures.find((m) => m.id === "routers-on-compare")?.value).toBe(1);
+    expect(input?.measures.find((m) => m.id === "routers-keyed")?.value).toBe(3);
+  });
+});
+
+describe("routersOnCompare", () => {
+  it("counts each router of the registry with a row in the run", () => {
+    expect(routersOnCompare(run("2026-10-28", 130, {}, [], ["corners", "trunks", "steiner"]), keyed)).toBe(3);
+  });
+
+  it("reads one fewer when a router of the registry has no row", () => {
+    expect(routersOnCompare(run("2026-10-28", 130, {}, [], ["corners", "trunks"]), keyed)).toBe(2);
+  });
+
+  it("does not count a row of a router outside the registry", () => {
+    expect(routersOnCompare(run("2026-10-28", 130, {}, [], ["corners", "shared-p2", "portfolio"]), keyed)).toBe(1);
+  });
+
+  it("counts a router one time", () => {
+    expect(routersOnCompare(run("2026-10-28", 130, {}, [], ["corners", "corners"]), keyed)).toBe(1);
   });
 });
