@@ -11,8 +11,10 @@ import {
   type StrategySpace,
   type VerdictRecord,
 } from "@mark1russell7/layout-contract";
+import { deriveSeed } from "@mark1russell7/rigor-generators";
 import { configFactor } from "./config-cost.ts";
 import { iterPlanPairs } from "./lanes.ts";
+import { stratumTarget, type StratumTarget } from "./option-floor.ts";
 import { HEADLINE, PICK_LEVELS, pickValues } from "./pick.ts";
 import { plannedCost, planShards, type ShardPlan } from "./plan.ts";
 import { configRun, JOINT_SPACE, type ConfigRun } from "./space.ts";
@@ -128,19 +130,37 @@ export interface SampleConfigsOptions {
   readonly counts?: ReadonlyMap<string, number>;
   /** The factor of the pool: the Latin hypercube draws `oversample * n` configs. The default is 8. */
   readonly oversample?: number;
+  /** The option draw of the pool, as `draw` of the sample options of `enumerateSpace`. The default is `reject`. A space with many constraints, for example `routeSpace`, needs `walk`. */
+  readonly draw?: "reject" | "walk";
+  /** The stratum of the sample (L122). With no stratum, each pick goes by the coverage need. */
+  readonly stratum?: SampleStratum;
+}
+
+/** The stratum of a sample: a share of the picks goes to the options under the floor of their stage. */
+export interface SampleStratum {
+  /** The share of the picks, from 0 to 1, for example `STRATUM_SHARE`. */
+  readonly share: number;
+  /** The floor of each stage, for example `stageFloors(space)`. */
+  readonly floors: Readonly<Record<string, number>>;
 }
 
 /**
  * This function gives a sample of new configs: a Latin hypercube of `enumerateSpace` with the seed, and then the configs of the largest coverage need.
  * Each pick adds its strata to the counts, so the next pick goes to other strata. Equal needs keep the order of the pool.
+ *
+ * With a stratum, the first `round(share * n)` picks go to the options under their floor (`stratumTarget`).
+ * Each of these picks is the config of the pool with the target option and the largest coverage need.
+ * When the pool has no config with the target option, the stratum draws new configs with the sample option `fixed`. It skips an option that the sample refuses.
+ * When no target is left, the picks go by the coverage need.
  */
 export function sampleConfigs(options: SampleConfigsOptions, space: StrategySpace = JOINT_SPACE): StrategyConfig[] {
-  const { n, seed, known } = options;
+  const { n, seed, known, stratum } = options;
   if (!(Number.isInteger(n) && n >= 0)) throw new RangeError(`The count of the sample is an integer of 0 or more, not ${n}.`);
+  if (stratum !== undefined && !(stratum.share >= 0 && stratum.share <= 1)) throw new RangeError(`The share of the stratum is from 0 to 1, not ${stratum.share}.`);
   if (n === 0) return [];
   const pool: { id: string; config: StrategyConfig; strata: string[] }[] = [];
   const seen = new Set(known);
-  for (const config of enumerateSpace(space, { mode: "sample", n: n * (options.oversample ?? 8), seed })) {
+  for (const config of enumerateSpace(space, { mode: "sample", n: n * (options.oversample ?? 8), seed, ...(options.draw === undefined ? {} : { draw: options.draw }) })) {
     const id = configId(space, config);
     if (seen.has(id)) continue;
     seen.add(id);
@@ -149,12 +169,59 @@ export function sampleConfigs(options: SampleConfigsOptions, space: StrategySpac
   const counts = new Map(options.counts ?? []);
   const out: StrategyConfig[] = [];
   const free = new Set(pool.keys());
+  const inStratum = stratum === undefined ? 0 : Math.round(stratum.share * n);
+  const skip = new Set<string>();
+  const draws = new Map<string, number>();
+  /** This function adds to the pool new configs with the fixed option of the target, and gives the count of the new configs. */
+  const drawFixed = (target: StratumTarget, size: number): number => {
+    const key = `${target.stage}=${target.option}`;
+    const round = draws.get(key) ?? 0;
+    draws.set(key, round + 1);
+    let added = 0;
+    try {
+      const sample = enumerateSpace(space, {
+        mode: "sample",
+        n: size,
+        seed: deriveSeed(seed, `stratum/${key}/${round}`),
+        fixed: { [target.stage]: target.option },
+        ...(options.draw === undefined ? {} : { draw: options.draw }),
+      });
+      for (const config of sample) {
+        const id = configId(space, config);
+        if (seen.has(id)) continue;
+        seen.add(id);
+        free.add(pool.length);
+        pool.push({ id, config: canonicalConfig(space, config), strata: strataOf(config, space) });
+        added++;
+      }
+    } catch (error) {
+      // The sample refuses a meta option with no meta draw, and a fixed option that the constraints forbid, with a RangeError. The stratum skips such an option.
+      if (!(error instanceof RangeError)) throw error;
+    }
+    return added;
+  };
   while (out.length < n && free.size > 0) {
     let best = -1;
     let need = -Infinity;
-    for (const k of free) {
-      const v = coverageNeed(pool[k]!.strata, counts);
-      if (v > need) [best, need] = [k, v];
+    let target = out.length < inStratum ? stratumTarget(space, counts, stratum!.floors, skip) : undefined;
+    while (target !== undefined) {
+      const key = `${target.stage}=${target.option}`;
+      for (const k of free) {
+        if (!pool[k]!.strata.includes(key)) continue;
+        const v = coverageNeed(pool[k]!.strata, counts);
+        if (v > need) [best, need] = [k, v];
+      }
+      if (best >= 0) break;
+      const gap = Math.max(1, (stratum!.floors[target.stage] ?? 0) - (counts.get(key) ?? 0));
+      if (drawFixed(target, Math.min(gap, inStratum - out.length)) > 0) continue;
+      skip.add(key);
+      target = stratumTarget(space, counts, stratum!.floors, skip);
+    }
+    if (best < 0) {
+      for (const k of free) {
+        const v = coverageNeed(pool[k]!.strata, counts);
+        if (v > need) [best, need] = [k, v];
+      }
     }
     free.delete(best);
     const pick = pool[best]!;

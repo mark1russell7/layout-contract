@@ -139,6 +139,27 @@ The coverage need of a config is the sum of `1 / (1 + count)` over its strata. `
 
 Thus the sample goes first to the options, the pairs and the param bins with the fewest configs.
 
+### The floor per option and the stratum (L122)
+
+A walk sample balances only the largest stage. Thus an option of a small stage can get too few configs for a comparison. Since L122, the joint package gives a floor for each stage, a count for each option and a stratum of the sample. `src/option-floor.ts` has the functions.
+
+- `stageFloors` gives the floor of each stage: the smallest count of configs for each option. The count comes from `optionFloor` of `rigor-statistics`, by the Student t law, with power 0.8 and a family level of 0.05. The family of a stage has one test for each option of the stage.
+- The spread is 0.0243 and the smallest difference is 0.0389. The paired read of 2026-11-05 gave both values, on the 216 configs of the epoch `packing-0.4.1`. Read them again on the first 3 nights of a new epoch.
+- The floors of the joint space are 14 for `packing.entry`, 14 for `highways.router` and 10 for `lanes.mode`.
+- `optionCounts` gives the count of each option beside the uniform count and the floor of its stage. The uniform count is the count of each option if the configs that set the stage have each option equally often.
+- With the option `stratum`, the first `round(share * n)` picks of `sampleConfigs` go to the options under their floor. The share of the strategist is 0.25 (`STRATUM_SHARE`).
+- The stratum takes the stage nearest to full first: the stage with the smallest sum of `floor - count`. In that stage, the option with the smallest count is the target.
+- When the pool has no config with the target option, the stratum draws new configs with the sample option `fixed` of the contract. It skips an option that the contract refuses, for example a meta option.
+
+The pin of `src/option-floor.test.ts` reads a routeSpace sample of 216 picks with the seed 20261105 and the walk draw:
+
+| Stage | Floor | Smallest count, no stratum | Smallest count, stratum 0.25 |
+| --- | --- | --- | --- |
+| levels | 10 | 4 | 11 |
+| grouping | 11 | 3 | 8 |
+
+A night does not use the stratum yet. Before a night uses it, a prediction reads its cost to the race.
+
 ### The budget of a night (L81)
 
 Since L81, a night uses its measured cost, a budget of wall time, a rotation and a clean stop.
