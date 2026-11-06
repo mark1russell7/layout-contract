@@ -1,0 +1,68 @@
+{
+  "runs": [
+    41654875543,
+    41769223049
+  ],
+  "head": "5a00107",
+  "engines": {
+    "node": "26.13.0",
+    "highways": "0.10.0",
+    "packing": "0.5.0"
+  },
+  "probes": {
+    "joint-v2/rect-grid.freeHeight.holes.none.bimodal.n1000.e-dense.hubs.none.free.sp-gap/s1": {
+      "allocMb": [
+        2530026,
+        2531692,
+        2528117,
+        2530655,
+        2528456,
+        2529563
+      ],
+      "liveMaxMb": [
+        393,
+        393,
+        393,
+        393,
+        393,
+        393
+      ]
+    },
+    "joint-v2/rect-grid.freeHeight.holes.none.bimodal.n1000.e-dense.hubs.none.free.sp-gap/s2": {
+      "allocMb": [
+        3306532,
+        3307046,
+        3306897,
+        3307307,
+        3307620,
+        3310056
+      ],
+      "liveMaxMb": [
+        420,
+        420,
+        420,
+        420,
+        420,
+        420
+      ]
+    },
+    "joint-v2/rect-grid.freeHeight.holes.none.bimodal.n1000.e-dense.hubs.none.free.sp-gap/s3": {
+      "allocMb": [
+        3561944,
+        3559272,
+        3564882,
+        3562616,
+        3566522,
+        3566862
+      ],
+      "liveMaxMb": [
+        502,
+        502,
+        502,
+        502,
+        502,
+        502
+      ]
+    }
+  }
+}
