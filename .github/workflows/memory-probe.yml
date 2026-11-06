@@ -290,9 +290,7 @@ jobs:
               line="The versions of the engines changed ($CHANGE). The artifact memory-refit holds the refit of the limits. To open its pull request, run in packages/joint: node scripts/bench.mjs refit-pr --run $RUN_ID"
             fi
             if [ "$status" != 0 ] || [ -n "$refused" ]; then echo "::error::$line"; else echo "::warning::$line"; fi
-            printf '%s
-
-' "$line" >> "$GITHUB_STEP_SUMMARY"
+            printf '%s\n\n' "$line" >> "$GITHUB_STEP_SUMMARY"
             cat refit/refit.md >> "$GITHUB_STEP_SUMMARY"
           fi
           if [ -n "$SWEEP_ID" ]; then
