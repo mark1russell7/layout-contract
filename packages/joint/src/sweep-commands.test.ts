@@ -133,6 +133,10 @@ describe("the commands of the bench script that the nightly gate starts", () => 
     writeFileSync(join(dir, "groups.json"), groups);
     const jobs = JSON.parse(start("bench.mjs", ["jobs", "--groups", join(dir, "groups.json"), "--modes", "bench-6144", "--repeats", "1", "--limits", "on"])) as { mode: string }[];
     expect(jobs.filter((j) => j.mode === "measure-6144")).toHaveLength(3);
+    // The nightly gives the jobs with limits the probes of a refit after a change of the versions.
+    const change = start("bench.mjs", ["engine-change"]).trim();
+    const auto = JSON.parse(start("bench.mjs", ["jobs", "--groups", join(dir, "groups.json"), "--modes", "bench-6144", "--repeats", "1", "--limits", "on", "--limit-repeats", "auto"])) as { mode: string }[];
+    expect(auto.filter((j) => j.mode === "measure-6144")).toHaveLength(change === "" ? 3 : 15);
     expect(start("bench.mjs", ["plan", "--shards", "2", "--slice", "pr"])).not.toBe("");
 
     // The probe step of `memory-probe.yml` writes these files next to the output of the probe.
@@ -143,5 +147,29 @@ describe("the commands of the bench script that the nightly gate starts", () => 
     writeFileSync(at("jobs.json"), JSON.stringify([{ input, mode: "bench-6144", repeat: 1 }]));
     expect(start("bench.mjs", ["gate", "--probes", at("probes"), "--expected", at("jobs.json")])).toContain("gate: pass");
     expect(readFileSync(at("probes/gate.md"), "utf8")).toContain("### Memory gate: pass");
+  });
+
+  it("refit the limits from the probes of the inputs with limits", () => {
+    // The gate step of `memory-probe.yml` starts the command refit on the downloaded probes: 5 of each input with limits.
+    const at = (name: string) => join(dir, "refit", name);
+    const engines = { node: "26.13.0", highways: "0.13.0", packing: "0.6.1" };
+    const inputs = ["s1", "s2", "s3"].map((s) => `joint-v2/rect-grid.freeHeight.holes.none.bimodal.n1000.e-dense.hubs.none.free.sp-gap/${s}`);
+    let k = 0;
+    for (const input of inputs) {
+      for (let r = 0; r < 5; r++) {
+        const sub = at(`probes/${++k}`);
+        mkdirSync(sub, { recursive: true });
+        for (const [name, text] of [["status.txt", "0"], ["input.txt", input], ["mode.txt", "measure-6144"], ["probe.jsonl", JSON.stringify({ maxRss: 4400 })]] as const) writeFileSync(join(sub, name), `${text}\n`);
+        writeFileSync(join(sub, "summary.jsonl"), JSON.stringify({ allocMb: 2_500_000 + r, liveMaxMb: 395 }) + "\n");
+        writeFileSync(join(sub, "engines.json"), JSON.stringify(engines) + "\n");
+      }
+    }
+    const head = "ef71e84000000000000000000000000000000000";
+    expect(start("bench.mjs", ["refit", "--probes", at("probes"), "--run", "7", "--url", "https://example.test/7", "--head", head, "--out", at("out")])).toContain("refit: valid.");
+    const refit = JSON.parse(readFileSync(at("out/refit.json"), "utf8")) as { run: number; head: string; refused: string[]; data: { head: string; engines: unknown; probes: Record<string, { allocMb: number[] }> } };
+    expect(refit).toMatchObject({ run: 7, head, refused: [], data: { head: "ef71e84", engines } });
+    expect(Object.keys(refit.data.probes)).toEqual(inputs);
+    expect(refit.data.probes[inputs[0]!]!.allocMb).toHaveLength(5);
+    expect(readFileSync(at("out/refit.md"), "utf8")).toContain("### Refit of the memory limits");
   });
 });
