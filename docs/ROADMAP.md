@@ -103,7 +103,6 @@ Rung 3 of `engines-current` uses a short run of chosen rows (L98) between the fu
 | L106 | later | P2 | One name for routes through a shape: `route.through` takes the true shape when the measure of the router is on npm, and the extra key stops |
 | L107 | later | P2 | An exact rule for a circle beside another shape kind, an obstacle or a polygon container, due 2026-11-28 |
 | L112 | next | P1 | A flip test for each gate check of a measure: an injected fault turns the check red, with a clean copy green in the same job |
-| L116 | next | P1 | A bound on a held config: a config that misses the same planned input on 2 nights in a row gets a censored row for that input and goes into the full race, by 2026-11-12 |
 | L117 | next | P1 | One timed run over 60 s on the joint runner, with a same-twice check that can go red and its flip, in the engine epoch of 2026-11-15 |
 | L113 | in progress | P1 | A CI read of the wait of each pull request gate and release gate, by UTC hour, with the memory gate running and not |
 | L116 | in progress | P1 | A held config cannot stay out of the full race for ever: a censored row after 2 planned nights with a miss, a limit of 0.5 % of the inputs, a plan in part, and kept records that give a value once their reference returns. By 2026-11-12 |
