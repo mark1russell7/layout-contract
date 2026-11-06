@@ -89,7 +89,7 @@ jobs:
 
   text-bench-ok:
     name: Text bench OK
-    if: always()
+    if: ${{ !cancelled() }}
     needs: [changes, bench]
     runs-on: ubuntu-latest
     timeout-minutes: 2
