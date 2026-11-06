@@ -1821,6 +1821,26 @@ These limits do not catch each growth. The table gives the real growth of the al
 - A growth between the two columns fails on some nights only. The result depends on the count of the steps and on the noise.
 - The allocation alone is blind to 4 steps. They are 4560 MB: 0.18% of s1, 0.14% of s2 and 0.13% of s3. The lowest value of each seed without steps stays under its limit with 4 steps. Thus read the count of the steps before you read a change of this size as a growth.
 - These limits move again only with a measured cause. If a probe goes over a limit, do not re-fit, also when the probe has more than 4 steps. First measure why a call of `straightCrossings` steps, with one small job on that function alone. The first test is the tier of V8. This is a guess at this time.
+- A change of the versions of the engines is a measured cause. The next paragraph tells how the gate shows it.
+
+#### The versions of the limits
+
+The live heap is the same in each probe of one seed on one set of versions. Thus the limit of the live heap is a check of an exact value. A change of an engine can move the value over its limit. The gate of the run [41971168014](https://github.com/mark1russell7/layout-contract/actions/runs/41971168014), on commit `ef71e84`, failed by 1 MB on each seed of F:
+
+| Seed | Live heap of the 6 probes (MB) | Live heap in 41971168014 (MB) | Allocation of the worst probe (MB) | Allocation in 41971168014 (MB) |
+|---|---|---|---|---|
+| s1 | 393 | 395 | 2531692 | 2517625 |
+| s2 | 420 | 422 | 3310056 | 3262372 |
+| s3 | 502 | 504 | 3566862 | 3538092 |
+
+Between `5a00107` and `ef71e84`, joint moved from highways 0.10.0 to 0.13.0 and from packing 0.5.0 to 0.6.1. The node version stayed 26.13.0. The live heap rose 2 MB on each seed, and the allocation fell 0.6% to 1.4%.
+
+- Each probe writes `engines.json` before its first pair: the versions of node, `@mark1russell7/highways` and `@mark1russell7/packing` (`ENGINE_NAMES`).
+- `LIMIT_SOURCE` of `src/memory-gate.ts` holds the runs, the commit and these versions of the probes of the limits. Each limit also holds the worst values of these probes (`fromAllocMb`, `fromLiveMb`).
+- `gate.md` gives the versions of the limits, and each change of the versions of the probes with limits. A probe of an older commit has no `engines.json`, and its change is "no versions".
+- The column "Change" of `gate.md` gives the change of each probe with limits from the worst probe of the source, in MB and in percent.
+- The gate does not change its own limits at any time. To accept a change of the versions, a pull request refits the limits on the new versions with the formula above, and it changes `LIMIT_SOURCE`.
+- The limits have no margin in percent. The spread 0 is a valid result for one set of versions.
 
 - The limits are in `MEMORY_LIMITS` of `src/memory-gate.ts`. A test examines each limit against the values of the table of the re-fit.
 - A probe fails when a value is more than its limit, or when it has no value.

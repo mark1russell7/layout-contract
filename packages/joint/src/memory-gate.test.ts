@@ -4,6 +4,8 @@ import { describe, expect, it } from "vitest";
 import { jointCorpus, SET_V2 } from "./corpus.ts";
 import { straightCrossings } from "./joint-measures.ts";
 import {
+  ENGINE_NAMES,
+  engineChange,
   expectedProbes,
   familyOf,
   familyProbeGroups,
@@ -13,6 +15,8 @@ import {
   gateEstimate,
   gateJobs,
   gateMarkdown,
+  LIMIT_SOURCE,
+  limitChange,
   LIMITS_MODE,
   MEMORY_GATE_MB,
   MEMORY_LIMITS,
@@ -154,8 +158,11 @@ describe("the limits of input F", () => {
       const limit = MEMORY_LIMITS[`${DENSE_HUBS_FAMILY}/${seed}`]!;
       expect(limit.allocMb).toBe(aMax! + Math.max(aMax! - aMin!, 1));
       expect(limit.liveMaxMb).toBe(lMax! + Math.max(lMax! - lMin!, 1));
+      expect(limit.fromAllocMb).toBe(aMax);
+      expect(limit.fromLiveMb).toBe(lMax);
     }
     expect(Object.keys(MEMORY_LIMITS)).toHaveLength(3);
+    expect(LIMIT_SOURCE.runs).toEqual([41654875543, 41769223049]);
   });
 
   it("give each seed of F a job of its own in the limits mode, and keep F in its group", () => {
@@ -241,5 +248,55 @@ describe("the expected minutes of a gate", () => {
     const line = /max-parallel: \$\{\{ github\.event_name == 'workflow_dispatch' && (\d+) \|\| (\d+) \}\}/.exec(text);
     expect(line?.[1]).toBe("3");
     expect(Number(line?.[2])).toBe(GATE_LANES);
+  });
+});
+
+describe("the versions of the limits", () => {
+  const source = { runs: [1, 2], head: "abc1234", engines: { node: "26.13.0", highways: "0.10.0", packing: "0.5.0" } };
+  const limits = { a: { allocMb: 2535267, liveMaxMb: 394, fromAllocMb: 2531692, fromLiveMb: 393 } };
+  const probe = (engines?: Record<string, string>): ProbeResult => ({ input: "a", mode: LIMITS_MODE, status: 0, peakRssMb: 4447, allocMb: 2517625, liveMaxMb: 395, engines });
+  const gate = (r: ProbeResult) => memoryGate([{ input: "a", mode: LIMITS_MODE }], [r], MEMORY_GATE_MB, limits, source);
+
+  it("names each version that changed, in the order of the source", () => {
+    expect(engineChange(source.engines, source.engines)).toBe("");
+    expect(engineChange(source.engines, { node: "26.13.0", highways: "0.13.0", packing: "0.6.1" })).toBe("highways 0.10.0 to 0.13.0, packing 0.5.0 to 0.6.1");
+    expect(engineChange(source.engines, { node: "26.13.0", highways: "0.10.0" })).toBe("packing 0.5.0 to none");
+    expect(engineChange(source.engines, undefined)).toBe("no versions");
+  });
+
+  it("gives the change from the worst probe of the source, in MB and in percent", () => {
+    // The values of seed s1 in the gate 41971168014.
+    expect(limitChange(probe(), limits.a)).toBe("live heap +2 MB (+0.51 %), allocation -14067 MB (-0.56 %)");
+    expect(limitChange({ ...probe(), liveMaxMb: 393, allocMb: undefined }, limits.a)).toBe("live heap 0 MB (0.00 %)");
+    expect(limitChange(probe(), { allocMb: 1, liveMaxMb: 1 })).toBe("");
+  });
+
+  it("states the change of the versions when a probe with limits fails after it", () => {
+    const g = gate(probe({ node: "26.13.0", highways: "0.13.0", packing: "0.6.1" }));
+    expect(g.pass).toBe(false);
+    expect(g.rows[0]!.reason).toBe("live heap 395 MB, limit 394 MB");
+    expect(g.rows[0]!.engines).toBe("highways 0.10.0 to 0.13.0, packing 0.5.0 to 0.6.1");
+    expect(g.engineChanges).toEqual(["highways 0.10.0 to 0.13.0, packing 0.5.0 to 0.6.1"]);
+    const text = gateMarkdown(g);
+    expect(text).toContain("The limits come from the runs 1 and 2, on commit `abc1234`, with node 26.13.0, highways 0.10.0, packing 0.5.0.");
+    expect(text).toContain("The probes with limits ran on other versions: highways 0.10.0 to 0.13.0, packing 0.5.0 to 0.6.1.");
+    expect(text).toContain("| 395 | live heap +2 MB (+0.51 %), allocation -14067 MB (-0.56 %) | live heap 395 MB, limit 394 MB |");
+  });
+
+  it("says that the versions are the same, and counts a probe with no versions as a change", () => {
+    expect(gate(probe(source.engines)).engineChanges).toEqual([]);
+    expect(gateMarkdown(gate(probe(source.engines)))).toContain("Each probe with limits ran on these versions.");
+    expect(gate(probe()).engineChanges).toEqual(["no versions"]);
+  });
+
+  it("gives no change and no versions to a row without limits", () => {
+    const g = memoryGate([{ input: "b", mode: "bench-6144" }], [{ input: "b", mode: "bench-6144", status: 0, peakRssMb: 90 }], MEMORY_GATE_MB, limits, source);
+    expect(g.rows[0]!.change).toBe("");
+    expect(g.engineChanges).toEqual([]);
+    expect(gateMarkdown(g)).not.toContain("The limits come from");
+  });
+
+  it("has a version of each name in the source of MEMORY_LIMITS", () => {
+    expect(Object.keys(LIMIT_SOURCE.engines)).toEqual([...ENGINE_NAMES]);
   });
 });
