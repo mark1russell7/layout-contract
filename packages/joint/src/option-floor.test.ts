@@ -86,6 +86,20 @@ describe("a sample with a stratum (L122)", () => {
     expect(() => sampleConfigs({ n: 20, seed: 1, known, stratum: { share: 1.5, floors: {} } })).toThrow("The share of the stratum is from 0 to 1, not 1.5.");
   });
 
+  it("takes the count of the stratum picks from picks, by default round(share * n), and refuses picks outside 0 to n", () => {
+    const known = new Set<string>();
+    const ids = (xs: readonly StrategyConfig[]): string[] => xs.map((x) => configId(JOINT_SPACE, x));
+    const floors = stageFloors();
+    const none = ids(sampleConfigs({ n: 20, seed: 20261028, known }));
+    const byShare = ids(sampleConfigs({ n: 20, seed: 20261028, known, stratum: { share: STRATUM_SHARE, floors } }));
+    expect(ids(sampleConfigs({ n: 20, seed: 20261028, known, stratum: { share: STRATUM_SHARE, floors, picks: 5 } }))).toEqual(byShare);
+    // Flip: 0 picks give the sample with no stratum, and the default of 5 picks does not.
+    expect(ids(sampleConfigs({ n: 20, seed: 20261028, known, stratum: { share: STRATUM_SHARE, floors, picks: 0 } }))).toEqual(none);
+    expect(byShare).not.toEqual(none);
+    expect(() => sampleConfigs({ n: 20, seed: 1, known, stratum: { share: 0.25, floors, picks: 21 } })).toThrow("The picks of the stratum are an integer from 0 to 20, not 21.");
+    expect(() => sampleConfigs({ n: 20, seed: 1, known, stratum: { share: 0.25, floors, picks: 2.5 } })).toThrow("The picks of the stratum are an integer from 0 to 20, not 2.5.");
+  });
+
   it("gives the joint space a sample of the full count with a stratum, and none of the known configs", () => {
     const known = new Set(sampleConfigs({ n: 10, seed: 5, known: new Set() }).map((c) => configId(JOINT_SPACE, c)));
     const out = sampleConfigs({ n: 40, seed: 20261105, known, stratum: { share: STRATUM_SHARE, floors: stageFloors() } });
