@@ -522,6 +522,19 @@ export function runsOf(configs: Readonly<Record<string, StrategyConfig>>, space:
   return Object.fromEntries(Object.entries(configs).map(([id, c]) => [id, configRun(c, space)]));
 }
 
+/** This function takes each item that fits in what is left of the budget, in their order. An item that does not fit does not stop the items behind it. */
+export function takeFitting<T>(items: readonly T[], cost: (item: T) => number, budget: number): { readonly taken: T[]; readonly cost: number } {
+  const taken: T[] = [];
+  let sum = 0;
+  for (const item of items) {
+    const c = cost(item);
+    if (sum + c > budget) continue;
+    taken.push(item);
+    sum += c;
+  }
+  return { taken, cost: sum };
+}
+
 /**
  * This function takes items in their order while the sum of their costs stays at the budget or less. It stops at the first item that does not fit.
  * Thus the order of the items is their priority.
