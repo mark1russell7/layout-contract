@@ -234,6 +234,43 @@ The dropped and halved configs lose their values in the state. Their rows stay i
 
 `night.missing` counts each planned pair with no value by the end of the night. `night.lost` gives the counts of each round: no record, no reference, censored. Before 2026-11-06 this count was "Jobs without a record", a sum over the rounds of the pairs with no record. That form did not count a record with no reference. It also kept a pair of round 1 on the count when round 2 gave its value. A record of an input with no reference gives no value. It stays in `no-reference.jsonl` of the epoch on the data branch, with the tag `no reference`, and no value reads it.
 
+### The bound on a hold (L116)
+
+A config with a missing input stays out of the full race. Before this bound, an input with no record on each night could hold a config for ever. A plan could also leave a config out for ever. This section gives the rule for each fault.
+
+1. **A censored row.** A planned pair with no value at the end of a night gets a miss (`noteMisses`). A pair with a miss on 2 nights gets a row (`MISS_BOUND`). The row has the input, the tag `censored`, the reason, the nights and the lower bound of a stopped shard. The reasons are `censored`, `no-record` and `no-reference`.
+2. **What "2 nights" reads.** The count reads the nights that planned the pair. A night that did not plan the pair does not add to the count and does not clear it. The rotation of the budget could otherwise break each streak, and that holds the config past the bound. A value clears the miss and the row.
+3. **The race.** A missing input with a row no longer holds its config. The config goes into the full race on its other inputs. `verdict` reads only pairs with values, so a config cannot win on a censored input, and that input does not count for it. The screen rule counts a row as an absent input, so its outcome does not move.
+4. **The limit.** A config with more than 0.5 % of the inputs as rows reads "no read" (`CENSORED_SHARE`, at least 1 input, 2 of 303 at this time). It stays out of the full race, and `night.race.held` gives the reason.
+5. **The plan in part.** Before this bound, `takeBudget` stopped at the first config that did not fit. A config that cost more than the whole budget then blocked each config behind it on each night. The bound did not start, because the count reads only planned pairs. At this time, the first config that does not fit runs in part, in input order (`takeOldest`), and `ran` moves. `night.waiting` counts the configs and pairs that wait, and `night.md` prints this count.
+6. **A bound on waiting.** A night that did not plan a pair does not count for its miss, so a pair with no plan needs its own bound. Each config keeps the nights that a plan left it out while it had inputs to run (`waited`), and `night.md` prints this age. A pair in a plan clears the list. After 2 nights a config goes first in the next plan (`WAIT_BOUND`). A config that this plan also leaves out reads "no read". A pair that does not fit does not stop the pairs behind it (`takeFitting`). A config with no pair that fits gets no plan, and the next config takes its place. Among configs past the limit, the longest wait comes first and then the config id. Thus the order does not depend on the order of the input list. The limit is 2 rotations, because each alive config with missing inputs had a plan on 3 of the 4 saved nights. At the rate of 2026-11-03, a rotation is 10 nights, so going first cannot serve each config, and the others read "no read" until their turn. This label is true, and it is no verdict on the config.
+7. **Kept records.** A record with no reference stays in `no-reference.jsonl` of the epoch (L115). The job `plan` copies this file to the artifact of the night, so the job `race` needs no data branch. Once the reference of the input returns, `applyKept` gives the record its value. The stamp is the name of the epoch, with the engine and space versions. A time measure does not read a kept record. A kept record adds no summary row, no `ms` and no `ran`. A `no-reference` row clears when its reference returns, so the plan has the pair again.
+
+The share comes from a read on the 23 alive configs with each value of the state of 2026-11-03 (303 inputs, 101 families). For each share, the read takes the worst inputs of each config out, and this is the case that flatters the config most. It compares the move of the stratified mean with the tie of 0.005.
+
+| Share | Inputs | Median move | Largest move | Configs whose sign moved | Families lost, over all configs | Same share at random, q95 of the move |
+| --- | --- | --- | --- | --- | --- | --- |
+| 0.5 % | 2 | 0.0015 | 0.0076 | 2 of 23 | 0 | 0.0025 |
+| 1 % | 3 | 0.0052 | 0.0100 | 3 of 23 | 4 | 0.0025 |
+| 2 % | 6 | 0.0143 | 0.0197 | 7 of 23 | 17 | 0.0037 |
+| 3 % | 9 | 0.0236 | 0.0290 | 8 of 23 | 22 | 0.0047 |
+| 5 % | 15 | 0.0370 | 0.0471 | 8 of 23 | 22 | 0.0055 |
+
+0.5 % is the largest tested share with a median move under the tie and with no family lost. Its largest move is over the tie, and 2 of 23 signs moved, so 2 rows in this flattering case can move a verdict. That is the price of the rule, and `night.md` names each row.
+
+The limits of the bound:
+
+- A row is not tried again inside an epoch, unless its reason is `no-reference`. An input that starts to work in the same epoch stays a row for that config.
+- A missing reference counts toward the limit, and it is no fault of the config.
+- A pair that costs more than the whole budget gets no plan and no miss. The budget is `maxShards` x `target` x 0.9. `night.md` prints the count of these pairs and inputs for each round. A config with only such pairs left reads "no read" by its age.
+- The plan in part runs before the fresh sample, so a backlog over the budget gives no fresh configs on that round. `night.md` prints the count of these rounds in the epoch.
+- The age counts the config, and not each pair. A config in part clears its age. Its other pairs come in input order, and each pair leaves the queue after at most 2 plans.
+- Only one config runs in part in each round, so a config in part can leave some budget with no use.
+- The age does not carry into a new epoch, because a new epoch starts with the baseline arm only. No config of the old epoch goes on, with an age or with none, so a carried age has no config to read it. The first night of an epoch prints the open configs of the epoch before it, and the configs that a plan left out. The first read of this line on real data is the next change of epoch.
+- The stamp of a kept record is the name of the epoch. The stamp of L114 is not on the sweep at this time.
+
+**The replay.** The 4 saved nights of 2026-11-01 to 2026-11-05 ran with the saved plans, once with no kept records and once with them. Both passes read 0 rows and 0 differences from the saved races and labels. The outcomes were 85, 67, 86 and 13. No pair got a miss on 2 nights. Round 2 of 2026-11-02 gave a value to each miss of 2026-11-01. The 66 misses of 2026-11-03 had no later night in that epoch. Of the 188 kept records, 176 are distinct pairs, and 39 pairs gave a value on 2026-11-02. Each of the 39 equals the value of the later run of the pair. The other records belong to configs that the race dropped by then (63) or to pairs with a value by then (74). The replay does not read the plan in part or the bound on waiting. A saved plan has no records for the pairs that it left out.
+
 ## The records
 
 - The raw records of each shard are the artifacts `sweep-records-<round>-<shard>`. Each record has the config id as its strategy and the pair id in `options.pair`.

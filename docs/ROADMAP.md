@@ -81,7 +81,7 @@ This file lists the items of the roadmap of this repository. The status page of 
 | L123 | in progress | P1 | A sweep night ends by itself with its data published |
 | L124 | in progress | P1 | Engine versions of the sweep move on a stated cadence: one pair of engines to 2026-11-17, with a row in release-train, a Renovate rule and a daily check of the dates |
 | L125 | next | P2 | Shape and cost of an epoch per strategy, with a behaviour version |
-| L115 | in progress | P1 | A deadline inside each shard with a censored row and a flip, the held configs and the origin of a label in the report, and a count of each planned pair with no value. By 2026-11-08. The bound on a hold follows by 2026-11-12 |
+| L116 | in progress | P1 | A held config cannot stay out of the full race for ever: a censored row after 2 planned nights with a miss, a limit of 0.5 % of the inputs, a plan in part, and kept records that give a value once their reference returns. By 2026-11-12 |
 
 ## Done
 
@@ -141,3 +141,4 @@ This file lists the items of the roadmap of this repository. The status page of 
 | L84 | done | P1 | A paired-time A/A arm in the joint bench, for the new Time row |
 | L85 | done | P2 | CI runs each command of the sweep script on a small fixture |
 | L86 | done | P3 | Move the random generators and the joint statistics to the rigor packages |
+| L115 | done | P1 | A deadline inside each shard with a censored row and a flip, the held configs and the origin of a label in the report, and a count of each planned pair with no value |
