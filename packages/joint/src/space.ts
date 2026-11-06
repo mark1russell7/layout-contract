@@ -3,6 +3,7 @@
 import {
   canonicalConfig,
   configId,
+  outputHash,
   productSpace,
   type SpaceParam,
   type SpaceStage,
@@ -146,6 +147,14 @@ export function jointSpace(pack: StrategySpace = benchPackSpace(), route: Strate
 
 /** The joint space of the bench: `jointSpace()` with the bench parts. */
 export const JOINT_SPACE: StrategySpace = jointSpace();
+
+/**
+ * This function gives the fingerprint of a space: the `outputHash` of the space with the exact numbers.
+ * Each change of an option, a param, a range or a named config gives a new fingerprint. The state of an epoch keeps the fingerprint of its space (L133).
+ */
+export function spaceFingerprint(space: StrategySpace): string {
+  return outputHash(space, { grid: 0 });
+}
 
 /** What the runner does for one joint config: one pair of a pack entry and a router, and an optional lane entry or iteration entry. */
 export interface ConfigRun {

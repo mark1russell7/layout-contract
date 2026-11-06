@@ -75,6 +75,14 @@ The parts are local copies of the bench options. Both engines publish their spac
 2. Write a `JointAdapter` that gives the pack entry and the router of a config of these spaces.
 3. Change `BENCH_SPACE_VERSION`. The new version starts a new epoch of the data.
 
+### The fingerprint of the space
+
+The epoch key has the version of the space, not the space. Thus a change of the space under one version keeps the epoch, and the configs of two spaces go to one state (L133).
+
+- `spaceFingerprint(space)` gives the `outputHash` of the space with the exact numbers. A test of `space.test.ts` pins the pair of `BENCH_SPACE_VERSION` and the fingerprint of `JOINT_SPACE`. A change of the space fails the test, until the version and the pin change together.
+- The state of an epoch keeps the fingerprint of its space. Before each plan, `checkStateSpace` gives the fingerprint to a state from before the field. A state with another fingerprint stops the plan.
+- PR 157 added the pack entries `rows-graph-bfs` and `maxrects-bl-graph-bfs` on 2026-11-03 and kept `bench-3`. The 3 nights of the epoch `joint-v2_packing-0.4.1_highways-0.10.0_space-bench-3` ran on the space before PR 157, with the fingerprint `730c0332fd30835c`. The epoch `joint-v2_packing-0.6.1_highways-0.13.0_space-bench-3` has only the new space. Thus no epoch has two spaces. But a replay of the epoch of 0.4.1 on the space of today gave only 12 of the 85 configs of its first round.
+
 ## The plan of a night
 
 The date of the night in UTC gives the seed `YYYYMMDD`. Thus a rerun of a night has the same plan. A second run of a date that the state has already does nothing.
