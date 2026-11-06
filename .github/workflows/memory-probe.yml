@@ -12,6 +12,8 @@
 # The input `repeats` runs each job that count of times, each in its own job and artifact (the A/A repeat of L81). The gate examines each repeat.
 # The job gate examines each probe. It fails when an input has no probe, an OOM or another error, or a peak RSS of the ceiling or more.
 # In families, each seed of input F also gets a job in the mode measure-6144. The gate compares its allocation and live heap with MEMORY_LIMITS.
+# When the versions of the engines are not the versions of the limits (`bench.mjs engine-change`), each seed of F gets 5 repeats, the probes of a refit.
+# The gate job then writes the refit to the artifact memory-refit. `bench.mjs refit-pr --run <id>` opens its draft pull request, and a person merges it.
 name: Memory probe
 
 on:
@@ -79,6 +81,8 @@ jobs:
     outputs:
       skip: ${{ steps.changed.outputs.skip }}
       jobs: ${{ steps.plan.outputs.jobs }}
+      refit: ${{ steps.plan.outputs.refit }}
+      change: ${{ steps.plan.outputs.change }}
     steps:
       # A nightly run stops here in two cases. It has no new data.
       # (1) The last nightly gate examined the same commit of main. Only a run whose job gate passed or failed counts, because a run that stopped here also ends as a success.
@@ -147,10 +151,19 @@ jobs:
             list="$(printf '%s' "$INPUTS" | jq -Rc 'split(",") | map(select(. != ""))')"
           fi
           printf '%s' "$list" > groups.json
+          # A change of the versions of the engines gives the jobs with limits the probes of a refit (`--limit-repeats auto`).
+          refit=false
+          change=""
+          if [ "$limits" = on ]; then
+            change="$(node scripts/bench.mjs engine-change)"
+            if [ -n "$change" ]; then refit=true; echo "The versions of the engines are not the versions of the limits: $change. Each input with limits gets the probes of a refit." | tee -a "$GITHUB_STEP_SUMMARY"; fi
+          fi
           # A failed command in a substitution does not stop the step, so the assignment is a command of its own.
-          jobs="$(node scripts/bench.mjs jobs --groups groups.json --modes "$MODES" --repeats "$REPEATS" --limits "$limits")"
+          jobs="$(node scripts/bench.mjs jobs --groups groups.json --modes "$MODES" --repeats "$REPEATS" --limits "$limits" --limit-repeats auto)"
           echo "The plan has $(printf '%s' "$jobs" | jq length) jobs: $(printf '%s' "$list" | jq length) groups for each mode and repeat, and the limits are $limits." | tee -a "$GITHUB_STEP_SUMMARY"
           echo "jobs=$jobs" >> "$GITHUB_OUTPUT"
+          echo "refit=$refit" >> "$GITHUB_OUTPUT"
+          echo "change=$change" >> "$GITHUB_OUTPUT"
 
   probe:
     needs: plan
@@ -252,11 +265,36 @@ jobs:
           SWEEP_RESULT: ${{ github.event.workflow_run.conclusion }}
           SWEEP_URL: ${{ github.event.workflow_run.html_url }}
           EVENT: ${{ github.event_name }}
+          REFIT: ${{ needs.plan.outputs.refit }}
+          CHANGE: ${{ needs.plan.outputs.change }}
+          RUN_ID: ${{ github.run_id }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          HEAD_SHA: ${{ github.sha }}
         run: |
           mkdir -p probes
           printf '%s' "$EXPECTED" > expected.json
           status=0
           node scripts/bench.mjs gate --probes probes --expected expected.json --limit-mb "$LIMIT" || status=$?
+          # After a change of the versions, the first error line of the job names the artifact of the refit and the command that opens its pull request.
+          if [ "$REFIT" = true ]; then
+            if node scripts/bench.mjs refit --probes probes --run "$RUN_ID" --url "$RUN_URL" --head "$HEAD_SHA" --out refit; then
+              refused="$(jq -r '.refused | join(" ")' refit/refit.json)"
+            else
+              refused="the command refit failed. The log of this step has its error."
+              mkdir -p refit
+              : > refit/refit.md
+            fi
+            if [ -n "$refused" ]; then
+              line="The versions of the engines changed ($CHANGE), and the refit of the limits is refused: $refused"
+            else
+              line="The versions of the engines changed ($CHANGE). The artifact memory-refit holds the refit of the limits. To open its pull request, run in packages/joint: node scripts/bench.mjs refit-pr --run $RUN_ID"
+            fi
+            if [ "$status" != 0 ] || [ -n "$refused" ]; then echo "::error::$line"; else echo "::warning::$line"; fi
+            printf '%s
+
+' "$line" >> "$GITHUB_STEP_SUMMARY"
+            cat refit/refit.md >> "$GITHUB_STEP_SUMMARY"
+          fi
           if [ -n "$SWEEP_ID" ]; then
             printf '\nThis gate followed the sweep run [%s](%s), with the result %s.\n' "$SWEEP_ID" "$SWEEP_URL" "$SWEEP_RESULT" >> probes/gate.md
           else
@@ -269,4 +307,10 @@ jobs:
         with:
           name: memory-gate
           path: packages/joint/probes/gate.md
+          if-no-files-found: error
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        if: ${{ !cancelled() && needs.plan.outputs.refit == 'true' }}
+        with:
+          name: memory-refit
+          path: packages/joint/refit/
           if-no-files-found: error

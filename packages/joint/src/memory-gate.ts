@@ -3,6 +3,7 @@
 // The bench gives the list of the inputs, so the gate cannot leave out a family.
 
 import { median } from "@mark1russell7/rigor-statistics";
+import { readFileSync } from "node:fs";
 
 /** One input of the corpus with its planned cost (`plannedCost`). */
 export interface CostedInput {
@@ -35,6 +36,67 @@ export interface MemoryLimit {
 /** The names of the versions that a probe writes in `engines.json`: the node runtime and the engines of the pairs. */
 export const ENGINE_NAMES = ["node", "highways", "packing"] as const;
 
+/** The count of the probes of each input with limits that a refit of the limits needs. */
+export const REFIT_PROBES = 5;
+
+/** The probes that the limits come from: their runs, their commit, the versions of `ENGINE_NAMES`, and the values of each probe of each input. */
+export interface LimitData {
+  readonly runs: readonly number[];
+  readonly head: string;
+  readonly engines: Readonly<Record<string, string>>;
+  readonly probes: Readonly<Record<string, { readonly allocMb: readonly number[]; readonly liveMaxMb: readonly number[] }>>;
+}
+
+/**
+ * This function reads the text of the limit data and examines it.
+ * Each input has the same count of allocation values and live heap values, and `REFIT_PROBES` values at least. Each value is a finite number above 0.
+ * The data has a version of each name of `ENGINE_NAMES`.
+ */
+export function parseLimitData(text: string): LimitData {
+  const raw = JSON.parse(text) as LimitData;
+  if (!Array.isArray(raw.runs) || raw.runs.length === 0 || !raw.runs.every((r) => Number.isInteger(r) && r > 0)) throw new RangeError("The limit data has a list of run ids, and each id is an integer above 0.");
+  if (typeof raw.head !== "string" || !/^[0-9a-f]{7,40}$/.test(raw.head)) throw new RangeError(`The head of the limit data is a commit, not ${String(raw.head)}.`);
+  for (const name of ENGINE_NAMES) if (typeof raw.engines?.[name] !== "string") throw new RangeError(`The limit data has no version of ${name}.`);
+  const inputs = Object.entries(raw.probes ?? {});
+  if (inputs.length === 0) throw new RangeError("The limit data has no inputs.");
+  for (const [input, values] of inputs) {
+    const ok = (list: unknown): list is number[] => Array.isArray(list) && list.length >= REFIT_PROBES && list.every((v) => typeof v === "number" && Number.isFinite(v) && v > 0);
+    if (!ok(values.allocMb) || !ok(values.liveMaxMb) || values.allocMb.length !== values.liveMaxMb.length) {
+      throw new RangeError(`The input ${input} of the limit data has ${REFIT_PROBES} or more probes, with an allocation and a live heap above 0 in each probe.`);
+    }
+  }
+  return raw;
+}
+
+/** This function gives the worst value of a list and its limit. The limit is the worst value plus the spread, with one step of 1 MB at least, rounded up to 1 MB. */
+function worstAndLimit(values: readonly number[]): { worst: number; limit: number } {
+  const worst = Math.max(...values);
+  return { worst: Math.ceil(worst), limit: Math.ceil(worst + Math.max(worst - Math.min(...values), 1)) };
+}
+
+/** This function gives the limit of the probes of one input, with their worst values. */
+function limitOf(values: { readonly allocMb: readonly number[]; readonly liveMaxMb: readonly number[] }): MemoryLimit {
+  const alloc = worstAndLimit(values.allocMb);
+  const live = worstAndLimit(values.liveMaxMb);
+  return { allocMb: alloc.limit, liveMaxMb: live.limit, fromAllocMb: alloc.worst, fromLiveMb: live.worst };
+}
+
+/** This function gives the limits of each input of the limit data, with the worst values of its probes. */
+export function limitsOf(data: LimitData): Record<string, MemoryLimit> {
+  return Object.fromEntries(Object.entries(data.probes).map(([input, values]) => [input, limitOf(values)]));
+}
+
+/** This function gives the source of the limit data: its runs, its commit and its versions. */
+export function sourceOf(data: LimitData): LimitSource {
+  return { runs: data.runs, head: data.head, engines: data.engines };
+}
+
+/**
+ * The probes of the limits of `MEMORY_LIMITS`, from `data/memory-limits.json`. The probes are the 5 of the run 41654875543 and the 1 of the run 41769223049.
+ * A refit pull request changes only this file (`refitLimits`, `docs/JOINT-BENCH.md`).
+ */
+export const LIMIT_DATA: LimitData = parseLimitData(readFileSync(new URL("../data/memory-limits.json", import.meta.url), "utf8"));
+
 /** The probes that the limits of `MEMORY_LIMITS` come from: their runs, their commit and the versions of `ENGINE_NAMES`. */
 export interface LimitSource {
   readonly runs: readonly number[];
@@ -46,23 +108,15 @@ export interface LimitSource {
  * The source of the limits of `MEMORY_LIMITS`. The live heap is the same in each probe of one seed on one set of versions.
  * Thus a change of an engine can move a value over its limit, and the gate names the change (roadmap item L81, the ruling of 2026-11-05).
  */
-export const LIMIT_SOURCE: LimitSource = {
-  runs: [41654875543, 41769223049],
-  head: "5a00107",
-  engines: { node: "26.13.0", highways: "0.10.0", packing: "0.5.0" },
-};
+export const LIMIT_SOURCE: LimitSource = sourceOf(LIMIT_DATA);
 
 /**
  * The limits of the inputs that have 5 or more probes on `main` (`docs/JOINT-BENCH.md`, "The limits of the memory gate").
- * Each limit is the worst value of 6 probes plus their spread, rounded up to 1 MB. The probes are the 5 of the run 41654875543 and the 1 of the run 41769223049.
+ * Each limit is the worst value of the probes of `LIMIT_DATA` plus their spread, rounded up to 1 MB (`limitsOf`).
  * The margin is at least one step of the measure, so the step of `liveMaxMb` is 1 MB.
  * The probes of all CPU models count together. In the run 41408115284, the CPU models changed the allocation by at most 0.16%, less than the spread of that run.
  */
-export const MEMORY_LIMITS: Readonly<Record<string, MemoryLimit>> = {
-  "joint-v2/rect-grid.freeHeight.holes.none.bimodal.n1000.e-dense.hubs.none.free.sp-gap/s1": { allocMb: 2535267, liveMaxMb: 394, fromAllocMb: 2531692, fromLiveMb: 393 },
-  "joint-v2/rect-grid.freeHeight.holes.none.bimodal.n1000.e-dense.hubs.none.free.sp-gap/s2": { allocMb: 3313580, liveMaxMb: 421, fromAllocMb: 3310056, fromLiveMb: 420 },
-  "joint-v2/rect-grid.freeHeight.holes.none.bimodal.n1000.e-dense.hubs.none.free.sp-gap/s3": { allocMb: 3574452, liveMaxMb: 503, fromAllocMb: 3566862, fromLiveMb: 502 },
-};
+export const MEMORY_LIMITS: Readonly<Record<string, MemoryLimit>> = limitsOf(LIMIT_DATA);
 
 /** The function of the joint measures that gives the steps of the allocation (`docs/JOINT-BENCH.md`, "The limits of the memory gate"). */
 export const STEP_FUNCTION = "straightCrossings";
@@ -162,17 +216,23 @@ export interface GateJob {
 
 /**
  * This function gives the jobs of the gate: each group in each mode, for each repeat.
- * With `limits`, each input with a limit also gets a job of its own in the mode `LIMITS_MODE`.
+ * With `limits`, each input with a limit also gets a job of its own in the mode `LIMITS_MODE`, for each of `limitRepeats` repeats.
  * One seed of input F takes 50 to 192 minutes in that mode, so each seed has its own job. These jobs come first, because they are long.
+ * After a change of the versions, the nightly gives `REFIT_PROBES` to `limitRepeats` (`limitRepeatsFor`), so the run has the probes of a refit.
  */
-export function gateJobs(groups: readonly string[], modes: readonly string[], repeats: number, limits?: Readonly<Record<string, MemoryLimit>>): GateJob[] {
+export function gateJobs(groups: readonly string[], modes: readonly string[], repeats: number, limits?: Readonly<Record<string, MemoryLimit>>, limitRepeats: number = repeats): GateJob[] {
   const limited = limits === undefined ? [] : Object.keys(limits);
   const jobs: GateJob[] = [];
-  for (let repeat = 1; repeat <= repeats; repeat++) {
-    for (const input of limited) jobs.push({ input, mode: LIMITS_MODE, repeat });
-    for (const mode of modes) for (const input of groups) if (input !== "") jobs.push({ input, mode, repeat });
+  for (let repeat = 1; repeat <= Math.max(repeats, limitRepeats); repeat++) {
+    if (repeat <= limitRepeats) for (const input of limited) jobs.push({ input, mode: LIMITS_MODE, repeat });
+    if (repeat <= repeats) for (const mode of modes) for (const input of groups) if (input !== "") jobs.push({ input, mode, repeat });
   }
   return jobs;
+}
+
+/** This function gives the repeats of the jobs with limits: `REFIT_PROBES` at least when the versions are not the versions of the source, else `repeats`. */
+export function limitRepeatsFor(change: string, repeats: number): number {
+  return change === "" ? repeats : Math.max(repeats, REFIT_PROBES);
 }
 
 /** This function gives each input of each job with the mode of the job, one time. The gate expects a probe for each of them. */
@@ -363,4 +423,114 @@ export function gateMarkdown(gate: GateResult): string {
     "| --- | --- | --- | --- | --- | --- | --- | --- | --- |",
     ...gate.rows.map((r) => `| ${r.input} | ${r.mode} | ${r.status ?? ""} | ${r.peakRssMb ?? ""} | ${r.allocMb ?? ""} | ${r.steps ?? ""} | ${r.liveMaxMb ?? ""} | ${r.change} | ${r.reason === "" ? "pass" : r.reason} |`),
   ].join("\n") + "\n";
+}
+
+/** One input of a refit: the count of its probes with values, its old limit and its new limit. */
+export interface RefitRow {
+  readonly input: string;
+  readonly probes: number;
+  readonly old: MemoryLimit | undefined;
+  /** The new limit. It is `undefined` when the input has fewer than the needed probes. */
+  readonly next: MemoryLimit | undefined;
+}
+
+/** A refit of the limits from the probes of one run. The refit is valid when `refused` is empty, and then `data` is the new limit data. */
+export interface Refit {
+  readonly rows: readonly RefitRow[];
+  readonly data: LimitData | undefined;
+  /** Each reason why the refit is not valid. */
+  readonly refused: readonly string[];
+}
+
+/** The run of a refit: its id, its URL and the commit of its probes. */
+export interface RefitRun {
+  readonly run: number;
+  readonly url: string;
+  readonly head: string;
+}
+
+/**
+ * This function refits the limits of each input of `old` from the probes of one run in the mode `LIMITS_MODE`, with the formula of `limitsOf`.
+ * Only a probe with the status 0, an allocation and a live heap counts.
+ * The refit is refused when an input has fewer than `needed` such probes, or when a probe has no versions.
+ * It is also refused when the probes have more than one set of versions.
+ */
+export function refitLimits(results: readonly ProbeResult[], run: RefitRun, old: Readonly<Record<string, MemoryLimit>> = MEMORY_LIMITS, needed: number = REFIT_PROBES): Refit {
+  const refused: string[] = [];
+  const sets = new Map<string, Readonly<Record<string, string>> | undefined>();
+  const probes: Record<string, { allocMb: number[]; liveMaxMb: number[] }> = {};
+  const rows = Object.keys(old).map((input): RefitRow => {
+    const own = results.filter((r) => r.input === input && r.mode === LIMITS_MODE && r.status === 0 && r.allocMb !== undefined && r.liveMaxMb !== undefined);
+    for (const r of own) sets.set(r.engines === undefined ? "" : JSON.stringify(Object.entries(r.engines).sort()), r.engines);
+    if (own.length < needed) {
+      refused.push(`The input ${input} has ${own.length} probes with values, and a refit needs ${needed}.`);
+      return { input, probes: own.length, old: old[input], next: undefined };
+    }
+    probes[input] = { allocMb: own.map((r) => r.allocMb!), liveMaxMb: own.map((r) => r.liveMaxMb!) };
+    return { input, probes: own.length, old: old[input], next: limitOf(probes[input]) };
+  });
+  if (sets.has("")) refused.push("A probe has no engines.json, so the refit cannot name its versions.");
+  else if (sets.size > 1) refused.push(`The probes ran on ${sets.size} sets of versions, and a refit needs one set.`);
+  const engines = sets.size === 1 ? [...sets.values()][0] : undefined;
+  const data = refused.length === 0 && engines !== undefined ? { runs: [run.run], head: run.head.slice(0, 7), engines, probes } : undefined;
+  return { rows, data, refused };
+}
+
+/** This function gives the change of one value of a refit as text, for example `393 to 395 (+2 MB (+0.51 %))`. */
+function refitCell(from: number | undefined, next: number | undefined): string {
+  if (next === undefined) return "";
+  return from === undefined ? String(next) : `${from} to ${next} (${signedChange(from, next)})`;
+}
+
+/**
+ * This function gives the body of the pull request of a refit as Markdown.
+ * The body names the runs and the versions of the old limits and of the new limits, and the change of each input. A refused refit gives its reasons.
+ */
+export function refitMarkdown(refit: Refit, run: RefitRun, source: LimitSource = LIMIT_SOURCE): string {
+  const head = run.head.slice(0, 7);
+  if (refit.data === undefined) {
+    return ["### Refit of the memory limits: refused", "", `The probes of the run [${run.run}](${run.url}), on commit \`${head}\`, do not give a valid refit:`, "", ...refit.refused.map((r) => `- ${r}`)].join("\n") + "\n";
+  }
+  return [
+    "### Refit of the memory limits",
+    "",
+    `The probes of the run [${run.run}](${run.url}), on commit \`${head}\`, give new limits for the inputs of \`MEMORY_LIMITS\` (roadmap item L81).`,
+    "",
+    `- The old limits come from the runs ${source.runs.join(" and ")}, on commit \`${source.head}\`, with ${versionsText(source.engines)}.`,
+    `- The probes of this run ran on ${versionsText(refit.data.engines)}. The change of the versions: ${engineChange(source.engines, refit.data.engines) || "none"}.`,
+    "- Each new limit is the worst value of the probes plus their spread, with one step of 1 MB at least.",
+    "",
+    "| Input | Probes | Live heap, worst (MB) | Live heap limit (MB) | Allocation, worst (MB) | Allocation limit (MB) |",
+    "| --- | --- | --- | --- | --- | --- |",
+    ...refit.rows.map((r) => `| ${r.input} | ${r.probes} | ${refitCell(r.old?.fromLiveMb, r.next?.fromLiveMb)} | ${refitCell(r.old?.liveMaxMb, r.next?.liveMaxMb)} | ${refitCell(r.old?.fromAllocMb, r.next?.fromAllocMb)} | ${refitCell(r.old?.allocMb, r.next?.allocMb)} |`),
+    "",
+    "The gate does not change its own limits. Read the change of each input before the merge.",
+  ].join("\n") + "\n";
+}
+
+/** The file `refit.json` of the artifact memory-refit: the run of the refit, its reasons of refusal and its new limit data. */
+export interface RefitFile extends RefitRun {
+  readonly refused: readonly string[];
+  readonly data: LimitData | null | undefined;
+}
+
+/** The facts of git that the command `refit-pr` reads before it pushes a refit. */
+export interface RefitAncestry {
+  /** True when the commit of the probes is an ancestor of `origin/main`. */
+  readonly ancestor: boolean;
+  /** True when `data/memory-limits.json` changed on `origin/main` after the commit of the probes. */
+  readonly limitsChanged: boolean;
+}
+
+/**
+ * This function gives the reason why the command `refit-pr` refuses the refit of the run `id`, or `undefined` for a refit that it can push.
+ * It refuses a refused refit, the artifact of another run, and a refit of a commit that main does not hold.
+ * It also refuses a refit of a commit before a change of the limit file on main.
+ */
+export function refitRefusal(file: RefitFile, id: number, git: RefitAncestry): string | undefined {
+  if (file.data == null) return `The refit of the run ${id} is refused: ${file.refused.join(" ")}`;
+  if (file.run !== id) return `The artifact of the run ${id} holds the refit of the run ${file.run}.`;
+  if (!git.ancestor) return `The commit ${file.head} of the probes is not an ancestor of origin/main, so the refit is refused.`;
+  if (git.limitsChanged) return `The file data/memory-limits.json changed on origin/main after the commit ${file.head} of the probes, so the refit is refused.`;
+  return undefined;
 }

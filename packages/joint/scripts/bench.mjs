@@ -13,8 +13,11 @@
 //                                                                            writes <dir>/report.json and <dir>/report.md
 //   probe --inputs <id[,id]> --out <dir> [--corpus <set>]                  writes <dir>/records-probe.jsonl and <dir>/probe.jsonl (L77)
 //   families [--corpus <set>]                                               prints the JSON list of the probe groups: the tied largest inputs of each family (L81)
-//   jobs --groups <file> --modes <m[,m]> --repeats <n> [--limits on]       prints the JSON list of the jobs of the gate (L81)
+//   jobs --groups <file> --modes <m[,m]> --repeats <n> [--limits on] [--limit-repeats <n|auto>]   prints the JSON list of the jobs of the gate (L81)
 //   gate --probes <dir> --expected <file> [--limit-mb <n>]                 examines the probes of the jobs of <file> and writes <dir>/gate.md (L81)
+//   engine-change                                                           prints each version of this process that is not the version of the limits, or an empty line (L81)
+//   refit --probes <dir> --run <id> --url <url> --head <sha> --out <dir>   writes <dir>/refit.json and <dir>/refit.md: the refit of the limits from the probes (L81)
+//   refit-pr --run <id> [--trailer <text>] [--body-end <text>]             opens the draft pull request of the refit of the artifact memory-refit of a run (L81)
 //                                                                            with lane pairs, also <dir>/report-without-lanes.json and .md
 //
 // The corpus is `joint-v2` by default. The slice `pr` is the small slice of the pull request: seed 1 of the specs with count 10 and of the fixed cases.
@@ -37,7 +40,9 @@
 // analyze also compares each iteration pair with a cap above 1 with round 1 of its chain, the pair `lanes-iter1` of the same pack entry and router.
 // analyze reads the folds of the greedy portfolios from the split "default" of the split file of the corpus (corpus/splits).
 // analyze fails when an input of the manifest has no records, unless the file of `--allow-missing` lists it. The files list one input id on each line.
-import { appendFileSync, existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
+import { spawnSync } from "node:child_process";
+import { appendFileSync, existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
 import { caseProgress, startSupervisedProcess, superviseCases } from "@mark1russell7/rigor-bench/supervise";
 import { Session } from "node:inspector";
 import { dirname, join } from "node:path";
@@ -75,6 +80,12 @@ import {
   MEMORY_GATE_MB,
   MEMORY_LIMITS,
   ENGINE_NAMES,
+  engineChange,
+  LIMIT_SOURCE,
+  limitRepeatsFor,
+  refitLimits,
+  refitMarkdown,
+  refitRefusal,
   memoryGate,
   manifestJson,
   PACK_ENTRIES,
@@ -600,36 +611,32 @@ if (command === "check") {
   // The file of --groups is the JSON list of `families`, or another list of groups with commas. With `--limits on`, each input of `MEMORY_LIMITS` also gets a job in its mode.
   const groups = JSON.parse(readFileSync(args.groups, "utf8"));
   const modes = (args.modes ?? "").split(",").filter((m) => m !== "");
-  console.log(JSON.stringify(gateJobs(groups, modes, Number(args.repeats ?? 1), args.limits === "on" ? MEMORY_LIMITS : undefined)));
+  const repeats = Number(args.repeats ?? 1);
+  // `--limit-repeats auto` gives the jobs with limits the probes of a refit when the versions of this process are not the versions of the limits.
+  const limitRepeats = args["limit-repeats"] === "auto" ? limitRepeatsFor(engineChange(LIMIT_SOURCE.engines, engineVersions()), repeats) : Number(args["limit-repeats"] ?? repeats);
+  if (!(Number.isInteger(limitRepeats) && limitRepeats >= 1)) throw new RangeError(`The option --limit-repeats is auto or an integer above 0, not "${args["limit-repeats"]}".`);
+  console.log(JSON.stringify(gateJobs(groups, modes, repeats, args.limits === "on" ? MEMORY_LIMITS : undefined, limitRepeats)));
+} else if (command === "engine-change") {
+  console.log(engineChange(LIMIT_SOURCE.engines, engineVersions()));
+} else if (command === "refit") {
+  // The probes of a run with the probes of a refit (`--limit-repeats auto`). The command writes the refit, also a refused refit, and does not fail.
+  const run = { run: Number(args.run), url: String(args.url ?? ""), head: String(args.head ?? "") };
+  if (!(Number.isInteger(run.run) && run.run > 0) || !/^[0-9a-f]{7,40}$/.test(run.head)) throw new RangeError("The command refit needs --run <id> and --head <commit>.");
+  const refit = refitLimits(readProbeResults(args.probes ?? "probes"), run);
+  const out = args.out ?? "refit";
+  mkdirSync(out, { recursive: true });
+  writeFileSync(join(out, "refit.json"), JSON.stringify({ ...run, refused: refit.refused, data: refit.data }, null, 2) + "\n");
+  writeFileSync(join(out, "refit.md"), refitMarkdown(refit, run));
+  console.log(refit.data === undefined ? `refit: refused. ${refit.refused.join(" ")}` : "refit: valid.");
+} else if (command === "refit-pr") {
+  refitPullRequest(Number(args.run), args.trailer, args["body-end"]);
 } else if (command === "gate") {
   // Each folder under --probes with an input.txt is the probe of one input: input.txt, mode.txt, status.txt, probe.jsonl and summary.jsonl. A job of one family has a folder for each seed.
   const dir = args.probes ?? "probes";
   // The file of --expected is the JSON list of `jobs`. The gate expects a probe of each input of each job in the mode of the job.
   const expected = expectedProbes(JSON.parse(readFileSync(args.expected, "utf8")));
   if (expected.length === 0) throw new RangeError(`The gate needs the expected probes, and ${args.expected} has none.`);
-  const text = (sub, name) => readFileSync(join(dir, sub, name), "utf8").trim();
-  const subs = readdirSync(dir, { recursive: true }).map(String).filter((n) => n.split(/[\\/]/).at(-1) === "input.txt").map((n) => dirname(n));
-  const results = subs.map((sub) => {
-    // The probe writes an empty probe.jsonl at its start, and the facts of an input at its end. Thus an OOM gives no facts for the input.
-    const facts = readFileSync(join(dir, sub, "probe.jsonl"), "utf8").split("\n").filter((l) => l !== "").map((l) => JSON.parse(l));
-    // summary.jsonl has one line for the input when the probe ended. The modes without a sampler or a forced GC write null.
-    const summaryFile = join(dir, sub, "summary.jsonl");
-    const summary = existsSync(summaryFile) ? readFileSync(summaryFile, "utf8").split("\n").filter((l) => l !== "").map((l) => JSON.parse(l)).at(-1) : undefined;
-    // alloc.jsonl has one line for each pair in the modes that sample the allocation. The gate shows the count of the steps next to the allocation.
-    const allocFile = join(dir, sub, "alloc.jsonl");
-    const allocated = summary?.allocMb != null && existsSync(allocFile) ? readFileSync(allocFile, "utf8").split("\n").filter((l) => l !== "").map((l) => JSON.parse(l)) : undefined;
-    return {
-      input: text(sub, "input.txt"),
-      mode: text(sub, "mode.txt"),
-      status: Number(text(sub, "status.txt")),
-      peakRssMb: facts.length === 0 ? undefined : Math.max(...facts.map((f) => f.maxRss)),
-      allocMb: summary?.allocMb ?? undefined,
-      steps: allocated === undefined ? undefined : stepCount(allocated),
-      liveMaxMb: summary?.liveMaxMb ?? undefined,
-      // A probe of an older commit has no engines.json, and the gate row then says "no versions".
-      engines: existsSync(join(dir, sub, "engines.json")) ? JSON.parse(text(sub, "engines.json")) : undefined,
-    };
-  });
+  const results = readProbeResults(dir);
   const gate = memoryGate(expected, results, Number(args["limit-mb"] ?? MEMORY_GATE_MB));
   writeFileSync(join(dir, "gate.md"), gateMarkdown(gate));
   console.log(`gate: ${gate.pass ? "pass" : "fail"}, ${gate.rows.filter((r) => r.reason !== "").length} of ${gate.rows.length} probes failed.`);
@@ -727,4 +734,76 @@ if (command === "check") {
 } else {
   console.error("The command is check, smoke, plan, run or analyze.");
   process.exit(2);
+}
+
+/** This function reads the probes under `dir`. Each folder with an input.txt is the probe of one input: input.txt, mode.txt, status.txt, probe.jsonl and summary.jsonl. */
+function readProbeResults(dir) {
+  const text = (sub, name) => readFileSync(join(dir, sub, name), "utf8").trim();
+  const subs = readdirSync(dir, { recursive: true }).map(String).filter((n) => n.split(/[\\/]/).at(-1) === "input.txt").map((n) => dirname(n));
+  return subs.map((sub) => {
+    // The probe writes an empty probe.jsonl at its start, and the facts of an input at its end. Thus an OOM gives no facts for the input.
+    const facts = readFileSync(join(dir, sub, "probe.jsonl"), "utf8").split("\n").filter((l) => l !== "").map((l) => JSON.parse(l));
+    // summary.jsonl has one line for the input when the probe ended. The modes without a sampler or a forced GC write null.
+    const summaryFile = join(dir, sub, "summary.jsonl");
+    const summary = existsSync(summaryFile) ? readFileSync(summaryFile, "utf8").split("\n").filter((l) => l !== "").map((l) => JSON.parse(l)).at(-1) : undefined;
+    // alloc.jsonl has one line for each pair in the modes that sample the allocation. The gate shows the count of the steps next to the allocation.
+    const allocFile = join(dir, sub, "alloc.jsonl");
+    const allocated = summary?.allocMb != null && existsSync(allocFile) ? readFileSync(allocFile, "utf8").split("\n").filter((l) => l !== "").map((l) => JSON.parse(l)) : undefined;
+    return {
+      input: text(sub, "input.txt"),
+      mode: text(sub, "mode.txt"),
+      status: Number(text(sub, "status.txt")),
+      peakRssMb: facts.length === 0 ? undefined : Math.max(...facts.map((f) => f.maxRss)),
+      allocMb: summary?.allocMb ?? undefined,
+      steps: allocated === undefined ? undefined : stepCount(allocated),
+      liveMaxMb: summary?.liveMaxMb ?? undefined,
+      // A probe of an older commit has no engines.json, and the gate row then says "no versions".
+      engines: existsSync(join(dir, sub, "engines.json")) ? JSON.parse(text(sub, "engines.json")) : undefined,
+    };
+  });
+}
+
+/** This function runs a command with its arguments and no shell, and gives its output. It stops the script when the command fails. */
+function run(file, argv, options = {}) {
+  const r = spawnSync(file, argv, { encoding: "utf8", ...options });
+  if (r.status !== 0) throw new Error(`The command ${file} ${argv.join(" ")} failed with the status ${r.status}: ${(r.stderr ?? "").trim()}`);
+  return r.stdout ?? "";
+}
+
+/**
+ * This function opens the draft pull request of the refit of the run `id` (`docs/JOINT-BENCH.md`, "The refit of the limits").
+ * It reads the artifact memory-refit of the run, and refuses a refused refit and a commit that is not an ancestor of `origin/main`.
+ * It prints the change of each input before the push. The branch starts at `origin/main` in a worktree of its own, and only `data/memory-limits.json` changes.
+ */
+function refitPullRequest(id, trailer, bodyEnd) {
+  if (!(Number.isInteger(id) && id > 0)) throw new RangeError("The command refit-pr needs --run <id>.");
+  const work = mkdtempSync(join(tmpdir(), "memory-refit-"));
+  run("gh", ["run", "download", String(id), "--name", "memory-refit", "--dir", join(work, "artifact")]);
+  const refit = JSON.parse(readFileSync(join(work, "artifact", "refit.json"), "utf8"));
+  const body = readFileSync(join(work, "artifact", "refit.md"), "utf8");
+  run("git", ["fetch", "-q", "origin", "main"]);
+  // The refusals are in `refitRefusal`, and its tests examine each of them. A refit that main took after the commit of the probes makes this refit old.
+  const ancestor = spawnSync("git", ["merge-base", "--is-ancestor", refit.head, "origin/main"]).status === 0;
+  const limitsChanged = ancestor && spawnSync("git", ["diff", "--quiet", refit.head, "origin/main", "--", "data/memory-limits.json"]).status !== 0;
+  const refusal = refitRefusal(refit, id, { ancestor, limitsChanged });
+  if (refusal !== undefined) throw new RangeError(refusal);
+  // The change of each input, before the push.
+  console.log(body);
+  const branch = `memory-refit-${id}`;
+  const tree = join(work, "tree");
+  run("git", ["worktree", "add", "-q", "-b", branch, tree, "origin/main"]);
+  try {
+    const file = join(tree, "packages", "joint", "data", "memory-limits.json");
+    writeFileSync(file, JSON.stringify(refit.data, null, 2) + "\n");
+    run("git", ["add", "packages/joint/data/memory-limits.json"], { cwd: tree });
+    const message = `Refit the memory limits from the run ${id} (L81)\n\nThe probes ran on commit ${refit.head.slice(0, 7)}: ${refit.url}${trailer ? `\n\n${trailer}` : ""}\n`;
+    run("git", ["commit", "-q", "-F", "-"], { cwd: tree, input: message });
+    run("git", ["push", "-q", "origin", `HEAD:refs/heads/${branch}`], { cwd: tree });
+    const bodyFile = join(work, "body.md");
+    writeFileSync(bodyFile, bodyEnd ? `${body}\n${bodyEnd}\n` : body);
+    const url = run("gh", ["pr", "create", "--draft", "--base", "main", "--head", branch, "--title", `Refit the memory limits from the run ${id} (L81)`, "--body-file", bodyFile], { cwd: tree });
+    console.log(url.trim());
+  } finally {
+    run("git", ["worktree", "remove", "--force", tree]);
+  }
 }
