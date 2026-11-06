@@ -158,7 +158,20 @@ The pin of `src/option-floor.test.ts` reads a routeSpace sample of 216 picks wit
 | levels | 10 | 4 | 11 |
 | grouping | 11 | 3 | 8 |
 
-A night does not use the stratum yet. Before a night uses it, a prediction reads its cost to the race.
+A night does not use the stratum on the joint space. A replay of the epoch `packing-0.4.1` gave this result on 2026-11-06.
+
+- `scripts/stratum-replay.ts` samples each round of each night again, with no stratum and with the stratum. Both arms start from the configs of the epoch before the round. The arm with the stratum takes the configs that fit the screen cost of the other arm.
+- The option `picks` of the stratum gives the count of its picks. A night takes only a prefix of its sample, so the replay gives `round(share * taken)`.
+- The replay is faithful only with the space before PR 157. That PR added two pack entries and kept the version `bench-3`. `--space-from` takes the file `space.ts` of a commit.
+- With no stratum, the replay gave the 216 configs of the 3 nights. The coverage need kept each option near its uniform count. An entry had 11 to 13 configs and a router 12 to 15, with a floor of 14.
+- With the stratum, the same budget took 183 configs, and the count of each option fell (7 to 13 for an entry). Only 2 of the 10 best alive configs stayed in the sample of their night.
+
+Thus the stratum costs the race on the joint space and gives no gain. It stays for a walk sample, for example `routeSpace`. There, it lifts the smallest count of `levels` from 4 to 11.
+
+| Arm | Configs | Same as the night | Smallest count, entry | Smallest count, router | Best 10 alive kept |
+| --- | --- | --- | --- | --- | --- |
+| No stratum | 216 | 216 | 11 | 12 | 10 |
+| Stratum 0.25 | 183 | 50 | 7 | 10 | 2 |
 
 ### The budget of a night (L81)
 

@@ -142,13 +142,18 @@ export interface SampleStratum {
   readonly share: number;
   /** The floor of each stage, for example `stageFloors(space)`. */
   readonly floors: Readonly<Record<string, number>>;
+  /**
+   * The count of the picks of the stratum. The default is `round(share * n)`.
+   * A night takes only a prefix of the sample for its budget, so it gives `round(share * taken)` here (L122 part 3b).
+   */
+  readonly picks?: number;
 }
 
 /**
  * This function gives a sample of new configs: a Latin hypercube of `enumerateSpace` with the seed, and then the configs of the largest coverage need.
  * Each pick adds its strata to the counts, so the next pick goes to other strata. Equal needs keep the order of the pool.
  *
- * With a stratum, the first `round(share * n)` picks go to the options under their floor (`stratumTarget`).
+ * With a stratum, the first `picks` picks (by default `round(share * n)`) go to the options under their floor (`stratumTarget`).
  * Each of these picks is the config of the pool with the target option and the largest coverage need.
  * When the pool has no config with the target option, the stratum draws new configs with the sample option `fixed`. It skips an option that the sample refuses.
  * When no target is left, the picks go by the coverage need.
@@ -157,6 +162,7 @@ export function sampleConfigs(options: SampleConfigsOptions, space: StrategySpac
   const { n, seed, known, stratum } = options;
   if (!(Number.isInteger(n) && n >= 0)) throw new RangeError(`The count of the sample is an integer of 0 or more, not ${n}.`);
   if (stratum !== undefined && !(stratum.share >= 0 && stratum.share <= 1)) throw new RangeError(`The share of the stratum is from 0 to 1, not ${stratum.share}.`);
+  if (stratum?.picks !== undefined && !(Number.isInteger(stratum.picks) && stratum.picks >= 0 && stratum.picks <= n)) throw new RangeError(`The picks of the stratum are an integer from 0 to ${n}, not ${stratum.picks}.`);
   if (n === 0) return [];
   const pool: { id: string; config: StrategyConfig; strata: string[] }[] = [];
   const seen = new Set(known);
@@ -169,7 +175,7 @@ export function sampleConfigs(options: SampleConfigsOptions, space: StrategySpac
   const counts = new Map(options.counts ?? []);
   const out: StrategyConfig[] = [];
   const free = new Set(pool.keys());
-  const inStratum = stratum === undefined ? 0 : Math.round(stratum.share * n);
+  const inStratum = stratum === undefined ? 0 : (stratum.picks ?? Math.round(stratum.share * n));
   const skip = new Set<string>();
   const draws = new Map<string, number>();
   /** This function adds to the pool new configs with the fixed option of the target, and gives the count of the new configs. */
