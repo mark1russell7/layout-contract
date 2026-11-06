@@ -74,6 +74,7 @@ import {
   loadSplit,
   MEMORY_GATE_MB,
   MEMORY_LIMITS,
+  ENGINE_NAMES,
   memoryGate,
   manifestJson,
   PACK_ENTRIES,
@@ -145,13 +146,23 @@ const cover = args.pairs !== undefined ? chosenOptions(args.pairs.split(",").map
 if (args.prior !== undefined && (confirming || lanes.length > 0 || iterate.length > 0)) throw new RangeError("The option --prior does not go with --confirm, --lanes or --iterate.");
 const expectedPairs = confirming ? CONFIRM_PLAIN_PAIRS : (cover.pairs ?? PACK_ENTRIES.flatMap((entry) => ROUTERS.map((router) => pairId(entry.id, router))));
 
+/** This function gives the installed version of the package `@mark1russell7/<name>`. */
+function installedVersion(name) {
+  return JSON.parse(readFileSync(new URL(`../node_modules/@mark1russell7/${name}/package.json`, import.meta.url), "utf8")).version;
+}
+
+/** This function gives the versions of `ENGINE_NAMES` of this process: the node runtime and the installed engines. */
+function engineVersions() {
+  return Object.fromEntries(ENGINE_NAMES.map((name) => [name, name === "node" ? process.versions.node : installedVersion(name)]));
+}
+
 /**
  * This function gives the stamp of this code on this corpus. Records join only with records of the same stamp.
  * It holds the corpus, the version of the space, the versions of the engines and the contract, and the text of the runner and the cover.
  * The hash of each input is a second check, in `priorLines` and in the command resume.
  */
 function benchStamp() {
-  const version = (name) => JSON.parse(readFileSync(new URL(`../node_modules/@mark1russell7/${name}/package.json`, import.meta.url), "utf8")).version;
+  const version = installedVersion;
   const text = (file) => readFileSync(new URL(`../src/${file}`, import.meta.url), "utf8").replaceAll("\r\n", "\n");
   return runStamp({ corpus: set, space: BENCH_SPACE_VERSION, packing: version("packing"), highways: version("highways"), contract: version("layout-contract"), runner: text("runner.ts"), cover: text("cover.ts"), ...(pairBudget === undefined ? {} : { pairBudget: pairBudget.text }) });
 }
@@ -457,6 +468,8 @@ if (command === "check") {
   // With `node --expose-gc`, the probe forces a full GC after each pair. Then `heapLive` is the heap that the pair keeps.
   const out = args.out ?? "probe-out";
   mkdirSync(out, { recursive: true });
+  // The gate compares these versions with the source of the limits. The file comes first, so a probe that stops with an OOM also has it.
+  writeFileSync(join(out, "engines.json"), JSON.stringify(engineVersions()) + "\n");
   const ids = (args.inputs ?? "").split(",").filter((x) => x !== "");
   if (ids.length === 0) throw new RangeError("The probe needs --inputs <id[,id]>.");
   // With --pairs, the probe runs only these pairs of each input, in a fresh process (L81 step 2). The runner then packs only the entries of these pairs.
@@ -613,6 +626,8 @@ if (command === "check") {
       allocMb: summary?.allocMb ?? undefined,
       steps: allocated === undefined ? undefined : stepCount(allocated),
       liveMaxMb: summary?.liveMaxMb ?? undefined,
+      // A probe of an older commit has no engines.json, and the gate row then says "no versions".
+      engines: existsSync(join(dir, sub, "engines.json")) ? JSON.parse(text(sub, "engines.json")) : undefined,
     };
   });
   const gate = memoryGate(expected, results, Number(args["limit-mb"] ?? MEMORY_GATE_MB));
