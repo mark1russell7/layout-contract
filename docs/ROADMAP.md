@@ -10,7 +10,7 @@ The file `kpi.json` of the site gives each measure. This table gives the target 
 | --- | --- | --- | --- | --- |
 | `routers-on-compare` of `routers-keyed` | 9 of 75 | 75 of 75 at `highways` 0.14.0, by 2026-11-07 12:00Z | A gate: the data of a run lands only with each keyed router on compare, or with an exception that names its roadmap item. With L129, by 2026-11-17 | Each keyed router of the pinned `highways` after the switch of 2026-11-17, by 2026-11-20 |
 | The date of the newest joint run | 2026-10-28 | At most 3 days old, by 2026-11-07 12:00Z | At most 3 days old at each daily read, from 2026-11-07 | At most 3 days old after the switch of 2026-11-17, by 2026-11-20 |
-| `engines-current` of 2 | 0 | 0, because the hold of L124 keeps `packing` 0.7.0 and `highways` 0.14.0 to 2026-11-17. `engines-behind-unheld` reads 0, by 2026-11-07 12:00Z | 2, by 2026-11-20 | 2 within 3 days of each later switch of the engines, from 2026-11-20 |
+| `engines-current` of 2 | 0 | 0, because the hold of L124 keeps `packing` 0.7.0 and `highways` 0.14.0 to 2026-11-17. The page says so next to the 0. `engines-behind-unheld` of #230 reads 0, by 2026-11-07 12:00Z | 2, by 2026-11-20 | 2: the newest release of each engine has a short run within 3 days, from 2026-11-20 |
 
 The dates come from these facts:
 
@@ -21,6 +21,14 @@ The dates come from these facts:
 - Shard 31 of this run has a row of each of the 75 keyed routers of `highways` 0.14.0.
 - A full run on new engines has approximately 64 shards. At 1.1 to 1.5 shards an hour, it takes 43 to 58 hours. So a run that starts on 2026-11-17 ends by 2026-11-20.
 - On the first night after the switch, the memory gate makes the refit of its limits (L81).
+
+Rung 3 of `engines-current` uses a short run of chosen rows (L98) between the full runs of the epochs:
+
+- Each engine gets at most one short run a day, on its newest release. Thus 4 releases in 2 days give 2 short runs.
+- An engine is current when its newest release has a short run of at most 3 days ago.
+- The full run of each epoch (L124) stays the source of the whole compare.
+- The page marks each row as a row of a short run or of a full run, with its run id.
+- The first short run gives its cost. L98 states that cost next to the 43 to 58 hours of a full run.
 
 ## In progress
 
