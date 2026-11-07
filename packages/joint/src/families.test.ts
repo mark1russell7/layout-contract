@@ -4,7 +4,7 @@ import { HIGHWAYS_FAMILIES } from "@mark1russell7/highways";
 import { generator, rectScattered } from "@mark1russell7/packing";
 import { describe, expect, it } from "vitest";
 import { edgeFamily, hashOf, jointSpecs, SET_V3, SETS, type JointSet, type JointSpec } from "./corpus.ts";
-import { JOINT_BASES, JOINT_HIGHWAYS_FAMILIES, jointRegistry, packingFamily } from "./families.ts";
+import { JOINT_BASES, JOINT_HIGHWAYS_FAMILIES, JOINT_SHAPE_FAMILIES, jointRegistry, packingFamily } from "./families.ts";
 import { NO_OPEN_SIZE, openSizesStep } from "./open-sizes.ts";
 import { spacingStep } from "./spacing.ts";
 
@@ -26,7 +26,8 @@ describe("the joint families on the shared registry", () => {
   it("give the same input files as the path before L45 on a sample of the specs and seeds of each corpus", () => {
     for (const set of SETS) {
       const registry = jointRegistry(set);
-      const specs = jointSpecs(set);
+      // The array shapes of joint-v3 (L94) came after L45, so the path before L45 does not give its inputs.
+      const specs = jointSpecs(set).filter((s) => s.array !== "shapes");
       const sample = specs.filter((_, i) => i % 6 === 0 || i >= specs.length - 3);
       expect(sample.length).toBeGreaterThan(15);
       for (const spec of sample) {
@@ -44,7 +45,7 @@ describe("the joint families on the shared registry", () => {
 
   it("count the specs, the inputs and the full sweep of each family with no generated input", () => {
     const counts = Object.fromEntries(SETS.map((set) => [set, jointSpecs(set).reduce((n, s) => n + s.seeds.length, 0)]));
-    expect(counts).toEqual({ "joint-v1": 285, "joint-v2": 303, "joint-v3": 390 });
+    expect(counts).toEqual({ "joint-v1": 285, "joint-v2": 303, "joint-v3": 414 });
     const full = Object.fromEntries(JOINT_BASES.map((name) => [name, jointRegistry("joint-v2").cellCount(name)]));
     // rect-grid: 5 x 6 x 7 x 6 x 5 counts x 3 x 7 x 3 x 3 x 4 spacings, with hubBy 2 only for hubs and tree: 9 / 7 of the edge shapes.
     expect(full["rect-grid"]).toBe(5 * 6 * 7 * 6 * 5 * 3 * 9 * 3 * 3 * 4);
@@ -68,10 +69,10 @@ describe("the joint families on the shared registry", () => {
   it("hold each family of HIGHWAYS_FAMILIES after the joint families, with no kind of a joint family (L54)", () => {
     for (const set of SETS) {
       const families = jointRegistry(set).families();
-      expect(families.map((f) => f.name)).toEqual([...JOINT_BASES, ...JOINT_HIGHWAYS_FAMILIES]);
+      expect(families.map((f) => f.name)).toEqual([...JOINT_BASES, ...JOINT_HIGHWAYS_FAMILIES, ...JOINT_SHAPE_FAMILIES]);
       const kinds = families.map((f) => familyKind(f.name, f.version));
       expect(new Set(kinds).size).toBe(kinds.length);
-      for (const f of families.slice(JOINT_BASES.length)) expect(f.owner).toBe("highways");
+      for (const f of families.slice(JOINT_BASES.length, JOINT_BASES.length + JOINT_HIGHWAYS_FAMILIES.length)) expect(f.owner).toBe("highways");
     }
     expect(JOINT_HIGHWAYS_FAMILIES).toEqual(HIGHWAYS_FAMILIES.map((f) => f.name));
   });

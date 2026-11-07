@@ -1,7 +1,7 @@
 {
   "schema": "site-space/1",
-  "source": "highways 0.14.0",
-  "date": "2026-11-04",
+  "source": "highways 0.15.0",
+  "date": "2026-11-07",
   "space": {
     "schema": "strategy-space/1",
     "engine": "highways",
@@ -403,6 +403,11 @@
                 "default": 8
               },
               {
+                "name": "outSteps",
+                "kind": "bool",
+                "default": true
+              },
+              {
                 "name": "joinWork",
                 "kind": "int",
                 "min": 0,
@@ -482,6 +487,11 @@
                 "default": 8
               },
               {
+                "name": "outSteps",
+                "kind": "bool",
+                "default": true
+              },
+              {
                 "name": "split",
                 "kind": "real",
                 "min": 0.1,
@@ -558,6 +568,11 @@
                 "min": 2,
                 "max": 16,
                 "default": 8
+              },
+              {
+                "name": "outSteps",
+                "kind": "bool",
+                "default": true
               },
               {
                 "name": "discount",
@@ -662,6 +677,11 @@
                 "min": 2,
                 "max": 16,
                 "default": 8
+              },
+              {
+                "name": "outSteps",
+                "kind": "bool",
+                "default": true
               },
               {
                 "name": "limitHubs",
@@ -780,6 +800,11 @@
                 "default": 8
               },
               {
+                "name": "outSteps",
+                "kind": "bool",
+                "default": true
+              },
+              {
                 "name": "split",
                 "kind": "real",
                 "min": 0.1,
@@ -856,6 +881,11 @@
                 "min": 2,
                 "max": 16,
                 "default": 8
+              },
+              {
+                "name": "outSteps",
+                "kind": "bool",
+                "default": true
               },
               {
                 "name": "discount",
@@ -4525,6 +4555,11 @@
             "id": "depths",
             "params": [
               {
+                "name": "outSteps",
+                "kind": "bool",
+                "default": true
+              },
+              {
                 "name": "levelJoinWork",
                 "kind": "int",
                 "min": 0,
@@ -4537,6 +4572,11 @@
           {
             "id": "venation",
             "params": [
+              {
+                "name": "outSteps",
+                "kind": "bool",
+                "default": true
+              },
               {
                 "name": "levelJoinWork",
                 "kind": "int",
@@ -4583,6 +4623,11 @@
           {
             "id": "detail",
             "params": [
+              {
+                "name": "outSteps",
+                "kind": "bool",
+                "default": true
+              },
               {
                 "name": "levelJoinWork",
                 "kind": "int",

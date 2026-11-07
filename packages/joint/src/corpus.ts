@@ -1,7 +1,7 @@
-import { documentHash, EDGE_STEP_VERSION, type EdgeStepParams, type LayoutInput } from "@mark1russell7/layout-contract";
-import { generator, type CorpusCell, type GeneratorParams } from "@mark1russell7/packing";
+import { CIRCLE_SCATTERED, documentHash, EDGE_STEP_VERSION, type EdgeStepParams, type LayoutInput } from "@mark1russell7/layout-contract";
+import { cellOf, countCell, generator, toPackInput, type CorpusCell, type GeneratorParams } from "@mark1russell7/packing";
 import { pairwise, type Dimensions, type Row } from "./pairwise.ts";
-import { jointRegistry } from "./families.ts";
+import { JOINT_BASES, jointRegistry } from "./families.ts";
 import { NO_OPEN_SIZE, OPEN_SIZE_NAMES, OPEN_SIZES_STEP_VERSION, type OpenSizesParams } from "./open-sizes.ts";
 import { spacingParams, SPACINGS, SPACING_STEP_VERSION, type Spacing, type SpacingParams } from "./spacing.ts";
 
@@ -85,6 +85,26 @@ export const FIXED_CASES: readonly string[] = Object.freeze(["empty", "one", "ov
 /** The values of `spacing` of each fixed case of `joint-v2`. `empty` and `one` give no routes, so they get one value. `oversize` gets each value. */
 export const FIXED_SPACINGS: Readonly<Record<string, readonly Spacing[]>> = Object.freeze({ empty: ["both"], one: ["both"], oversize: [...SPACINGS] });
 
+/** The containers of the circle specs of `joint-v3`: the 2 containers of `circle-scattered`. */
+export const CIRCLE_CONTAINERS: readonly string[] = Object.freeze(["rect", "circle"]);
+
+/** The values of `spacing` of each circle spec of `joint-v3`. With 2 containers and 3 seeds, the board kind `circle-scattered` has 12 inputs, so it is not thin. */
+export const CIRCLE_SPACINGS: readonly Spacing[] = Object.freeze(["stress", "both"]);
+
+/**
+ * The cuts of the small strips of `joint-v3`. Each strip uses `perfect-cut` in a strip of a fixed width, with boxes of whole sizes and no obstacle. Their spacing is `stress`, so they have no gap and no margin.
+ * The strategy `exact-strip` takes such an input: at most 16 items of whole sizes, with no gap and no margin. The cut of a rectangle gives the best height.
+ * The boxes of `rect-grid` do not have whole sizes, so `exact-strip` refuses each one.
+ * With 2 cuts, 2 counts and 3 seeds, the board kind `perfect-cut` has 12 inputs, so it is not thin.
+ */
+export const STRIP_CUTS: readonly string[] = Object.freeze(["guillotine", "free"]);
+
+/** The counts of the boxes of the small strips of `joint-v3`. Each one is below `EXACT_STRIP_MAX_ITEMS` of `packing`, 16. */
+export const STRIP_COUNTS: readonly number[] = Object.freeze([8, 12]);
+
+/** The edges of each fixed case and each spec of the array `shapes`: medium and random, with no groups and free ports. */
+const FIXED_EDGES: EdgeParams = Object.freeze({ edgeDensity: "medium", edgeShape: "random", groups: "none", ports: "free", hubBy: "area" });
+
 /**
  * The cell of a joint input: the cell of `packing`, with the 4 dimensions of the edges. `edgeShape` can be `hubs`.
  * A cell of `joint-v2` also has `spacing`. `LayoutCell` of the contract does not have it.
@@ -114,8 +134,8 @@ export interface OpenSizesStamp {
 
 /** One spec of the corpus: the base generator with its full parameters, the steps and the seeds. A spec of `joint-v2` also has the step `spacing`. */
 export interface JointSpec {
-  /** The array of the spec: `grid`, `ui`, or `fixed` for a case of `edge-cases`. */
-  readonly array: "grid" | "ui" | "fixed";
+  /** The array of the spec: `grid`, `ui`, `fixed` for a case of `edge-cases`, or `shapes` for a spec of `SHAPE_SPECS` in `joint-v3`. */
+  readonly array: "grid" | "ui" | "fixed" | "shapes";
   readonly generator: string;
   readonly version: number;
   readonly params: GeneratorParams;
@@ -212,11 +232,36 @@ export function jointSpecs(set: JointSet = SET): JointSpec[] {
     ),
   );
   const ui = pairwise(dims.ui, ARRAY_SEED).map((row) => jointSpecOf("ui", row["family"]!, { containerSize: row["containerSize"]! }, jointEdgesOf(row), spacingOf(row)));
-  const fixedEdges = jointEdgesOf({ edgeDensity: "medium", edgeShape: "random", groups: "none", ports: "free" });
   const fixed = FIXED_CASES.flatMap((c) =>
-    set === SET ? [jointSpecOf("fixed", "edge-cases", { case: c }, fixedEdges)] : FIXED_SPACINGS[c]!.map((s) => jointSpecOf("fixed", "edge-cases", { case: c }, fixedEdges, s)),
+    set === SET ? [jointSpecOf("fixed", "edge-cases", { case: c }, FIXED_EDGES)] : FIXED_SPACINGS[c]!.map((s) => jointSpecOf("fixed", "edge-cases", { case: c }, FIXED_EDGES, s)),
   );
-  return [...grid, ...ui, ...fixed];
+  return [...grid, ...ui, ...fixed, ...(set === SET_V3 ? shapeSpecs() : [])];
+}
+
+/** This function gives a circle spec of `joint-v3`: `circle-scattered` with its default count, in one container, then the steps `edges` and `spacing`. */
+export function circleSpecOf(containerShape: string, spacing: Spacing): JointSpec {
+  return {
+    array: "shapes",
+    generator: CIRCLE_SCATTERED.name,
+    version: CIRCLE_SCATTERED.version,
+    params: { count: CIRCLE_SCATTERED.dimensions.find((d) => d.name === "count")!.default as number, containerShape },
+    steps: [
+      { name: "edges", version: EDGE_STEP_VERSION, params: FIXED_EDGES },
+      { name: "spacing", version: SPACING_STEP_VERSION, params: spacingParams(spacing) },
+    ],
+    seeds: [...SEEDS],
+  };
+}
+
+/**
+ * This function gives the specs of the array `shapes` of `joint-v3` (L94). They give inputs to the strategies that no other input of a joint corpus suits.
+ * - A circle spec for each container of `CIRCLE_CONTAINERS` and each value of `CIRCLE_SPACINGS`. `hole-degree` takes the rectangle, and `circle-quasi-physical` takes the circle.
+ * - A small strip of `perfect-cut` for each cut of `STRIP_CUTS` and each count of `STRIP_COUNTS`, with the spacing `stress`. `exact-strip` takes each one.
+ */
+export function shapeSpecs(): JointSpec[] {
+  const circles = CIRCLE_CONTAINERS.flatMap((c) => CIRCLE_SPACINGS.map((s) => circleSpecOf(c, s)));
+  const strips = STRIP_CUTS.flatMap((cut) => STRIP_COUNTS.map((count) => jointSpecOf("shapes", "perfect-cut", { cut, containerSize: "freeHeight", count }, FIXED_EDGES, "stress")));
+  return [...circles, ...strips];
 }
 
 /** This function gives the part of the family that tells the edges, for example `e-medium.clustered.flat.sides`. */
@@ -257,14 +302,17 @@ export const JOINT_V2_CLAIMS: CorpusClaims = Object.freeze({
 /**
  * This function gives the input file of one seed of a spec, and its entry in the manifest. `jointCorpus` makes each input with it.
  * The site makes one input with it, so it does not make the full corpus.
+ * A generator of `packing` gives the cell from the params of the spec. A shape family of the contract gives no cell, so the cell comes from `cellOf` of the input of `packing`.
  */
 export function jointInput(spec: JointSpec, seed: number, set: JointSet, registry: ReturnType<typeof jointRegistry> = jointRegistry(set)): { readonly input: LayoutInput; readonly entry: JointEntry } {
-  const gen = generator(spec.generator);
+  const packing = JOINT_BASES.includes(spec.generator);
   const edges = spec.steps[0].params;
   const spacing = spec.steps[1]?.params.spacing;
   const open = spec.openSizes?.params.point;
+  const dims = { ...spec.params, ...edges, ...(spacing === undefined ? {} : { spacing }), ...(set === SET_V3 && packing ? { openSize: open ?? NO_OPEN_SIZE } : {}) };
+  const input = registry.generate(spec.generator, seed, dims, { set });
   const cell: JointCell = {
-    ...gen.cell(spec.params),
+    ...(packing ? generator(spec.generator).cell(spec.params) : shapeCell(input)),
     ...(open === undefined ? {} : { sizes: open }),
     edgeDensity: edges.edgeDensity,
     edgeShape: edges.edgeShape,
@@ -272,8 +320,15 @@ export function jointInput(spec: JointSpec, seed: number, set: JointSet, registr
     ports: edges.ports,
     ...(spacing === undefined ? {} : { spacing }),
   };
-  const input = registry.generate(spec.generator, seed, { ...spec.params, ...edges, ...(spacing === undefined ? {} : { spacing }), ...(set === SET_V3 ? { openSize: open ?? NO_OPEN_SIZE } : {}) }, { set });
   return { input, entry: { id: input.id, hash: input.hash!, cell, ...(spacing === "stress" ? { stress: true as const } : {}) } };
+}
+
+/**
+ * This function gives the cell of an input of a shape family. The cell is `cellOf` of `packing` for the input. It has no obstacles, the sizes `uniform`, the count scale and the mode `offline`.
+ * The radii of `circle-scattered` are random whole numbers from 8 to 40, so the sizes are `uniform`.
+ */
+function shapeCell(input: LayoutInput): CorpusCell {
+  return { ...cellOf(toPackInput(input)), obstacles: "none", sizes: "uniform", count: countCell(input.boxes.length), mode: "offline" };
 }
 
 /**
