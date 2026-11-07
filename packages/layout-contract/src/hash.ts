@@ -136,6 +136,15 @@ export function outputHash(value: unknown, options: HashOptions = {}): string {
   return sha256Hex(canonicalJson(onGrid(value, "$", gridFactor(options), new Set(options.skip ?? [])))).slice(0, 16);
 }
 
+/** This function throws a `RangeError` when a list of the output has an id two times. A packer with this output has a bug. */
+function uniqueIds(list: string, ids: readonly string[]): void {
+  const seen = new Set<string>();
+  for (const id of ids) {
+    if (seen.has(id)) throw new RangeError(`The list ${list} of the output has the id "${id}" two times.`);
+    seen.add(id);
+  }
+}
+
 /** The order of two ids by their UTF-16 code units. It does not change with the locale. */
 function byId(a: { readonly id: string }, b: { readonly id: string }): number {
   return a.id < b.id ? -1 : a.id > b.id ? 1 : 0;
@@ -146,8 +155,12 @@ function byId(a: { readonly id: string }, b: { readonly id: string }): number {
  * The form has the placements, the overflow, the size and the moved obstacles. It does not have the trace.
  * The placements, the moved obstacles and the overflow are in the order of their ids. A placement without `turn` gets `turn: 0`.
  * Thus two packers with the same result in a different order have the same form.
+ * The function throws a `RangeError` when `placements`, `overflow` or `moved` has an id two times.
  */
 export function packOutputForm(output: PackOutput): unknown {
+  uniqueIds("placements", output.placements.map((p) => p.id));
+  uniqueIds("overflow", output.overflow);
+  uniqueIds("moved", output.moved.map((m) => m.id));
   return {
     placements: output.placements.map((p) => ({ id: p.id, x: p.x, y: p.y, turn: p.turn ?? 0 })).sort(byId),
     overflow: [...output.overflow].sort(),
@@ -172,7 +185,7 @@ export function probeHash(run: () => unknown, refused: (error: unknown) => boole
     if (refused(error)) return REFUSED_PROBE;
     throw error;
   }
-  return outputHash(value, { grid: 0, ...options });
+  return outputHash(value, { ...options, grid: options.grid ?? 0 });
 }
 
 /**

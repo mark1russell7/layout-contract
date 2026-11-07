@@ -245,6 +245,12 @@ describe("packOutputForm", () => {
     for (const change of changes) expect(outputHash(packOutputForm(change), exact)).not.toBe(base);
   });
 
+  it("throws on an id two times in a list, with the name of the list", () => {
+    expect(() => packOutputForm({ ...output, placements: [...output.placements, { id: "a", x: 5, y: 5 }] })).toThrow("placements");
+    expect(() => packOutputForm({ ...output, overflow: ["c", "c"] })).toThrow(RangeError);
+    expect(() => packOutputForm({ ...output, moved: [...output.moved, { id: "o1", x: 0, y: 0 }] })).toThrow("moved");
+  });
+
   it("does not change the output", () => {
     const copy = structuredClone(output);
     packOutputForm(output);
@@ -259,6 +265,12 @@ describe("probeHash", () => {
     expect(probeHash(() => ({ x: 0.0001 }), () => false)).toBe(outputHash({ x: 0.0001 }, exact));
     expect(probeHash(() => ({ x: 0.0001 }), () => false)).not.toBe(outputHash({ x: 0 }, exact));
     expect(probeHash(() => ({ x: 0.0001 }), () => false, { grid: RECORD_EPS })).toBe(outputHash({ x: 0 }));
+  });
+
+  it("keeps exact numbers when the options have the key grid with no value", () => {
+    // The types refuse this form. A JavaScript caller or a spread of a partial object can give it.
+    const noGrid = { grid: undefined } as unknown as Parameters<typeof probeHash>[2];
+    expect(probeHash(() => ({ x: 0.0001 }), () => false, noGrid)).toBe(outputHash({ x: 0.0001 }, exact));
   });
 
   it("uses the skip list of the options", () => {
