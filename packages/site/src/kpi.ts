@@ -22,7 +22,7 @@ export interface SiteMeasure {
 /** The input of the writer of `kpi.json`. */
 export interface SiteKpi {
   readonly project: string;
-  /** The time of the joint data: the date of the last joint run. It is not the time of the build. */
+  /** The time of the joint data: the date of the newest joint run. It is not the time of the build. The age of the data reads it. */
   readonly at: string;
   measures: SiteMeasure[];
 }
@@ -121,7 +121,19 @@ export function routersOnCompare(run: JointData, keyed: readonly string[]): numb
 }
 
 /**
+ * This function gives the newest cover run of the files, or the newest run when no file is a cover run.
+ * A cover run has each strategy and each open router. So a default run after it does not lower the counts of the coverage.
+ *
+ * @param files - The data files of `data/joint/`.
+ */
+export function coverageRun(files: readonly JointData[]): JointData | undefined {
+  return latestJoint(files.filter((file) => file.cover === true)) ?? latestJoint(files);
+}
+
+/**
  * This function gives the input of the writer. It gives undefined when no joint run exists, because the time of the data is then not known.
+ * The time of the file is the date of the newest run. Each measure of the coverage has the date of the run that it counts, from `coverageRun`.
+ * So a new date beside old coverage does not read as new coverage.
  *
  * @param files - The data files of `data/joint/`.
  * @param catalog - The catalog of the build.
@@ -133,14 +145,15 @@ export function routersOnCompare(run: JointData, keyed: readonly string[]): numb
 export function siteKpiInput(files: readonly JointData[], catalog: KpiCatalog, npm: NpmRead | undefined, entries: readonly BenchEntry[], commitAt: string, keyed: readonly string[]): SiteKpi | undefined {
   const run = latestJoint(files);
   if (run === undefined) return undefined;
-  const at = `${run.date}T00:00:00Z`;
+  const cover = coverageRun(files) ?? run;
+  const coverAt = `${cover.date}T00:00:00Z`;
   return {
     project: KPI_PROJECT,
-    at,
+    at: `${run.date}T00:00:00Z`,
     measures: [
-      { id: "pairs-in-run", value: run.pairs, unit: "pairs", at },
-      { id: "packers-measured", value: packersMeasured(run, catalog, entries), unit: "packers", at },
-      { id: "routers-on-compare", value: routersOnCompare(run, keyed), unit: "routers", at },
+      { id: "pairs-in-run", value: cover.pairs, unit: "pairs", at: coverAt },
+      { id: "packers-measured", value: packersMeasured(cover, catalog, entries), unit: "packers", at: coverAt },
+      { id: "routers-on-compare", value: routersOnCompare(cover, keyed), unit: "routers", at: coverAt },
       { id: "routers-keyed", value: new Set(keyed).size, unit: "routers", at: commitAt },
       ...(npm === undefined ? [] : npmMeasures(npm)),
     ],
