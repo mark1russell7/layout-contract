@@ -1,7 +1,7 @@
 {
   "schema": "corpus-split/1",
   "corpus": "joint-v3",
-  "corpusHash": "af35b46d721b9a5a",
+  "corpusHash": "9b9557161f2eaab9",
   "splits": {
     "default": {"folds": [
       {"train": [2, 3], "heldOut": [1]},
