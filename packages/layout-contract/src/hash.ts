@@ -1,4 +1,5 @@
 import { canonicalInput, type LayoutInput } from "./input.ts";
+import type { PackOutput } from "./output.ts";
 import { RECORD_EPS } from "./tolerance.ts";
 import { utf8Write } from "./utf8.ts";
 
@@ -88,6 +89,11 @@ export interface HashOptions {
    * The value `0` keeps the exact numbers. A negative value or a value that is not finite causes a `RangeError`.
    */
   readonly grid?: number;
+  /**
+   * The names of the fields that the hash does not read, at each depth. Use it for report fields, for example a trace or a time.
+   * A field with one of these names is out of the form in each object of the value, also in an object in a list.
+   */
+  readonly skip?: readonly string[];
 }
 
 /** This function gives the factor of a grid: `1 / grid`, or `undefined` for the exact numbers. */
@@ -101,7 +107,7 @@ function gridFactor(options: HashOptions): number | undefined {
  * This function gives a copy of a value with each number on the grid. The value `-0` becomes `0`.
  * It throws a `RangeError` for a number that is not finite.
  */
-function onGrid(value: unknown, path: string, k: number | undefined): unknown {
+function onGrid(value: unknown, path: string, k: number | undefined, skip: ReadonlySet<string>): unknown {
   if (typeof value === "number") {
     if (!Number.isFinite(value)) throw new RangeError(`The value has the number ${value} at ${path}. JSON has no form for it.`);
     if (k === undefined) return value;
@@ -110,10 +116,10 @@ function onGrid(value: unknown, path: string, k: number | undefined): unknown {
     return r === 0 ? 0 : r;
   }
   if (value === null || typeof value !== "object") return value;
-  if (Array.isArray(value)) return value.map((v: unknown, i) => onGrid(v, `${path}[${i}]`, k));
+  if (Array.isArray(value)) return value.map((v: unknown, i) => onGrid(v, `${path}[${i}]`, k, skip));
   const o = value as Record<string, unknown>;
   const out: Record<string, unknown> = {};
-  for (const key of Object.keys(o)) out[key] = onGrid(o[key], `${path}.${key}`, k);
+  for (const key of Object.keys(o)) if (!skip.has(key)) out[key] = onGrid(o[key], `${path}.${key}`, k, skip);
   return out;
 }
 
@@ -121,13 +127,63 @@ function onGrid(value: unknown, path: string, k: number | undefined): unknown {
  * This function gives the hash of an output: the first 16 hex characters of the SHA-256 of its canonical form.
  * Before the canonical form, each number goes to the nearest point of the grid, and `-0` becomes `0`.
  * With the default grid, the rounding is `round3` of `packing`: `Math.round(x * 1000) / 1000`.
- * The function throws a `RangeError` for `NaN` and for an infinite number.
+ * The function throws a `RangeError` for `NaN` and for an infinite number. The fields of `options.skip` are out of the form.
  *
  * The grid can split two outputs. Two numbers near a rounding boundary can go to two different points.
  * The grid can also merge two outputs whose numbers go to the same points. This merge is intentional: it removes the noise of floating-point numbers.
  */
 export function outputHash(value: unknown, options: HashOptions = {}): string {
-  return sha256Hex(canonicalJson(onGrid(value, "$", gridFactor(options)))).slice(0, 16);
+  return sha256Hex(canonicalJson(onGrid(value, "$", gridFactor(options), new Set(options.skip ?? [])))).slice(0, 16);
+}
+
+/** The order of two ids by their UTF-16 code units. It does not change with the locale. */
+function byId(a: { readonly id: string }, b: { readonly id: string }): number {
+  return a.id < b.id ? -1 : a.id > b.id ? 1 : 0;
+}
+
+/**
+ * This function gives the normal form of the output of a packer, for a fingerprint.
+ * The form has the placements, the overflow, the size and the moved obstacles. It does not have the trace.
+ * The placements, the moved obstacles and the overflow are in the order of their ids. A placement without `turn` gets `turn: 0`.
+ * Thus two packers with the same result in a different order have the same form.
+ */
+export function packOutputForm(output: PackOutput): unknown {
+  return {
+    placements: output.placements.map((p) => ({ id: p.id, x: p.x, y: p.y, turn: p.turn ?? 0 })).sort(byId),
+    overflow: [...output.overflow].sort(),
+    size: { w: output.size.w, h: output.size.h },
+    moved: output.moved.map((m) => ({ id: m.id, x: m.x, y: m.y })).sort(byId),
+  };
+}
+
+/** The hash of a probe that the strategy refused or does not support. It has no reason text, so a new text of a refusal does not change a fingerprint. */
+export const REFUSED_PROBE = "refused";
+
+/**
+ * This function gives the hash of one probe of a strategy. It calls `run` and gives `outputHash` of its result, with exact numbers by default.
+ * When `run` throws an error that `refused` accepts, the function gives `REFUSED_PROBE`. It throws each other error again.
+ * The option `grid` of `options` puts the numbers on a grid. Its default here is `0`, so a change in a number changes the hash.
+ */
+export function probeHash(run: () => unknown, refused: (error: unknown) => boolean, options: HashOptions = {}): string {
+  let value: unknown;
+  try {
+    value = run();
+  } catch (error) {
+    if (refused(error)) return REFUSED_PROBE;
+    throw error;
+  }
+  return outputHash(value, { grid: 0, ...options });
+}
+
+/**
+ * This function gives the fingerprint of the outputs of one strategy: one hash of the hashes of its probes.
+ * The key of `hashes` is the id of a probe, and its value is the hash of the probe, from `probeHash`.
+ * The order of the keys does not change the fingerprint. A new probe, a probe less or a changed hash changes it.
+ * The function throws a `RangeError` when there is no probe.
+ */
+export function fingerprintOf(hashes: Readonly<Record<string, string>>): string {
+  if (Object.keys(hashes).length === 0) throw new RangeError("A fingerprint needs one probe or more.");
+  return sha256Hex(canonicalJson(hashes)).slice(0, 16);
 }
 
 /**
