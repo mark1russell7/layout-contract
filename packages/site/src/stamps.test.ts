@@ -27,8 +27,9 @@ describe("the file data/stamps.json", () => {
     expect(of("compare.html")?.inFlight).toEqual(of("index.html")?.inFlight);
   });
 
-  it("names a run in flight on newer engines while the data is old", () => {
-    expect(stamps.pages.find((p) => p.page === "index.html")?.inFlight?.engines["@mark1russell7/packing"]).toBeDefined();
+  it("names only the newest joint run in the runs of each page", () => {
+    // The figures of the page come from the newest run. An older result shows its own date in the list of results, so its stamp does not say that it is current.
+    for (const page of stamps.pages) expect(page.runs.map((r) => r.id), page.page).toEqual([latestJoint(joints)!.run]);
   });
 });
 

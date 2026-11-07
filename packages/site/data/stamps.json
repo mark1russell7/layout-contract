@@ -5,34 +5,34 @@
       "page": "index.html",
       "runs": [
         {
-          "id": "40743187036",
-          "url": "https://github.com/mark1russell7/layout-contract/actions/runs/40743187036",
-          "date": "2026-10-28T18:14:08Z",
-          "engines": { "@mark1russell7/highways": "0.8.1", "@mark1russell7/packing": "0.2.16" }
+          "id": "41898523423",
+          "url": "https://github.com/mark1russell7/layout-contract/actions/runs/41898523423",
+          "date": "2026-11-04T19:36:10Z",
+          "engines": { "@mark1russell7/highways": "0.14.0", "@mark1russell7/packing": "0.7.0" }
         }
       ],
       "inFlight": {
-        "id": "41898523423",
-        "url": "https://github.com/mark1russell7/layout-contract/actions/runs/41898523423",
-        "date": "2026-11-04T19:36:10Z",
-        "engines": { "@mark1russell7/highways": "0.14.0", "@mark1russell7/packing": "0.7.0" }
+        "id": "42388390209",
+        "url": "https://github.com/mark1russell7/layout-contract/actions/runs/42388390209",
+        "date": "2026-11-07T15:51:22Z",
+        "engines": { "@mark1russell7/highways": "0.15.0", "@mark1russell7/packing": "0.10.2" }
       }
     },
     {
       "page": "compare.html",
       "runs": [
         {
-          "id": "40743187036",
-          "url": "https://github.com/mark1russell7/layout-contract/actions/runs/40743187036",
-          "date": "2026-10-28T18:14:08Z",
-          "engines": { "@mark1russell7/highways": "0.8.1", "@mark1russell7/packing": "0.2.16" }
+          "id": "41898523423",
+          "url": "https://github.com/mark1russell7/layout-contract/actions/runs/41898523423",
+          "date": "2026-11-04T19:36:10Z",
+          "engines": { "@mark1russell7/highways": "0.14.0", "@mark1russell7/packing": "0.7.0" }
         }
       ],
       "inFlight": {
-        "id": "41898523423",
-        "url": "https://github.com/mark1russell7/layout-contract/actions/runs/41898523423",
-        "date": "2026-11-04T19:36:10Z",
-        "engines": { "@mark1russell7/highways": "0.14.0", "@mark1russell7/packing": "0.7.0" }
+        "id": "42388390209",
+        "url": "https://github.com/mark1russell7/layout-contract/actions/runs/42388390209",
+        "date": "2026-11-07T15:51:22Z",
+        "engines": { "@mark1russell7/highways": "0.15.0", "@mark1russell7/packing": "0.10.2" }
       }
     }
   ]
