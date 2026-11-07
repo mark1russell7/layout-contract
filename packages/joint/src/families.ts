@@ -2,6 +2,7 @@
 // The base families are the generators of `packing` and the families of `highways` (L54). The steps are `EDGES_STEP` of the contract and `SPACING_STEP` of this package.
 // This file uses no API of Node, so a site can import it and generate a joint input in a browser.
 import {
+  CIRCLE_SCATTERED,
   composeFamily,
   CORPUS_DIMENSIONS,
   createFamilyRegistry,
@@ -22,8 +23,8 @@ import { generator, type CorpusGenerator } from "@mark1russell7/packing";
 import { NO_OPEN_SIZE, OPEN_SIZE_NAMES, OPEN_SIZES_STEP_VERSION, openSizesStep, RECORDED_SIZE_NAMES } from "./open-sizes.ts";
 import { spacingStep, SPACING_STEP_VERSION, type Spacing } from "./spacing.ts";
 
-/** The names of the generators of `packing` that the joint corpus uses. */
-export const JOINT_BASES: readonly string[] = Object.freeze(["rect-grid", "gallery", "dashboard", "cards", "word-cloud", "edge-cases"]);
+/** The names of the generators of `packing` that the joint corpus uses. Only the small strip of `joint-v3` uses `perfect-cut` (L94). */
+export const JOINT_BASES: readonly string[] = Object.freeze(["rect-grid", "gallery", "dashboard", "cards", "word-cloud", "edge-cases", "perfect-cut"]);
 
 /**
  * The cross-engine note of each generator of `packing`. The size distribution `heavyTail` of `rect-grid` uses `**`, which is not correctly rounded in each engine.
@@ -152,9 +153,38 @@ function highwaysSteps(set: keyof typeof JOINT_STEPS, family: HighwaysFamily): r
 export const JOINT_HIGHWAYS_FAMILIES: readonly string[] = Object.freeze(HIGHWAYS_FAMILIES.map((f) => f.name));
 
 /**
+ * The shared families of the contract that a joint registry holds after the highways families (L94): `circle-scattered`, with circle items.
+ * Only the specs of `joint-v3` use them, so they change no committed input of `joint-v1` and `joint-v2`.
+ */
+export const JOINT_SHAPE_FAMILIES: readonly string[] = Object.freeze([CIRCLE_SCATTERED.name]);
+
+/**
+ * This function gives the family `circle-scattered` of the contract for the registry. The family of the input gets the container and the count, for example `circle-scattered.circle.n40`.
+ * The contract puts the container only in the id. `composeFamily` makes the id from the family, so without this part the 2 containers give the same id.
+ */
+export function circleFamily(): CorpusFamily<LayoutInput> {
+  return Object.freeze({
+    ...CIRCLE_SCATTERED,
+    generate(seed: number, dims: DimensionValues, context: GenerateContext): LayoutInput {
+      const input = CIRCLE_SCATTERED.generate(seed, dims, context);
+      return { ...input, family: `${CIRCLE_SCATTERED.name}.${String(dims["containerShape"])}.n${String(dims["count"])}` };
+    },
+  });
+}
+
+/**
+ * The steps of a shape family in each joint corpus: the steps of `JOINT_STEPS` without `OPEN_SIZES_STEP`.
+ * A new area of a box does not change the radius of its circle, so the step `open-sizes` does not apply to circle items.
+ */
+function shapeSteps(set: keyof typeof JOINT_STEPS): readonly CorpusStep[] {
+  return JOINT_STEPS[set].filter((s) => s !== OPEN_SIZES_STEP);
+}
+
+/**
  * This function gives the registry of a joint corpus. It has one family for each name of `JOINT_BASES`: the generator of `packing`, then the steps of the corpus.
  * Then it has one family for each family of `HIGHWAYS_FAMILIES`: the board of `highways`, then the steps of the corpus without `EDGES_STEP`.
  * A highways family does not get a step with a dimension of the family.
+ * Then it has the families of `JOINT_SHAPE_FAMILIES`: `circleFamily`, then the steps of `shapeSteps`.
  * The name of each family is the name of its generator. A highways family with the kind of a family before it throws a `RangeError`.
  */
 export function jointRegistry(set: keyof typeof JOINT_STEPS): FamilyRegistry<LayoutInput> {
@@ -169,5 +199,6 @@ export function jointRegistry(set: keyof typeof JOINT_STEPS): FamilyRegistry<Lay
     const meaning = own.length === 0 ? f.meaning : `${f.meaning} Then the steps ${own.map((s) => s.name).join(", ")}.`;
     registry.register(composeFamily(highwaysFamily(f), own, { name: f.name, owner: "highways", meaning }));
   }
+  registry.register(composeFamily(circleFamily(), shapeSteps(set), { name: CIRCLE_SCATTERED.name }));
   return registry;
 }

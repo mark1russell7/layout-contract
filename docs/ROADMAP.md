@@ -16,7 +16,7 @@ This file lists the items of the roadmap of this repository. The status page of 
 | L95 | done | P1 | Open size families in the joint corpus (`joint-v3`) |
 | L96 | in progress | P2 | Two named tables of the family `recorded` in `rigor-generators`, with source, license and date, as joint inputs and size choices of the site |
 | L98 | done | P2 | Bench: run only chosen rows of the cover |
-| L94 | in progress | P1 | Circle items in the joint bench: one shared family and an exact hard rule in the contract (0.4.0), then the joint corpus. Routes read the box until highways routes around the true shape |
+| L94 | in progress | P1 | Circle items in the joint bench: one shared family and an exact hard rule in the contract (0.4.0), then the joint corpus. Part 1: the array `shapes` of `joint-v3` gives inputs to `hole-degree`, `circle-quasi-physical` and `exact-strip`. Part 2: a cover run of `joint-v3` removes the 3 cover exceptions. Routes read the box until highways routes around the true shape |
 | L108 | in progress | P2 | The news of the site holds no typed version. The release page is the one list of versions |
 | L111 | in progress | P2 | The cost claim of the sweep is an interval for the whole night, then for each shard, and the night record states the inputs of its budget |
 | L110 | in progress | P1 | The step between two sweep nights reads route values: detour, routed crossings and the route length of the contract (`joint.route.length`) |
