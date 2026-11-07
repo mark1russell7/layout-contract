@@ -58,7 +58,18 @@ const kpi = (await fetch("kpi.json")
   .catch(() => undefined)) as { project?: string; at?: string; measures?: unknown[] } | undefined;
 check("the file of measures names this project", kpi?.project === "layout-contract", kpi?.project);
 check("the file of measures has a data time", !Number.isNaN(Date.parse(kpi?.at ?? "")), kpi?.at);
-// With no answer from npm the build leaves out the 3 measures that read npm.
-check("the file of measures has 7 measures, or 4 with no read of npm", kpi?.measures?.length === 7 || kpi?.measures?.length === 4, kpi?.measures?.length);
+// The probe checks the names of the measures, not their count, so a new measure changes one list here.
+// Each measure of the joint data is present. With no answer from npm, the build leaves out each measure that reads npm.
+const kpiIds = (kpi?.measures ?? []).map((measure) => String((measure as { id?: unknown }).id));
+const JOINT_MEASURES = ["pairs-in-run", "pairs-shown", "packers-measured", "routers-on-compare", "routers-keyed"];
+const OPTIONAL_MEASURES: string[] = [];
+const npmIds = kpiIds.filter((id) => id === "engines-current" || id.startsWith("engine-releases-behind-"));
+check("the file of measures has each measure of the joint data", JOINT_MEASURES.every((id) => kpiIds.includes(id)), kpiIds.join(", "));
+check("the file of measures has each measure that reads npm, or none of them", npmIds.length === 0 || (npmIds.includes("engines-current") && npmIds.length === 3), npmIds.join(", "));
+check(
+  "the file of measures has no repeated or unknown measure",
+  new Set(kpiIds).size === kpiIds.length && kpiIds.every((id) => JOINT_MEASURES.includes(id) || OPTIONAL_MEASURES.includes(id) || npmIds.includes(id)),
+  kpiIds.join(", "),
+);
 
 export {};

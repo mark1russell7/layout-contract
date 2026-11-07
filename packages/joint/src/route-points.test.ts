@@ -10,6 +10,12 @@ import { PACK_ENTRIES, packInputOf, PORTFOLIO_ROUTER, routeHash, routerEntryOf, 
 /** The strategy space of `highways`, with the type of `layout-contract`. */
 const SPACE = routeSpace as unknown as StrategySpace;
 
+/**
+ * The router entries of `KEYED_STRATEGIES` that `routeSpace` of `highways` 0.15.0 does not name (L129).
+ * The cover races them, but this test cannot compare a point with them. The fix belongs to `highways`.
+ */
+const UNNAMED_ROUTERS: readonly string[] = ["adam", "annealing", "attraction", "canals", "nudge", "repel", "reroute", "springs", "tight", "seams", "shared-ways-all"];
+
 /** The largest count of boxes of an input of the set. */
 const MAX_BOXES = 30;
 
@@ -57,11 +63,12 @@ describe("the routers of the cover as points of routeSpace", () => {
   const routers = all.filter((id) => SPACE.named?.[id] !== undefined);
   const inputs = testInputs();
 
-  it("has a named point for each router, apart from the portfolio and its member forms", () => {
+  it("has a named point for each router, apart from the portfolio, its member forms and the closed list of routers with no point", () => {
     // `routeSpace` does not name these routers, and `highways` gives no function from a member form to a config. `docs/STRATEGY-SPACE.md` gives the gap.
     const others = all.filter((id) => SPACE.named?.[id] === undefined);
-    expect(others.filter((id) => id !== PORTFOLIO_ROUTER && MEMBER_FORMS[id] === undefined)).toEqual([]);
-    expect([routers.length, others.length]).toEqual([75, 75]);
+    // Each router with no point is in the closed list, and each router of the list has no point. When `highways` names one, remove it from the list.
+    expect(others.filter((id) => id !== PORTFOLIO_ROUTER && MEMBER_FORMS[id] === undefined).sort()).toEqual([...UNNAMED_ROUTERS].sort());
+    expect([routers.length, others.length]).toEqual([76, 86]);
   });
 
   it("gives points that pass the checks of routeSpace", () => {

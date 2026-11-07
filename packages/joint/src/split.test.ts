@@ -10,7 +10,7 @@ import { loadSplit, SPLITS_DIR } from "./split.ts";
 const manifestOf = (set: string): JointManifest => JSON.parse(readFileSync(new URL(`../corpus/${set}/corpus.json`, import.meta.url), "utf8")) as JointManifest;
 
 /** The pinned corpus hashes. A change of an input id or an input hash changes them, and the split file needs a new name. */
-const HASHES: Readonly<Record<string, string>> = { "joint-v1": "277ffd12181e74ef", "joint-v2": "1d0909caec40631e", "joint-v3": "af35b46d721b9a5a" };
+const HASHES: Readonly<Record<string, string>> = { "joint-v1": "277ffd12181e74ef", "joint-v2": "1d0909caec40631e", "joint-v3": "9b9557161f2eaab9" };
 
 describe("the split files of the joint corpus", () => {
   it("has one split file for each corpus, with the hash of its manifest in the name", () => {
