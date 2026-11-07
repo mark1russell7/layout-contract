@@ -228,7 +228,7 @@ jobs:
     strategy:
       fail-fast: false
       # The account runs at most 20 jobs at once, for all repos together. The fleet rule of 2026-10-30 (STRATEGY.md) gives a heavy workflow 3 jobs at once, so gates and releases get runners.
-      max-parallel: 3
+      max-parallel: 6
       matrix:
         shard: ${{ fromJSON(needs.plan.outputs.shards) }}
     steps:
