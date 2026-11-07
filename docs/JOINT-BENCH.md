@@ -434,7 +434,7 @@ A split file of `corpus-split/1` is beside each manifest, in `packages/joint/cor
 - The job `check` reads the split file with `loadSplit`. A missing file, a wrong corpus hash or a bad fold stops the run.
 - `pnpm bench analyze` gives the folds of the split `default` to `analyze`. These folds are the folds of leave-one-seed-out, so the report does not change.
 - On the slice `pr`, a fold without held-out inputs gives no row. A training seed without inputs adds no input.
-- The pinned corpus hashes are `277ffd12181e74ef` for `joint-v1`, `1d0909caec40631e` for `joint-v2` and `af35b46d721b9a5a` for `joint-v3`. A change of an input needs a new split file.
+- The pinned corpus hashes are `277ffd12181e74ef` for `joint-v1`, `1d0909caec40631e` for `joint-v2` and `9b9557161f2eaab9` for `joint-v3`. A change of an input needs a new split file.
 
 ## The Time row
 

@@ -157,7 +157,7 @@ The code path of the registry uses no API of Node: no `fs`, no `crypto` of Node 
 - `packingFamily(gen)` gives a family for a generator of `packing`. It changes nothing in the output. When `packing` registers its own families, the joint package uses them, and the function goes.
 - `jointCorpus(set)` makes each input with `jointRegistry(set)`. The manifests `corpus/joint-v1/corpus.json` and `corpus/joint-v2/corpus.json` do not change, byte for byte. The manifest of `joint-v3` is new.
 - The joint test `families.test.ts` compares the registry with the path before `L45`, with each seed. It reads 19 specs of `joint-v1`, 20 specs of `joint-v2` and 25 specs of `joint-v3`. The manifest tests compare all the inputs.
-- The same test counts 285 inputs of `joint-v1`, 303 inputs of `joint-v2` and 390 inputs of `joint-v3`. The full sweep of the family `rect-grid` of `joint-v2` has 6123600 cells. The test counts them with no input.
+- The same test counts 285 inputs of `joint-v1`, 303 inputs of `joint-v2` and 414 inputs of `joint-v3`. The full sweep of the family `rect-grid` of `joint-v2` has 6123600 cells. The test counts them with no input.
 - A `rect-grid` input of `joint-v2` with 1000 boxes and 4000 edges takes approximately 90 ms in Node on a loaded machine. It ran in one process after other inputs, so this time is not the cost of an input alone. A site makes such an input in the browser with no worker.
 
 ## The coverage
