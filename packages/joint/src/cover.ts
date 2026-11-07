@@ -21,14 +21,10 @@ export interface CoverException {
 
 /**
  * The closed list of the strategies with no entry. A test fails when the list has another strategy, and when this strategy starts to run.
- * The cover runs `joint-v2`, which has only rectangle items, and `hole-degree` and `circle-quasi-physical` pack only circles.
- * The strategy `exact-strip` refuses each strip input of `joint-v2`. The array `shapes` of `joint-v3` has an input for each of the 3 strategies (L94).
+ * The list is empty since L94. The array `shapes` of `joint-v3` has circle items for `hole-degree` and `circle-quasi-physical`, and small strips for `exact-strip`.
+ * On `joint-v2`, these 3 strategies skip each input, because the cell of each input is outside their supports.
  */
-export const COVER_EXCEPTIONS: Readonly<Record<string, CoverException>> = Object.freeze({
-  "hole-degree": { reason: "The strategy packs only circle items, and each input of joint-v2 has only rectangle items. The circle inputs are in joint-v3.", removedBy: "L94" },
-  "circle-quasi-physical": { reason: "The strategy packs only circle items, and each input of joint-v2 has only rectangle items. The circle inputs are in joint-v3.", removedBy: "L94" },
-  "exact-strip": { reason: "The strategy takes at most 16 items of whole sizes with no gap and no margin, and each strip input of joint-v2 breaks one of these limits. The small strip is in joint-v3.", removedBy: "L94" },
-});
+export const COVER_EXCEPTIONS: Readonly<Record<string, CoverException>> = Object.freeze({});
 
 /**
  * The settings of the strategies that do not run with their defaults. The reason of each skip names the setting.
