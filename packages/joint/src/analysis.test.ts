@@ -122,6 +122,17 @@ describe("the record count check and the subset headline", () => {
     expect(analyze(records(), inputs, { resamples: 50 }).count).toMatchObject({ recorded: 6, missing: [], ok: true });
   });
 
+  it("counts the check same twice over all records, also an excluded pack, and states it in the report (L117)", () => {
+    const r = analyze(records(), inputs, { resamples: 50 });
+    expect(r.sameTwice).toMatchObject({ twice: 18, differ: 0 });
+    expect(reportMarkdown(r)).toContain("Same twice: 18 records, 0 differ,");
+    // Flip: a record of an excluded pack with two different hashes still makes the check fail.
+    const list = records().map((x) => (x.strategy === "c+r" && x.input === "q/s2" ? { ...x, deterministic: false } : x));
+    const bad = analyze(list, inputs, { resamples: 50, excludePacks: ["c"] });
+    expect(bad.sameTwice).toMatchObject({ twice: 17, differ: 1, differs: [{ strategy: "c+r", input: "q/s2" }] });
+    expect(reportMarkdown(bad)).toContain("The check fails. The first pairs that differ: c+r on q/s2.");
+  });
+
   it("gives the headline cell on the subset next to the full headline cell", () => {
     const r = analyze(records(), inputs, { resamples: 50, subset: ["p/s1", "p/s2", "p/s3", "x/s1"] });
     expect(r.subset).toMatchObject({ ids: 4, inputs: 3 });

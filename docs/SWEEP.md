@@ -328,6 +328,14 @@ The check has three parts:
 - The section "Sweep coverage" of the site reads `index.json` when the page opens, and applies the same rule. It states the date of the last night, and a late or partial night has its own badge.
 - A failed read of the GitHub API in the plan of the sweep or the memory probe has 4 tries with a backoff. Then the plan states the failure and goes on. The budget uses a gate of 360 minutes, and the gate of the probe runs.
 
+The night also counts the check "same twice" of L117 (`docs/JOINT-BENCH.md`, "The check same twice"):
+
+- `applyRecords` adds the counts of the records of each round to the field `sameTwice` of the night.
+- The summary of the night states them in one line, with the first pairs that differ.
+- The entry of the epoch in `index.json` holds the count `differ` of the last night.
+- `night-check.yml` fails when that count is above 0. A night from before L117 has no count, and the check does not fail on it.
+- The night does not stop on a record that differs, so the data of the night stays.
+
 A skipped gate is green only after a pass on the same commit. When the last nightly gate failed and main did not change, the plan of the memory probe fails at no heavy cost. A new commit or a rerun of the failed run ends it.
 
 ## The sensitivity

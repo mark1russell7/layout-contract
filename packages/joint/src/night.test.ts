@@ -54,6 +54,8 @@ describe("a night of the sweep on small inputs", () => {
     const fillOf = (id: string): number => (base.includes(id) ? (id === incumbent ? 0.5 : 0.3) : 0.1 + (0.8 * ids.indexOf(id)) / ids.length);
     const records = night.plan.units.flatMap((u) => u.configs.map((c) => record(c, u.input, fillOf(c))));
     const added = applyRecords(state, records, INPUTS, OPTIONS.date);
+    // The records of this test state no field deterministic, so the night counts each as a record with no value (L117).
+    expect(state.nights.at(-1)!.sameTwice).toMatchObject({ twice: 0, differ: 0, unstated: records.length });
     expect(added).toBe(records.length);
     expect(state.reference.every((r) => r !== null)).toBe(true);
     expect(valueMaps(state).get(incumbent!)?.size).toBe(INPUTS.length);

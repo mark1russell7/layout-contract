@@ -3,6 +3,7 @@
 import { configId, type LayoutRecord, type StrategyConfig, type StrategySpace } from "@mark1russell7/layout-contract";
 import { stepValuesOf } from "./epoch-step.ts";
 import type { CensoredUnit } from "./shard-stop.ts";
+import { addSameTwice, sameTwice, type SameTwice } from "./same-twice.ts";
 import { saltelliDesign, type SaltelliDesign } from "./sensitivity.ts";
 import { configRun, JOINT_SPACE, type ConfigRun } from "./space.ts";
 import {
@@ -194,6 +195,8 @@ export interface NightEntry {
   round2?: RoundFacts;
   /** The count of the inputs where a config of the baseline arm has another score than on an earlier night. The runs are deterministic, so 0 is the expected value. */
   drift: number;
+  /** The counts of the check "same twice" over the records of the rounds (L117). A night from before L117 has none. */
+  sameTwice?: SameTwice;
   /** The jobs that gave a value, and the planned pairs that gave no value by the end of the night (`LOST_METHOD_NOTE` of `night-check.ts` gives the older form). */
   values: number;
   missing: number;
@@ -743,6 +746,7 @@ export function planDesign(state: SweepState, inputs: readonly SweepInput[], opt
  * - The records of the baseline arm on an input give the reference of the input. Without them, the stored reference stays.
  * - A config gets a value on an input only once. A later record of the same input checks the drift of the baseline arm.
  * - Each new value goes into the summary, with the scores of the baseline arm on the input for the paired counts.
+ * - The night adds the counts of the check "same twice" of all the records (`sameTwice`).
  */
 export function applyRecords(state: SweepState, records: readonly LayoutRecord[], inputs: readonly SweepInput[], date: string): number {
   const at = indexOf(state);
@@ -757,6 +761,7 @@ export function applyRecords(state: SweepState, records: readonly LayoutRecord[]
   for (const r of records) byInput.set(r.input, [...(byInput.get(r.input) ?? []), r]);
   const rows = new Map(state.summary.map((r) => [rowKey(r.config, r.cell, r.family), r]));
   const night = nightOf(state, date);
+  night.sameTwice = addSameTwice(night.sameTwice, sameTwice(records));
   let added = 0;
   for (const [inputId, list] of byInput) {
     const i = at.get(inputId);
