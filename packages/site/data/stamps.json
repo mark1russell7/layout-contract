@@ -9,14 +9,14 @@
           "url": "https://github.com/mark1russell7/layout-contract/actions/runs/40743187036",
           "date": "2026-10-28T18:14:08Z",
           "engines": { "@mark1russell7/highways": "0.8.1", "@mark1russell7/packing": "0.2.16" }
+        },
+        {
+          "id": "41898523423",
+          "url": "https://github.com/mark1russell7/layout-contract/actions/runs/41898523423",
+          "date": "2026-11-04T19:36:10Z",
+          "engines": { "@mark1russell7/highways": "0.14.0", "@mark1russell7/packing": "0.7.0" }
         }
-      ],
-      "inFlight": {
-        "id": "41898523423",
-        "url": "https://github.com/mark1russell7/layout-contract/actions/runs/41898523423",
-        "date": "2026-11-04T19:36:10Z",
-        "engines": { "@mark1russell7/highways": "0.14.0", "@mark1russell7/packing": "0.7.0" }
-      }
+      ]
     },
     {
       "page": "compare.html",
@@ -26,14 +26,14 @@
           "url": "https://github.com/mark1russell7/layout-contract/actions/runs/40743187036",
           "date": "2026-10-28T18:14:08Z",
           "engines": { "@mark1russell7/highways": "0.8.1", "@mark1russell7/packing": "0.2.16" }
+        },
+        {
+          "id": "41898523423",
+          "url": "https://github.com/mark1russell7/layout-contract/actions/runs/41898523423",
+          "date": "2026-11-04T19:36:10Z",
+          "engines": { "@mark1russell7/highways": "0.14.0", "@mark1russell7/packing": "0.7.0" }
         }
-      ],
-      "inFlight": {
-        "id": "41898523423",
-        "url": "https://github.com/mark1russell7/layout-contract/actions/runs/41898523423",
-        "date": "2026-11-04T19:36:10Z",
-        "engines": { "@mark1russell7/highways": "0.14.0", "@mark1russell7/packing": "0.7.0" }
-      }
+      ]
     }
   ]
 }
