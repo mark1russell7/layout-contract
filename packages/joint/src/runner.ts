@@ -24,6 +24,7 @@ import {
   getStrategy,
   highwayRouterStrategy,
   inputGraph,
+  KEYED_STRATEGIES,
   listStrategies,
   measureName,
   MEMBER_FORMS,
@@ -159,26 +160,30 @@ export function highwayRouterOf(name: string): Strategy<"router", object> {
 export const ROUTERS: readonly string[] = Object.freeze([...Object.keys(routerStrategies), ...HIGHWAY_ROUTERS, PORTFOLIO_ROUTER]);
 
 /**
- * The open routers of the playground: each highway strategy of `highways` that `ROUTERS` does not hold, then each form of `MEMBER_FORMS`.
- * The benchmark and the sweep do not race them. A router entry can name each of them.
+ * The open routers of the playground and of the cover. The list has each router and highway strategy of `KEYED_STRATEGIES` outside `ROUTERS`, then each form of `MEMBER_FORMS`.
+ * The headline pairs do not race them. Only the pairs of the cover run them, and a router entry can name each of them.
+ * Since `highways` 0.15.0, `KEYED_STRATEGIES` holds each keyed entry of the registry, and `STRATEGIES` holds only a part of them (L129).
  */
 export const OPEN_ROUTERS: readonly string[] = Object.freeze(openRouterNames());
 
 /** This function gives the names of `OPEN_ROUTERS`, each only once, in the order of the registry. */
 function openRouterNames(): string[] {
   const names = new Set<string>();
-  for (const s of listStrategies(STRATEGIES, "highway")) if (!ROUTERS.includes(s.name)) names.add(s.name);
+  for (const s of listStrategies(KEYED_STRATEGIES, "router")) if (!ROUTERS.includes(s.name)) names.add(s.name);
+  for (const s of listStrategies(KEYED_STRATEGIES, "highway")) if (!ROUTERS.includes(s.name)) names.add(s.name);
   for (const name of Object.keys(MEMBER_FORMS)) if (!ROUTERS.includes(name)) names.add(name);
   return [...names];
 }
 
 /**
  * This function gives the router strategy of a name of `OPEN_ROUTERS`.
- * A highway strategy gets `follow` (`highwayRouterStrategy`). A member form is the member of the portfolio.
+ * A router strategy of `KEYED_STRATEGIES` is the strategy itself. A highway strategy gets `follow` (`highwayRouterStrategy`). A member form is the member of the portfolio.
  */
 export function openRouterOf(name: string): Strategy<"router", object> {
   if (!OPEN_ROUTERS.includes(name)) throw new RangeError(`There is no open router "${name}".`);
-  const highway = listStrategies(STRATEGIES, "highway").find((s) => s.name === name);
+  const router = listStrategies(KEYED_STRATEGIES, "router").find((s) => s.name === name);
+  if (router !== undefined) return router as Strategy<"router", object>;
+  const highway = listStrategies(KEYED_STRATEGIES, "highway").find((s) => s.name === name);
   if (highway !== undefined) return highwayRouterStrategy(highway as Strategy<"highway", object>);
   return portfolioMember(name)!;
 }
