@@ -141,6 +141,13 @@ describe("siteKpiInput", () => {
     expect(input?.measures.map((m) => m.id)).toEqual(["pairs-in-run", "pairs-shown", "packers-measured", "routers-on-compare", "routers-keyed"]);
   });
 
+  it("gives coverage-shown 1 only when the page shows a week view, with the date of the latest night (L52)", () => {
+    const measure = (shown: boolean) => siteKpiInput([run("2026-10-28", 130, {})], catalog, undefined, entries, commitAt, keyed, { shown, night: "2026-11-10" })?.measures.find((m) => m.id === "coverage-shown");
+    expect(measure(true)).toEqual({ id: "coverage-shown", value: 1, at: "2026-11-10T00:00:00Z" });
+    expect(measure(false)).toMatchObject({ value: 0 });
+    expect(siteKpiInput([run("2026-10-28", 130, {})], catalog, undefined, entries, commitAt, keyed)?.measures.some((m) => m.id === "coverage-shown")).toBe(false);
+  });
+
   it("takes the age from the newest run, and the coverage from the newest cover run with its own date", () => {
     const cover = coverOf(run("2026-11-04", 650, {}, ["shelf", "rows", "anneal-maxrects-bl-k16"], ["corners", "trunks", "steiner"]));
     const input = siteKpiInput([cover, run("2026-11-10", 130, {}, ["shelf"], ["corners"])], catalog, npm, entries, commitAt, keyed);
