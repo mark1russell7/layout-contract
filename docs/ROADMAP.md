@@ -2,6 +2,34 @@
 
 This file lists the items of the roadmap of this repository. The status page of the site reads it.
 
+## Targets of the measures of the site
+
+The file `kpi.json` of the site gives each measure. This table gives the target of three measures at each rung, with its date. A rung ends when the live `kpi.json` reads its target.
+
+| Measure | 2026-11-06 | Rung 1 | Rung 2 | Rung 3 |
+| --- | --- | --- | --- | --- |
+| `routers-on-compare` of `routers-keyed` | 9 of 75 | 75 of 75 at `highways` 0.14.0, by 2026-11-07 12:00Z | A gate: the data of a run lands only with each keyed router on compare, or with an exception that names its roadmap item. With L129, by 2026-11-17 | Each keyed router of the pinned `highways` after the switch of 2026-11-17, by 2026-11-20 |
+| The date of the newest joint run | 2026-10-28 | At most 3 days old, by 2026-11-07 12:00Z | At most 3 days old at each daily read, from 2026-11-07 | At most 3 days old after the switch of 2026-11-17, by 2026-11-20 |
+| `engines-current` of 2 | 0 | 0, because the hold of L124 keeps `packing` 0.7.0 and `highways` 0.14.0 to 2026-11-17. The page says so next to the 0. `engines-behind-unheld` of #230 reads 0, by 2026-11-07 12:00Z | 2, by 2026-11-20 | 2: the newest release of each engine has a short run within 3 days, from 2026-11-20 |
+
+The dates come from these facts:
+
+- The joint run 41898523423 started on 2026-11-04 at 19:36Z on the held versions. At 01:24Z on 2026-11-06, 32 of its 64 shards were complete.
+- In the last 7 hours, the shards ended at approximately 1.5 an hour. Over the whole run, the rate was 1.1 an hour. So the last shard ends between 2026-11-06 22:00Z and 2026-11-07 07:00Z.
+- The job decide and the pull request of the data add approximately 3 hours.
+- The freshness gate fails a run in flight after 3 days. For this run, that time is 2026-11-07 19:36Z.
+- Shard 31 of this run has a row of each of the 75 keyed routers of `highways` 0.14.0.
+- A full run on new engines has approximately 64 shards. At 1.1 to 1.5 shards an hour, it takes 43 to 58 hours. So a run that starts on 2026-11-17 ends by 2026-11-20.
+- On the first night after the switch, the memory gate makes the refit of its limits (L81).
+
+Rung 3 of `engines-current` uses a short run of chosen rows (L98) between the full runs of the epochs:
+
+- Each engine gets at most one short run a day, on its newest release. Thus 4 releases in 2 days give 2 short runs.
+- An engine is current when its newest release has a short run of at most 3 days ago.
+- The full run of each epoch (L124) stays the source of the whole compare.
+- The page marks each row as a row of a short run or of a full run, with its run id.
+- The first short run gives its cost. L98 states that cost next to the 43 to 58 hours of a full run.
+
 ## In progress
 
 | ID | Status | Priority | Title |
@@ -75,7 +103,6 @@ This file lists the items of the roadmap of this repository. The status page of 
 | L106 | later | P2 | One name for routes through a shape: `route.through` takes the true shape when the measure of the router is on npm, and the extra key stops |
 | L107 | later | P2 | An exact rule for a circle beside another shape kind, an obstacle or a polygon container, due 2026-11-28 |
 | L112 | next | P1 | A flip test for each gate check of a measure: an injected fault turns the check red, with a clean copy green in the same job |
-| L116 | next | P1 | A bound on a held config: a config that misses the same planned input on 2 nights in a row gets a censored row for that input and goes into the full race, by 2026-11-12 |
 | L117 | next | P1 | One timed run over 60 s on the joint runner, with a same-twice check that can go red and its flip, in the engine epoch of 2026-11-15 |
 | L113 | in progress | P1 | A CI read of the wait of each pull request gate and release gate, by UTC hour, with the memory gate running and not |
 | L116 | in progress | P1 | A held config cannot stay out of the full race for ever: a censored row after 2 planned nights with a miss, a limit of 0.5 % of the inputs, a plan in part, and kept records that give a value once their reference returns. By 2026-11-12 |
