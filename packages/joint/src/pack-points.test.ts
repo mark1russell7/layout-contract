@@ -2,7 +2,7 @@
 import { checkConfig, configId, type LayoutInput, type StrategySpace } from "@mark1russell7/layout-contract";
 import { configOfStrategy, outputHash as packHash, packConfig, packSpace, packWith, UnsupportedCell, type PackOutput } from "@mark1russell7/packing";
 import { describe, expect, it } from "vitest";
-import { jointInput, jointSpecs, SET } from "./corpus.ts";
+import { CIRCLE_CONTAINERS, jointInput, jointSpecs, SET, SET_V3, shapeSpecs } from "./corpus.ts";
 import { coverEntries } from "./cover.ts";
 import { PACK_ENTRIES, packInputOf, readsLinks, type PackEntry } from "./runner.ts";
 
@@ -18,12 +18,13 @@ const OUTSIDE_SPACE: readonly string[] = [];
 /**
  * The entries whose point gives, with `packConfig`, an output that is not the output of `packWith` (L129).
  * In `packing` 0.10.2, `packConfig` of the point of `side-anchors` packs 10 inputs that `packWith` refuses. On 1 more input, the two hashes are not equal.
+ * On the circle input with a rectangle container, `packWith` packs `near-rects` and `raster-nofit`, but `packConfig` of their points refuses it (L94).
  * The runner uses `packWith`, so the records of the bench do not change. The fix belongs to `packing`.
  */
-const KNOWN_DIFFER: readonly string[] = ["side-anchors"];
+const KNOWN_DIFFER: readonly string[] = ["side-anchors", "near-rects", "raster-nofit"];
 
 /**
- * The entries that support none of the 17 inputs of the test, so the test compares no hash of them (L129).
+ * The entries that support none of the inputs of the test, so the test compares no hash of them (L129).
  * In `packing` 0.10.2, `packWith` refuses each input of the set for `masonry` and `treemap`.
  */
 const NO_TEST_INPUT: readonly string[] = ["masonry", "treemap"];
@@ -48,6 +49,20 @@ function testInputs(): LayoutInput[] {
   return [...picks.values()];
 }
 
+/**
+ * This function gives the circle inputs of the test: the first input of each container of `CIRCLE_CONTAINERS`, from the array `shapes` of `joint-v3` (L94).
+ * The inputs of `joint-v1` have only rectangle items, so `hole-degree` and `circle-quasi-physical` get a comparison of a hash only on these inputs.
+ */
+function circleInputs(): LayoutInput[] {
+  const picks = new Map<string, LayoutInput>();
+  for (const spec of shapeSpecs()) {
+    const shape = spec.params["containerShape"];
+    if (typeof shape !== "string" || picks.has(shape)) continue;
+    picks.set(shape, jointInput(spec, spec.seeds[0]!, SET_V3).input);
+  }
+  return [...picks.values()];
+}
+
 /** This function gives the pack input of an entry, as the runner gives it: an entry of `readsLinks` gets the links of the edges. */
 function inputFor(entry: PackEntry, input: LayoutInput): ReturnType<typeof packInputOf> {
   return packInputOf(input, readsLinks(entry) ? { links: true } : {});
@@ -67,6 +82,7 @@ describe("the pack entries of the cover as points of packSpace", () => {
   const entries: readonly PackEntry[] = [...PACK_ENTRIES, ...coverEntries()].filter((entry) => !OUTSIDE_SPACE.includes(entry.strategy));
   const points = entries.map((entry) => ({ entry, point: configOfStrategy(entry.strategy, entry.options) }));
   const inputs = testInputs();
+  const circles = circleInputs();
 
   it("keeps the closed list of the strategies outside the space, and fails when one of them joins it", () => {
     const cover = coverEntries().map((entry) => entry.strategy);
@@ -104,10 +120,15 @@ describe("the pack entries of the cover as points of packSpace", () => {
     expect([...kinds].sort()).toEqual(["height/false", "height/true", "none/false", "none/true", "size/false", "size/true", "width/false", "width/true"]);
   });
 
+  it("has one circle input for each container of CIRCLE_CONTAINERS", () => {
+    expect(circles).toHaveLength(CIRCLE_CONTAINERS.length);
+    for (const input of circles) expect(input.boxes.length, input.id).toBeLessThanOrEqual(MAX_BOXES);
+  });
+
   it("gives with packConfig the output hash of the entry on each input", () => {
     const packed = new Map<string, number>();
     const differ = new Map<string, string[]>();
-    for (const input of inputs) {
+    for (const input of [...inputs, ...circles]) {
       const seed = input.seed ?? 0;
       for (const { entry, point } of points) {
         if (!point.ok) continue;

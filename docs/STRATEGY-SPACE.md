@@ -149,16 +149,17 @@ The output of a named config is equal to the output of the old named strategy. T
 
 ### The joint pack entries in `packSpace`
 
-The joint cover has 42 pack entries, and each one is a point of `packSpace` of `packing` 0.10.2. `configOfStrategy` gives the point of each entry.
+The joint cover has 45 pack entries, and each one is a point of `packSpace` of `packing` 0.10.2. `configOfStrategy` gives the point of each entry.
 Up to `packing` 0.7.0, the 8 standalone strategies were outside `packSpace`. Since 0.8.0 they are points too (roadmap item L129). The closed list of the strategies outside the space is thus empty.
-The test `pack-points.test.ts` checks each point with `checkConfig`, and compares the `outputHash` of `packConfig` with the hash of the entry on 17 inputs of `joint-v1`.
+The test `pack-points.test.ts` checks each point with `checkConfig`, and compares the `outputHash` of `packConfig` with the hash of the entry on 17 inputs of `joint-v1`. It also compares them on one circle input for each container of `CIRCLE_CONTAINERS`, from `joint-v3`. Without them, `hole-degree` and `circle-quasi-physical` get no comparison.
 
-- 517 of the 714 cases have equal hashes.
-- In 186 cases, the strategy does not support the input. The point and the entry then both throw `UnsupportedCell`.
-- 11 cases differ, and all of them are `side-anchors`. On 10 inputs, `packWith` refuses the input and `packConfig` packs it. On 1 input, the two hashes are not equal. The test keeps `side-anchors` in a closed list. The runner uses `packWith`, so the records of the bench do not change.
-- `masonry` and `treemap` support none of the 17 inputs, so the test compares no hash of them. A closed list holds the two.
+- 522 of the 855 cases have equal hashes.
+- In 320 cases, the strategy does not support the input. The point and the entry then both throw `UnsupportedCell`.
+- 13 cases differ. 11 of them are `side-anchors`. On 10 inputs, `packWith` refuses the input and `packConfig` packs it. On 1 input, the two hashes are not equal. The test keeps `side-anchors` in a closed list. The runner uses `packWith`, so the records of the bench do not change.
+- The other 2 are `near-rects` and `raster-nofit`. On the circle input with a rectangle container, `packWith` packs the input, but `packConfig` of their points refuses it. The closed list holds the three entries.
+- `masonry` and `treemap` support none of the inputs, so the test compares no hash of them. A closed list holds the two.
 
-**Gap:** the fix of `side-anchors` belongs to `packing`. `packConfig` must refuse each input that `packWith` refuses, and give the same output on each other input.
+**Gap:** the fix of `side-anchors`, `near-rects` and `raster-nofit` belongs to `packing`. `packConfig` must refuse each input that `packWith` refuses, and give the same output on each other input.
 
 The cover has 162 routers, and 76 of them are named points of `routeSpace` of `highways` 0.15.0. The test `route-points.test.ts` checks each of these points with `checkConfig`.
 It also compares the hash of the routes of the router and of `routeConfig` on 8 inputs of `joint-v1`. These inputs give one input for each container kind and obstacle case, and each hash is equal.
