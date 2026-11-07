@@ -1,9 +1,12 @@
 import { describe, expect, it } from "vitest";
 import type { JointData } from "./data.ts";
-import { enginesCurrent, enginesOnNpm, failedReadStops, type KpiCatalog, type NpmRead, packersMeasured, routersOnCompare, siteKpiInput } from "./kpi.ts";
+import { coverageRun, enginesCurrent, enginesOnNpm, failedReadStops, type KpiCatalog, type NpmRead, packersMeasured, routersOnCompare, siteKpiInput } from "./kpi.ts";
 
 const run = (date: string, pairs: number, versions: Record<string, string>, packers: readonly string[] = ["shelf", "rows"], routers: readonly string[] = ["corners", "trunks"]): JointData =>
   ({ run: "1", date, pairs, versions, stress: { byPacker: packers.map((id) => ({ id })), byRouter: routers.map((id) => ({ id })) } }) as unknown as JointData;
+
+/** A cover run of the fixture: it has the flag `cover`. */
+const coverOf = (data: JointData): JointData => ({ ...data, cover: true });
 
 const catalog: KpiCatalog = { about: { packing: { shelf: "a", rows: "b", anneal: "c", skyline: "d" }, highways: {} } };
 
@@ -131,11 +134,41 @@ describe("siteKpiInput", () => {
     expect(input?.measures.map((m) => m.id)).toEqual(["pairs-in-run", "packers-measured", "routers-on-compare", "routers-keyed"]);
   });
 
+  it("takes the age from the newest run, and the coverage from the newest cover run with its own date", () => {
+    const cover = coverOf(run("2026-11-04", 650, {}, ["shelf", "rows", "anneal-maxrects-bl-k16"], ["corners", "trunks", "steiner"]));
+    const input = siteKpiInput([cover, run("2026-11-10", 130, {}, ["shelf"], ["corners"])], catalog, npm, entries, commitAt, keyed);
+    expect(input?.at).toBe("2026-11-10T00:00:00Z");
+    expect(Object.fromEntries(input?.measures.filter((m) => !m.id.startsWith("engine")).map((m) => [m.id, [m.value, m.at]]) ?? [])).toEqual({
+      "pairs-in-run": [650, "2026-11-04T00:00:00Z"],
+      "packers-measured": [3, "2026-11-04T00:00:00Z"],
+      "routers-on-compare": [3, "2026-11-04T00:00:00Z"],
+      "routers-keyed": [3, commitAt],
+    });
+  });
+
   it("counts only the strategies of the latest run", () => {
     const input = siteKpiInput([run("2026-10-20", 90, {}, ["shelf", "rows", "skyline"], ["corners", "trunks", "steiner"]), run("2026-10-28", 130, {}, ["shelf"], ["corners"])], catalog, npm, entries, commitAt, keyed);
     expect(input?.measures.find((m) => m.id === "packers-measured")?.value).toBe(1);
     expect(input?.measures.find((m) => m.id === "routers-on-compare")?.value).toBe(1);
     expect(input?.measures.find((m) => m.id === "routers-keyed")?.value).toBe(3);
+  });
+});
+
+describe("coverageRun", () => {
+  it("gives the newest cover run, not a newer default run", () => {
+    const cover = coverOf(run("2026-11-04", 650, {}));
+    expect(coverageRun([run("2026-10-28", 130, {}), cover, run("2026-11-10", 130, {})])).toBe(cover);
+  });
+
+  it("gives the newest of two cover runs", () => {
+    const newer = coverOf(run("2026-11-12", 700, {}));
+    expect(coverageRun([coverOf(run("2026-11-04", 650, {})), newer])).toBe(newer);
+  });
+
+  it("gives the newest run when no run is a cover run", () => {
+    const newest = run("2026-10-28", 130, {});
+    expect(coverageRun([run("2026-10-20", 90, {}), newest])).toBe(newest);
+    expect(coverageRun([])).toBeUndefined();
   });
 });
 

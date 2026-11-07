@@ -1530,6 +1530,7 @@ The limits of this read:
 - A job in the queue at the read has no wait yet, because GitHub gives it a start time equal to its creation time. The run stays open, so a later read takes its real start.
 - It shows that a wait and a gate came at one time. It does not show that the gate caused the wait.
 - The rate limit can cut a read. The report states the count of runs left out, and the next run goes on from the artifact.
+- The job reads also stop after 25 minutes of the 40 of the job, with the same count. A run with no artifact reads 10 days of runs. From 2026-11-05 to 2026-11-07, each such read passed the timeout, so no run gave an artifact.
 
 This workflow is a dated tool. It ends when one night of its rows matches the queue record of the CI slots, or on 2026-11-14 at the latest. Then the workflow goes, and anything still of use moves to that record.
 
