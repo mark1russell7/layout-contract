@@ -29,6 +29,7 @@ This file lists the items of the roadmap of this repository. The status page of 
 | L101 | in progress | P0 | Bench: a shard with a deadline, a record for each pair, and a resume of a run |
 | L100 | in progress | P1 | The step between two epochs: raw values of the baseline arm, with a marked step on the charts |
 | L99 | in progress | P1 | A night with no result shows: `night-check.yml`, a line on the site, retries on API reads, and no green skip after a failed gate |
+| L131 | in progress | P1 | Targets per rung for the routers on the compare view, the date of the run and the current engines. Rung 1: the site data of the cover run 41898523423 |
 
 ## Next
 
@@ -43,6 +44,7 @@ This file lists the items of the roadmap of this repository. The status page of 
 | L66 | next | P1 | An objective spec with one evaluator |
 | L72 | next | P1 | Neat is a family of objectives, not one |
 | L73 | next | P1 | Clarity of structure: macro and micro measures |
+| L127 | next | P1 | The page says that the data is current at the start of a run, and what it does not know |
 
 ## Later
 
@@ -81,6 +83,7 @@ This file lists the items of the roadmap of this repository. The status page of 
 | L117 | next | P1 | One timed run over 60 s on the joint runner, with a same-twice check that can go red and its flip, in the engine epoch of 2026-11-15 |
 | L113 | in progress | P1 | A CI read of the wait of each pull request gate and release gate, by UTC hour, with the memory gate running and not |
 | L116 | in progress | P1 | A held config cannot stay out of the full race for ever: a censored row after 2 planned nights with a miss, a limit of 0.5 % of the inputs, a plan in part, and kept records that give a value once their reference returns. By 2026-11-12 |
+| L133 | later | P2 | The epoch key changes when the joint space changes |
 
 ## Done
 
@@ -141,3 +144,4 @@ This file lists the items of the roadmap of this repository. The status page of 
 | L85 | done | P2 | CI runs each command of the sweep script on a small fixture |
 | L86 | done | P3 | Move the random generators and the joint statistics to the rigor packages |
 | L115 | done | P1 | A deadline inside each shard with a censored row and a flip, the held configs and the origin of a label in the report, and a count of each planned pair with no value |
+| L130 | done | P1 | The routers measure of kpi.json reads the rows of the run |
