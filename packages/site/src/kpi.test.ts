@@ -1,9 +1,15 @@
 import { describe, expect, it } from "vitest";
-import type { JointData } from "./data.ts";
+import { latestFull, shownAge, shownRuns, type JointData } from "./data.ts";
 import { countOverRuns, coverageRun, coverageRuns, enginesCurrent, enginesOnNpm, failedReadStops, type KpiCatalog, type NpmRead, packersMeasured, routersOnCompare, siteKpiInput } from "./kpi.ts";
 
-const run = (date: string, pairs: number, versions: Record<string, string>, packers: readonly string[] = ["shelf", "rows"], routers: readonly string[] = ["corners", "trunks"]): JointData =>
-  ({ run: "1", date, pairs, versions, stress: { byPacker: packers.map((id) => ({ id })), byRouter: routers.map((id) => ({ id })) } }) as unknown as JointData;
+/** A run of the fixture. Its id comes from its date, and its rankings have one group for each pair of a packer and a router. */
+const run = (date: string, pairs: number, versions: Record<string, string>, packers: readonly string[] = ["shelf", "rows"], routers: readonly string[] = ["corners", "trunks"]): JointData => {
+  const ranking = packers.flatMap((p) => routers.map((r) => ({ members: [`${p}+${r}`] })));
+  return { run: date.replaceAll("-", ""), date, pairs, versions, headline: { ranking }, stress: { ranking, byPacker: packers.map((id) => ({ id })), byRouter: routers.map((id) => ({ id })) } } as unknown as JointData;
+};
+
+/** A short run of the fixture: it has the flag `short` (L132). */
+const shortOf = (data: JointData): JointData => ({ ...data, short: true });
 
 /** A cover run of the fixture: it has the flag `cover`. */
 const coverOf = (data: JointData): JointData => ({ ...data, cover: true });
@@ -114,6 +120,7 @@ describe("siteKpiInput", () => {
     const input = siteKpiInput([run("2026-10-28", 130, {})], catalog, npm, entries, commitAt, keyed);
     expect(Object.fromEntries(input?.measures.map((m) => [m.id, m.at]) ?? [])).toEqual({
       "pairs-in-run": "2026-10-28T00:00:00Z",
+      "pairs-shown": "2026-10-28T00:00:00Z",
       "packers-measured": "2026-10-28T00:00:00Z",
       "routers-on-compare": "2026-10-28T00:00:00Z",
       "routers-keyed": commitAt,
@@ -131,7 +138,7 @@ describe("siteKpiInput", () => {
 
   it("leaves out each measure that reads npm when the read failed", () => {
     const input = siteKpiInput([run("2026-10-28", 130, {})], catalog, undefined, entries, commitAt, keyed);
-    expect(input?.measures.map((m) => m.id)).toEqual(["pairs-in-run", "packers-measured", "routers-on-compare", "routers-keyed"]);
+    expect(input?.measures.map((m) => m.id)).toEqual(["pairs-in-run", "pairs-shown", "packers-measured", "routers-on-compare", "routers-keyed"]);
   });
 
   it("takes the age from the newest run, and the coverage from the newest cover run with its own date", () => {
@@ -140,6 +147,7 @@ describe("siteKpiInput", () => {
     expect(input?.at).toBe("2026-11-10T00:00:00Z");
     expect(Object.fromEntries(input?.measures.filter((m) => !m.id.startsWith("engine")).map((m) => [m.id, [m.value, m.at]]) ?? [])).toEqual({
       "pairs-in-run": [650, "2026-11-04T00:00:00Z"],
+      "pairs-shown": [1, "2026-11-10T00:00:00Z"],
       "packers-measured": [3, "2026-11-04T00:00:00Z"],
       "routers-on-compare": [3, "2026-11-04T00:00:00Z"],
       "routers-keyed": [3, commitAt],
@@ -162,10 +170,12 @@ describe("coverageRuns and countOverRuns", () => {
 
   it("adds a run of some pairs at the engines of the cover run, with the date of the oldest part", () => {
     const cover = coverOf(run("2026-11-07", 650, now, ["shelf", "rows"], ["corners", "trunks"]));
-    const pairs = run("2026-11-08", 30, now, ["anneal-maxrects-bl-k16"], ["steiner"]);
+    const pairs = shortOf(run("2026-11-08", 30, now, ["anneal-maxrects-bl-k16"], ["steiner"]));
     const input = siteKpiInput([cover, pairs], catalog, npm, entries, commitAt, keyed);
+    expect(input?.at).toBe("2026-11-07T00:00:00Z");
     expect(Object.fromEntries(input?.measures.filter((m) => /^(pairs|packers|routers-on)/.test(m.id)).map((m) => [m.id, [m.value, m.at]]) ?? [])).toEqual({
       "pairs-in-run": [650, "2026-11-07T00:00:00Z"],
+      "pairs-shown": [5, "2026-11-07T00:00:00Z"],
       "packers-measured": [3, "2026-11-07T00:00:00Z"],
       "routers-on-compare": [3, "2026-11-07T00:00:00Z"],
     });
@@ -182,6 +192,44 @@ describe("coverageRuns and countOverRuns", () => {
     const runs = [run("2026-11-01", 1, now, ["shelf", "rows"]), run("2026-11-05", 1, now, ["shelf"]), run("2026-11-03", 1, now, ["rows", "anneal"])];
     expect(countOverRuns(runs, names, "x")).toEqual({ value: 3, at: "2026-11-03T00:00:00Z" });
     expect(countOverRuns([], names, "2026-11-07T00:00:00Z")).toEqual({ value: 0, at: "2026-11-07T00:00:00Z" });
+  });
+});
+
+describe("short runs and the age of the shown pairs (L132)", () => {
+  const full = run("2026-11-04", 650, {}, ["shelf", "rows"], ["corners", "trunks"]);
+
+  it("opens on the newest full run, not on a newer short run", () => {
+    const short = shortOf(run("2026-11-08", 12, {}, ["shelf"], ["corners"]));
+    expect(latestFull([full, short])).toBe(full);
+    expect(latestFull([short])).toBe(short);
+    expect(latestFull([])).toBeUndefined();
+  });
+
+  it("shows the short runs of the date of the full run or later, and not an older short run", () => {
+    const older = shortOf(run("2026-11-01", 12, {}, ["shelf"], ["corners"]));
+    const newer = shortOf(run("2026-11-08", 12, {}, ["shelf"], ["corners"]));
+    expect(shownRuns([older, full, newer])).toEqual([full, newer]);
+  });
+
+  it("refreshes only the pairs of a short run, so the oldest pair keeps the age of the full run", () => {
+    const one = shortOf(run("2026-11-08", 2, {}, ["shelf", "exact-strip"], ["corners"]));
+    expect(shownAge([full, one])).toEqual({ oldest: "2026-11-04", median: "2026-11-04", pairs: 5 });
+    const three = shortOf(run("2026-11-08", 3, {}, ["shelf", "rows"], ["corners"]));
+    const four = shortOf(run("2026-11-09", 1, {}, ["shelf"], ["trunks"]));
+    expect(shownAge([full, three, four])).toEqual({ oldest: "2026-11-04", median: "2026-11-08", pairs: 4 });
+    expect(shownAge([])).toBeUndefined();
+  });
+
+  it("gives the file the date of the oldest shown pair, not the date of the short run", () => {
+    const short = shortOf(run("2026-11-08", 12, {}, ["shelf"], ["corners"]));
+    const input = siteKpiInput([full, short], catalog, npm, entries, commitAt, keyed);
+    expect(input?.at).toBe("2026-11-04T00:00:00Z");
+    expect(input?.measures.find((m) => m.id === "pairs-shown")).toEqual({ id: "pairs-shown", value: 4, unit: "pairs", at: "2026-11-04T00:00:00Z" });
+  });
+
+  it("takes the newest full run for the pairs when no run is a cover run", () => {
+    const short = shortOf(run("2026-11-08", 12, {}, ["shelf"], ["corners"]));
+    expect(coverageRun([full, short])).toBe(full);
   });
 });
 

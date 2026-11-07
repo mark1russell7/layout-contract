@@ -2,7 +2,7 @@
 // So no reader copies a number from a page, and no number has a person as its source.
 import { compareVersions, parseVersion } from "@mark1russell7/site-pages";
 import type { JointCatalog } from "./catalog.ts";
-import { latestJoint, type JointData } from "./data.ts";
+import { latestFull, latestJoint, shownAge, type JointData } from "./data.ts";
 
 /** The npm scope of the engines of a joint run. */
 export const ENGINE_SCOPE = "@mark1russell7/";
@@ -137,7 +137,7 @@ function routersOf(run: JointData, keyed: readonly string[]): string[] {
  * @param files - The data files of `data/joint/`.
  */
 export function coverageRun(files: readonly JointData[]): JointData | undefined {
-  return latestJoint(files.filter((file) => file.cover === true)) ?? latestJoint(files);
+  return latestJoint(files.filter((file) => file.cover === true)) ?? latestFull(files);
 }
 
 /** The engines whose versions tell if two runs measure the same code. */
@@ -184,7 +184,8 @@ export function countOverRuns(runs: readonly JointData[], namesOf: (run: JointDa
 
 /**
  * This function gives the input of the writer. It gives undefined when no joint run exists, because the time of the data is then not known.
- * The time of the file is the date of the newest run. The pairs come from `coverageRun`, with its date.
+ * The time of the file is the date of the oldest pair that the page shows (`shownAge`, L132). So a short run does not make old pairs read as new.
+ * The measure pairs-shown counts those pairs, with the date of the median pair. The pairs come from `coverageRun`, with its date.
  * The packers and the routers count each run of `coverageRuns`, with the date of the oldest part of the count.
  * So a new date beside old coverage does not read as new coverage.
  *
@@ -196,8 +197,9 @@ export function countOverRuns(runs: readonly JointData[], namesOf: (run: JointDa
  * @param keyed - The names of the router and highway entries of the registry of the pinned `highways`, from `keyedRouterNames`.
  */
 export function siteKpiInput(files: readonly JointData[], catalog: KpiCatalog, npm: NpmRead | undefined, entries: readonly BenchEntry[], commitAt: string, keyed: readonly string[]): SiteKpi | undefined {
-  const run = latestJoint(files);
-  if (run === undefined) return undefined;
+  const run = latestFull(files);
+  const age = shownAge(files);
+  if (run === undefined || age === undefined) return undefined;
   const cover = coverageRun(files) ?? run;
   const coverAt = `${cover.date}T00:00:00Z`;
   const runs = coverageRuns(files);
@@ -205,9 +207,10 @@ export function siteKpiInput(files: readonly JointData[], catalog: KpiCatalog, n
   const routers = countOverRuns(runs, (r) => routersOf(r, keyed), coverAt);
   return {
     project: KPI_PROJECT,
-    at: `${run.date}T00:00:00Z`,
+    at: `${age.oldest}T00:00:00Z`,
     measures: [
       { id: "pairs-in-run", value: cover.pairs, unit: "pairs", at: coverAt },
+      { id: "pairs-shown", value: age.pairs, unit: "pairs", at: `${age.median}T00:00:00Z` },
       { id: "packers-measured", value: packers.value, unit: "packers", at: packers.at },
       { id: "routers-on-compare", value: routers.value, unit: "routers", at: routers.at },
       { id: "routers-keyed", value: new Set(keyed).size, unit: "routers", at: commitAt },

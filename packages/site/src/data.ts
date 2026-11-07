@@ -106,6 +106,8 @@ export interface JointData {
   readonly pairs: number;
   /** This value is true for a run with `--cover on`. The floors of such a run do not compare with the floors of a default run. */
   readonly cover?: boolean;
+  /** This value is true for a short run: a run of some chosen pairs (`--pairs`, L132). It is not the headline of the page, and it refreshes only its own pairs. */
+  readonly short?: boolean;
   /** The cells of the headline inputs, outside the stress cell. */
   readonly cells: readonly CellSummary[];
   /** The headline cell: the rule `all` with the cap 1.25. */
@@ -262,6 +264,8 @@ export function checkJoint(v: unknown): Problems {
   need(out, v, "records", "number", "joint");
   need(out, v, "pairs", "number", "joint");
   if (v["cover"] !== undefined && typeof v["cover"] !== "boolean") out.push("joint.cover is not a boolean");
+  if (v["short"] !== undefined && typeof v["short"] !== "boolean") out.push("joint.short is not a boolean");
+  if (v["cover"] === true && v["short"] === true) out.push("joint.cover and joint.short are both true, but a short run is not a cover run");
   const cells = v["cells"];
   if (!Array.isArray(cells) || cells.length === 0) out.push("joint.cells is not a list with cells");
   else cells.forEach((c: unknown, i) => checkCell(out, c, `joint.cells[${i}]`));
@@ -350,4 +354,48 @@ export function checkDataFile(path: string, text: string): Problems {
 /** This function gives the latest joint result: the newest date, and then the largest run id. A cover run comes first as each other run does. Its floors do not compare with older runs, so the page tells this. */
 export function latestJoint(files: readonly JointData[]): JointData | undefined {
   return [...files].sort((a, b) => (a.date === b.date ? b.run.localeCompare(a.run, "en", { numeric: true }) : b.date.localeCompare(a.date)))[0];
+}
+
+/** This function gives the newest run that is not a short run, or the newest run when each run is short. It is the headline of the page (L132). */
+export function latestFull(files: readonly JointData[]): JointData | undefined {
+  return latestJoint(files.filter((file) => file.short !== true)) ?? latestJoint(files);
+}
+
+/** This function gives the pairs of a run: the members of the groups of its two rankings, each pair one time. */
+export function pairsOf(run: JointData): string[] {
+  return [...new Set([run.headline, run.stress].flatMap((view) => view.ranking.flatMap((row) => row.members)))];
+}
+
+/**
+ * This function gives the runs that the page shows: the headline run of `latestFull`, and each short run of its date or later.
+ * An older short run does not show, because the headline run has newer data.
+ */
+export function shownRuns(files: readonly JointData[]): JointData[] {
+  const full = latestFull(files);
+  if (full === undefined) return [];
+  return [full, ...files.filter((file) => file.short === true && file.run !== full.run && file.date >= full.date)];
+}
+
+/** The age of the data that the page shows. It has the dates of the oldest pair and of the median pair, and the count of the pairs. */
+export interface ShownAge {
+  readonly oldest: string;
+  readonly median: string;
+  readonly pairs: number;
+}
+
+/**
+ * This function gives the age of the shown data (L132). The date of a pair is the date of the newest shown run that has it.
+ * So a short run refreshes only its own pairs, and the oldest pair gives the age of the page. It gives undefined with no pair.
+ */
+export function shownAge(files: readonly JointData[]): ShownAge | undefined {
+  const newest = new Map<string, string>();
+  for (const run of shownRuns(files)) {
+    for (const pair of pairsOf(run)) {
+      const seen = newest.get(pair);
+      if (seen === undefined || run.date > seen) newest.set(pair, run.date);
+    }
+  }
+  const dates = [...newest.values()].sort();
+  if (dates.length === 0) return undefined;
+  return { oldest: dates[0]!, median: dates[Math.floor((dates.length - 1) / 2)]!, pairs: dates.length };
 }
