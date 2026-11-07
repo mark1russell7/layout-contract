@@ -149,16 +149,22 @@ The output of a named config is equal to the output of the old named strategy. T
 
 ### The joint pack entries in `packSpace`
 
-The joint cover has 40 pack entries. 32 of them are points of `packSpace` of `packing` 0.7.0, and `configOfStrategy` gives the point of each one. `packing` keeps the other 8 outside `packSpace`, because each one wraps one standalone function. The test has them in a closed list, and it fails when one joins the space. The test `pack-points.test.ts` checks each point with `checkConfig`, and compares the `outputHash` of `packConfig` with the hash of the entry on 17 inputs of `joint-v1`.
+The joint cover has 42 pack entries, and each one is a point of `packSpace` of `packing` 0.10.2. `configOfStrategy` gives the point of each entry.
+Up to `packing` 0.7.0, the 8 standalone strategies were outside `packSpace`. Since 0.8.0 they are points too (roadmap item L129). The closed list of the strategies outside the space is thus empty.
+The test `pack-points.test.ts` checks each point with `checkConfig`, and compares the `outputHash` of `packConfig` with the hash of the entry on 17 inputs of `joint-v1`.
 
-- All 493 comparisons of a hash are equal.
-- In the other 51 of the 544 cases, the strategy does not support the input. The point and the entry then both throw `UnsupportedCell`.
-- Each entry has at least 7 comparisons of a hash.
+- 517 of the 714 cases have equal hashes.
+- In 186 cases, the strategy does not support the input. The point and the entry then both throw `UnsupportedCell`.
+- 11 cases differ, and all of them are `side-anchors`. On 10 inputs, `packWith` refuses the input and `packConfig` packs it. On 1 input, the two hashes are not equal. The test keeps `side-anchors` in a closed list. The runner uses `packWith`, so the records of the bench do not change.
+- `masonry` and `treemap` support none of the 17 inputs, so the test compares no hash of them. A closed list holds the two.
 
-The cover has 150 routers, and 75 of them are named points of `routeSpace` of `highways` 0.14.0. The test `route-points.test.ts` checks each of these points with `checkConfig`.
+**Gap:** the fix of `side-anchors` belongs to `packing`. `packConfig` must refuse each input that `packWith` refuses, and give the same output on each other input.
+
+The cover has 162 routers, and 76 of them are named points of `routeSpace` of `highways` 0.15.0. The test `route-points.test.ts` checks each of these points with `checkConfig`.
 It also compares the hash of the routes of the router and of `routeConfig` on 8 inputs of `joint-v1`. These inputs give one input for each container kind and obstacle case, and each hash is equal.
+Since `highways` 0.15.0, the cover takes its routers from `KEYED_STRATEGIES`: 88 router and highway names. `STRATEGIES` holds 75 of them.
 
-**Gap:** the other 75 routers are `portfolio` and 74 member forms, for example `corners-side` and `w2a:shared-ways+stretch`. `routeSpace` does not name them, and `highways` gives no function from a member form to a config. So a joint space of `productSpace(packSpace, routeSpace)` reaches only the named routers of the cover at this time. The packing engine has `configOfStrategy` for this job.
+**Gap:** the other 86 routers are `portfolio`, 74 member forms and 11 router entries of `KEYED_STRATEGIES`, for example `corners-side`, `w2a:shared-ways+stretch` and `nudge`. `routeSpace` does not name them, and `highways` gives no function from a member form to a config. So a joint space of `productSpace(packSpace, routeSpace)` reaches only the named routers of the cover at this time. The packing engine has `configOfStrategy` for this job. A closed list of the test holds the 11 router entries with no point.
 
 ## A sample of a space with many constraints
 
