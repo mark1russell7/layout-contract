@@ -9,9 +9,11 @@ import { defineConfig, type Plugin } from "vite";
 import { buildCatalog } from "./src/build-catalog.ts";
 import { keyedRouterNames } from "./src/engines.ts";
 import { checkDataFile, type JointData, latestJoint } from "./src/data.ts";
-import { ENGINE_SCOPE, enginesOnNpm, failedReadStops, type NpmRead, siteKpiInput } from "./src/kpi.ts";
+import { weekShown } from "./src/coverage.ts";
+import { ENGINE_SCOPE, enginesOnNpm, failedReadStops, type NpmRead, siteKpiInput, type SweepRead } from "./src/kpi.ts";
 import { withEngineLinks } from "./src/links.ts";
 import { readStamps, stampFaults, withDataStamp } from "./src/stamps.ts";
+import { loadSweep } from "./src/sweep.ts";
 
 // The Pages workflow sets SITE_BASE to "/layout-contract". A local build uses the root.
 const env = (globalThis as { process?: { env: Record<string, string | undefined> } }).process?.env ?? {};
@@ -89,6 +91,30 @@ function npmEngines(): Plugin {
   };
 }
 
+/** The read of the sweep coverage of this build. It stays undefined outside a build, and when the branch `sweep-data` does not answer. */
+let sweepRead: SweepRead | undefined;
+
+/**
+ * This plugin reads the trend of the sweep coverage once at the start of a build, as the page reads it. The measure `coverage-shown` of `kpi.json` uses the read.
+ * The daily build of the Pages workflow reads it again, so the measure follows each night of the sweep with no commit here.
+ * A failed read gives a warning and no measure, because an old value is not a measure.
+ */
+function sweepCoverage(): Plugin {
+  return {
+    name: "layout-contract-site:sweep-coverage",
+    apply: "build",
+    async buildStart() {
+      const state = await loadSweep((url, init) => fetch(url, init));
+      if (state.kind !== "ready") {
+        this.warn(`The build did not read the trend of the sweep coverage: ${state.kind === "failed" ? state.message : state.kind}.`);
+        return;
+      }
+      const night = state.week.kind === "none" ? state.index.entry.last : state.week.latest.night;
+      sweepRead = { shown: weekShown(state.week), night };
+    },
+  };
+}
+
 /** This plugin puts the stamp line of `data/stamps.json` in each measured page. A stamp that does not agree with the newest joint run stops the build. */
 function dataStamps(): Plugin {
   const stamps = readStamps(readFileSync(new URL("./data/stamps.json", import.meta.url), "utf8"));
@@ -132,7 +158,7 @@ function commitTime(): string {
 
 /** This function gives the input of `kpi.json`. A build without a joint run has no data to report, so it stops. */
 function kpiInput(): NonNullable<ReturnType<typeof siteKpiInput>> {
-  const input = siteKpiInput(jointFiles(), catalogOfTheRuns(), npmRead, [...PACK_ENTRIES, ...coverEntries()], commitTime(), keyedRouterNames());
+  const input = siteKpiInput(jointFiles(), catalogOfTheRuns(), npmRead, [...PACK_ENTRIES, ...coverEntries()], commitTime(), keyedRouterNames(), sweepRead);
   if (input === undefined) throw new Error("data/joint/ has no run, so kpi.json has no time of the data.");
   return input;
 }
@@ -170,5 +196,5 @@ export default defineConfig({
   define: {
     __BUILD__: JSON.stringify({ sha: (env["GITHUB_SHA"] ?? "local").slice(0, 7), date: new Date().toISOString().slice(0, 10) }),
   },
-  plugins: [checkData(), jointCatalog(), engineSites(), npmEngines(), dataStamps(), siteKpi(kpiInput, env)],
+  plugins: [checkData(), jointCatalog(), engineSites(), npmEngines(), sweepCoverage(), dataStamps(), siteKpi(kpiInput, env)],
 });

@@ -41,6 +41,8 @@ The data folder has these files:
 
 The time `at` of `kpi.json` is the date of the newest joint run, and the age of the data reads it. The measures `pairs-in-run`, `packers-measured` and `routers-on-compare` count the newest cover run, and each has the date of that run. When no run is a cover run, they count the newest run. So a default run after a cover run does not lower the coverage, and a new date does not make old coverage look new.
 
+The measure `coverage-shown` of `kpi.json` is 1 when the page shows a week view with its engine steps, and 0 when it does not. The build reads `sweep-data` at its start, as the page does, and the daily build reads it again. Its time is the latest night of the trend. A failed read gives a warning and no measure.
+
 The measure `engines-current` of `kpi.json` counts the engines of the newest run that have the newest stable version on npm. The measure `engine-releases-behind-<engine>` counts the stable versions after the run. The build reads npm, and the daily build reads it again, so these numbers fall when an engine has a release. This limit is stricter than the freshness gate, on purpose. If npm does not answer, the file has no such measures, and each stamped page says that the gap is unknown. So the reading ages, and the KPI rules see it. A scheduled build stops when the last deploy also has no read of npm.
 
 The measure `routers-on-compare` counts the routers with a row in the newest joint run. Each one is a router or highway entry of the registry of the pinned `highways`. A router in a list of the site with no row does not count, because a list is not a comparison. A row of a router outside the registry, for example a member form of the portfolio, does not count. The measure `routers-keyed` gives the count of these registry entries, so a reader sees the count beside its denominator. The other families of the registry are parts of a router, so neither measure counts them.
@@ -102,6 +104,10 @@ The section shows these parts:
 - A table of the numbers of each night, and the links to the file and to the CI run of the latest record.
 
 The week view compares the latest record with the newest record of at least `WEEK_DAYS` (7) days before it. A change of the held-out median skill below `FLAT_WEEK` (0.01) in absolute value is a flat week. The page labels it "flat week: a finding to explain". With one record, the page tells that the trend starts with the next night.
+
+Each engine release starts a new epoch, and an epoch is often shorter than a week. So the week view reads across epochs (L52). The index gives a chain of the epochs through `step.from`, newest first, with at most `MAX_CHAIN` (8) epochs. The page reads back along the chain until the line covers a week, or until the chain ends. A failed read of an older epoch gives a shorter line, not a failed section.
+
+The charts draw this line, with a mark at each engine step. When the two nights of the week are in different epochs, the note gives the move of the skill at each step. It also gives the sum of these moves, and the part of the change inside the epochs. Each step fits the surrogate on new data, so only the part inside the epochs is a change of the sweep.
 
 The items L35 and L36 add the efficacy maps below the trend. Until then, that part shows no data.
 

@@ -126,7 +126,12 @@ export interface EpochEntry {
 export interface SweepIndex {
   readonly latest: string;
   readonly entry: EpochEntry;
+  /** The latest epoch, and then each epoch before it through `step.from`, newest first. The week view reads across these epochs. */
+  readonly chain: readonly string[];
 }
+
+/** The chain of the epochs has at most this count of epochs. */
+export const MAX_CHAIN = 8;
 
 const isObject = (v: unknown): v is Record<string, unknown> => typeof v === "object" && v !== null && !Array.isArray(v);
 const isCount = (v: unknown): v is number => typeof v === "number" && Number.isInteger(v) && v >= 0;
@@ -197,11 +202,60 @@ export function mainLine(records: readonly TrendRecord[]): TrendRecord[] {
 export type WeekView =
   | { readonly kind: "none" }
   | { readonly kind: "one"; readonly latest: TrendRecord }
-  /** The records are all less than `WEEK_DAYS` days older than the latest record. */
-  | { readonly kind: "young"; readonly latest: TrendRecord; readonly first: TrendRecord; readonly nights: number; readonly startsOn: string }
+  /** The records are all less than `WEEK_DAYS` days older than the latest record. `steps` counts the changes of epoch from the first record to the latest record. */
+  | { readonly kind: "young"; readonly latest: TrendRecord; readonly first: TrendRecord; readonly nights: number; readonly startsOn: string; readonly steps: number }
   /** One of the two records has no held-out skill. */
-  | { readonly kind: "no-skill"; readonly latest: TrendRecord; readonly prior: TrendRecord }
-  | { readonly kind: "flat" | "rising" | "falling"; readonly latest: TrendRecord; readonly prior: TrendRecord; readonly change: number };
+  | { readonly kind: "no-skill"; readonly latest: TrendRecord; readonly prior: TrendRecord; readonly steps: number }
+  /**
+   * `steps` counts the changes of epoch from the prior record to the latest record. Each step changes the engines, so the change of the skill also holds the change of the engines.
+   * `moves` gives the move of the skill at each of these steps, oldest first.
+   */
+  | { readonly kind: "flat" | "rising" | "falling"; readonly latest: TrendRecord; readonly prior: TrendRecord; readonly change: number; readonly steps: number; readonly moves: readonly StepMove[] };
+
+/**
+ * The move of the held-out median skill at one engine step. It goes from the last night of the old epoch to the first night of the new epoch.
+ * The move is `null` when one of the two nights has no held-out skill.
+ */
+export interface StepMove {
+  /** The first night of the new epoch. */
+  readonly night: string;
+  readonly move: number | null;
+}
+
+/** This function tells if a week view gives a change of the skill over a week. A view with no change gives `false`. */
+export const weekShown = (week: WeekView): boolean => week.kind === "flat" || week.kind === "rising" || week.kind === "falling";
+
+/**
+ * This function joins the main lines of the epochs of a chain into one line in night order. The lines come newest epoch first, as `SweepIndex.chain` gives the epochs.
+ * An older epoch keeps only its nights before the first night of the newer epochs, so each night has one record.
+ */
+export function chainLine(lines: readonly (readonly TrendRecord[])[]): TrendRecord[] {
+  const out: TrendRecord[] = [];
+  let before = Number.POSITIVE_INFINITY;
+  for (const line of lines) {
+    const kept = line.filter((r) => dayOf(r.night) < before);
+    out.unshift(...kept);
+    if (kept.length > 0) before = dayOf(kept[0]!.night);
+  }
+  return out;
+}
+
+/** This function gives the index of the first record of each new epoch in a line. The first record of the line is not in the list. */
+export function epochStarts(line: readonly TrendRecord[]): number[] {
+  const starts: number[] = [];
+  for (let i = 1; i < line.length; i++) if (line[i]!.epoch !== line[i - 1]!.epoch) starts.push(i);
+  return starts;
+}
+
+/** This function gives the move of the skill at each change of epoch in a line. It reads the records from the index `from` to the index `to`. */
+function movesBetween(line: readonly TrendRecord[], from: number, to: number): StepMove[] {
+  return epochStarts(line)
+    .filter((i) => i > from && i <= to)
+    .map((i) => {
+      const [before, after] = [line[i - 1]!.skill, line[i]!.skill];
+      return { night: line[i]!.night, move: before !== null && after !== null ? after.median - before.median : null };
+    });
+}
 
 /** This function gives the date `days` days after the date `date`. */
 export function addDays(date: string, days: number): string {
@@ -209,23 +263,28 @@ export function addDays(date: string, days: number): string {
 }
 
 /**
- * This function gives the week view of the main line. It compares the latest record with the newest record of at least `WEEK_DAYS` days before it.
+ * This function gives the week view of a line in night order. It compares the latest record with the newest record of at least `WEEK_DAYS` days before it.
+ * The line can hold the records of several epochs (`chainLine`). The view then counts the engine steps between the two records.
  * A change of the held-out median skill below `FLAT_WEEK` in absolute value is a flat week.
  */
 export function weekView(line: readonly TrendRecord[]): WeekView {
-  const latest = line.at(-1);
+  const end = line.length - 1;
+  const latest = line[end];
   if (latest === undefined) return { kind: "none" };
   if (line.length === 1) return { kind: "one", latest };
-  const end = dayOf(latest.night);
-  const prior = [...line].reverse().find((r) => end - dayOf(r.night) >= WEEK_DAYS);
-  if (prior === undefined) {
+  const day = dayOf(latest.night);
+  let at = end - 1;
+  while (at >= 0 && day - dayOf(line[at]!.night) < WEEK_DAYS) at--;
+  if (at < 0) {
     const first = line[0]!;
-    return { kind: "young", latest, first, nights: line.length, startsOn: addDays(first.night, WEEK_DAYS) };
+    return { kind: "young", latest, first, nights: line.length, startsOn: addDays(first.night, WEEK_DAYS), steps: movesBetween(line, 0, end).length };
   }
-  if (latest.skill === null || prior.skill === null) return { kind: "no-skill", latest, prior };
+  const prior = line[at]!;
+  const moves = movesBetween(line, at, end);
+  if (latest.skill === null || prior.skill === null) return { kind: "no-skill", latest, prior, steps: moves.length };
   const change = latest.skill.median - prior.skill.median;
   const kind = Math.abs(change) < FLAT_WEEK ? "flat" : change > 0 ? "rising" : "falling";
-  return { kind, latest, prior, change };
+  return { kind, latest, prior, change, steps: moves.length, moves };
 }
 
 /** The route values of a step and their words on the page. */
@@ -297,5 +356,24 @@ export function checkSweepIndex(v: unknown): SweepIndex | string[] {
   if (typeof entry["corpus"] !== "string" || !isCount(entry["nights"]) || typeof entry["last"] !== "string" || !isCount(entry["configs"]))
     return [`the entry of ${latest} has no corpus, nights, last or configs`];
   const missing = isCount(entry["missing"]) ? entry["missing"] : null;
-  return { latest, entry: { corpus: entry["corpus"], nights: entry["nights"], last: entry["last"], configs: entry["configs"], missing, step: stepOf(entry["step"]), cost: costOf(entry["cost"]) } };
+  const chain = chainOf(epochs as Record<string, unknown>, latest);
+  return { latest, entry: { corpus: entry["corpus"], nights: entry["nights"], last: entry["last"], configs: entry["configs"], missing, step: stepOf(entry["step"]), cost: costOf(entry["cost"]) }, chain };
+}
+
+/**
+ * This function gives the chain of the epochs from `latest` back through `step.from`, newest first.
+ * The chain stops at an epoch with no step, or at an epoch that the index does not hold. It also stops at a repeated epoch and at `MAX_CHAIN` epochs.
+ * A step of an older form gives no step facts, but its field `from` still links the epochs.
+ */
+function chainOf(epochs: Record<string, unknown>, latest: string): string[] {
+  const chain = [latest];
+  let entry = epochs[latest];
+  while (chain.length < MAX_CHAIN && isObject(entry)) {
+    const step = entry["step"];
+    const from = isObject(step) ? step["from"] : undefined;
+    if (typeof from !== "string" || from === "" || chain.includes(from)) break;
+    chain.push(from);
+    entry = epochs[from];
+  }
+  return chain;
 }
