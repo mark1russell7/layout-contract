@@ -39,7 +39,7 @@ The data folder has these files:
 | `data/news.json` | `site-news/1` | The news, from the newest item to the oldest. |
 | `data/stamps.json` | `data-stamp/1` | The runs of each measured page, with their dates and engine versions, and a run in flight. |
 
-The time `at` of `kpi.json` is the date of the newest joint run, and the age of the data reads it. The measures `pairs-in-run`, `packers-measured` and `routers-on-compare` count the newest cover run, and each has the date of that run. When no run is a cover run, they count the newest run. So a default run after a cover run does not lower the coverage, and a new date does not make old coverage look new.
+The time `at` of `kpi.json` is the date of the oldest pair that the page shows, and the age of the data reads it (L132). The page shows the newest full run, and each short run of its date or later. The date of a pair is the date of the newest shown run that has it. So a short run refreshes only its own pairs, and old pairs do not read as new. The measure `pairs-shown` counts the shown pairs, with the date of the median pair. The measure `pairs-in-run` counts the newest cover run, with the date of that run. When no run is a cover run, it counts the newest full run. The measures `packers-measured` and `routers-on-compare` count each run with the versions of `packing` and `highways` of that run. Thus a run of some pairs of the cover adds its strategies. The date of such a count is the oldest of the newest dates of its names. So a default run after a cover run does not lower the coverage, and a new date does not make old coverage look new.
 
 The measure `coverage-shown` of `kpi.json` is 1 when the page shows a week view with its engine steps, and 0 when it does not. The build reads `sweep-data` at its start, as the page does, and the daily build reads it again. Its time is the latest night of the trend. A failed read gives a warning and no measure.
 
@@ -68,7 +68,7 @@ The records of a run are CI artifacts, and the repository does not keep them. Th
    pnpm --filter @layout-contract/site run data:joint -- <dir>/report.json --run <run> --date <YYYY-MM-DD> --item <id> --versions highways=<v>,packing=<v>
    ```
 
-3. Commit `packages/site/data/joint/<run>.json`. The site shows the newest result first, and a list gives the other results. Give `--cover on` for a cover run. The site marks that result and tells that its floors do not compare with older runs. Until a cover run is in `data/joint/`, each covered entry has the tag "waiting for the first cover run". The next build removes the tag when that file lands.
+3. Commit `packages/site/data/joint/<run>.json`. The site shows the newest result first, and a list gives the other results. Give `--cover on` for a cover run. The site marks that result and tells that its floors do not compare with older runs. Give `--short on` for a short run of some chosen pairs (the workflow input `pairs`). The site marks it, and opens on the newest full run. A short run is not a cover run, so the script refuses both flags on one file. Until a cover run is in `data/joint/`, each covered entry has the tag "waiting for the first cover run". The next build removes the tag when that file lands.
 
 The script `scripts/joint-data.mjs` keeps the headline cell (the rule `all` with the cap 1.25) and the same cell on the stress inputs. It also keeps the 6 cells of the headline inputs and the predictions of the run. The corpus is `joint-v2` by default. The option `--corpus` changes it.
 

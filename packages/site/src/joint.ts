@@ -1,6 +1,6 @@
 // The section "Joint benchmark": the headline cell of a result, the misses by router and by packer,
 // the ranked pairs, the baselines, the cells and the predictions.
-import { latestJoint, type CellView, type JointData } from "./data.ts";
+import { latestFull, shownAge, type CellView, type JointData } from "./data.ts";
 import { barChart, esc, f3, interval, pct } from "./ui.ts";
 
 const REPO = "https://github.com/mark1russell7/layout-contract";
@@ -131,7 +131,8 @@ function predictions(d: JointData): string {
 
 /** This function shows the joint benchmark results in the element `root`. It shows the latest result first. */
 export function renderJoint(root: HTMLElement, files: readonly JointData[]): void {
-  const latest = latestJoint(files);
+  const latest = latestFull(files);
+  const age = shownAge(files);
   if (latest === undefined) {
     root.innerHTML = `<p class="empty">No joint benchmark result is in <code>data/joint/</code> yet.</p>`;
     return;
@@ -147,12 +148,14 @@ export function renderJoint(root: HTMLElement, files: readonly JointData[]): voi
       files.length > 1
         ? `<label class="runs">Result <select data-run>${[...files]
             .sort((a, b) => b.date.localeCompare(a.date) || b.run.localeCompare(a.run))
-            .map((f) => `<option value="${esc(f.run)}"${f.run === d.run ? " selected" : ""}>${esc(f.date)} · ${esc(f.item)}${f.cover === true ? " · cover" : ""} · run ${esc(f.run)}</option>`)
+            .map((f) => `<option value="${esc(f.run)}"${f.run === d.run ? " selected" : ""}>${esc(f.date)} · ${esc(f.item)}${f.cover === true ? " · cover" : ""}${f.short === true ? " · short" : ""} · run ${esc(f.run)}</option>`)
             .join("")}</select></label>`
         : "";
     root.innerHTML = `
-      <p class="dataline"><span class="badge">${esc(d.item)}</span>${d.cover === true ? ` <span class="badge warn">cover run</span>` : ""} Data of <a href="${REPO}/actions/runs/${esc(d.run)}">run ${esc(d.run)}</a>, ${esc(d.date)} · ${versions} · corpus <code>${esc(d.corpus)}</code> · ${d.records.toLocaleString("en")} records, ${d.pairs} pairs</p>
+      <p class="dataline"><span class="badge">${esc(d.item)}</span>${d.cover === true ? ` <span class="badge warn">cover run</span>` : ""}${d.short === true ? ` <span class="badge warn">short run</span>` : ""} Data of <a href="${REPO}/actions/runs/${esc(d.run)}">run ${esc(d.run)}</a>, ${esc(d.date)} · ${versions} · corpus <code>${esc(d.corpus)}</code> · ${d.records.toLocaleString("en")} records, ${d.pairs} pairs</p>
       ${d.cover === true ? `<p class="note">This cover run has each strategy and each open router, so it has more pairs. Its floors do not compare with the floors of a default run.</p>` : ""}
+      ${d.short === true ? `<p class="note">This short run has only ${d.pairs} chosen pairs, on the corpus <code>${esc(d.corpus)}</code>. Its rows do not compare with the rows of a full run. The page opens on the newest full run.</p>` : ""}
+      ${age === undefined ? "" : `<p class="hint">Age of the data: the oldest of the ${age.pairs} shown pairs is of ${esc(age.oldest)}, and the median pair is of ${esc(age.median)}. A short run refreshes only its own pairs.</p>`}
       ${runs}
       <div class="seg" role="radiogroup" aria-label="Inputs">
         <button type="button" role="radio" data-view="headline" aria-checked="${state.view === "headline"}">Headline inputs (${d.headline.inputs})</button>

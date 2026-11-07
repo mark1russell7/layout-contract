@@ -142,4 +142,13 @@ describe("jointData", () => {
     expect(latestJoint([cover])?.run).toBe("99");
     expect(latestJoint([{ ...cover, date: "2020-01-01" }, a])?.run).toBe(a.run);
   });
+
+  it("marks a short run, and refuses a short run that is also a cover run (L132)", () => {
+    const short = jointData(report, { ...facts, run: "98", date: "2027-01-02", short: true });
+    expect(short.short).toBe(true);
+    expect(jointData(report, facts).short).toBeUndefined();
+    expect(checkJoint(short)).toEqual([]);
+    expect(checkJoint({ ...short, short: "yes" })).toContain("joint.short is not a boolean");
+    expect(checkJoint({ ...short, cover: true })).toContain("joint.cover and joint.short are both true, but a short run is not a cover run");
+  });
 });

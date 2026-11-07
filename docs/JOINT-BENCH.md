@@ -1186,7 +1186,8 @@ The hand lists of the bench missed strategies and routers. `packages/joint/src/c
 - `push` starts each item with no earlier place, so it does not test a change of an input. It tests only that the strategy runs.
 - A cell that a strategy does not support gives a skipped record with the reason. A test fails when a strategy runs on no input.
 - Each new entry meets `corners`, `portfolio` and 2 other routers in turn. Each open router meets `maxrects-cp` and `select`.
-- `COVER_EXCEPTIONS` is a closed list. It holds `hole-degree` and `circle-quasi-physical`, which pack only circles, and `exact-strip`, which refuses each strip input of the corpus. L94 removes the three. A test fails when the list grows, and when an exception starts to run.
+- `COVER_EXCEPTIONS` is a closed list. It is empty since L94. A test fails when the list grows, and when an exception starts to run.
+- `hole-degree` and `circle-quasi-physical` pack only circles, and `exact-strip` takes only small strips of whole sizes with no gap. The array `shapes` of `joint-v3` has inputs for the three. On `joint-v2`, they skip each input, so a cover run of `joint-v2` does not count them.
 - The test reads `strategies`, `composites` and `shapeStrategies` of `packing`. It changes to the single list when `packing` exports one.
 
 The default plan does not change, so the earlier reports stay comparable. A run with `--cover on` has more pairs, so the floors of that run do not compare with the floors of a default run.

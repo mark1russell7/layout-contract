@@ -8,7 +8,7 @@ import { siteKpi } from "@mark1russell7/site-pages/vite";
 import { defineConfig, type Plugin } from "vite";
 import { buildCatalog } from "./src/build-catalog.ts";
 import { keyedRouterNames } from "./src/engines.ts";
-import { checkDataFile, type JointData, latestJoint } from "./src/data.ts";
+import { checkDataFile, type JointData, latestFull } from "./src/data.ts";
 import { weekShown } from "./src/coverage.ts";
 import { ENGINE_SCOPE, enginesOnNpm, failedReadStops, type NpmRead, siteKpiInput, type SweepRead } from "./src/kpi.ts";
 import { withEngineLinks } from "./src/links.ts";
@@ -48,9 +48,9 @@ function hasCoverRun(): boolean {
   return readdirSync(dir).some((name) => name.endsWith(".json") && (JSON.parse(readFileSync(new URL(name, dir), "utf8")) as { cover?: boolean }).cover === true);
 }
 
-/** This function gives the catalog of the joint pages. The packers of the newest run decide which entries have no result. */
+/** This function gives the catalog of the joint pages. The packers of the newest full run decide which entries have no result. A short run does not (L132). */
 function catalogOfTheRuns(): ReturnType<typeof buildCatalog> {
-  const measured = latestJoint(jointFiles())?.stress.byPacker.map((p) => p.id);
+  const measured = latestFull(jointFiles())?.stress.byPacker.map((p) => p.id);
   return buildCatalog(readFileSync(MANIFEST, "utf8"), engineVersions(), hasCoverRun(), measured);
 }
 
@@ -81,7 +81,7 @@ function npmEngines(): Plugin {
     name: "layout-contract-site:npm-engines",
     apply: "build",
     async buildStart() {
-      const latest = latestJoint(jointFiles());
+      const latest = latestFull(jointFiles());
       if (latest === undefined) return;
       const { times, problems } = await npmPublishTimes({ packages: Object.keys(latest.versions).map((engine) => `${ENGINE_SCOPE}${engine}`) });
       for (const problem of problems) this.warn(problem);
@@ -115,13 +115,13 @@ function sweepCoverage(): Plugin {
   };
 }
 
-/** This plugin puts the stamp line of `data/stamps.json` in each measured page. A stamp that does not agree with the newest joint run stops the build. */
+/** This plugin puts the stamp line of `data/stamps.json` in each measured page. A stamp that does not agree with the newest full joint run stops the build. */
 function dataStamps(): Plugin {
   const stamps = readStamps(readFileSync(new URL("./data/stamps.json", import.meta.url), "utf8"));
   return {
     name: "layout-contract-site:data-stamps",
     buildStart() {
-      const latest = latestJoint(jointFiles());
+      const latest = latestFull(jointFiles());
       const faults = latest === undefined ? [] : stampFaults(stamps, latest);
       if (faults.length > 0) this.error(`The file data/stamps.json is not good:\n- ${faults.join("\n- ")}`);
     },
