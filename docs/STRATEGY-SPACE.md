@@ -185,6 +185,19 @@ This table shows the size of the difference on `routeSpace` of `highways` 0.15.0
 
 The total variation against uniform reads 0.818 on `routing`. It reads 0.015 to 0.016 on `plugs` and 0.186 to 0.364 on the other stages, over the seeds 20261105, 3 and 77. A routing option has 1 to 12,544 valid combinations, and the median is 28.
 
+## A sample with fixed options
+
+The option `fixed` of a sample gives each config the same option at a stage. A key is the name of a stage, and its value is the id of an option. The other stages draw as before, with `reject` or `walk`. A bench can thus give an option of a small stage the count of configs that its floor needs.
+
+- A stage of a product space has the name of its part before its own name, for example `pack.placement`.
+- A fixed meta option needs `meta: "sample"`. Its members come from the space before the fix.
+- A meta option of another stage of the same part goes out of the sample, because such an option replaces the fixed stage.
+- The sample refuses a stage or an option that the space does not have, and a fixed option that the shape filter removes. It refuses these with a `RangeError`, also for `n` 0.
+- When a constraint between two fixed options breaks, the `RangeError` names the broken constraints.
+- When the constraints with the other stages remove each config, the `RangeError` tells that no constraint between two fixed options breaks.
+- With `draw: "walk"`, the fixed stages draw first. The other stages then draw only from the options that keep the constraints with the fixed options. With the largest stage first, most points of a tight constraint break at the fixed stage.
+- A sample with fixed options is not a sample of the space. Each record of such a sample states its fixed options.
+
 ## An example space
 
 The example has a packer and a router. The stage names are examples. Each engine gives its own names.
