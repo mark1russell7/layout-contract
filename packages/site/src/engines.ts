@@ -325,21 +325,21 @@ export function packExtraKeys(): Record<string, string[]> {
 /**
  * This function gives the names of the router and highway entries of the registry of the pinned `highways`: the denominator of the measure `routers-on-compare`.
  * The other families of the registry (group, plugs, levels, curve, room, whole) are parts of a router, so they are not in the list.
- * At `highways` 0.14, `STRATEGIES` holds each entry of the registry. Roadmap item L129 raises the engine and reads `KEYED_STRATEGIES`.
+ * Since `highways` 0.15.0, `KEYED_STRATEGIES` holds each keyed entry of the registry: 88 router and highway names (L129). `STRATEGIES` holds 75 of them.
  */
 export function keyedRouterNames(): string[] {
-  const routers = highways.listStrategies(highways.STRATEGIES, "router") as unknown as readonly RouterStrategy[];
-  const plans = highways.listStrategies(highways.STRATEGIES, "highway") as unknown as readonly RouterStrategy[];
+  const routers = highways.listStrategies(highways.KEYED_STRATEGIES, "router") as unknown as readonly RouterStrategy[];
+  const plans = highways.listStrategies(highways.KEYED_STRATEGIES, "highway") as unknown as readonly RouterStrategy[];
   return [...new Set([...routers, ...plans].map((s) => s.name))];
 }
 
 function registryRouters(): RouterStrategy[] {
-  const routers = highways.listStrategies(highways.STRATEGIES, "router") as unknown as readonly RouterStrategy[];
-  const plans = highways.listStrategies(highways.STRATEGIES, "highway") as unknown as readonly RouterStrategy[];
+  const routers = highways.listStrategies(highways.KEYED_STRATEGIES, "router") as unknown as readonly RouterStrategy[];
+  const plans = highways.listStrategies(highways.KEYED_STRATEGIES, "highway") as unknown as readonly RouterStrategy[];
   const named = new Set([...routers, ...plans].map((s) => s.name));
   const members = Object.keys(highways.MEMBER_FORMS).filter((name) => !named.has(name) && name !== PORTFOLIO_ROUTER);
   const forms = members.map((name) => ({ ...(highways.portfolioMember(name) as unknown as RouterStrategy), name }));
-  return [...routers, ...plans, { ...(highways.portfolioStrategy as unknown as RouterStrategy), name: PORTFOLIO_ROUTER }, ...forms];
+  return [...routers.filter((s) => s.name !== PORTFOLIO_ROUTER), ...plans, { ...(highways.portfolioStrategy as unknown as RouterStrategy), name: PORTFOLIO_ROUTER }, ...forms];
 }
 
 /** The ids of the strategies in the registries of the two engines. The completeness test compares the catalog with them. */
