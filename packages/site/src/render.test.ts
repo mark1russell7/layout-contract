@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { type JointData, latestJoint, type NewsData, type SpaceFile } from "./data.ts";
+import { type JointData, latestFull, type NewsData, type SpaceFile } from "./data.ts";
 import { renderJoint } from "./joint.ts";
 import { renderNews } from "./news.ts";
 import { renderSpace } from "./space.ts";
@@ -14,8 +14,8 @@ const fakeRoot = (): FakeRoot => ({ innerHTML: "", addEventListener() {}, queryS
 const asElement = (root: FakeRoot): HTMLElement => root as unknown as HTMLElement;
 
 const joint = Object.values(import.meta.glob<JointData>("../data/joint/*.json", { eager: true, import: "default" }));
-/** The newest joint file. The section shows it first, with its run, its date and its versions. */
-const newest = latestJoint(joint)!;
+/** The newest full joint run. The section shows it first, with its run, its date and its versions. A short run does not open the section (L132). */
+const newest = latestFull(joint)!;
 const spaces = Object.entries(import.meta.glob<SpaceFile>("../data/examples/*.json", { eager: true, import: "default" }));
 const engineSpaces = Object.entries(import.meta.glob<SpaceFile>("../data/spaces/*.json", { eager: true, import: "default" }));
 const news = Object.values(import.meta.glob<NewsData>("../data/news.json", { eager: true, import: "default" }))[0];
