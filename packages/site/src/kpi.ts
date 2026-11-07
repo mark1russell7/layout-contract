@@ -102,9 +102,14 @@ function npmMeasures(npm: NpmRead): SiteMeasure[] {
 
 /** This function counts the strategies of the catalog with a result in the run. One bench entry with a result is enough for its strategy. */
 export function packersMeasured(run: JointData, catalog: KpiCatalog, entries: readonly BenchEntry[]): number {
+  return packersOf(run, catalog, entries).length;
+}
+
+/** This function gives the strategies of the catalog with a result in the run. */
+function packersOf(run: JointData, catalog: KpiCatalog, entries: readonly BenchEntry[]): string[] {
   const strategyOf = new Map(entries.map((entry) => [entry.id, entry.strategy]));
   const measured = new Set(run.stress.byPacker.map((packer) => strategyOf.get(packer.id)));
-  return Object.keys(catalog.about.packing).filter((strategy) => measured.has(strategy)).length;
+  return Object.keys(catalog.about.packing).filter((strategy) => measured.has(strategy));
 }
 
 /**
@@ -116,8 +121,13 @@ export function packersMeasured(run: JointData, catalog: KpiCatalog, entries: re
  * @param keyed - The names of the router and highway entries of the registry of the pinned `highways`.
  */
 export function routersOnCompare(run: JointData, keyed: readonly string[]): number {
+  return routersOf(run, keyed).length;
+}
+
+/** This function gives the routers with a row in the run that are entries of the registry of `highways`, each one time. */
+function routersOf(run: JointData, keyed: readonly string[]): string[] {
   const names = new Set(keyed);
-  return new Set(run.stress.byRouter.map((router) => router.id).filter((id) => names.has(id))).size;
+  return [...new Set(run.stress.byRouter.map((router) => router.id).filter((id) => names.has(id)))];
 }
 
 /**
@@ -130,9 +140,52 @@ export function coverageRun(files: readonly JointData[]): JointData | undefined 
   return latestJoint(files.filter((file) => file.cover === true)) ?? latestJoint(files);
 }
 
+/** The engines whose versions tell if two runs measure the same code. */
+export const COVERAGE_ENGINES: readonly string[] = Object.freeze(["packing", "highways"]);
+
+/**
+ * This function gives the runs that the coverage counts: `coverageRun` and each other run with its versions of `COVERAGE_ENGINES`.
+ * A run of some pairs of the cover is not a cover run. But its strategies run on the same code, so they count (L94).
+ * A run of other versions does not count, because its results are of other code.
+ *
+ * @param files - The data files of `data/joint/`.
+ */
+export function coverageRuns(files: readonly JointData[]): JointData[] {
+  const cover = coverageRun(files);
+  if (cover === undefined) return [];
+  return files.filter((file) => COVERAGE_ENGINES.every((engine) => file.versions[engine] === cover.versions[engine]));
+}
+
+/** A count over some runs, with the time of its oldest part. */
+export interface CoverageCount {
+  readonly value: number;
+  readonly at: string;
+}
+
+/**
+ * This function counts the names that each run gives, each name one time. The time is the date of the oldest part of the count.
+ * The part of a name is the newest run that gives it. So the time shows the age of the oldest result in the count.
+ *
+ * @param runs - The runs of `coverageRuns`.
+ * @param namesOf - The names that a run gives.
+ * @param fallback - The time of a count with no name.
+ */
+export function countOverRuns(runs: readonly JointData[], namesOf: (run: JointData) => readonly string[], fallback: string): CoverageCount {
+  const newest = new Map<string, string>();
+  for (const run of runs) {
+    for (const name of namesOf(run)) {
+      const seen = newest.get(name);
+      if (seen === undefined || run.date > seen) newest.set(name, run.date);
+    }
+  }
+  if (newest.size === 0) return { value: 0, at: fallback };
+  return { value: newest.size, at: `${[...newest.values()].sort()[0]!}T00:00:00Z` };
+}
+
 /**
  * This function gives the input of the writer. It gives undefined when no joint run exists, because the time of the data is then not known.
- * The time of the file is the date of the newest run. Each measure of the coverage has the date of the run that it counts, from `coverageRun`.
+ * The time of the file is the date of the newest run. The pairs come from `coverageRun`, with its date.
+ * The packers and the routers count each run of `coverageRuns`, with the date of the oldest part of the count.
  * So a new date beside old coverage does not read as new coverage.
  *
  * @param files - The data files of `data/joint/`.
@@ -147,13 +200,16 @@ export function siteKpiInput(files: readonly JointData[], catalog: KpiCatalog, n
   if (run === undefined) return undefined;
   const cover = coverageRun(files) ?? run;
   const coverAt = `${cover.date}T00:00:00Z`;
+  const runs = coverageRuns(files);
+  const packers = countOverRuns(runs, (r) => packersOf(r, catalog, entries), coverAt);
+  const routers = countOverRuns(runs, (r) => routersOf(r, keyed), coverAt);
   return {
     project: KPI_PROJECT,
     at: `${run.date}T00:00:00Z`,
     measures: [
       { id: "pairs-in-run", value: cover.pairs, unit: "pairs", at: coverAt },
-      { id: "packers-measured", value: packersMeasured(cover, catalog, entries), unit: "packers", at: coverAt },
-      { id: "routers-on-compare", value: routersOnCompare(cover, keyed), unit: "routers", at: coverAt },
+      { id: "packers-measured", value: packers.value, unit: "packers", at: packers.at },
+      { id: "routers-on-compare", value: routers.value, unit: "routers", at: routers.at },
       { id: "routers-keyed", value: new Set(keyed).size, unit: "routers", at: commitAt },
       ...(npm === undefined ? [] : npmMeasures(npm)),
     ],
