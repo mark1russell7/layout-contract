@@ -48,6 +48,15 @@ export interface EngineOnNpm {
   readonly behind: number;
 }
 
+/**
+ * The read of the sweep coverage of one build, from the branch `sweep-data`.
+ * `shown` is true when the page shows a week view with its engine steps (`weekShown`). `night` is the latest night of the trend.
+ */
+export interface SweepRead {
+  readonly shown: boolean;
+  readonly night: string;
+}
+
 /** The read of npm of one build, with its time. */
 export interface NpmRead {
   readonly at: string;
@@ -196,7 +205,15 @@ export function countOverRuns(runs: readonly JointData[], namesOf: (run: JointDa
  * @param commitAt - The time of the commit of the build, in UTC. The registry of the build has this time, so an old run does not age it.
  * @param keyed - The names of the router and highway entries of the registry of the pinned `highways`, from `keyedRouterNames`.
  */
-export function siteKpiInput(files: readonly JointData[], catalog: KpiCatalog, npm: NpmRead | undefined, entries: readonly BenchEntry[], commitAt: string, keyed: readonly string[]): SiteKpi | undefined {
+export function siteKpiInput(
+  files: readonly JointData[],
+  catalog: KpiCatalog,
+  npm: NpmRead | undefined,
+  entries: readonly BenchEntry[],
+  commitAt: string,
+  keyed: readonly string[],
+  sweep?: SweepRead,
+): SiteKpi | undefined {
   const run = latestFull(files);
   const age = shownAge(files);
   if (run === undefined || age === undefined) return undefined;
@@ -215,6 +232,7 @@ export function siteKpiInput(files: readonly JointData[], catalog: KpiCatalog, n
       { id: "routers-on-compare", value: routers.value, unit: "routers", at: routers.at },
       { id: "routers-keyed", value: new Set(keyed).size, unit: "routers", at: commitAt },
       ...(npm === undefined ? [] : npmMeasures(npm)),
+      ...(sweep === undefined ? [] : [{ id: "coverage-shown", value: sweep.shown ? 1 : 0, at: `${sweep.night}T00:00:00Z` }]),
     ],
   };
 }
