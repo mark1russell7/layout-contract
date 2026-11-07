@@ -398,8 +398,9 @@ describe("the walk draw of a sample", () => {
     // A reject draw of the pool of this space throws, so this sample holds only if the member lists use the walk.
     const deep = tightOver(["a", "b", "c", "d", "e", "f"]);
     const meta: StrategySpace = { ...deep, stages: [...deep.stages, { name: "combine", optional: true, options: [{ id: "best", params: [], members: { min: 2, max: 2, ordered: false } }] }] };
-    const out = enumerateSpace(meta, { ...options, meta: "sample", draw: "walk" });
-    expect(out).toHaveLength(200);
+    // 40 draws hold each check of this test. The 200 draws of `options` took 2.3 to 5.3 s in CI and passed the limit of 5 s.
+    const out = enumerateSpace(meta, { ...options, n: 40, meta: "sample", draw: "walk" });
+    expect(out).toHaveLength(40);
     for (const c of out) expect(checkConfig(meta, c)).toEqual([]);
     expect(out.some((c) => c.stages["combine"] != null)).toBe(true);
   });
