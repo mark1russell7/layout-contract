@@ -70,7 +70,11 @@ jobs:
           cut=0
           reads=0
           left=1000
+          # The job reads stop after 25 minutes of the 40 of the job. A run with no facts reads 10 days of runs, and this read passed the timeout on each run from 2026-11-05 to 2026-11-07.
+          # So each run ends with an artifact, and the next run reads only the runs that this run left out.
+          stop=$(( $(date +%s) + 25 * 60 ))
           while IFS= read -r repo <&3; do
+            echo "$repo: $reads job reads, $cut runs left out, $(( (stop - $(date +%s)) / 60 )) minutes left."
             if ! read_api gh api --paginate -X GET "repos/$OWNER/$repo/actions/runs" -f per_page=100 -f "created=>=$from" --jq ".workflow_runs[] | select((.event | startswith(\"pull_request\")) or .event == \"merge_group\" or ((.path + \" \" + .name) | ascii_downcase | contains(\"release\") or contains(\"memory-probe\"))) | select(.conclusion != \"skipped\" and .conclusion != \"cancelled\") | {repo: \"$repo\", id, name, path, event, status, conclusion, run_started_at}" > "$RUNNER_TEMP/runs.jsonl"; then
               echo "::warning::The read of the runs of $repo failed after 4 tries." | tee -a "$GITHUB_STEP_SUMMARY"
               continue
@@ -79,6 +83,7 @@ jobs:
               id="$(jq -r .id <<< "$run")"
               status="$(jq -r .status <<< "$run")"
               if [ "$status" = completed ] && grep -qxF "$repo/$id" "$RUNNER_TEMP/known.txt"; then continue; fi
+              if [ "$(date +%s)" -ge "$stop" ]; then cut=$((cut + 1)); continue; fi
               if [ $((reads % 25)) = 0 ]; then left="$(gh api rate_limit --jq .resources.core.remaining || echo 0)"; fi
               if [ "$left" -lt 100 ]; then cut=$((cut + 1)); continue; fi
               reads=$((reads + 1))
@@ -89,7 +94,7 @@ jobs:
               jq -c --argjson jobs "$jobs" '. + {jobs: $jobs}' <<< "$run" >> "$facts"
             done 4< "$RUNNER_TEMP/runs.jsonl"
           done 3< "$RUNNER_TEMP/repos.txt"
-          echo "Repositories: $(wc -l < "$RUNNER_TEMP/repos.txt"). Job reads: $reads. Runs left out: $cut. Rate left: $left at the last read."
+          echo "Repositories: $(wc -l < "$RUNNER_TEMP/repos.txt"). Job reads: $reads. Runs left out: $cut. Rate left: $left at the last read. The time limit of the job reads: $( [ "$(date +%s)" -ge "$stop" ] && echo "reached, so the next run reads the rest" || echo "not reached" )."
           echo "cut=$cut" >> "$GITHUB_OUTPUT"
           echo "dir=$dir" >> "$GITHUB_OUTPUT"
       - name: Write the report
