@@ -4,7 +4,7 @@ import { configId, type LayoutRecord, type StrategyConfig, type StrategySpace } 
 import { stepValuesOf } from "./epoch-step.ts";
 import type { CensoredUnit } from "./shard-stop.ts";
 import { saltelliDesign, type SaltelliDesign } from "./sensitivity.ts";
-import { configRun, JOINT_SPACE, type ConfigRun } from "./space.ts";
+import { configRun, JOINT_SPACE, spaceFingerprint, type ConfigRun } from "./space.ts";
 import {
   addToSummary,
   BASELINE_ARM,
@@ -227,6 +227,8 @@ export interface SweepState {
   readonly reference: (Reference | null)[];
   /** The route values of the baseline arm on each input, for the step between two epochs. No verdict reads them. A state from before this field gets it at its first record. */
   stepValues?: (Reference | null)[];
+  /** The fingerprint of the space of the epoch (`spaceFingerprint`, L133). A state from before this field gets it at its next plan. */
+  spaceFingerprint?: string;
   readonly summary: SummaryRow[];
   readonly nights: NightEntry[];
   /** The Saltelli designs of the design nights (`planDesign`). The race keeps the values of their configs. */
@@ -244,7 +246,18 @@ export function emptyState(epoch: string, corpus: string, inputs: readonly Sweep
     values[id] = inputs.map(() => null);
   }
   const hashes = inputs.flatMap((i) => (i.hash === undefined ? [] : [i.hash]));
-  return { schema: SWEEP_SCHEMA, epoch, corpus, inputs: inputs.map((i) => i.id), ...(hashes.length === inputs.length ? { inputHashes: hashes } : {}), configs, values, reference: inputs.map(() => null), summary: [], nights: [] };
+  return { schema: SWEEP_SCHEMA, epoch, corpus, inputs: inputs.map((i) => i.id), ...(hashes.length === inputs.length ? { inputHashes: hashes } : {}), configs, values, reference: inputs.map(() => null), spaceFingerprint: spaceFingerprint(space), summary: [], nights: [] };
+}
+
+/**
+ * This function examines the space of a state before a plan (L133). A state from before the field gets the fingerprint of the space.
+ * A state with another fingerprint causes an error: the space changed, but the epoch key did not. Then the space takes a new `BENCH_SPACE_VERSION`.
+ */
+export function checkStateSpace(state: SweepState, space: StrategySpace = JOINT_SPACE): void {
+  const now = spaceFingerprint(space);
+  if (state.spaceFingerprint === undefined) state.spaceFingerprint = now;
+  else if (state.spaceFingerprint !== now)
+    throw new Error(`The epoch ${state.epoch} has the space ${state.spaceFingerprint}, but the space of this run is ${now}. A change of the space takes a new BENCH_SPACE_VERSION, so that a new epoch starts.`);
 }
 
 /** The options of a plan of a round. */
