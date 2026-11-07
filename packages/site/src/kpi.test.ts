@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { JointData } from "./data.ts";
-import { coverageRun, enginesCurrent, enginesOnNpm, failedReadStops, type KpiCatalog, type NpmRead, packersMeasured, routersOnCompare, siteKpiInput } from "./kpi.ts";
+import { countOverRuns, coverageRun, coverageRuns, enginesCurrent, enginesOnNpm, failedReadStops, type KpiCatalog, type NpmRead, packersMeasured, routersOnCompare, siteKpiInput } from "./kpi.ts";
 
 const run = (date: string, pairs: number, versions: Record<string, string>, packers: readonly string[] = ["shelf", "rows"], routers: readonly string[] = ["corners", "trunks"]): JointData =>
   ({ run: "1", date, pairs, versions, stress: { byPacker: packers.map((id) => ({ id })), byRouter: routers.map((id) => ({ id })) } }) as unknown as JointData;
@@ -146,11 +146,42 @@ describe("siteKpiInput", () => {
     });
   });
 
-  it("counts only the strategies of the latest run", () => {
-    const input = siteKpiInput([run("2026-10-20", 90, {}, ["shelf", "rows", "skyline"], ["corners", "trunks", "steiner"]), run("2026-10-28", 130, {}, ["shelf"], ["corners"])], catalog, npm, entries, commitAt, keyed);
+  it("counts only the strategies of the runs at the engines of the latest run", () => {
+    const old = { packing: "0.7.0", highways: "0.14.0" };
+    const now = { packing: "0.10.2", highways: "0.15.0" };
+    const input = siteKpiInput([run("2026-10-20", 90, old, ["shelf", "rows", "skyline"], ["corners", "trunks", "steiner"]), run("2026-10-28", 130, now, ["shelf"], ["corners"])], catalog, npm, entries, commitAt, keyed);
     expect(input?.measures.find((m) => m.id === "packers-measured")?.value).toBe(1);
     expect(input?.measures.find((m) => m.id === "routers-on-compare")?.value).toBe(1);
     expect(input?.measures.find((m) => m.id === "routers-keyed")?.value).toBe(3);
+  });
+});
+
+describe("coverageRuns and countOverRuns", () => {
+  const now = { packing: "0.10.2", highways: "0.15.0" };
+  const old = { packing: "0.7.0", highways: "0.14.0" };
+
+  it("adds a run of some pairs at the engines of the cover run, with the date of the oldest part", () => {
+    const cover = coverOf(run("2026-11-07", 650, now, ["shelf", "rows"], ["corners", "trunks"]));
+    const pairs = run("2026-11-08", 30, now, ["anneal-maxrects-bl-k16"], ["steiner"]);
+    const input = siteKpiInput([cover, pairs], catalog, npm, entries, commitAt, keyed);
+    expect(Object.fromEntries(input?.measures.filter((m) => /^(pairs|packers|routers-on)/.test(m.id)).map((m) => [m.id, [m.value, m.at]]) ?? [])).toEqual({
+      "pairs-in-run": [650, "2026-11-07T00:00:00Z"],
+      "packers-measured": [3, "2026-11-07T00:00:00Z"],
+      "routers-on-compare": [3, "2026-11-07T00:00:00Z"],
+    });
+  });
+
+  it("leaves out a run of other engines, also when it is newer", () => {
+    const cover = coverOf(run("2026-11-07", 650, now, ["shelf"]));
+    expect(coverageRuns([cover, run("2026-11-01", 130, old, ["rows"]), run("2026-11-09", 130, { ...now, highways: "0.16.0" }, ["anneal-maxrects-bl-k16"])])).toEqual([cover]);
+    expect(coverageRuns([])).toEqual([]);
+  });
+
+  it("takes the newest run of each name, and the oldest of these dates", () => {
+    const names = (r: JointData): string[] => r.stress.byPacker.map((p) => p.id);
+    const runs = [run("2026-11-01", 1, now, ["shelf", "rows"]), run("2026-11-05", 1, now, ["shelf"]), run("2026-11-03", 1, now, ["rows", "anneal"])];
+    expect(countOverRuns(runs, names, "x")).toEqual({ value: 3, at: "2026-11-03T00:00:00Z" });
+    expect(countOverRuns([], names, "2026-11-07T00:00:00Z")).toEqual({ value: 0, at: "2026-11-07T00:00:00Z" });
   });
 });
 
