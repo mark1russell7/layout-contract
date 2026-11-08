@@ -590,7 +590,7 @@ if (command === "check") {
   const result = auditCompare(carried, readRecords(args.records));
   if (args.out !== undefined) writeFileSync(args.out, JSON.stringify(result, null, 2) + "\n");
   console.log(`Audit of the carry: ${result.pairs} pairs, ${result.differing.length} with another record, ${result.missing.length} not measured. ${result.pass ? "pass" : "fail"}.`);
-  for (const d of result.differing.slice(0, 20)) console.log(`  ${d.key.replace("\n", " ")}: ${d.fields.join(", ")}`);
+  for (const d of result.differing.slice(0, 20)) console.log(`  ${d.key.replaceAll("\n", " ")}: ${d.fields.join(", ")}`);
   if (!result.pass) {
     console.error("::error::The audit of the carry failed, so the carried records do not join. Measure each pair of the engine again: a resume with no carry.");
     process.exit(1);

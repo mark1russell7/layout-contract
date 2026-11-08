@@ -38,7 +38,7 @@ export function mergeProbes(parts: readonly CarryProbe[]): CarryProbe {
       throw new RangeError("The probes of one merge have other corpora or other engine versions.");
     }
     for (const [key, value] of Object.entries(part.packs)) {
-      if (packs[key] !== undefined && packs[key] !== value) throw new RangeError(`Two probes give other fingerprints of ${key.replace("\n", " on ")}.`);
+      if (packs[key] !== undefined && packs[key] !== value) throw new RangeError(`Two probes give other fingerprints of ${key.replaceAll("\n", " on ")}.`);
       packs[key] = value;
     }
     for (const [key, value] of Object.entries(part.routers)) {
