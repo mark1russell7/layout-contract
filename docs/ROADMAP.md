@@ -11,7 +11,6 @@ This file lists the items of the roadmap of this repository. The status page of 
 | L34 | in progress | P1 | The strategy space as data |
 | L52 | in progress | P1 | Measure joint space coverage, with a weekly trend that rises |
 | L140 | in progress | P2 | The coverage counts name the corpus and the run of each counted name: `kpi-sources.json` and the joint section |
-| L145 | in progress | P1 | Each gate of the joint bench prints a case with no read as a warning annotation on its check |
 | L81 | in progress | P1 | Memory gate over each family of the bench, then the dense-hubs peak (3.4-4.3 GB) |
 | L82 | in progress | P2 | The bench scripts in TypeScript (rule typed-scripts of conventions 0.5.0) |
 | L134 | in progress | P1 | Each measure of `kpi.json` has its own date: the age reads the newest run, and the coverage reads the newest cover run |
@@ -150,3 +149,4 @@ This file lists the items of the roadmap of this repository. The status page of 
 | L119 | done | P1 | A meta option that chooses its members from the input: the member rule with `min` and `max` 0. Version 0.5.3. |
 | L115 | done | P1 | A deadline inside each shard with a censored row and a flip, the held configs and the origin of a label in the report, and a count of each planned pair with no value |
 | L130 | done | P1 | The routers measure of kpi.json reads the rows of the run |
+| L145 | done | P1 | Each gate of the joint bench prints a case with no read as a warning annotation on its check |
