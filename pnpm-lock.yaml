@@ -243,8 +243,11 @@ importers:
   packages/layout-contract:
     dependencies:
       '@mark1russell7/rigor-generators':
-        specifier: ^0.1.7
-        version: 0.1.7
+        specifier: ^0.1.8
+        version: 0.1.8
+      '@mark1russell7/rigor-statistics':
+        specifier: ^0.1.23
+        version: 0.1.23
       '@mark1russell7/typeset':
         specifier: ^0.1.8
         version: 0.1.8
@@ -579,12 +582,20 @@ packages:
     resolution: {integrity: sha512-2NqrQLd3nH4oWl+CSa4fOuc855fWnI8LpJWb2lJNfPQyuA6LB9fPuxi5xLnBsaOqL5mOYHpibn7wTW4nRxgapw==}
     engines: {node: '>=22'}
 
+  '@mark1russell7/rigor-generators@0.1.8':
+    resolution: {integrity: sha512-6AC/YQdSrMKs/1NcHesjmmxVjKrqTDXjzKaElE8N8TgsqgiApCbsnk5xRoGJfvIJZUX7vJHFB9F+w48OSdRtHQ==}
+    engines: {node: '>=22'}
+
   '@mark1russell7/rigor-statistics@0.1.11':
     resolution: {integrity: sha512-5tD7QqLE7Y6wWsoImXuszH3JA5VHwGDHjVzobn/JGtYgo24AFTzXlngEPxfW9A5kHD9GFXgWbkgUCNa0RlLToA==}
     engines: {node: '>=22'}
 
   '@mark1russell7/rigor-statistics@0.1.15':
     resolution: {integrity: sha512-dxr3UiAs64JXV3trXCaTRTesHqXEMUoVvDGIyrz0BWsAZERA/lrIQNUATFAuqnAWzdmbHUyi/5nzA4uPXTSTJw==}
+    engines: {node: '>=22'}
+
+  '@mark1russell7/rigor-statistics@0.1.23':
+    resolution: {integrity: sha512-UVO6cWyu6PXt33qvj5vEOVzeSfU4jQy6yaowvMi3ETlQid/srKmam3kYokxyDHVc+yNzYr3zXVhgtOUKYcNkdA==}
     engines: {node: '>=22'}
 
   '@mark1russell7/site-pages@0.3.4':
@@ -1822,6 +1833,8 @@ snapshots:
 
   '@mark1russell7/rigor-generators@0.1.7': {}
 
+  '@mark1russell7/rigor-generators@0.1.8': {}
+
   '@mark1russell7/rigor-statistics@0.1.11':
     dependencies:
       '@mark1russell7/rigor-generators': 0.1.5
@@ -1829,6 +1842,10 @@ snapshots:
   '@mark1russell7/rigor-statistics@0.1.15':
     dependencies:
       '@mark1russell7/rigor-generators': 0.1.7
+
+  '@mark1russell7/rigor-statistics@0.1.23':
+    dependencies:
+      '@mark1russell7/rigor-generators': 0.1.8
 
   '@mark1russell7/site-pages@0.3.4':
     dependencies:
@@ -1849,7 +1866,7 @@ snapshots:
   '@mark1russell7/typeset@0.1.8':
     dependencies:
       '@mark1russell7/collections': 0.9.7
-      '@mark1russell7/rigor-generators': 0.1.7
+      '@mark1russell7/rigor-generators': 0.1.8
 
   '@oxc-project/types@0.155.0': {}
 

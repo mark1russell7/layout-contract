@@ -7,6 +7,11 @@
 - `canonicalJson` uses the option `form: "json"`. A JSON value gets the same text as before.
 - The change that can break a caller: a value with a method `toJSON` gives the form of the result of that method. An example is a `Date`. Before, it gave the form of its own keys.
 - A function, a symbol and a cycle cause a `TypeError`. Before, a function and a symbol gave `null`, and a cycle caused a `RangeError` of the stack.
+- `verdict` uses `bootstrapStrata`, `bootstrap`, `signFlipTest` and `signTest` of `@mark1russell7/rigor-statistics` 0.1.23, a new runtime dependency (L149). Its local loops are gone.
+- The seed of each step is `deriveSeed(seed, step)`, so each stream is the stream of `stepRandom(seed, step)`. The intervals and the permutation p stay the same.
+- A test compares the text of the intervals and of the permutation with the earlier loops, for 24 made-up screens. Some screens use the exact test, and some use draws.
+- `signTest.p` of a result can differ in the last digits, by at most 1e-13 of its value. It is a report only, so no label changes.
+- `@mark1russell7/rigor-generators` goes to ^0.1.8, the range of `@mark1russell7/rigor-statistics` 0.1.23.
 
 ## 0.6.2
 
