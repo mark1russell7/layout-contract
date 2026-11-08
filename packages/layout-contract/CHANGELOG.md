@@ -9,6 +9,21 @@
 - The modules `strategy-options.ts` and `space-walk.ts` and their tests move whole to the home. The earlier test of `strategy-space.ts` passes on the re-export (192 tests with the catalog and the families), and it stays in the home.
 - `docs/STRATEGY-SPACE.md` keeps the named strategies and the results of L34. The rules of the format are in the home.
 
+## 0.8.0
+
+- MINOR before 1.0.0: `sha256Hex`, `canonicalJson` and `fnv1a32` use their home, `@mark1russell7/rigor-generators` 0.1.8. The local SHA-256, the local canonical form and the local UTF-8 encoder are gone.
+- `sha256Hex` and `fnv1a32` use the option `input: "wtf8"`, so a lone surrogate gives the 3 bytes of its code, as before. Each digest and each hash of a record stays the same.
+- `canonicalJson` uses the option `form: "json"`. A JSON value gets the same text as before.
+- The change that can break a caller: a value with a method `toJSON` gives the form of the result of that method. An example is a `Date`. Before, it gave the form of its own keys.
+- A function, a symbol and a cycle cause a `TypeError`. Before, a function and a symbol gave `null`, and a cycle caused a `RangeError` of the stack.
+- `verdict` uses `bootstrapStrata`, `bootstrap`, `signFlipTest` and `signTest` of `@mark1russell7/rigor-statistics` 0.1.23, a new runtime dependency (L149). Its local loops are gone.
+- The seed of each step is `deriveSeed(seed, step)`, so each stream is the stream of `stepRandom(seed, step)`. The intervals and the permutation p stay the same.
+- A test compares the text of the intervals and of the permutation with the earlier loops, for 24 made-up screens. Some screens use the exact test, and some use draws.
+- `signTest.p` of a result can differ in the last digits, by at most 1e-13 of its value. It is a report only, so no label changes.
+  - A comparison with the exact p (bigint terms, for each count of families up to 80) shows the earlier loop is closer. Its largest relative error is 5.8e-16, and the largest of `signTest` is 2.5e-14.
+  - The fix goes to the home of `signTest`: mark1russell7/rigor#158.
+- `@mark1russell7/rigor-generators` goes to ^0.1.8, the range of `@mark1russell7/rigor-statistics` 0.1.23.
+
 ## 0.7.0
 
 The release train changes the range of `@mark1russell7/typeset` to a version outside the old range. The public types name @mark1russell7/typeset, so its new version outside the old range can change them.

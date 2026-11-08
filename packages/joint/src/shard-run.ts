@@ -1,6 +1,6 @@
 // The run of one shard of the joint benchmark, with a deadline, and the resume of a run (docs/JOINT-BENCH.md, roadmap item L101).
 // A shard writes each pair when the pair ends, so a stop keeps each finished pair. A resume runs only the pairs that a run of the same stamp did not record.
-import { createHash } from "node:crypto";
+import { sha256Hex } from "@mark1russell7/rigor-generators";
 
 /** The minutes after which a shard of the bench stops at a clean point. The job limit of GitHub is 360 minutes. */
 export const SHARD_DEADLINE_MINUTES = 330;
@@ -71,7 +71,7 @@ export function doneKey(input: string, strategy: string): string {
  */
 export function runStamp(facts: Readonly<Record<string, string>>): string {
   const sorted = Object.keys(facts).sort().map((name) => [name, facts[name]]);
-  return createHash("sha256").update(JSON.stringify(sorted)).digest("hex").slice(0, 16);
+  return sha256Hex(JSON.stringify(sorted)).slice(0, 16);
 }
 
 /**

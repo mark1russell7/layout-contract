@@ -1,6 +1,7 @@
 // The verdict over families (`docs/VERDICT.md`). highways, packing and the joint bench use the same rule, so they give the same verdict.
+import { deriveSeed } from "@mark1russell7/rigor-generators";
+import { bootstrap, bootstrapStrata, type Interval, signFlipTest, signTest } from "@mark1russell7/rigor-statistics";
 import { compareMeasure, type MeasureSpec } from "./measures.ts";
-import { stepRandom } from "./random.ts";
 import type { LayoutRecord } from "./record.ts";
 
 /**
@@ -148,36 +149,25 @@ interface Pair {
 /** This function gives the mean of a list that is not empty. */
 const meanOf = (values: readonly number[]): number => values.reduce((s, v) => s + v, 0) / values.length;
 
-/** This function gives the `q` quantile of sorted values, with linear interpolation. */
-function quantileOf(sorted: readonly number[], q: number): number {
-  const at = (sorted.length - 1) * q;
-  const lo = Math.floor(at);
-  const hi = Math.ceil(at);
-  return sorted[lo]! + (sorted[hi]! - sorted[lo]!) * (at - lo);
+/** This function gives the mean of a sample of the differences, in the order of the sample. */
+function sampleMean(list: readonly number[]): number {
+  let s = 0;
+  for (const d of list) s += d;
+  return s / list.length;
 }
 
-/** This function gives the interval of the samples of a bootstrap at the level `1 - level`. */
-function intervalOf(mean: number, samples: number[], level: number): VerdictInterval {
-  samples.sort((x, y) => x - y);
-  return { mean, lo: quantileOf(samples, level / 2), hi: quantileOf(samples, 1 - level / 2) };
+/** This function gives the mean of the means of the samples of the families. */
+function meanOfMeans(lists: readonly (readonly number[])[]): number {
+  let sum = 0;
+  for (const list of lists) sum += sampleMean(list);
+  return sum / lists.length;
 }
+
+/** This function gives the interval of a bootstrap, with the mean of the data. */
+const intervalOf = (mean: number, i: Interval): VerdictInterval => ({ mean, lo: i.low, hi: i.high });
 
 /** This function tells if an interval is clear of 0 on the side of the sign `sign`. */
 const clearOn = (i: VerdictInterval, sign: number): boolean => (sign > 0 ? i.lo > 0 : sign < 0 ? i.hi < 0 : false);
-
-/** This function gives the two-sided p of the exact binomial sign test, with `p = 0.5`. No count gives 1. */
-function signP(wins: number, losses: number): number {
-  const n = wins + losses;
-  if (n === 0) return 1;
-  const k = Math.min(wins, losses);
-  let tail = 0;
-  let c = 1;
-  for (let i = 0; i <= k; i++) {
-    tail += c;
-    c = (c * (n - i)) / (i + 1);
-  }
-  return Math.min(1, (2 * tail) / 2 ** n);
-}
 
 /** This function gives the breadth of a verdict with the side `side`: 1, -1, or 0 for no side. */
 function breadthOf(families: readonly FamilyVerdict[], side: number): VerdictBreadth {
@@ -278,65 +268,29 @@ export function verdict<R extends VerdictRecord>(records: Iterable<R>, options: 
     return { family: list[0]!.family, n: list.length, mean: meanOf(list.map((p) => p.d)), sign: verdictOf === "better" ? 1 : verdictOf === "worse" ? -1 : 0 };
   });
 
-  // The stratified bootstrap draws the seeds of each family with replacement. The pooled bootstrap draws all the inputs.
+  // The bootstraps of `@mark1russell7/rigor-statistics`. The stream of a step is `random(deriveSeed(seed, step))`, which is `stepRandom(seed, step)`.
+  // `bootstrapStrata` draws the seeds of each family with replacement, in the order of the families. `bootstrap` draws all the inputs.
+  const ends: readonly [number, number] = [level / 2, 1 - level / 2];
+  const diffs = lists.map((list) => list.map((p) => p.d));
   const stratMean = meanOf(families.map((f) => f.mean));
-  const rs = stepRandom(seed, "verdict.stratified");
-  const stratSamples: number[] = [];
-  for (let run = 0; run < runs; run++) {
-    let sum = 0;
-    for (const list of lists) {
-      let s = 0;
-      for (let j = 0; j < list.length; j++) s += list[Math.floor(rs() * list.length)]!.d;
-      sum += s / list.length;
-    }
-    stratSamples.push(sum / lists.length);
-  }
-  const stratified = intervalOf(stratMean, stratSamples, level);
-
+  const stratified = intervalOf(stratMean, bootstrapStrata(diffs, meanOfMeans, { runs, ends, seed: deriveSeed(seed, "verdict.stratified") }));
   const pooledMean = meanOf(pairs.map((p) => p.d));
-  const rp = stepRandom(seed, "verdict.pooled");
-  const pooledSamples: number[] = [];
-  for (let run = 0; run < runs; run++) {
-    let s = 0;
-    for (let j = 0; j < n; j++) s += pairs[Math.floor(rp() * n)]!.d;
-    pooledSamples.push(s / n);
-  }
-  const pooled = intervalOf(pooledMean, pooledSamples, level);
+  const pooled = intervalOf(pooledMean, bootstrap(diffs.flat(), sampleMean, { runs, ends, seed: deriveSeed(seed, "verdict.pooled") }));
 
   // The statistic is a weighted sum: the weight of an input is 1 / (the count of families × the count of its family).
+  // `signFlipTest` enumerates the sign sets up to `exactMax` terms. Above it, a drawn p counts the observed sign set as one draw.
   const terms = lists.flatMap((list) => list.map((p) => p.d / (lists.length * list.length)));
-  const observed = Math.abs(terms.reduce((s, t) => s + t, 0));
-  const slack = 1e-12 * terms.reduce((s, t) => s + Math.abs(t), 0);
-  const exact = n <= exactMax;
-  let hits = 0;
-  let total: number;
-  if (exact) {
-    total = 2 ** n;
-    for (let mask = 0; mask < total; mask++) {
-      let t = 0;
-      for (let i = 0; i < n; i++) t += mask & (1 << i) ? -terms[i]! : terms[i]!;
-      if (Math.abs(t) >= observed - slack) hits++;
-    }
-  } else {
-    total = draws;
-    const rf = stepRandom(seed, "verdict.permutation");
-    for (let k = 0; k < draws; k++) {
-      let t = 0;
-      for (let i = 0; i < n; i++) t += rf() < 0.5 ? -terms[i]! : terms[i]!;
-      if (Math.abs(t) >= observed - slack) hits++;
-    }
-  }
-  // A drawn p counts the observed sign set as one draw, so it is always above 0.
-  const permutation: VerdictPermutation = { p: exact ? hits / total : (hits + 1) / (total + 1), exact, draws: total, seed };
+  const flips = signFlipTest(terms, { exactMax, runs: draws, seed: deriveSeed(seed, "verdict.permutation") });
+  const permutation: VerdictPermutation = { p: flips.p, exact: flips.exact, draws: flips.runs, seed };
 
   const wins = families.filter((f) => f.sign === 1).length;
   const losses = families.filter((f) => f.sign === -1).length;
-  const signTest: VerdictSignTest = { wins, losses, ties: families.length - wins - losses, p: signP(wins, losses) };
+  const signs: VerdictSignTest = { wins, losses, ties: families.length - wins - losses, p: signTest(wins, losses, 2) };
 
   const sign = Math.sign(stratified.mean);
   const agree = sign !== 0 && sign === Math.sign(pooled.mean) && clearOn(stratified, sign) && clearOn(pooled, sign) && permutation.p < level;
   const label: VerdictLabel = agree ? (sign > 0 ? "better" : "worse") : sign * Math.sign(pooled.mean) < 0 ? "depends on the mix" : "no verdict";
   const breadth = breadthOf(families, sign);
   const summary = summaryOf(label, sign, breadth);
-  return { measure: measure.id, n, stratified, pooled, permutation, families, signTest, agree, label, scope: "these families", breadth, summary, dropped };
+  return { measure: measure.id, n, stratified, pooled, permutation, families, signTest: signs, agree, label, scope: "these families", breadth, summary, dropped };
 }

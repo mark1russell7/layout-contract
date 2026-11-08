@@ -144,7 +144,7 @@ A `CorpusStep` changes an input after its base family, with the same seed. `comp
 
 ## The browser safety
 
-The code path of the registry uses no API of Node: no `fs`, no `crypto` of Node and no `worker_threads`. The SHA-256 of `hash.ts` and the UTF-8 bytes of `utf8.ts` are plain code.
+The code path of the registry uses no API of Node: no `fs`, no `crypto` of Node and no `worker_threads`. The SHA-256 and the canonical form come from `@mark1russell7/rigor-generators`, which is plain code with no API of Node.
 
 - The test `browser safety` of `families.test.ts` reads the import closure of `families.ts` and of the package root. It finds no external import and no global of Node.
 - The joint test `families.test.ts` examines `families.ts`, `spacing.ts` and `pairwise.ts` of the joint package.

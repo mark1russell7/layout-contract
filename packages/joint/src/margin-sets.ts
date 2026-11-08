@@ -1,7 +1,7 @@
 // The margin sets of the shard plan (docs/JOINT-BENCH.md, "Margins by pair set", roadmap item L143).
 // A margin set comes from the pair lines of one run. Its key is the corpus and the list of its pairs, so a plan finds the margins of its own pairs.
 // A plan with other pairs takes the set with the most shared pairs, and its note says so with the error of that set on a held-out seed.
-import { createHash } from "node:crypto";
+import { sha256Hex } from "@mark1russell7/rigor-generators";
 import { readFileSync } from "node:fs";
 import { mean, quantileSorted } from "@mark1russell7/rigor-statistics";
 import { COST_MODEL, inputCost, type SpecMargins } from "./plan.ts";
@@ -45,7 +45,7 @@ const sortedUnique = (pairs: readonly string[]): string[] => [...new Set(pairs)]
 
 /** This function gives the key of a pair set: a hash of the corpus and of the pairs, with no effect of their order. */
 export function pairSetId(corpus: string, pairs: readonly string[]): string {
-  return createHash("sha256").update([corpus, ...sortedUnique(pairs)].join("\n")).digest("hex").slice(0, 16);
+  return sha256Hex([corpus, ...sortedUnique(pairs)].join("\n")).slice(0, 16);
 }
 
 /** The time of one input in a run: the sum of the wall times of its finished pairs, and the count of these pairs. */

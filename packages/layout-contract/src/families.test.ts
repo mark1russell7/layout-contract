@@ -273,7 +273,7 @@ describe("composeFamily", () => {
 const NODE_IMPORT = /^(node:|fs$|path$|os$|crypto$|worker_threads$|child_process$|module$|url$)/;
 const NODE_GLOBAL = /\b(process\.|Buffer\.|require\(|__dirname|__filename)/;
 /** The runtime dependencies of the package. Each one is the home of an area in the map of homes. The test examines its build too. */
-const RUNTIME_DEPENDENCIES = ["@mark1russell7/rigor-generators", "@mark1russell7/strategy-space", "@mark1russell7/typeset"];
+const RUNTIME_DEPENDENCIES = ["@mark1russell7/rigor-generators", "@mark1russell7/rigor-statistics", "@mark1russell7/strategy-space", "@mark1russell7/typeset"];
 /**
  * The packages that the builds of the runtime dependencies import, and that the package itself does not import.
  * Each one is the home of an area in the map of homes. The test examines its build too.
