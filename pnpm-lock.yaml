@@ -246,8 +246,8 @@ importers:
         specifier: ^0.1.0
         version: 0.1.6
       '@mark1russell7/typeset':
-        specifier: ^0.1.0
-        version: 0.1.5
+        specifier: ^0.1.6
+        version: 0.1.6
     devDependencies:
       '@mark1russell7/cue':
         specifier: ^2.1.1
@@ -596,6 +596,10 @@ packages:
 
   '@mark1russell7/typeset@0.1.5':
     resolution: {integrity: sha512-bPRzyy2qgs+5DhPYt0ktcyEHzyNyZnh+jgKE16y3spDkxw84z57izqZW39xIbTdvaHqdspwDAC3pli2XS7Jnzw==}
+    engines: {node: '>=22.12'}
+
+  '@mark1russell7/typeset@0.1.6':
+    resolution: {integrity: sha512-gBbxsyiNHsm2Zl0zhc7G1FQgS8HCKSgioZpmBlw5N9H9xKWW/9d6m53zu0VbLR0eKEKXvG7tJ5CbQ+yZYygLDQ==}
     engines: {node: '>=22.12'}
 
   '@oxc-project/types@0.155.0':
@@ -1825,6 +1829,10 @@ snapshots:
       '@clack/prompts': 1.8.1
 
   '@mark1russell7/typeset@0.1.5':
+    dependencies:
+      '@mark1russell7/rigor-generators': 0.1.6
+
+  '@mark1russell7/typeset@0.1.6':
     dependencies:
       '@mark1russell7/rigor-generators': 0.1.6
 

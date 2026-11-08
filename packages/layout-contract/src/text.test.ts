@@ -148,8 +148,8 @@ describe("textMeasures", () => {
   });
 });
 
-describe("the segmenters", () => {
-  it("makes each Intl.Segmenter only once, for many layouts", async () => {
+describe("the segmentation of typeset (L144)", () => {
+  it("makes no Intl.Segmenter in a layout: the segmenters of typeset are the only ones", async () => {
     const Original = Intl.Segmenter;
     let made = 0;
     class Counting extends Original {
@@ -162,12 +162,34 @@ describe("the segmenters", () => {
     try {
       vi.resetModules();
       const fresh = await import("./text.ts");
+      made = 0;
       const measurer = fresh.createMeasurer(fake);
       const r = rng(9);
       for (let t = 0; t < 500; t++) fresh.layoutText(sentence(r), { font: FONT, measurer, lineHeight: 16, wrapWidth: 60, maxLines: 2, wordBreak: "anywhere" });
-      expect(made).toBeLessThanOrEqual(2);
+      expect(made).toBe(0);
     } finally {
       (Intl as { Segmenter: unknown }).Segmenter = Original;
     }
+  });
+
+  it("breaks after a hyphen and between CJK characters, with no space in the line", () => {
+    const hyphen = layoutText("well-known", base({ wrapWidth: 40 }));
+    expect(hyphen.lines).toEqual(["well-", "known"]);
+    const cjk = layoutText("日本語の文", base({ wrapWidth: 16 }));
+    expect(cjk.lines).toEqual(["日本", "語の", "文"]);
+    expect(cjk.widths[0]).toBe(Math.round(14.6 * TEXT_UNITS) / TEXT_UNITS);
+  });
+
+  it("keeps a no-break space in its word, and collapses the other white space to one space", () => {
+    const nbsp = layoutText("10\u00a0km a", base({ wrapWidth: 40 }));
+    expect(nbsp.lines).toEqual(["10\u00a0km", "a"]);
+    expect(layoutText("a \t\n b", base()).lines).toEqual(["a b"]);
+    expect(layoutText("  a  ", base()).lines).toEqual(["a"]);
+  });
+
+  it("puts no space in the one line of a text that has no white space", () => {
+    const l = layoutText("well-known", base());
+    expect(l.lines).toEqual(["well-known"]);
+    expect(l.widths[0]).toBe(Math.round(10 * 7.3 * TEXT_UNITS) / TEXT_UNITS);
   });
 });

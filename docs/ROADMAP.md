@@ -6,14 +6,13 @@ This file lists the items of the roadmap of this repository. The status page of 
 
 | ID | Status | Priority | Title |
 | --- | --- | --- | --- |
+| L144 | in progress | P1 | `layoutText` breaks lines at the break places of UAX #14 from `@mark1russell7/typeset` 0.1.6, with the test of `LineBreakTest.txt` |
 | L129 | in progress | P1 | The joint bench and the site use `packing` 0.10.2 and `highways` 0.15.0, and read the routers of `KEYED_STRATEGIES` (88 names) |
 | L5 | in progress | P1 | highways reads the contract |
 | L34 | in progress | P1 | The strategy space as data |
 | L52 | in progress | P1 | Measure joint space coverage, with a weekly trend that rises |
-| L140 | in progress | P2 | The coverage counts name the corpus and the run of each counted name: `kpi-sources.json` and the joint section |
 | L81 | in progress | P1 | Memory gate over each family of the bench, then the dense-hubs peak (3.4-4.3 GB) |
 | L82 | in progress | P2 | The bench scripts in TypeScript (rule typed-scripts of conventions 0.5.0) |
-| L134 | in progress | P1 | Each measure of `kpi.json` has its own date: the age reads the newest run, and the coverage reads the newest cover run |
 | L135 | in progress | P1 | One form of the output fingerprint of an engine entry in the contract: `skip`, `packOutputForm`, `probeHash`, `REFUSED_PROBE` and `fingerprintOf` (0.5.5). The engines give the fingerprints. |
 | L136 | in progress | P1 | The publish of a sweep night builds on the commit that its check read, so a night that runs at the same time is not lost |
 | L132 | in progress | P1 | A short run of chosen rows on each engine release, at most one a day. Part 1: the site reads a short run, opens on the newest full run, and the age of the data is the age of the oldest shown pair |
@@ -91,6 +90,8 @@ This file lists the items of the roadmap of this repository. The status page of 
 
 | ID | Status | Priority | Title |
 | --- | --- | --- | --- |
+| L140 | done | P2 | The coverage counts name the corpus and the run of each counted name: `kpi-sources.json` and the joint section |
+| L134 | done | P1 | Each measure of `kpi.json` has its own date: the age reads the newest run, and the coverage reads the newest cover run |
 | L1 | done | P0 | Answer the 5 open questions of the Packer draft |
 | L2 | done | P0 | s47: the home of the shared contract |
 | L3 | done | P1 | npm bootstrap of the contract package |
