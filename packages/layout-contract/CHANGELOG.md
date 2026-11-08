@@ -4,6 +4,7 @@
 
 - MINOR before 1.0.0: `layoutText` breaks lines at the break places of UAX #14, not at white space only. Some texts get other lines.
 - The words come from `lineBreaks` of `@mark1russell7/typeset` 0.1.6 (Unicode 17.0.0). The word segments of the measure cache come from `wordBreaks`, and `graphemesOf` gives `graphemes`. The three use no locale.
+- A new text gets one call of `wordBreaks` for all its words: the words joined by line feeds. UAX #29 breaks on the two sides of a line feed, so each word gets the segments of a call on the word alone.
 - The local splitter and its `Intl.Segmenter` objects are gone. The module needs `Intl.Segmenter` when it loads, because typeset makes its segmenters at that time. Before, a runtime with no `Intl.Segmenter` got code points.
 
 ### Migration: the inputs with other lines

@@ -1,5 +1,6 @@
 import { breakers, linesOf, type Box, type Item, type Penalty } from "@mark1russell7/typeset/breaking";
-import { graphemes, lineBreaks, wordBreaks } from "@mark1russell7/typeset/segmentation";
+import { graphemes, lineBreaks } from "@mark1russell7/typeset/segmentation";
+import { partsOfWords } from "./word-parts.ts";
 import type { MeasureSpec } from "./measures.ts";
 
 /**
@@ -147,7 +148,7 @@ function wordsOf(text: string): readonly Word[] {
  * A mandatory break inside the text, for example at a line feed, is white space as in CSS. Only the end of the text ends the last line.
  */
 function splitWords(text: string): Word[] {
-  const words: Word[] = [];
+  const words: { text: string; spaced: boolean }[] = [];
   let start = 0;
   for (const place of lineBreaks(text)) {
     const piece = text.slice(start, place.offset);
@@ -158,18 +159,14 @@ function splitWords(text: string): Word[] {
     const word = body.startsWith(" ") ? body.slice(1) : body;
     if (word.length < body.length || body === "") {
       const last = words[words.length - 1];
-      if (last !== undefined && !last.spaced) words[words.length - 1] = { ...last, spaced: true };
+      if (last !== undefined) last.spaced = true;
     }
     if (word === "") continue;
-    let from = 0;
-    const parts: string[] = [];
-    for (const end of wordBreaks(word)) {
-      parts.push(word.slice(from, end));
-      from = end;
-    }
-    words.push({ text: word, parts, spaced });
+    words.push({ text: word, spaced });
   }
-  return words;
+  // One call of `wordBreaks` gives the segments of all the words of the text.
+  const parts = partsOfWords(words.map((w) => w.text));
+  return words.map((w, i) => ({ text: w.text, parts: parts[i]!, spaced: w.spaced }));
 }
 
 /** This function gives the grapheme clusters of a text by UAX #29 (`graphemes` of `@mark1russell7/typeset`), with no locale. */
