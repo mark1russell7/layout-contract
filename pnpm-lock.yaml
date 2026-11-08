@@ -246,8 +246,8 @@ importers:
         specifier: ^0.1.0
         version: 0.1.8
       '@mark1russell7/strategy-space':
-        specifier: ^0.0.1
-        version: 0.0.1
+        specifier: ^0.0.2
+        version: 0.0.2
       '@mark1russell7/typeset':
         specifier: ^0.2.0
         version: 0.2.0
@@ -601,8 +601,8 @@ packages:
     engines: {node: '>=22'}
     hasBin: true
 
-  '@mark1russell7/strategy-space@0.0.1':
-    resolution: {integrity: sha512-0PX1MsXQh49flCDuko6KfJRbFgQCHXhgXwnhAYH06K06p9kqV1UWxlIWMN918nArmjNV2XY5nDI6AM4EhrK5/w==}
+  '@mark1russell7/strategy-space@0.0.2':
+    resolution: {integrity: sha512-P8BFem+8y1E2zJ1OJj675N3KL7bq9bN8eTUk7qeG9e4LfEkyQqasCCpp2jEFUD3cr0GkjbXBixcBXWVRj1EboA==}
     engines: {node: '>=22'}
 
   '@mark1russell7/template-cli@0.1.5':
@@ -1846,7 +1846,7 @@ snapshots:
     dependencies:
       typescript: 6.0.3
 
-  '@mark1russell7/strategy-space@0.0.1':
+  '@mark1russell7/strategy-space@0.0.2':
     dependencies:
       '@mark1russell7/rigor-generators': 0.1.8
 

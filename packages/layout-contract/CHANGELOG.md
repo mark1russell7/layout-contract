@@ -2,7 +2,7 @@
 
 ## 0.9.0
 
-- MINOR before 1.0.0: the format of a strategy space has its home in `@mark1russell7/strategy-space` 0.0.1. `layout-contract` re-exports its types and functions, with the same names.
+- MINOR before 1.0.0: the format of a strategy space has its home in `@mark1russell7/strategy-space` 0.0.2. `layout-contract` re-exports its types and functions, with the same names. The types have the operator fields `identity` of a stage option and `chooses` of a member rule.
 - The change that can break a caller: a shape kind is a tag. The field `shape` of `OptionSupports` and the field `shapes` of `ShapeFilter` take a `string`, not a `ShapeKind`. `spaceShapeKinds` gives `string[]`.
 - `checkSpace`, `spaceSize`, `enumerateSpace` and `spaceShapeKinds` take the new option `kinds`, with the new type `KindOptions`. Without it, they use `SHAPE_KIND_IDS`, so their results do not change.
 - The id of a config does not change. A test compares `configId` with the SHA-256 of the canonical JSON of the hashes of this package.
