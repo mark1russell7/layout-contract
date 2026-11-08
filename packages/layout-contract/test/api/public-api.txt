@@ -14,6 +14,8 @@ BalanceMeasureSuffix: build/index.d.ts#BalanceMeasureSuffix
 BooleanOption: build/index.d.ts#BooleanOption
 CIRCLE_SCATTERED: build/index.d.ts#CIRCLE_SCATTERED
 CORPUS_DIMENSIONS: build/index.d.ts#CORPUS_DIMENSIONS
+Carried: build/index.d.ts#Carried
+CarryFacts: build/index.d.ts#CarryFacts
 CatalogCheck: build/index.d.ts#CatalogCheck
 CatalogCheckOptions: build/index.d.ts#CatalogCheckOptions
 CatalogEntry: build/index.d.ts#CatalogEntry
@@ -215,6 +217,7 @@ boxArea: build/measures.chunk.d.ts#boxArea
 canonicalConfig: build/index.d.ts#canonicalConfig
 canonicalInput: build/measures.chunk.d.ts#canonicalInput
 canonicalJson: build/index.d.ts#canonicalJson
+carryRecord: build/index.d.ts#carryRecord
 catalogChoices: build/index.d.ts#catalogChoices
 catalogDefaults: build/index.d.ts#catalogDefaults
 catalogKey: build/index.d.ts#catalogKey
@@ -402,6 +405,22 @@ export declare const CIRCLE_SCATTERED: CorpusFamily<LayoutInput>;
 
 ### build/index.d.ts#CORPUS_DIMENSIONS
 export declare const CORPUS_DIMENSIONS: Readonly<Record<string, CorpusDimension>>;
+
+### build/index.d.ts#Carried
+export interface Carried {
+  readonly from: Readonly<Record<string, string>>;
+  readonly to: Readonly<Record<string, string>>;
+  readonly fingerprints: Readonly<Record<string, string>>;
+  readonly run?: string;
+}
+
+### build/index.d.ts#CarryFacts
+export interface CarryFacts {
+  readonly to: Readonly<Record<string, string>>;
+  readonly fingerprints: Readonly<Record<string, string>>;
+  readonly from?: Readonly<Record<string, string>>;
+  readonly run?: string;
+}
 
 ### build/index.d.ts#CatalogCheck
 export interface CatalogCheck {
@@ -676,6 +695,7 @@ export interface LayoutRecord {
   readonly env?: RunEnv;
   readonly skipped?: string;
   readonly commit?: string;
+  readonly carried?: Carried;
 }
 
 ### build/index.d.ts#ListItem
@@ -1317,6 +1337,9 @@ export declare function canonicalConfig(space: StrategySpace, config: StrategyCo
 
 ### build/index.d.ts#canonicalJson
 export declare function canonicalJson(value: unknown): string;
+
+### build/index.d.ts#carryRecord
+export declare function carryRecord(record: LayoutRecord, facts: CarryFacts): LayoutRecord;
 
 ### build/index.d.ts#catalogChoices
 export declare function catalogChoices(strategies: readonly CatalogEntry[], declaration?: AnyOption | ListItem): readonly CatalogEntry[];

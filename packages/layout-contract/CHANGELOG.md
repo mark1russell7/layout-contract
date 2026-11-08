@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.6.1
+
+- PATCH before 1.0.0: a record of `layout-record/1` can have the new optional field `carried` (L147). The new exports are the type `Carried`, the type `CarryFacts` and the function `carryRecord`.
+- `carried` tells that a later run kept the record after an engine release, with no new measure. `carried.from` gives the engine versions of the measure, and `carried.to` gives the engine versions of the run that keeps the record.
+- `carried.fingerprints` gives the fingerprint of each strategy of the record. `carried.run` gives the id of the run that measured the record.
+- `checkLayoutRecord` refuses a `carried` with a bad form or with no fingerprint. It refuses other engine names in `from` and `to`, and the same versions in the two. It also refuses `carried` on a skipped record.
+- `carryRecord` adds the field. A second carry keeps `carried.from` and `carried.run` of the first carry, so the record always names its measure.
+- A record with no `carried` does not change, and a reader that does not know the field reads the record as before.
+
 ## 0.6.0
 
 - MINOR before 1.0.0: `layoutText` breaks lines at the break places of UAX #14, not at white space only. Some texts get other lines.
