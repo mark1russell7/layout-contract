@@ -2,6 +2,7 @@
 // The sweep section reads the branch `sweep-data` at runtime, because the build does not read that branch.
 import contract from "@mark1russell7/layout-contract/package.json";
 import { marked } from "marked";
+import countSources from "virtual:count-sources";
 import coverageText from "../content/coverage.md?raw";
 import jointText from "../content/joint.md?raw";
 import leadText from "../content/lead.md?raw";
@@ -39,7 +40,7 @@ byId("space-about").innerHTML = md(spaceText);
 byId("sweep").innerHTML = md(sweepText);
 byId("coverage-about").innerHTML = md(coverageText);
 
-renderJoint(byId("joint"), good<JointData>(jointFiles, checkJoint).map(([, v]) => v));
+renderJoint(byId("joint"), good<JointData>(jointFiles, checkJoint).map(([, v]) => v), countSources);
 renderSpace(
   byId("space"),
   good<SpaceFile>(spaceFiles, checkSpaceFile).map(([path, file]): SpaceEntry => ({ path, file })),

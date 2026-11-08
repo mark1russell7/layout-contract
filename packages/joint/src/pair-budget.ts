@@ -59,6 +59,21 @@ export function budgetCases(inputs: readonly BudgetInput[], pairs: readonly stri
   return inputs.flatMap((input) => pairs.map((pair) => ({ id: doneKey(input.id, pair), budgetMs: pairBudgetMs(budget, input.boxes), groups: stages(input.id, pair) })));
 }
 
+/** This function gives the longest time of one pair of `cases` under its budget. That time is the budget of a stage times the count of the stages of the pair. A case with no groups has 1 stage. */
+export function longestPairMs(cases: readonly SupervisedCase[]): number {
+  return cases.reduce((most, item) => Math.max(most, item.budgetMs * Math.max(1, Object.keys(item.groups ?? {}).length)), 0);
+}
+
+/**
+ * This function gives the error of a budget that is too large for the step limit of a shard, or undefined (L142).
+ * A shard stops after the pair that runs at `deadlineMinutes`, and that pair can take `longestPairMs` more. When it can end at the step limit or after it, the limit stops the pair, and the pair has no record.
+ */
+export function budgetMarginError(cases: readonly SupervisedCase[], deadlineMinutes: number, stepMinutes: number): string | undefined {
+  const longest = longestPairMs(cases) / 60_000;
+  if (deadlineMinutes + longest < stepMinutes) return undefined;
+  return `The option --pair-budget gives one pair up to ${longest} minutes. A shard stops after ${deadlineMinutes} minutes, so the step limit of ${stepMinutes} minutes can stop such a pair with no record (L142). All the stages of a pair together get less than ${stepMinutes - deadlineMinutes} minutes.`;
+}
+
 /** This function gives the overruns of an earlier run on `inputs`, in the order of the lines. A resume gives them to the supervisor, so the rule of 2 overruns does not depend on where a shard stopped. */
 export function earlierOverruns(lines: readonly PairLine[], inputs: readonly BudgetInput[]): SupervisedEnd[] {
   const ids = new Set(inputs.map((input) => input.id));

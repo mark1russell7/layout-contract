@@ -10,7 +10,7 @@ import { buildCatalog } from "./src/build-catalog.ts";
 import { keyedRouterNames } from "./src/engines.ts";
 import { checkDataFile, type JointData, latestFull } from "./src/data.ts";
 import { weekShown } from "./src/coverage.ts";
-import { ENGINE_SCOPE, enginesOnNpm, failedReadStops, type NpmRead, siteKpiInput, type SweepRead } from "./src/kpi.ts";
+import { countSources, ENGINE_SCOPE, enginesOnNpm, failedReadStops, type NpmRead, siteKpiInput, type SweepRead } from "./src/kpi.ts";
 import { withEngineLinks } from "./src/links.ts";
 import { readStamps, stampFaults, withDataStamp } from "./src/stamps.ts";
 import { loadSweep } from "./src/sweep.ts";
@@ -163,6 +163,32 @@ function kpiInput(): NonNullable<ReturnType<typeof siteKpiInput>> {
   return input;
 }
 
+/** The id of the virtual module of the sources of the coverage counts. */
+const COUNT_SOURCES = "virtual:count-sources";
+
+/** This function gives the source of each name that packers-measured and routers-on-compare count. */
+function sourcesOfTheCounts(): ReturnType<typeof countSources> {
+  return countSources(jointFiles(), catalogOfTheRuns(), [...PACK_ENTRIES, ...coverEntries()], keyedRouterNames());
+}
+
+/**
+ * This plugin gives the sources of the coverage counts as the module `virtual:count-sources`, and as the file `kpi-sources.json` beside `kpi.json` (L140).
+ * The format `kpi/1` of `kpi.json` has no field for them, so they have their own file.
+ */
+function coverageSources(): Plugin {
+  return {
+    name: "layout-contract-site:count-sources",
+    resolveId: (id) => (id === COUNT_SOURCES ? `\0${COUNT_SOURCES}` : null),
+    load(id) {
+      if (id !== `\0${COUNT_SOURCES}`) return null;
+      return `export default ${JSON.stringify(sourcesOfTheCounts())};`;
+    },
+    generateBundle() {
+      this.emitFile({ type: "asset", fileName: "kpi-sources.json", source: `${JSON.stringify(sourcesOfTheCounts(), null, 2)}\n` });
+    },
+  };
+}
+
 /**
  * This plugin gives the catalog of the joint pages as the module `virtual:joint-catalog`.
  * It reads the registries of the engines and makes each input of `joint-v2` at build time. A new strategy or option shows up after the next build.
@@ -196,5 +222,5 @@ export default defineConfig({
   define: {
     __BUILD__: JSON.stringify({ sha: (env["GITHUB_SHA"] ?? "local").slice(0, 7), date: new Date().toISOString().slice(0, 10) }),
   },
-  plugins: [checkData(), jointCatalog(), engineSites(), npmEngines(), sweepCoverage(), dataStamps(), siteKpi(kpiInput, env)],
+  plugins: [checkData(), jointCatalog(), coverageSources(), engineSites(), npmEngines(), sweepCoverage(), dataStamps(), siteKpi(kpiInput, env)],
 });

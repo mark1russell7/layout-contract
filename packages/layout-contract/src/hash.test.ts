@@ -1,6 +1,19 @@
 import { createHash } from "node:crypto";
 import { describe, expect, it } from "vitest";
-import { canonicalJson, documentHash, exercised, outputGroups, outputHash, RECORD_EPS, sha256Hex } from "./index.ts";
+import {
+  canonicalJson,
+  documentHash,
+  exercised,
+  fingerprintOf,
+  outputGroups,
+  outputHash,
+  type PackOutput,
+  packOutputForm,
+  probeHash,
+  RECORD_EPS,
+  REFUSED_PROBE,
+  sha256Hex,
+} from "./index.ts";
 import { utf8, utf8Write } from "./utf8.ts";
 
 const nodeSha = (text: string): string => createHash("sha256").update(text, "utf8").digest("hex");
@@ -156,5 +169,153 @@ describe("exercised", () => {
     expect(() => exercised({ hashes: ["a"] })).toThrow(RangeError);
     expect(() => exercised({ baseHashes: ["a"] })).toThrow(RangeError);
     expect(() => exercised({ hashes: ["a"], baseHashes: ["a", "b"] })).toThrow(RangeError);
+  });
+});
+
+describe("skip", () => {
+  it("leaves the named fields out at each depth, also in a list", () => {
+    const value = { a: 1, through: [1, 2], b: [{ x: 1, through: 3 }, { x: 2 }], c: { through: { y: 1 }, z: 0 } };
+    const without = { a: 1, b: [{ x: 1 }, { x: 2 }], c: { z: 0 } };
+    expect(outputHash(value, { ...exact, skip: ["through"] })).toBe(outputHash(without, exact));
+    expect(outputHash(value, exact)).not.toBe(outputHash(without, exact));
+  });
+
+  it("does not read a skipped field, so a number that is not finite there does not throw", () => {
+    expect(outputHash({ a: 1, ms: Number.NaN }, { skip: ["ms"] })).toBe(outputHash({ a: 1 }));
+  });
+
+  it("keeps the old hash with an empty list", () => {
+    expect(outputHash({ id: "e1", points: [{ x: 0.3, y: 0 }] }, { skip: [] })).toBe(outputHash({ id: "e1", points: [{ x: 0.3, y: 0 }] }));
+  });
+});
+
+describe("packOutputForm", () => {
+  const output: PackOutput = {
+    placements: [
+      { id: "b", x: 2, y: 0, turn: 90 },
+      { id: "a", x: 0, y: 0 },
+    ],
+    overflow: ["z", "c"],
+    size: { w: 10, h: 4 },
+    moved: [
+      { id: "o2", x: 1, y: 1 },
+      { id: "o1", x: 0, y: 3 },
+    ],
+    trace: [{ id: "stage", ms: 12.5 }],
+  };
+
+  it("sorts by id, gives turn 0 when it is absent, and has no trace", () => {
+    expect(packOutputForm(output)).toEqual({
+      placements: [
+        { id: "a", x: 0, y: 0, turn: 0 },
+        { id: "b", x: 2, y: 0, turn: 90 },
+      ],
+      overflow: ["c", "z"],
+      size: { w: 10, h: 4 },
+      moved: [
+        { id: "o1", x: 0, y: 3 },
+        { id: "o2", x: 1, y: 1 },
+      ],
+    });
+  });
+
+  it("gives one hash for the same result in another order, with another trace, or with turn 0 written", () => {
+    const other: PackOutput = {
+      placements: [
+        { id: "a", x: 0, y: 0, turn: 0 },
+        { id: "b", x: 2, y: 0, turn: 90 },
+      ],
+      overflow: ["c", "z"],
+      size: { w: 10, h: 4 },
+      moved: [...output.moved].reverse(),
+      trace: [{ id: "stage", ms: 99 }],
+    };
+    expect(outputHash(packOutputForm(other), exact)).toBe(outputHash(packOutputForm(output), exact));
+  });
+
+  it("gives another hash when a position, a turn, the size, the overflow or a move changes", () => {
+    const base = outputHash(packOutputForm(output), exact);
+    const changes: PackOutput[] = [
+      { ...output, placements: [{ id: "b", x: 2.0001, y: 0, turn: 90 }, output.placements[1]!] },
+      { ...output, placements: [{ id: "b", x: 2, y: 0 }, output.placements[1]!] },
+      { ...output, size: { w: 10, h: 5 } },
+      { ...output, overflow: ["c"] },
+      { ...output, moved: [{ id: "o2", x: 1, y: 2 }, output.moved[1]!] },
+    ];
+    for (const change of changes) expect(outputHash(packOutputForm(change), exact)).not.toBe(base);
+  });
+
+  it("throws on an id two times in a list, with the name of the list", () => {
+    expect(() => packOutputForm({ ...output, placements: [...output.placements, { id: "a", x: 5, y: 5 }] })).toThrow("placements");
+    expect(() => packOutputForm({ ...output, overflow: ["c", "c"] })).toThrow(RangeError);
+    expect(() => packOutputForm({ ...output, moved: [...output.moved, { id: "o1", x: 0, y: 0 }] })).toThrow("moved");
+  });
+
+  it("does not change the output", () => {
+    const copy = structuredClone(output);
+    packOutputForm(output);
+    expect(output).toEqual(copy);
+  });
+});
+
+describe("probeHash", () => {
+  class Refused extends Error {}
+
+  it("gives outputHash of the result with exact numbers by default", () => {
+    expect(probeHash(() => ({ x: 0.0001 }), () => false)).toBe(outputHash({ x: 0.0001 }, exact));
+    expect(probeHash(() => ({ x: 0.0001 }), () => false)).not.toBe(outputHash({ x: 0 }, exact));
+    expect(probeHash(() => ({ x: 0.0001 }), () => false, { grid: RECORD_EPS })).toBe(outputHash({ x: 0 }));
+  });
+
+  it("keeps exact numbers when the options have the key grid with no value", () => {
+    // The types refuse this form. A JavaScript caller or a spread of a partial object can give it.
+    const noGrid = { grid: undefined } as unknown as Parameters<typeof probeHash>[2];
+    expect(probeHash(() => ({ x: 0.0001 }), () => false, noGrid)).toBe(outputHash({ x: 0.0001 }, exact));
+  });
+
+  it("uses the skip list of the options", () => {
+    expect(probeHash(() => ({ a: 1, through: 2 }), () => false, { skip: ["through"] })).toBe(outputHash({ a: 1 }, exact));
+  });
+
+  it("gives the token of a refusal for an accepted error, with no reason text", () => {
+    const refused = (error: unknown): boolean => error instanceof Refused;
+    expect(probeHash(() => { throw new Refused("one reason"); }, refused)).toBe(REFUSED_PROBE);
+    expect(probeHash(() => { throw new Refused("another reason"); }, refused)).toBe(REFUSED_PROBE);
+  });
+
+  it("throws each other error again", () => {
+    const refused = (error: unknown): boolean => error instanceof Refused;
+    expect(() => probeHash(() => { throw new TypeError("bug"); }, refused)).toThrow(TypeError);
+  });
+
+  it("has a token that is not the form of a hash", () => {
+    expect(REFUSED_PROBE).not.toMatch(/^[0-9a-f]{16}$/);
+  });
+});
+
+describe("fingerprintOf", () => {
+  const hashes = { "p-small": "0123456789abcdef", "p-large": REFUSED_PROBE };
+
+  it("is the first 16 hex characters of the SHA-256 of the canonical JSON of the hashes", () => {
+    expect(fingerprintOf(hashes)).toBe(nodeSha('{"p-large":"refused","p-small":"0123456789abcdef"}').slice(0, 16));
+  });
+
+  it("does not change with the order of the probes", () => {
+    expect(fingerprintOf({ "p-large": REFUSED_PROBE, "p-small": "0123456789abcdef" })).toBe(fingerprintOf(hashes));
+  });
+
+  it("changes with a changed hash, a new probe or a probe less", () => {
+    const base = fingerprintOf(hashes);
+    expect(fingerprintOf({ ...hashes, "p-small": "0123456789abcdee" })).not.toBe(base);
+    expect(fingerprintOf({ ...hashes, "p-new": "fedcba9876543210" })).not.toBe(base);
+    expect(fingerprintOf({ "p-small": "0123456789abcdef" })).not.toBe(base);
+  });
+
+  it("changes when a probe goes from refused to a result", () => {
+    expect(fingerprintOf({ ...hashes, "p-large": "0000000000000000" })).not.toBe(fingerprintOf(hashes));
+  });
+
+  it("throws without a probe", () => {
+    expect(() => fingerprintOf({})).toThrow(RangeError);
   });
 });

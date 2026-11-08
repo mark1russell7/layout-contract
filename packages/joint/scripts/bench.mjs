@@ -125,6 +125,8 @@ import {
   pairTotals,
   marginNote,
   pickMarginSet,
+  SHARD_STEP_MINUTES,
+  budgetMarginError,
   strategyCosts,
   strategyCostTable,
   SET_V2,
@@ -211,6 +213,12 @@ function corpusSlice() {
 function shardPlan() {
   const shards = Number(args.shards ?? 1);
   const rows = corpusSlice();
+  // A budget that lets one pair run past the step limit stops the plan, the resume and each shard before a pair runs (L142).
+  if (pairBudget !== undefined) {
+    const inputs = rows.map((row) => ({ id: row.entry.id, boxes: row.input.boxes.length }));
+    const error = budgetMarginError(budgetCases(inputs, expectedPairs, pairBudget), Number(args["deadline-minutes"] ?? SHARD_DEADLINE_MINUTES), SHARD_STEP_MINUTES);
+    if (error !== undefined) throw new RangeError(error);
+  }
   // The lane passes use the lane term of the cost model. The rounds of the iteration pairs have no fit yet, so they cost `LANE_PASS_COST` pairs.
   const pairs = expectedPairs.length + iterPlanPairs(iterate);
   const passes = lanePasses(lanes);

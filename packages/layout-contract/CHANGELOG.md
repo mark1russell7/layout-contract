@@ -1,5 +1,30 @@
 # Changelog
 
+## 0.5.6
+
+- PATCH before 1.0.0: a new optional field. Each old call and each old file keeps its result, because the writer uses the new schema only for an entry with the field.
+- `STRATEGY_CATALOG_SCHEMA` has a new value, and the type of `StrategyCatalog.schema` is wider. A code search of the public repositories found no caller of the two outside this package.
+- A reader with an older contract refuses a file of the schema `strategy-catalog/3`. So an engine adds a fingerprint after its readers take 0.5.6.
+- The new schema `strategy-catalog/3` adds an optional text `fingerprint` to `CatalogEntry`. It is the value of `fingerprintOf` for the probes of the engine: 16 lowercase hex digits.
+- `parseStrategyCatalog` refuses another form, and it refuses the field in a file of the schema 1 or 2.
+- `writeStrategyCatalog` writes the oldest schema that holds the file. A catalog with no `fingerprint` keeps its schema and its bytes.
+
+## 0.5.5
+
+- PATCH before 1.0.0: new exports and one new optional option, with no change to an old hash.
+- `HashOptions` has the option `skip`: the names of report fields that the hash does not read, at each depth. An empty list gives the old hash.
+- `packOutputForm` gives the normal form of the output of a packer. It has the placements, the overflow, the size and the moved obstacles, in the order of their ids. A placement without `turn` gets `turn: 0`. The form has no trace.
+- `probeHash` gives the hash of one probe of a strategy, with exact numbers by default. A refusal gives the token `REFUSED_PROBE`, with no reason text.
+- `fingerprintOf` gives one hash of the probe hashes of a strategy, by probe id. An engine gives it for each entry, so a bench reruns only the entries whose output changed.
+
+## 0.5.4
+
+- PATCH before 1.0.0: a new optional option. `SampleOptions` has the option `fixed`. Without it, a sample gives the same configs as before.
+- With `fixed`, each config of a sample has the fixed option at each named stage. A meta option of another stage of the same part goes out of the sample.
+- The sample refuses a stage or an option that the space does not have with a `RangeError`. It also refuses a fixed meta option with `meta: "skip"`, and a fixed option that the shape filter removes.
+- Two fixed options that a constraint forbids get a `RangeError` that names the broken constraints. `docs/STRATEGY-SPACE.md` tells the rules.
+- With `draw: "walk"`, the fixed stages draw first. Thus the other stages draw only from the options that keep the constraints with the fixed options. Without `fixed`, the walk keeps its order.
+
 ## 0.5.3
 
 - PATCH before 1.0.0: `checkSpace` accepts a new form that it refused before, and each space that was good stays good with the same configs.

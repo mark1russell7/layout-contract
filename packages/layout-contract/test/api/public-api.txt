@@ -129,6 +129,7 @@ ProcrustesOptions: build/index.d.ts#ProcrustesOptions
 RECORD_EPS: build/index.d.ts#RECORD_EPS
 RECORD_SCALE: build/index.d.ts#RECORD_SCALE
 RECT_SCATTERED: build/index.d.ts#RECT_SCATTERED
+REFUSED_PROBE: build/index.d.ts#REFUSED_PROBE
 Rect: build/measures.chunk.d.ts#Rect
 Region: build/measures.chunk.d.ts#Region
 RegistryCell: build/index.d.ts#RegistryCell
@@ -257,6 +258,7 @@ enumerateSpace: build/index.d.ts#enumerateSpace
 exercised: build/index.d.ts#exercised
 familyKind: build/index.d.ts#familyKind
 familyOf: build/measures.chunk.d.ts#familyOf
+fingerprintOf: build/index.d.ts#fingerprintOf
 fnv1a32: build/index.d.ts#fnv1a32
 grow: build/measures.chunk.d.ts#grow
 hardRuleOf: build/index.d.ts#hardRuleOf
@@ -280,6 +282,7 @@ overlapOf: build/measures.chunk.d.ts#overlapOf
 ownerDimension: build/index.d.ts#ownerDimension
 packHard: build/index.d.ts#packHard
 packLinks: build/measures.chunk.d.ts#packLinks
+packOutputForm: build/index.d.ts#packOutputForm
 paramActive: build/index.d.ts#paramActive
 paramLevels: build/index.d.ts#paramLevels
 paramProblem: build/index.d.ts#paramProblem
@@ -293,6 +296,7 @@ placedRect: build/index.d.ts#placedRect
 pointSegmentDistance: build/measures.chunk.d.ts#pointSegmentDistance
 portPoint: build/measures.chunk.d.ts#portPoint
 portfolio: build/index.d.ts#portfolio
+probeHash: build/index.d.ts#probeHash
 procrustesOf: build/index.d.ts#procrustesOf
 productSpace: build/index.d.ts#productSpace
 randomInt: build/index.d.ts#randomInt
@@ -430,6 +434,7 @@ export interface CatalogEntry {
   readonly optIn: boolean;
   readonly baseline?: true;
   readonly output?: readonly OutputRow[];
+  readonly fingerprint?: string;
   readonly options: Readonly<Record<string, AnyOption>>;
 }
 
@@ -634,6 +639,7 @@ export declare const HARD_RULE_VERSION = 2;
 ### build/index.d.ts#HashOptions
 export interface HashOptions {
   readonly grid?: number;
+  readonly skip?: readonly string[];
 }
 
 ### build/index.d.ts#INVALIDATED_FIELD
@@ -940,6 +946,9 @@ export declare const RECORD_SCALE = 1e3;
 ### build/index.d.ts#RECT_SCATTERED
 export declare const RECT_SCATTERED: CorpusFamily<LayoutInput>;
 
+### build/index.d.ts#REFUSED_PROBE
+export declare const REFUSED_PROBE = "refused";
+
 ### build/index.d.ts#RegistryCell
 export type RegistryCell = Readonly<Record<string, ParamValue>> & {
   readonly kind: string;
@@ -977,10 +986,10 @@ export interface RunEnv {
 export type RunFacts = Omit<LayoutRecord, "schema" | "input" | "inputHash" | "set" | "nodes" | "edges" | "shapes">;
 
 ### build/index.d.ts#STRATEGY_CATALOG_SCHEMA
-export declare const STRATEGY_CATALOG_SCHEMA = "strategy-catalog/2";
+export declare const STRATEGY_CATALOG_SCHEMA = "strategy-catalog/3";
 
 ### build/index.d.ts#STRATEGY_CATALOG_SCHEMAS
-export declare const STRATEGY_CATALOG_SCHEMAS: readonly ["strategy-catalog/1", "strategy-catalog/2"];
+export declare const STRATEGY_CATALOG_SCHEMAS: readonly ["strategy-catalog/1", "strategy-catalog/2", "strategy-catalog/3"];
 
 ### build/index.d.ts#STRATEGY_SPACE_SCHEMA
 export declare const STRATEGY_SPACE_SCHEMA = "strategy-space/1";
@@ -993,6 +1002,7 @@ export interface SampleOptions extends ShapeFilter {
   readonly meta?: "skip" | "sample";
   readonly maxTries?: number;
   readonly draw?: "reject" | "walk";
+  readonly fixed?: Readonly<Record<string, string>>;
 }
 
 ### build/index.d.ts#SelectCandidate
@@ -1410,6 +1420,9 @@ export declare function exercised(evidence: ExerciseEvidence): boolean;
 ### build/index.d.ts#familyKind
 export declare function familyKind(name: string, version: number): string;
 
+### build/index.d.ts#fingerprintOf
+export declare function fingerprintOf(hashes: Readonly<Record<string, string>>): string;
+
 ### build/index.d.ts#fnv1a32
 export declare function fnv1a32(text: string): number;
 
@@ -1456,6 +1469,9 @@ export declare function ownerDimension(name: string, spec: OwnerDimensionSpec): 
 ### build/index.d.ts#packHard
 export declare function packHard(input: LayoutInput, output: PackOutput, tolerance?: number, options?: ContainerTest): PackHard;
 
+### build/index.d.ts#packOutputForm
+export declare function packOutputForm(output: PackOutput): unknown;
+
 ### build/index.d.ts#paramActive
 export declare function paramActive(param: SpaceParam, values: Readonly<Record<string, ParamValue>>): boolean;
 
@@ -1490,6 +1506,9 @@ export declare function placedRect(box: LayoutBox): Rect | undefined;
 
 ### build/index.d.ts#portfolio
 export declare function portfolio<I, O>(id: string, members: readonly Member<I, O>[] | ((input: I) => readonly Member<I, O>[]), key: PortfolioKey<I, O>, options?: PortfolioOptions): Portfolio<I, O>;
+
+### build/index.d.ts#probeHash
+export declare function probeHash(run: () => unknown, refused: (error: unknown) => boolean, options?: HashOptions): string;
 
 ### build/index.d.ts#procrustesOf
 export declare function procrustesOf(base: readonly PlacedBox[], next: readonly PlacedBox[], options: ProcrustesOptions): number;
