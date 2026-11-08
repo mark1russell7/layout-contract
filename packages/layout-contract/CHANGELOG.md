@@ -1,5 +1,26 @@
 # Changelog
 
+## 0.6.0
+
+- MINOR before 1.0.0: `layoutText` breaks lines at the break places of UAX #14, not at white space only. Some texts get other lines.
+- The words come from `lineBreaks` of `@mark1russell7/typeset` 0.1.8 (Unicode 17.0.0). The word segments of the measure cache come from `wordBreaks`, and `graphemesOf` gives `graphemes`. The three use no locale.
+- A new text gets one call of `wordBreaks` for all its words: the words joined by line feeds. UAX #29 breaks on the two sides of a line feed, so each word gets the segments of a call on the word alone.
+- The local splitter and its `Intl.Segmenter` objects are gone. The module needs `Intl.Segmenter` when it loads, because typeset makes its segmenters at that time. Before, a runtime with no `Intl.Segmenter` got code points.
+- The install tree gets 2 packages through `@mark1russell7/typeset` 0.1.8: `@mark1russell7/collections` and `@mark1russell7/optional`. The browser-safety test examines their builds too.
+
+### Migration: the inputs with other lines
+
+- A text with a break place in a word: after a hyphen (`well-known`), after a slash or a dash, and between CJK characters.
+  - A line can end at that place in 0.6.0, with no space at its end. A one-line text keeps the text with no added space.
+- A text with a no-break space: the words on the two sides stay on one line, and the no-break space stays a no-break space. Before, it was a space between two words.
+- A text with an ideographic space: that space stays in its word, with its own advance. The same is true for each white space of Unicode that CSS keeps.
+- A text with a combining mark after a space: the mark starts the next word, as UAX #14 rule LB10 tells.
+- A text with a space before a closing bracket, or before `!`, `?`, `/`, `.`, `,`, `:` or `;`. UAX #14 has no break place at that space.
+  - The space stays in the word, so a line cannot end there. For example, `r .` stays on one line.
+  - The measure cache also gets one more request for the space.
+- A text with white space at its break places only gives the same lines, widths and cache counts as 0.5.5. The parity test against 0.2.21 in `src/text-breakers.test.ts` names each text of its corpus with other lines.
+- `docs/TEXT.md` gives the rules and the test against `LineBreakTest.txt`.
+
 ## 0.5.6
 
 - PATCH before 1.0.0: a new optional field. Each old call and each old file keeps its result, because the writer uses the new schema only for an entry with the field.

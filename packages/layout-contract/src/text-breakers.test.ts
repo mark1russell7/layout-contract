@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { deriveSeed, fnv1a32, random, type Random } from "@mark1russell7/rigor-generators";
 import * as released from "layout-contract-0221/text";
+import { breakWords, oldWords } from "../scripts/text-words.ts";
 import { createMeasurer, layoutText, TEXT_UNITS, textMeasures, type TextLayoutOptions } from "./text.ts";
 
 // The texts of the typeset corpus (github.com/mark1russell7/typeset, packages/corpus): the same seeds and draws, for the four
@@ -103,27 +104,31 @@ describe("layoutText with the typeset breakers", () => {
     expect(fnv1a32(TEXTS.join("")).toString(16)).toBe("d9facf2a");
   });
 
-  it("gives the result of 0.2.21 for each case and each variant (specificParity)", () => {
-    const head = createMeasurer(codePointPx);
-    const old = released.createMeasurer(codePointPx);
+  it("gives the result of 0.2.21 for each case where the break places of UAX #14 are the white space (specificParity)", () => {
     let cases = 0;
     let same = 0;
+    const changed = new Set<number>();
     const diffs: string[] = [];
     for (const [name, widths, variant] of VARIANTS) {
       for (const [t, text] of [...TEXTS, ...EDGE_TEXTS].entries()) {
         for (const w of widths) {
           const options = variant(w);
+          // A measurer for each case, so the counts of a case do not include the counts of the cases before it.
+          const head = createMeasurer(codePointPx);
+          const old = released.createMeasurer(codePointPx);
           const a = layoutText(text, { font: FONT, measurer: head, lineHeight: 20, ...options });
           const b = released.layoutText(text, { font: FONT, measurer: old, lineHeight: 20, ...options });
           cases++;
           if (JSON.stringify(a) === JSON.stringify(b) && JSON.stringify(head.stats()) === JSON.stringify(old.stats())) same++;
+          else if (oldWords(text) !== breakWords(text)) changed.add(t);
           else if (diffs.length < 5) diffs.push(`${name}, text ${t}, width ${w}`);
         }
       }
     }
-    console.log(`specificParity: ${same} of ${cases} cases are equal to 0.2.21`);
+    const texts = [...changed].map((t) => (t < TEXTS.length ? `corpus ${t}` : `edge ${JSON.stringify(EDGE_TEXTS[t - TEXTS.length])}`));
+    console.log(`specificParity: ${same} of ${cases} cases are equal to 0.2.21. The other cases are of ${changed.size} texts with other break places: ${texts.join(", ")}`);
     expect(diffs).toEqual([]);
-    expect(same).toBe(cases);
+    expect(same).toBeGreaterThan(0);
   }, 60_000);
 
   it("keeps the greedy line count with balanced, and total fit is not more ragged than greedy on 95% of the cases (specificBreakerOption)", () => {
@@ -148,7 +153,7 @@ describe("layoutText with the typeset breakers", () => {
           if (better) longNotWorse++;
         }
         for (const layout of [balanced, totalFit]) {
-          expect(layout.lines.join(" ").split(" ")).toEqual(greedy.lines.join(" ").split(" "));
+          expect(layout.lines.join("").replace(/ /g, "")).toBe(greedy.lines.join("").replace(/ /g, ""));
           expect(layout.width).toBe(greedy.width);
         }
       }

@@ -7,6 +7,8 @@
 // A head with `createTextLayoutCache` gets a third arm: the same calls through one new layout cache for each round, so the first pass over the labels fills it.
 // A head with `createTextCharset` gets the arms of L71: passes over the labels with a cold measurer, with `sizing` at "exact" and at "bound-first", and one "exact" arm again as the A/A check.
 // The L71 arms use a table of proportional advances (`text-labels.ts`). The table is cheap, so these times leave out the cost of a real measure of a browser or a shaper.
+// The arms of L144 compare the base and the head in the same rounds: texts that the memo of the words does not hold, so each layout splits its text,
+// and long words with `wordBreak: "anywhere"`, so each layout takes the overflow path and cuts the last line.
 // One untimed call of each arm comes before the rounds, as the warm-up. The script writes a Markdown table with the CPU model to stdout.
 // Start it only in CI (`.github/workflows/text-bench.yml`). A shared computer gives times that are not stable.
 import { cpus } from "node:os";
@@ -37,6 +39,29 @@ function round(text) {
   const measurer = text.createMeasurer(advance);
   const start = performance.now();
   for (let i = 0; i < calls; i++) text.layoutText(labels[i % labels.length], { ...options, measurer });
+  return performance.now() - start;
+}
+
+/** 8192 distinct texts of 3 labels and a number. The memo of the words holds 4096 texts and forgets the oldest, so each layout of a round splits its text. */
+const SPLIT_TEXTS = Array.from({ length: 8192 }, (_, i) => `${labels[i % labels.length]} ${labels[(i * 7 + 3) % labels.length]} n${i}`);
+
+/** Words of 6 labels with no space, approximately 48 characters: wider than the wrap width of `OVERFLOW`. */
+const OVERFLOW_TEXTS = labels.map((_, i) => Array.from({ length: 6 }, (_, k) => labels[(i + k * 17) % labels.length]).join(""));
+const OVERFLOW = { wrapWidth: 60, maxLines: 2, wordBreak: "anywhere" };
+
+/** This function gives the milliseconds of `calls` layouts of texts that miss the memo of the words. */
+function splitRound(text) {
+  const measurer = text.createMeasurer(advance);
+  const start = performance.now();
+  for (let i = 0; i < calls; i++) text.layoutText(SPLIT_TEXTS[i % SPLIT_TEXTS.length], { ...options, measurer });
+  return performance.now() - start;
+}
+
+/** This function gives the milliseconds of `calls` layouts on the overflow path. */
+function overflowRound(text) {
+  const measurer = text.createMeasurer(advance);
+  const start = performance.now();
+  for (let i = 0; i < calls; i++) text.layoutText(OVERFLOW_TEXTS[i % OVERFLOW_TEXTS.length], { ...options, ...OVERFLOW, measurer });
   return performance.now() - start;
 }
 
@@ -99,8 +124,23 @@ for (const family of families) {
     builds[`cold ${label}: ${family.name}`] = { text: head, run, times: [], segmenters: 0 };
   }
 }
+roundsOf(Object.keys(builds).filter((name) => !compared.includes(name)));
+
+// The arms of L144. Each pair has the base and the head in the same rounds, in the order ABBA.
+const PAIRS = [
+  ["split of new texts", splitRound],
+  ["overflow path", overflowRound],
+];
+const paired = [];
+for (const [label, run] of PAIRS) {
+  for (const name of ["base", "head"]) {
+    run(builds[name].text);
+    builds[`${name}: ${label}`] = { text: builds[name].text, run, times: [], segmenters: 0 };
+    paired.push(`${name}: ${label}`);
+  }
+}
+roundsOf(paired);
 const arms = Object.keys(builds);
-roundsOf(arms.filter((name) => !compared.includes(name)));
 
 const median = (v) => [...v].sort((a, b) => a - b)[Math.floor(v.length / 2)];
 const baseMs = median(builds.base.times);
@@ -116,6 +156,7 @@ for (const name of arms) {
 console.log("");
 console.log(`The head takes ${(headMs / baseMs).toFixed(3)} of the time of the base.`);
 if (arms.includes("head with the cache")) console.log(`The head with the cache takes ${(median(builds["head with the cache"].times) / headMs).toFixed(3)} of the time of the head.`);
+for (const [label] of PAIRS) console.log(`On the ${label}, the head takes ${(median(builds[`head: ${label}`].times) / median(builds[`base: ${label}`].times)).toFixed(3)} of the time of the base.`);
 console.log("");
 if (families.length > 0) {
   console.log("`sizing` on one cold pass, with the options of the bench and the table of proportional advances. The counts do not change from run to run. The slack is (bound - exact) / exact of the whole label on one line.");

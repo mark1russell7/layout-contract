@@ -20,16 +20,29 @@ The subpath `@mark1russell7/layout-contract/text` lays out the text of a label: 
 
 ## The rules of `layoutText`
 
-1. With `maxChars`, a text with more grapheme clusters keeps `maxChars` clusters. The ellipsis is the last of them.
-2. The breaker splits the text into words at white space. It collapses each run of white space to one space, as `white-space: normal` in CSS.
-3. The width of a word is the sum of the advances of its word segments (`Intl.Segmenter`). Labels that share words thus share cache entries.
+1. With `maxChars`, a text with more grapheme clusters keeps `maxChars` clusters. The ellipsis is the last of them. The clusters are the clusters of UAX #29 (`graphemes` of `@mark1russell7/typeset`), with no locale.
+2. The breaker splits the text into words at the break places of UAX #14 (`lineBreaks` of `@mark1russell7/typeset`, Unicode 17.0.0). A word is the text from one break place to the next, with no white space at its end.
+   - A word with white space after it has a gap of one space. A word with no white space after it, for example after a hyphen or a CJK character, has a gap of no width. A line can end at each gap.
+   - The white space of CSS collapses to one space, as `white-space: normal` in CSS. It is the space, the tab, the line feed, the form feed and the carriage return.
+   - The other mandatory breaks of UAX #14 (the classes `BK` and `NL`) also collapse.
+   - A no-break space and an ideographic space are not white space of CSS. They stay in their word.
+   - A line feed in the text is white space, as in CSS. Only the end of the text ends the last line.
+3. The width of a word is the sum of the advances of its word segments (`wordBreaks` of `@mark1russell7/typeset`, UAX #29). Labels that share words thus share cache entries.
 4. When the line fits in `maxWidth`, the text stays on one line. The box is the text plus `padding`, clamped to `minWidth` and `maxWidth`.
 5. Else the breaker breaks the text into lines of `wrapWidth`. The box has the width `wrapWidth` plus `padding`. The option `breaker` selects the breaker:
-   - `greedy` (the default) adds each word to the current line while the line stays in `wrapWidth`. Its lines are the lines of 0.2.21.
+   - `greedy` (the default) adds each word to the current line while the line stays in `wrapWidth`. Its lines are the lines of 0.2.21 when the break places of the text are at its white space only.
    - `total-fit` is the total fit breaker of Knuth and Plass. It makes the sum of the demerits of all lines as small as possible, so the lines have more equal widths.
    - `balanced` keeps the line count of `greedy`. It finds the smallest width with that count, as `text-wrap: balance` in CSS.
 6. A word that is wider than `wrapWidth` stays whole with `wordBreak: "keep"`. With `wordBreak: "anywhere"`, it breaks between grapheme clusters, as `overflow-wrap: anywhere` in CSS. Each breaker keeps these forced breaks.
 7. With `maxLines`, a longer text keeps `maxLines` lines. The last line drops clusters until the line and the ellipsis fit in `wrapWidth`.
+
+## The test of the break places
+
+`src/text-linebreak.test.ts` lays out each of the 19338 lines of `LineBreakTest.txt` of Unicode 17.0.0 with a line width smaller than each word. So each break place ends a line.
+
+- The lines must be the text between the break places of the file, with the white space of rule 2 collapsed.
+- The test skips no line. A mandatory break (`BK`, `CR`, `LF`, `NL`) is a break place there too, because each break place ends a line at that width.
+- The file is in `test/fixtures` with gzip. The test checks its SHA-256 against the pin of the conformance gate of `@mark1russell7/typeset`.
 
 ## The layout cache
 

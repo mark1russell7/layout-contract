@@ -246,8 +246,8 @@ importers:
         specifier: ^0.1.0
         version: 0.1.6
       '@mark1russell7/typeset':
-        specifier: ^0.1.0
-        version: 0.1.5
+        specifier: ^0.1.8
+        version: 0.1.8
     devDependencies:
       '@mark1russell7/cue':
         specifier: ^2.1.1
@@ -521,6 +521,10 @@ packages:
     resolution: {integrity: sha512-B2cS+i9eTjgW9XE4atBQfYlpbwxMaYqp9TJTQOXS9eKTIBUYTdRmpzuIhllXEh+PwNHh3UHEIs1u2A1aqbXrvg==}
     engines: {node: '>=22.12'}
 
+  '@mark1russell7/collections@0.9.7':
+    resolution: {integrity: sha512-mmuk6M1X6DAreunfb3OspkYN2HMZ75IrJ6Dgm8ensXag0KdgFJOAWZucQ0ubWCRVYWk+PdFhT1f5aI6/KY+nsg==}
+    engines: {node: '>=22.12'}
+
   '@mark1russell7/conventions@0.35.0':
     resolution: {integrity: sha512-zEG/7kK6BDsgJu1IXD4Q70Odg1N1A2mzgu/Hp/Qk8ZYJKhgiuSBt0ATHhc8xDZb4AtIstP/6QTUxCzMtRjOesg==}
     engines: {node: '>=22'}
@@ -544,6 +548,10 @@ packages:
 
   '@mark1russell7/layout-contract@0.5.3':
     resolution: {integrity: sha512-TGueNRUCq097mpbl+LluJNVtcikHoacmAfR+6Jur2GJIiX8brYxn1+45VW96+YA0z+lkCmJ7G6IhIEluF9A3DQ==}
+    engines: {node: '>=22.12'}
+
+  '@mark1russell7/optional@1.2.0':
+    resolution: {integrity: sha512-vS5jF21WC/VApRv4p8afRZahcMl9cuNp03LxbVngY9nYkzq+S7Oit6ksySt2baML+tp46UF60sxnHxn1jlwtTg==}
     engines: {node: '>=22.12'}
 
   '@mark1russell7/packing@0.10.2':
@@ -596,6 +604,10 @@ packages:
 
   '@mark1russell7/typeset@0.1.5':
     resolution: {integrity: sha512-bPRzyy2qgs+5DhPYt0ktcyEHzyNyZnh+jgKE16y3spDkxw84z57izqZW39xIbTdvaHqdspwDAC3pli2XS7Jnzw==}
+    engines: {node: '>=22.12'}
+
+  '@mark1russell7/typeset@0.1.8':
+    resolution: {integrity: sha512-UZxpqPkcVeU8Ws9r6QaAbd6s9F/zxy3qXMMh9RMJm4YZhwDRaI/VLkJj3lD3zYu8xLa9wwhHGfjwDbbRMv4CSg==}
     engines: {node: '>=22.12'}
 
   '@oxc-project/types@0.155.0':
@@ -1760,6 +1772,10 @@ snapshots:
 
   '@mark1russell7/collections@0.1.0': {}
 
+  '@mark1russell7/collections@0.9.7':
+    dependencies:
+      '@mark1russell7/optional': 1.2.0
+
   '@mark1russell7/conventions@0.35.0':
     dependencies:
       yaml: 2.9.1
@@ -1784,6 +1800,8 @@ snapshots:
     dependencies:
       '@mark1russell7/rigor-generators': 0.1.6
       '@mark1russell7/typeset': 0.1.5
+
+  '@mark1russell7/optional@1.2.0': {}
 
   '@mark1russell7/packing@0.10.2':
     dependencies:
@@ -1826,6 +1844,11 @@ snapshots:
 
   '@mark1russell7/typeset@0.1.5':
     dependencies:
+      '@mark1russell7/rigor-generators': 0.1.6
+
+  '@mark1russell7/typeset@0.1.8':
+    dependencies:
+      '@mark1russell7/collections': 0.9.7
       '@mark1russell7/rigor-generators': 0.1.6
 
   '@oxc-project/types@0.155.0': {}

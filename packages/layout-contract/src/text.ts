@@ -1,4 +1,6 @@
 import { breakers, linesOf, type Box, type Item, type Penalty } from "@mark1russell7/typeset/breaking";
+import { graphemes, lineBreaks } from "@mark1russell7/typeset/segmentation";
+import { partsOfWords } from "./word-parts.ts";
 import type { MeasureSpec } from "./measures.ts";
 
 /**
@@ -101,32 +103,34 @@ export function canvasAdvance(context: CanvasTextContext): AdvanceFn {
   };
 }
 
-/** A word of a text: its segments, which the measurer measures and caches one by one. */
+/**
+ * A word of a text: the text from one break place of UAX #14 to the next, with no white space at its end.
+ * Its parts are its word segments (UAX #29), which the measurer measures and caches one by one.
+ */
 interface Word {
   readonly text: string;
   readonly parts: readonly string[];
+  /** This value is `true` when white space follows the word in the text. Then one space comes after the word. Else the gap has no width. */
+  readonly spaced: boolean;
 }
 
-const SPACE = /^\s+$/u;
+/**
+ * A run of the white space that collapses: the white space of CSS (space, tab, line feed, form feed, carriage return) and the other mandatory breaks of UAX #14.
+ * A no-break space or an ideographic space stays in its word, as in CSS.
+ */
+const SPACES = /[ \t\n\v\f\r\u0085\u2028\u2029]+/gu;
 
-/** The segmenters of the module. A new `Intl.Segmenter` loads the data of the locale, so the module makes each granularity only once. */
-const segmenters = /* @__PURE__ */ new Map<"word" | "grapheme", Intl.Segmenter | null>();
-
-/** This function gives the segmenter of a granularity, or `null` without `Intl.Segmenter`. */
-function segmenterOf(granularity: "word" | "grapheme"): Intl.Segmenter | null {
-  let s = segmenters.get(granularity);
-  if (s === undefined) {
-    s = typeof Intl !== "undefined" && typeof Intl.Segmenter === "function" ? new Intl.Segmenter(undefined, { granularity }) : null;
-    segmenters.set(granularity, s);
-  }
-  return s;
-}
+/** The white space of `SPACES` at the end of a text. */
+const TRAILING_SPACE = /[ \t\n\v\f\r\u0085\u2028\u2029]+$/u;
 
 /** The largest count of texts in the memo of `wordsOf`. A page often asks for the same labels many times. */
 const WORDS_MEMO = 4096;
 const wordsMemo = /* @__PURE__ */ new Map<string, readonly Word[]>();
 
-/** This function splits the text into words at white space. Each word holds its word segments (`Intl.Segmenter`), so words that share segments share the cache. */
+/**
+ * This function splits the text into words at the break places of UAX #14 (`lineBreaks` of `@mark1russell7/typeset`).
+ * Each word holds its word segments, so words that share segments share the cache.
+ */
 function wordsOf(text: string): readonly Word[] {
   const known = wordsMemo.get(text);
   if (known !== undefined) return known;
@@ -137,35 +141,49 @@ function wordsOf(text: string): readonly Word[] {
   return words;
 }
 
-/** This function gives the words of `wordsOf` with no memo. */
+/**
+ * This function gives the words of `wordsOf` with no memo.
+ * A break place of UAX #14 comes after a run of white space, so the white space of a piece is at its end. That white space goes, and the word records it.
+ * White space inside a piece, for example before a closing bracket, collapses to one space, as `white-space: normal` in CSS.
+ * A mandatory break inside the text, for example at a line feed, is white space as in CSS. Only the end of the text ends the last line.
+ */
 function splitWords(text: string): Word[] {
-  const words: Word[] = [];
-  let parts: string[] = [];
-  const flush = (): void => {
-    if (parts.length > 0) words.push({ text: parts.join(""), parts });
-    parts = [];
-  };
-  const segmenter = segmenterOf("word");
-  if (segmenter !== null) {
-    for (const s of segmenter.segment(text)) {
-      if (SPACE.test(s.segment)) flush();
-      else parts.push(s.segment);
+  const words: { text: string; spaced: boolean }[] = [];
+  let start = 0;
+  for (const place of lineBreaks(text)) {
+    const piece = text.slice(start, place.offset);
+    start = place.offset;
+    const body = piece.replace(TRAILING_SPACE, "").replace(SPACES, " ");
+    const spaced = body.length < piece.length;
+    // White space at the start of a piece, for example after a line feed, is the gap after the word before it. A piece of only white space adds no word.
+    const word = body.startsWith(" ") ? body.slice(1) : body;
+    if (word.length < body.length || body === "") {
+      const last = words[words.length - 1];
+      if (last !== undefined) last.spaced = true;
     }
-  } else {
-    for (const s of text.split(/(\s+)/u)) {
-      if (s === "" || SPACE.test(s)) flush();
-      else parts.push(s);
-    }
+    if (word === "") continue;
+    words.push({ text: word, spaced });
   }
-  flush();
-  return words;
+  // One call of `wordBreaks` gives the segments of all the words of the text.
+  const parts = partsOfWords(words.map((w) => w.text));
+  return words.map((w, i) => ({ text: w.text, parts: parts[i]!, spaced: w.spaced }));
 }
 
-/** This function gives the grapheme clusters of a text. Without `Intl.Segmenter`, it gives the code points. */
+/** This function gives the grapheme clusters of a text by UAX #29 (`graphemes` of `@mark1russell7/typeset`), with no locale. */
 export function graphemesOf(text: string): string[] {
-  const segmenter = segmenterOf("grapheme");
-  if (segmenter !== null) return Array.from(segmenter.segment(text), (s) => s.segment);
-  return Array.from(text);
+  return [...graphemes(text)];
+}
+
+/** This function gives the count of the gaps of one space between the words: one after each spaced word but the last. */
+function spacesOf(words: readonly Word[]): number {
+  let count = 0;
+  for (let i = 0; i < words.length - 1; i++) if (words[i]!.spaced) count++;
+  return count;
+}
+
+/** This function joins the words with their gaps: one space after a spaced word, and nothing after another word. */
+function joinWords(words: readonly Word[]): string {
+  return words.map((w, i) => (i < words.length - 1 && w.spaced ? `${w.text} ` : w.text)).join("");
 }
 
 /** The digits, as a value for `createTextCharset`. */
@@ -317,6 +335,9 @@ export interface TextLayout {
 /** A forced break: a penalty with no text, no width and the cost `-Infinity`. */
 const FORCED: Penalty = { type: "penalty", text: "", width: 0, cost: -Infinity, flagged: false };
 
+/** The glue between two words with no white space between them, for example after a hyphen or between two CJK characters. A line can end there. */
+const NO_GAP: Item = { type: "glue", text: "", width: 0 };
+
 /** This function gives the box of a part of a word. */
 /** This function gives the units of a segment: the bound for one character times the length, or a measure when there is no bound. */
 function advanceOf(segment: string, font: string, measurer: TextMeasurer, bound: number | undefined): number {
@@ -370,7 +391,7 @@ export function layoutText(text: string, options: TextLayoutOptions): TextLayout
   const words = wordsOf(source);
   const maxWidth = options.maxWidth ?? (options.wrapWidth === undefined ? Infinity : options.wrapWidth + padding);
   const oneLine = (natural: number, bounded: boolean): TextLayout => {
-    const one = words.map((w) => w.text).join(" ");
+    const one = joinWords(words);
     const px = natural / TEXT_UNITS;
     const box = Math.min(maxWidth, Math.max(options.minWidth ?? 0, px + padding));
     const layout: TextLayout = { lines: [one], widths: [px], lineCount: 1, width: box, height: lineHeight, truncated };
@@ -380,7 +401,7 @@ export function layoutText(text: string, options: TextLayoutOptions): TextLayout
   // The raw text, not its words: the check sees a tab or a line break before they collapse.
   const unit = charset?.covers(source) === true ? charset.unit(font, measurer) : undefined;
   if (sizing === "bound-first" && unit !== undefined) {
-    const natural = words.reduce((s, w) => s + w.text.length, Math.max(0, words.length - 1)) * unit;
+    const natural = words.reduce((s, w) => s + w.text.length, spacesOf(words)) * unit;
     if (options.wrapWidth === undefined || natural / TEXT_UNITS + padding <= maxWidth) return oneLine(natural, true);
   }
   const bound = sizing === "bound" ? unit : undefined;
@@ -388,16 +409,16 @@ export function layoutText(text: string, options: TextLayoutOptions): TextLayout
   const width = (w: Word): number => w.parts.reduce((s, p) => s + advanceOf(p, font, measurer, bound), 0);
   const lineUnits = (line: string): number => {
     const ws = wordsOf(line);
-    return ws.reduce((s, w) => s + width(w), 0) + space * Math.max(0, ws.length - 1);
+    return ws.reduce((s, w) => s + width(w), 0) + space * spacesOf(ws);
   };
   const widths = words.map(width);
-  const natural = widths.reduce((s, w) => s + w, 0) + space * Math.max(0, words.length - 1);
+  const natural = widths.reduce((s, w) => s + w, 0) + space * spacesOf(words);
 
   const fits = natural / TEXT_UNITS + padding <= maxWidth;
   if (options.wrapWidth === undefined || fits) return oneLine(natural, bound !== undefined);
 
   const limit = Math.round(options.wrapWidth * TEXT_UNITS);
-  // The items of the breaker: a box for each word, and glue of one space between two words.
+  // The items of the breaker: a box for each word, and glue between two words. The glue is one space after a spaced word, else it has no width.
   const items: Item[] = [];
   /** This function puts a word that is wider than a line on new lines, with a break between grapheme clusters. Each forced penalty ends a line. */
   const split = (word: Word): void => {
@@ -421,7 +442,7 @@ export function layoutText(text: string, options: TextLayoutOptions): TextLayout
     const w = widths[i]!;
     if (w > limit && !keep) split(word);
     else {
-      if (items.length > 0) items.push({ type: "glue", text: " ", width: space });
+      if (items.length > 0) items.push(words[i - 1]!.spaced ? { type: "glue", text: " ", width: space } : NO_GAP);
       items.push({ type: "box", text: word.text, width: w });
     }
   });

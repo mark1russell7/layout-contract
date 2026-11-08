@@ -274,6 +274,12 @@ const NODE_IMPORT = /^(node:|fs$|path$|os$|crypto$|worker_threads$|child_process
 const NODE_GLOBAL = /\b(process\.|Buffer\.|require\(|__dirname|__filename)/;
 /** The runtime dependencies of the package. Each one is the home of an area in the map of homes. The test examines its build too. */
 const RUNTIME_DEPENDENCIES = ["@mark1russell7/rigor-generators", "@mark1russell7/typeset"];
+/**
+ * The packages that the builds of the runtime dependencies import, and that the package itself does not import.
+ * Each one is the home of an area in the map of homes. The test examines its build too.
+ * `@mark1russell7/typeset` 0.1.8 imports `@mark1russell7/collections`, and that package imports `@mark1russell7/optional`.
+ */
+const TRANSITIVE_DEPENDENCIES = ["@mark1russell7/collections", "@mark1russell7/optional"];
 
 /** This function gives the local files of the import closure of a module, and the external imports. */
 function closure(entry: URL): { files: string[]; external: string[] } {
@@ -294,29 +300,37 @@ function closure(entry: URL): { files: string[]; external: string[] } {
   return { files, external: [...external] };
 }
 
-/** This function gives the imports that are not on the list of runtime dependencies. A module of Node is not on the list. */
+/** This function gives the package of an import: `@scope/name/sub` gives `@scope/name`, and `name/sub` gives `name`. */
+function packageOf(specifier: string): string {
+  const parts = specifier.split("/");
+  return specifier.startsWith("@") ? parts.slice(0, 2).join("/") : parts[0]!;
+}
+
+/** This function gives the imports of a build whose package is not on the lists of runtime and transitive dependencies. A module of Node is not on the lists. */
 function unlisted(external: readonly string[]): string[] {
-  return external.filter((s) => !RUNTIME_DEPENDENCIES.includes(s));
+  return external.filter((s) => !RUNTIME_DEPENDENCIES.includes(packageOf(s)) && !TRANSITIVE_DEPENDENCIES.includes(packageOf(s)));
 }
 
 /**
- * This function examines the build of a dependency, and then the build of each package that it imports.
+ * This function examines the build file of an import, and then the build file of each import of that build.
  * Each import resolves from its importer, so the test examines the copy that the importer loads.
+ * A package import gives the `main` file of the package. A subpath import gives the file of its entry in `exports`.
  */
 function examineBuild(dep: string, from: NodeRequire, seen: Set<string>): void {
-  const manifest = from.resolve(`${dep}/package.json`);
-  if (seen.has(manifest)) return;
-  seen.add(manifest);
+  const manifest = from.resolve(`${packageOf(dep)}/package.json`);
   const main = (JSON.parse(readFileSync(manifest, "utf8")) as { main: string }).main;
-  // A build can have chunks: the closure of its local imports imports only the packages of the list.
-  const { files, external } = closure(new URL(main, pathToFileURL(manifest)));
+  const entry = dep === packageOf(dep) ? new URL(main, pathToFileURL(manifest)) : pathToFileURL(from.resolve(dep));
+  if (seen.has(entry.href)) return;
+  seen.add(entry.href);
+  // A build can have chunks: the closure of its local imports imports only the packages of the lists.
+  const { files, external } = closure(entry);
   expect(unlisted(external), dep).toEqual([]);
   for (const f of files) {
     const code = readFileSync(new URL(f), "utf8").replace(/\/\/.*|\/\*[\s\S]*?\*\//g, "");
     expect(NODE_GLOBAL.test(code), f).toBe(false);
   }
   const own = createRequire(manifest);
-  for (const next of external) examineBuild(next, own, seen);
+  for (const next of new Set(external)) examineBuild(next, own, seen);
 }
 
 describe("browser safety", () => {
@@ -342,8 +356,13 @@ describe("browser safety", () => {
     expect(seen.size).toBeGreaterThanOrEqual(RUNTIME_DEPENDENCIES.length);
   });
 
-  it("refuses a module of Node and a package outside the list in a build", () => {
-    expect(unlisted(["node:fs", "fs", "left-pad", ...RUNTIME_DEPENDENCIES])).toEqual(["node:fs", "fs", "left-pad"]);
+  it("refuses a module of Node and a package outside the lists in a build", () => {
+    expect(unlisted(["node:fs", "fs", "left-pad", ...RUNTIME_DEPENDENCIES, ...TRANSITIVE_DEPENDENCIES])).toEqual(["node:fs", "fs", "left-pad"]);
+    expect(unlisted(["@mark1russell7/collections/summary-tree", "node:fs/promises", "fs/promises", "@other/collections/summary-tree"])).toEqual(["node:fs/promises", "fs/promises", "@other/collections/summary-tree"]);
+  });
+
+  it("keeps the transitive dependencies out of the package itself", () => {
+    for (const dep of TRANSITIVE_DEPENDENCIES) expect(RUNTIME_DEPENDENCIES, dep).not.toContain(dep);
   });
 });
 

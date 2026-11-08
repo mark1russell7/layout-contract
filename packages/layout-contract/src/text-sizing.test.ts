@@ -3,6 +3,7 @@ import { mulberry32 } from "@mark1russell7/rigor-generators";
 import * as released from "layout-contract-0221/text";
 import { describe, expect, it } from "vitest";
 import { DIGIT_LABELS, helveticaAdvance, LETTER_LABELS } from "../scripts/text-labels.ts";
+import { breakWords, oldWords } from "../scripts/text-words.ts";
 import {
   createMeasurer,
   createTextCharset,
@@ -449,9 +450,11 @@ describe("the default stays exact", () => {
     );
   });
 
-  it("gives the result and the counts of the npm build of 0.2.21", () => {
+  it("gives the result and the counts of the npm build of 0.2.21 for each text with the same words", () => {
     fc.assert(
       fc.property(asciiText, fc.constantFrom(...OPTIONS.filter((o) => o.breaker === undefined)), (text, options) => {
+        // A text with other words, for example a space before ".", gets other lines or counts (CHANGELOG 0.6.0).
+        fc.pre(oldWords(text) === breakWords(text));
         const old = released.createMeasurer(helveticaAdvance);
         const measurer = createMeasurer(helveticaAdvance);
         const want = released.layoutText(text, { font: FONT, lineHeight: 16, ...options, measurer: old } as Parameters<typeof released.layoutText>[1]);
