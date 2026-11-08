@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.5.5
+
+- PATCH before 1.0.0: new exports and one new optional option, with no change to an old hash.
+- `HashOptions` has the option `skip`: the names of report fields that the hash does not read, at each depth. An empty list gives the old hash.
+- `packOutputForm` gives the normal form of the output of a packer. It has the placements, the overflow, the size and the moved obstacles, in the order of their ids. A placement without `turn` gets `turn: 0`. The form has no trace.
+- `probeHash` gives the hash of one probe of a strategy, with exact numbers by default. A refusal gives the token `REFUSED_PROBE`, with no reason text.
+- `fingerprintOf` gives one hash of the probe hashes of a strategy, by probe id. An engine gives it for each entry, so a bench reruns only the entries whose output changed.
+
 ## 0.5.4
 
 - PATCH before 1.0.0: a new optional option. `SampleOptions` has the option `fixed`. Without it, a sample gives the same configs as before.
