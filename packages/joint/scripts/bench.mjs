@@ -7,6 +7,7 @@
 //   Each of run, plan, resume and costs takes --pair-budget <text>: the time budget of each stage of a pair (parsePairBudget). A run with a budget holds its stamp.
 //   resume --records <dir> --out <dir> [--slice pr] [--corpus <set>] [--cover on] [--pairs <id,id>]   keeps the pairs of an earlier run with the stamp of this code (L101)
 //   costs --records <dir> [--corpus <set>] [--top <n>]                      prints the wall time of each pair, from the most time to the least
+//   margins --records <dir> --run <id> --commit <sha> [--logs <file>] [--corpus <set>]   prints the margin set of a run as JSON (L143)
 //   confirm --confirm on --records <dir> --out <dir>   writes the decision of L40: <dir>/confirm.json and <dir>/confirm.md
 //   analyze --records <dir> --out <dir> [--slice pr] [--corpus <set>] [--allow-missing <file>] [--subset <file>] [--baseline <pair[,pair]>]
 //           [--compare <a:b[,a:b]>] [--exclude-pack <id[,id]>] [--oracle-without <id[,id]>] [--times <spec[,spec]>] [--jobs <file>] [--rank-top <n>]
@@ -118,6 +119,12 @@ import {
   runShard,
   runStamp,
   SHARD_DEADLINE_MINUTES,
+  COST_MODEL,
+  MARGIN_SETS,
+  fitMarginSet,
+  pairTotals,
+  marginNote,
+  pickMarginSet,
   strategyCosts,
   strategyCostTable,
   SET_V2,
@@ -208,14 +215,18 @@ function shardPlan() {
   const pairs = expectedPairs.length + iterPlanPairs(iterate);
   const passes = lanePasses(lanes);
   const prior = priorLines(rows);
-  if (prior === undefined) return { rows, shards, plan: planShards(costedRows(rows, pairs, passes), shards), done: new Set(), prior: [] };
+  // The margins of the pair set of this plan, or of the set with the largest overlap (L143). The note says which set the plan uses.
+  const pick = pickMarginSet(MARGIN_SETS, set, expectedPairs);
+  const margins = pick?.set;
+  const note = marginNote(pick, expectedPairs, "cost-margins.json");
+  if (prior === undefined) return { rows, shards, plan: planShards(costedRows(rows, pairs, passes, margins), shards), done: new Set(), prior: [], note };
   // With a prior run, each input costs only its missing pairs, and each pair costs its measured time against the plan.
   const done = new Set(prior.map((line) => doneKey(line.input, line.strategy)));
-  const units = costedRows(rows, 1, 0);
+  const units = costedRows(rows, 1, 0, margins);
   const unitOf = new Map(units.map((item) => [item.id, item.cost]));
   const factors = pairFactors(prior, (id) => unitOf.get(id));
   const items = units.map((item) => ({ ...item, cost: measuredCost(item.cost, expectedPairs.filter((pair) => !done.has(doneKey(item.id, pair))), factors) }));
-  return { rows, shards, plan: planShards(items, shards), done, prior };
+  return { rows, shards, plan: planShards(items, shards), done, prior, note };
 }
 
 /**
@@ -289,10 +300,10 @@ function analysisInputs(slice) {
 }
 
 /** This function gives the id, the spec and the planned cost of each row. */
-function costedRows(rows, pairs, passes) {
+function costedRows(rows, pairs, passes, margins) {
   return rows.map(({ input, entry }) => {
     const spec = entry.id.replace(/\/s\d+$/, "");
-    return { id: entry.id, spec, cost: plannedCost(spec, input.boxes.length, input.edges?.length ?? 0, pairs, passes) };
+    return { id: entry.id, spec, cost: plannedCost(spec, input.boxes.length, input.edges?.length ?? 0, pairs, passes, margins) };
   });
 }
 
@@ -358,8 +369,9 @@ if (command === "check") {
   }
   if (failed) process.exit(1);
 } else if (command === "plan") {
-  const { plan, done, rows } = shardPlan();
+  const { plan, done, rows, note } = shardPlan();
   const min = (ms) => (ms / 60000).toFixed(1);
+  console.log(note);
   if (args.prior !== undefined) console.log(`${done.size} pairs of ${rows.length * expectedPairs.length} have records. The plan holds only the missing pairs.`);
   const loads = plan.loads.map((l, i) => ({ l, i })).sort((a, b) => b.l - a.l);
   const sum = plan.loads.reduce((s, l) => s + l, 0);
@@ -468,6 +480,36 @@ if (command === "check") {
   const pairLines = [...seen].map((key) => byKey.get(key));
   writeFileSync(join(args.out, PRIOR_PAIRS_FILE), pairLines.map((line) => JSON.stringify(line) + "\n").join(""));
   console.log(`Stamp ${stamp}: ${pairLines.length} of ${rows.length * expectedPairs.length} pairs kept. Left out: ${otherStamp} of another stamp, ${outside} of another input or pair, ${broken} cut lines, ${byKey.size - pairLines.length} with no record.`);
+} else if (command === "margins") {
+  // The margin set of a run (L143). It writes the set as JSON.
+  //   margins --records <dir> --run <id> --commit <sha>: the times come from the pair files of the run. The lines of the most common stamp count.
+  //   margins --records <dir> --logs <file> --run <id> --commit <sha>: a run before the pair files (L29). The times come from the line of each input in the log of the run.
+  //     Then the pairs are the strategies of the record files, and each input has each pair.
+  if (args.records === undefined || args.run === undefined || args.commit === undefined) throw new RangeError("The arguments of margins are --records <dir> --run <id> --commit <sha>, and --logs <file> for a run with no pair files.");
+  const files = (pattern) => readdirSync(args.records, { recursive: true }).map(String).filter((n) => pattern.test(n)).sort();
+  const jsonLines = (name) => readFileSync(join(args.records, name), "utf8").split("\n").filter((t) => t.trim() !== "").map((t) => JSON.parse(t));
+  let pairs;
+  let totals;
+  if (args.logs === undefined) {
+    const all = files(/pairs-\d+\.ndjson$/).flatMap(jsonLines);
+    const counts = new Map();
+    for (const line of all) counts.set(line.stamp, (counts.get(line.stamp) ?? 0) + 1);
+    const stamp = [...counts].sort((a, b) => b[1] - a[1])[0]?.[0];
+    const lines = all.filter((line) => line.stamp === stamp);
+    console.error(`${lines.length} lines of the stamp ${stamp}, ${all.length - lines.length} of other stamps.`);
+    pairs = lines.map((line) => line.strategy);
+    totals = pairTotals(lines);
+  } else {
+    pairs = [...new Set(files(/records-\d+\.jsonl$/).flatMap(jsonLines).map((record) => record.strategy))];
+    const seen = new Map();
+    for (const match of readFileSync(args.logs, "utf8").matchAll(/(\S+): \d+ records, \d+ skipped, ([\d.]+) ms/g)) seen.set(match[1], Number(match[2]));
+    totals = [...seen].map(([input, wallMs]) => ({ input, wallMs, pairs: pairs.length }));
+    console.error(`${totals.length} inputs in the log, ${pairs.length} pairs in the records.`);
+  }
+  const inputs = corpusSlice().map(({ input, entry }) => ({ id: entry.id, boxes: input.boxes.length, edges: input.edges?.length ?? 0 }));
+  const marginSet = fitMarginSet({ corpus: set, run: Number(args.run), commit: args.commit, pairs, totals, inputs, quantile: Number(args.quantile ?? COST_MODEL.quantile) });
+  console.error(`The set ${marginSet.id} has ${marginSet.pairs.length} pairs and ${Object.keys(marginSet.specs).length} specs.`);
+  console.log(JSON.stringify(marginSet, null, 2));
 } else if (command === "costs") {
   if (args.records === undefined) throw new RangeError("The argument of costs is --records <dir>.");
   const stamp = benchStamp();
