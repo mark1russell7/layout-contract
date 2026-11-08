@@ -14,7 +14,6 @@ import {
   REFUSED_PROBE,
   sha256Hex,
 } from "./index.ts";
-import { utf8, utf8Write } from "./utf8.ts";
 
 const nodeSha = (text: string): string => createHash("sha256").update(text, "utf8").digest("hex");
 const exact = { grid: 0 };
@@ -25,7 +24,7 @@ describe("sha256Hex", () => {
     for (const t of texts) expect(sha256Hex(t)).toBe(nodeSha(t));
   });
 
-  it("gives the bytes of the earlier encoder, also for a lone surrogate", () => {
+  it("gives the digest of the bytes of the earlier encoder, also for a lone surrogate", () => {
     // The encoder before L81: a list of the bytes, from the code points of `for...of`.
     const earlier = (text: string): number[] => {
       const bytes: number[] = [];
@@ -39,8 +38,7 @@ describe("sha256Hex", () => {
       return bytes;
     };
     const texts = ["", "abc", "Fréchet ✓ 日本語 😀", "\ud800", "a\udc00b", "\ud83d", "😀\ud83d", "\udc00𐀀", "x߿ࠀ￿"];
-    for (const t of texts) expect([...utf8(t)]).toEqual(earlier(t));
-    expect(utf8Write("😀é", new Uint8Array(8), 2)).toBe(8);
+    for (const t of texts) expect(sha256Hex(t), JSON.stringify(t)).toBe(createHash("sha256").update(Uint8Array.from(earlier(t))).digest("hex"));
   });
 
   it("gives the known digest of abc", () => {
@@ -57,6 +55,11 @@ describe("canonicalJson", () => {
     expect(canonicalJson({ a: undefined, b: [1, undefined, null] })).toBe('{"b":[1,null,null]}');
     expect(canonicalJson(undefined)).toBe("null");
     expect(canonicalJson("q")).toBe('"q"');
+  });
+
+  it("keeps the form of JSON.stringify for the numbers and the strings that JSON does not have", () => {
+    expect(canonicalJson({ n: Number.NaN, i: Number.POSITIVE_INFINITY, s: "\ud800" })).toBe(JSON.stringify({ i: null, n: null, s: "\ud800" }));
+    expect(canonicalJson([-0, 1e21, 0.1 + 0.2])).toBe("[0,1e+21,0.30000000000000004]");
   });
 });
 

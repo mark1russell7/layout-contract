@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.7.0
+
+- MINOR before 1.0.0: `sha256Hex`, `canonicalJson` and `fnv1a32` use their home, `@mark1russell7/rigor-generators` 0.1.7. The local SHA-256, the local canonical form and the local UTF-8 encoder are gone.
+- `sha256Hex` and `fnv1a32` use the option `input: "wtf8"`, so a lone surrogate gives the 3 bytes of its code, as before. Each digest and each hash of a record stays the same.
+- `canonicalJson` uses the option `form: "json"`. A JSON value gets the same text as before.
+- The change that can break a caller: a value with a method `toJSON` gives the form of the result of that method. An example is a `Date`. Before, it gave the form of its own keys.
+- A function, a symbol and a cycle cause a `TypeError`. Before, a function and a symbol gave `null`, and a cycle caused a `RangeError` of the stack.
+
 ## 0.6.2
 
 - PATCH before 1.0.0: the new export `dropIndex` gives the index at which a point goes among the items of a list on the screen.

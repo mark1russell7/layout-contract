@@ -1,5 +1,4 @@
-import { mulberry32 as homeMulberry32 } from "@mark1russell7/rigor-generators";
-import { utf8 } from "./utf8.ts";
+import { fnv1a32 as homeFnv1a32, mulberry32 as homeMulberry32 } from "@mark1russell7/rigor-generators";
 
 /**
  * This function gives a generator of random numbers in [0, 1). It is `mulberry32`, as in `docs/FORMAT.md` of `packing`.
@@ -10,13 +9,11 @@ export function mulberry32(seed: number): () => number {
 }
 
 /**
- * This function gives the FNV-1a hash of 32 bits of the UTF-8 bytes of a string.
- * It stays here because `fnv1a32` of `@mark1russell7/rigor-generators` encodes a lone surrogate as U+FFFD. This function encodes the 3 bytes of its code.
+ * This function gives the FNV-1a hash of 32 bits of the UTF-8 bytes of a string. A lone surrogate gives the 3 bytes of its code.
+ * Its home is `fnv1a32` of `@mark1russell7/rigor-generators`, with the option `input: "wtf8"`. This function keeps the name and the signature of the API.
  */
 export function fnv1a32(text: string): number {
-  let h = 0x811c9dc5;
-  for (const b of utf8(text)) h = Math.imul(h ^ b, 0x01000193) >>> 0;
-  return h;
+  return homeFnv1a32(text, { input: "wtf8" });
 }
 
 /** This function gives the generator of one step of a seeded generator: `mulberry32(fnv1a32("<seed>:<step>"))`. */

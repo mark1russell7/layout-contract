@@ -221,8 +221,8 @@ importers:
         specifier: ^0.2.8
         version: 0.2.23(esbuild@0.28.2)
       '@mark1russell7/rigor-generators':
-        specifier: ^0.1.3
-        version: 0.1.6
+        specifier: ^0.1.7
+        version: 0.1.7
       '@mark1russell7/rigor-statistics':
         specifier: ^0.1.10
         version: 0.1.15
@@ -243,8 +243,8 @@ importers:
   packages/layout-contract:
     dependencies:
       '@mark1russell7/rigor-generators':
-        specifier: ^0.1.0
-        version: 0.1.6
+        specifier: ^0.1.7
+        version: 0.1.7
       '@mark1russell7/typeset':
         specifier: ^0.1.8
         version: 0.1.8
@@ -575,8 +575,8 @@ packages:
     resolution: {integrity: sha512-YkABrG6+AV4oZKWoSIayDGxKTqcTMbp/eGa+3u00X09Jv9TfpHFDeqHlEQARMBzJ/kvy/EMNIXQZMGa3Nobuzw==}
     engines: {node: '>=22'}
 
-  '@mark1russell7/rigor-generators@0.1.6':
-    resolution: {integrity: sha512-eSuVS6nNd2H63dMrfleop+ffBtNd8Ua0/JrcUWUMxf2jHWw432fSwJ+aSa4ecAYq1Pa2ReCfwpqFUP4MII5+GA==}
+  '@mark1russell7/rigor-generators@0.1.7':
+    resolution: {integrity: sha512-2NqrQLd3nH4oWl+CSa4fOuc855fWnI8LpJWb2lJNfPQyuA6LB9fPuxi5xLnBsaOqL5mOYHpibn7wTW4nRxgapw==}
     engines: {node: '>=22'}
 
   '@mark1russell7/rigor-statistics@0.1.11':
@@ -1786,19 +1786,19 @@ snapshots:
     dependencies:
       '@mark1russell7/layout-contract': 0.4.0
       '@mark1russell7/predicates': 0.1.0
-      '@mark1russell7/rigor-generators': 0.1.6
+      '@mark1russell7/rigor-generators': 0.1.7
       '@mark1russell7/rigor-statistics': 0.1.15
 
   '@mark1russell7/layout-contract@0.2.21': {}
 
   '@mark1russell7/layout-contract@0.4.0':
     dependencies:
-      '@mark1russell7/rigor-generators': 0.1.6
+      '@mark1russell7/rigor-generators': 0.1.7
       '@mark1russell7/typeset': 0.1.5
 
   '@mark1russell7/layout-contract@0.5.3':
     dependencies:
-      '@mark1russell7/rigor-generators': 0.1.6
+      '@mark1russell7/rigor-generators': 0.1.7
       '@mark1russell7/typeset': 0.1.5
 
   '@mark1russell7/optional@1.2.0': {}
@@ -1807,20 +1807,20 @@ snapshots:
     dependencies:
       '@mark1russell7/collections': 0.1.0
       '@mark1russell7/layout-contract': 0.5.3
-      '@mark1russell7/rigor-generators': 0.1.6
+      '@mark1russell7/rigor-generators': 0.1.7
 
   '@mark1russell7/predicates@0.1.0': {}
 
   '@mark1russell7/rigor-bench@0.2.23(esbuild@0.28.2)':
     dependencies:
-      '@mark1russell7/rigor-generators': 0.1.6
+      '@mark1russell7/rigor-generators': 0.1.7
       '@mark1russell7/rigor-statistics': 0.1.15
     optionalDependencies:
       esbuild: 0.28.2
 
   '@mark1russell7/rigor-generators@0.1.5': {}
 
-  '@mark1russell7/rigor-generators@0.1.6': {}
+  '@mark1russell7/rigor-generators@0.1.7': {}
 
   '@mark1russell7/rigor-statistics@0.1.11':
     dependencies:
@@ -1828,7 +1828,7 @@ snapshots:
 
   '@mark1russell7/rigor-statistics@0.1.15':
     dependencies:
-      '@mark1russell7/rigor-generators': 0.1.6
+      '@mark1russell7/rigor-generators': 0.1.7
 
   '@mark1russell7/site-pages@0.3.4':
     dependencies:
@@ -1844,12 +1844,12 @@ snapshots:
 
   '@mark1russell7/typeset@0.1.5':
     dependencies:
-      '@mark1russell7/rigor-generators': 0.1.6
+      '@mark1russell7/rigor-generators': 0.1.7
 
   '@mark1russell7/typeset@0.1.8':
     dependencies:
       '@mark1russell7/collections': 0.9.7
-      '@mark1russell7/rigor-generators': 0.1.6
+      '@mark1russell7/rigor-generators': 0.1.7
 
   '@oxc-project/types@0.155.0': {}
 
