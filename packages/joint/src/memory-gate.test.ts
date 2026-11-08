@@ -264,11 +264,11 @@ describe("the expected minutes of a gate", () => {
     expect(gateEstimate([[{ conclusion: "skipped" }]])).toBe(GATE_FALLBACK_MINUTES);
   });
 
-  it("reads the lanes of the nightly gate, and a dispatch keeps 3", () => {
+  it("reads the lanes of the gate from the workflow, at the limit of 3", () => {
     const text = readFileSync(new URL("../../../.github/workflows/memory-probe.yml", import.meta.url), "utf8");
-    const line = /max-parallel: \$\{\{ github\.event_name == 'workflow_dispatch' && (\d+) \|\| (\d+) \}\}/.exec(text);
-    expect(line?.[1]).toBe("3");
-    expect(Number(line?.[2])).toBe(GATE_LANES);
+    const lines = [...text.matchAll(/max-parallel: (\S+)/g)].map((m) => m[1]);
+    expect(lines).toEqual([String(GATE_LANES)]);
+    expect(GATE_LANES).toBe(3);
   });
 });
 
