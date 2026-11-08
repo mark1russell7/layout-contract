@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { checkLayoutRecord, parseLayoutRecord, type LayoutRecord, type RunEnv } from "./record.ts";
+import { carryRecord, checkLayoutRecord, parseLayoutRecord, type LayoutRecord, type RunEnv } from "./record.ts";
 
 const env: RunEnv = { node: "v24.0.0", os: "linux", arch: "x64", runner: "ubuntu-latest", cpu: "AMD EPYC 7763", cpus: 4 };
 
@@ -118,5 +118,49 @@ describe("parseLayoutRecord", () => {
     expect(checkLayoutRecord(line({ ...run, oneRun: false }))).toEqual([]);
     expect(checkLayoutRecord(line({ ...run, measures: {}, deterministic: null, skipped: "over budget", budgetMs: 30000, msAtLeast: 30000 }))).toEqual([]);
     expect(checkLayoutRecord(line({ ...run, measures: {}, deterministic: null, skipped: "not run", budgetMs: 30000, because: ["a@10", "b@10"] }))).toEqual([]);
+  });
+});
+
+describe("carried", () => {
+  const from = { packing: "0.10.2", highways: "0.15.0" };
+  const to = { packing: "0.10.5", highways: "0.15.2" };
+  const fingerprints = { rows: "0123456789abcdef", corners: "fedcba9876543210" };
+  const carried = { from, to, fingerprints, run: "42428038369" };
+
+  it("accepts a record with the facts of a carry", () => {
+    expect(checkLayoutRecord(JSON.parse(JSON.stringify({ ...run, carried })))).toEqual([]);
+    const { run: _run, ...noRun } = carried;
+    expect(checkLayoutRecord({ ...run, carried: noRun })).toEqual([]);
+  });
+
+  it("refuses each bad form of the facts of a carry", () => {
+    expect(checkLayoutRecord({ ...run, carried: "yes" })).toEqual(["carried is not an object"]);
+    expect(checkLayoutRecord({ ...run, carried: { ...carried, from: { packing: 10 } } })).toEqual(["carried.from is not a map of strings"]);
+    expect(checkLayoutRecord({ ...run, carried: { ...carried, to: [] } })).toEqual(["carried.to is not a map of strings"]);
+    expect(checkLayoutRecord({ ...run, carried: { ...carried, run: 1 } })).toEqual(["carried.run is not a string"]);
+    expect(checkLayoutRecord({ ...run, carried: { ...carried, to: { packing: "0.10.5" } } })).toEqual(["carried.from and carried.to do not name the same engines"]);
+    expect(checkLayoutRecord({ ...run, carried: { ...carried, from: {}, to: {} } })).toEqual(["carried.from and carried.to do not name the same engines"]);
+    expect(checkLayoutRecord({ ...run, carried: { ...carried, to: from } })).toEqual(["carried.to has no other version than carried.from"]);
+    expect(checkLayoutRecord({ ...run, carried: { ...carried, fingerprints: {} } })).toEqual(["carried.fingerprints is empty"]);
+    expect(checkLayoutRecord({ ...skipped, carried })).toEqual(["a skipped record has carried"]);
+  });
+
+  it("carries a record, and a second carry keeps the versions and the run of the measure", () => {
+    const once = carryRecord(run, { from, to, fingerprints, run: "42428038369" });
+    expect(once).toEqual({ ...run, carried });
+    expect(checkLayoutRecord(once)).toEqual([]);
+    const next = { packing: "0.10.6", highways: "0.15.2" };
+    const twice = carryRecord(once, { from: to, to: next, fingerprints, run: "42500000000" });
+    expect(twice.carried).toEqual({ from, to: next, fingerprints, run: "42428038369" });
+    expect(twice.measures).toBe(run.measures);
+    expect(twice.outputHash).toBe(run.outputHash);
+  });
+
+  it("refuses a skipped record, a first carry with no from, and a carry with no change of version", () => {
+    expect(() => carryRecord(skipped, { from, to, fingerprints })).toThrow(/is skipped, so a run measures it again/);
+    expect(() => carryRecord(run, { to, fingerprints })).toThrow(/has no carried.from/);
+    expect(() => carryRecord(run, { from, to: from, fingerprints })).toThrow(/carried.to has no other version than carried.from/);
+    expect(() => carryRecord(run, { from, to: { packing: "0.10.5" }, fingerprints })).toThrow(/do not name the same engines/);
+    expect(() => carryRecord(run, { from, to, fingerprints: {} })).toThrow(/carried.fingerprints is empty/);
   });
 });

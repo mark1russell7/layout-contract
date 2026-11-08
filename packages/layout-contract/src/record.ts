@@ -67,6 +67,27 @@ export interface LayoutRecord {
   /** The reason when the strategy did not run, for example an input over its `maxNodes`. Then the record has no measures. */
   readonly skipped?: string;
   readonly commit?: string;
+  /**
+   * The facts of a carry: a later run kept this record after an engine release, with no new measure (L147).
+   * Without the field, the engines of the run of the record measured it.
+   * The measures, the hashes and the times stay the values of the versions of `carried.from`.
+   */
+  readonly carried?: Carried;
+}
+
+/**
+ * The facts of a record that a run kept from an older run after an engine release (L147).
+ * The run kept it because each strategy of the record has the same fingerprint at the two versions.
+ */
+export interface Carried {
+  /** The version of each engine at the measure, by the name of the engine. */
+  readonly from: Readonly<Record<string, string>>;
+  /** The version of each engine of the run that keeps the record. The names are the names of `from`. */
+  readonly to: Readonly<Record<string, string>>;
+  /** The fingerprint of each strategy of the record, by its name: `fingerprintOf` of its probes, the same at the two versions. */
+  readonly fingerprints: Readonly<Record<string, string>>;
+  /** The id of the run that measured the record. */
+  readonly run?: string;
 }
 
 /**
@@ -135,6 +156,25 @@ function numberMap(out: string[], v: unknown, name: string): void {
   for (const [key, n] of Object.entries(v)) if (typeof n !== "number") out.push(`${name}.${key} is not a number`);
 }
 
+/** This function tells if a value is an object whose values are strings. */
+const isStringMap = (v: unknown): v is Readonly<Record<string, string>> => isFields(v) && Object.values(v).every((s) => typeof s === "string");
+
+/** This function gives the problems of the field `carried` of a record. */
+function carriedProblems(carried: unknown): string[] {
+  if (!isFields(carried)) return ["carried is not an object"];
+  const out: string[] = [];
+  for (const key of ["from", "to", "fingerprints"] as const) if (!isStringMap(carried[key])) out.push(`carried.${key} is not a map of strings`);
+  if (carried["run"] !== undefined && typeof carried["run"] !== "string") out.push("carried.run is not a string");
+  if (out.length > 0) return out;
+  const from = carried["from"] as Readonly<Record<string, string>>;
+  const to = carried["to"] as Readonly<Record<string, string>>;
+  const names = (m: Readonly<Record<string, string>>): string => Object.keys(m).sort().join(",");
+  if (names(from) === "" || names(from) !== names(to)) out.push("carried.from and carried.to do not name the same engines");
+  else if (Object.keys(from).every((name) => from[name] === to[name])) out.push("carried.to has no other version than carried.from");
+  if (Object.keys(carried["fingerprints"] as object).length === 0) out.push("carried.fingerprints is empty");
+  return out;
+}
+
 /** This function gives the problems of the field `env` of a record. */
 function envProblems(env: unknown): string[] {
   if (!isFields(env)) return ["env is not an object"];
@@ -180,6 +220,10 @@ export function checkLayoutRecord(value: unknown): string[] {
   const because = v["because"];
   if (because !== undefined && (!Array.isArray(because) || !because.every((s) => typeof s === "string"))) out.push("because is not a list of strings");
   if (v["env"] !== undefined) out.push(...envProblems(v["env"]));
+  if (v["carried"] !== undefined) {
+    out.push(...carriedProblems(v["carried"]));
+    if (v["skipped"] !== undefined) out.push("a skipped record has carried");
+  }
   const deterministic = v["deterministic"];
   if (v["skipped"] === undefined) {
     const noClaim = deterministic === null && v["oneRun"] === true;
@@ -198,4 +242,33 @@ export function parseLayoutRecord(value: unknown): LayoutRecord {
   if (problems.length > 0) throw new TypeError(`The record is not a layout-record/1: ${problems.join(", ")}.`);
   const record = value as LayoutRecord;
   return record.skipped !== undefined && record.deterministic !== null ? { ...record, deterministic: null } : record;
+}
+
+/** The facts of one carry, for `carryRecord`. */
+export interface CarryFacts {
+  /** The version of each engine of the run that keeps the record. */
+  readonly to: Readonly<Record<string, string>>;
+  /** The fingerprint of each strategy of the record, the same at the two versions. */
+  readonly fingerprints: Readonly<Record<string, string>>;
+  /** The version of each engine at the measure. A record that a run carried before keeps its `carried.from`, and the function ignores this value. */
+  readonly from?: Readonly<Record<string, string>>;
+  /** The id of the run that measured the record. A record that a run carried before keeps its `carried.run`. */
+  readonly run?: string;
+}
+
+/**
+ * This function gives a record that a run keeps after an engine release, with the field `carried` (L147).
+ * A record that a run carried before keeps the versions and the run of its measure, so `carried.from` always names the measure.
+ * The function throws a `RangeError` for a skipped record: a skip makes no claim on an output, so the run measures the pair again.
+ * It also throws a `RangeError` when `checkLayoutRecord` refuses the field `carried` of the result.
+ */
+export function carryRecord(record: LayoutRecord, facts: CarryFacts): LayoutRecord {
+  if (record.skipped !== undefined) throw new RangeError(`The record of ${record.strategy} on ${record.input} is skipped, so a run measures it again.`);
+  const from = record.carried?.from ?? facts.from;
+  if (from === undefined) throw new RangeError(`The record of ${record.strategy} on ${record.input} has no carried.from, so the carry needs from.`);
+  const run = record.carried?.run ?? facts.run;
+  const carried: Carried = { from, to: facts.to, fingerprints: facts.fingerprints, ...(run === undefined ? {} : { run }) };
+  const problems = carriedProblems(carried);
+  if (problems.length > 0) throw new RangeError(`The carry of ${record.strategy} on ${record.input} is bad: ${problems.join(", ")}.`);
+  return { ...record, carried };
 }
