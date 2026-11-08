@@ -133,6 +133,9 @@ import {
   SETS,
   SPACINGS,
   stepCount,
+  analysisNoReads,
+  confirmNoReads,
+  cpuModels,
 } from "../src/index.ts";
 
 const [command, ...rest] = process.argv.slice(2);
@@ -701,11 +704,14 @@ if (command === "check") {
   if (!confirming) throw new RangeError("The command confirm needs --confirm on.");
   const dir = args.records ?? "bench-out";
   const out = args.out ?? dir;
-  const report = confirmDefault(readRecords(dir), analysisInputs(corpusSlice()));
+  const confirmRecords = readRecords(dir);
+  const report = confirmDefault(confirmRecords, analysisInputs(corpusSlice()));
   mkdirSync(out, { recursive: true });
   writeFileSync(join(out, "confirm.json"), JSON.stringify(report, null, 2) + "\n");
   writeFileSync(join(out, "confirm.md"), confirmMarkdown(report));
   console.log(`The confirmation: ${report.confirmed ? "confirmed" : "not confirmed"}, the chosen cap ${report.chosen}.`);
+  // Each no-read is a warning annotation, so it shows on the check and not only in this log.
+  for (const text of confirmNoReads(report, cpuModels(confirmRecords))) console.log(`::warning::${text}`);
 } else if (command === "analyze") {
   const dir = args.records ?? "bench-out";
   const out = args.out ?? dir;
@@ -781,6 +787,7 @@ if (command === "check") {
     writeFileSync(join(out, "report-without-lanes.md"), `Corpus: ${set}, without the lane pairs.\n\n` + reportMarkdown(old, { rankTop }));
   }
   console.log(markdown);
+  for (const text of analysisNoReads(records)) console.log(`::warning::${text}`);
   const n = report.count;
   if (!n.ok) {
     console.error(`The record count check fails: ${n.recorded} of ${n.manifest} inputs have records, ${n.missing.length - n.allowed.length} missing inputs are not allowed, ${n.unknown.length} inputs are outside the manifest.`);
