@@ -5,6 +5,9 @@ import { createHash } from "node:crypto";
 /** The minutes after which a shard of the bench stops at a clean point. The job limit of GitHub is 360 minutes. */
 export const SHARD_DEADLINE_MINUTES = 330;
 
+/** The step limit of the step "Run one shard" of joint-bench.yml, in minutes. A pair that runs at this time stops with no record (L142). */
+export const SHARD_STEP_MINUTES = 350;
+
 /** The name of the file of the accepted pair lines of a resume. */
 export const PRIOR_PAIRS_FILE = "prior-pairs.ndjson";
 

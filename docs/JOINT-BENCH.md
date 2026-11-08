@@ -1176,6 +1176,7 @@ Routers run in the process of the runner and do not yield, so only a hard stop e
 - An overrun in a pack stage counts for the pack entry, and an overrun in a route stage counts for the router. A slow router thus does not count against a packer.
 - A tagged pair is a result, so a resume does not run it again. Its time does not go into the costs of the plan. A run with a larger budget has another stamp, and that run can fill these rows.
 - A resume counts the overruns of the earlier run, so a stop does not change the rows. A group with 1 overrun before a stop reaches its limit at the next overrun.
+- A shard stops after the pair that runs at 330 minutes, and the step limit is 350 minutes. The plan thus refuses a budget that gives all the stages of one pair 20 minutes or more (L142). Then the step limit cannot stop a pair with no record.
 
 ## The cover of the catalogs
 

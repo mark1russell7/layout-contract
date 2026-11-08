@@ -5,10 +5,13 @@ import { type AnyOption, declarationIssues, type ListItem, type NoDefaultReason,
 import type { ParamValue, StrategySpace } from "./strategy-space.ts";
 
 /** The newest schema of a strategy catalog. A new field is a new version of the schema. */
-export const STRATEGY_CATALOG_SCHEMA = "strategy-catalog/2";
+export const STRATEGY_CATALOG_SCHEMA = "strategy-catalog/3";
 
-/** The schemas that `parseStrategyCatalog` reads, oldest first. Schema 2 adds the field `output` of an entry. */
-export const STRATEGY_CATALOG_SCHEMAS: readonly ["strategy-catalog/1", "strategy-catalog/2"] = ["strategy-catalog/1", STRATEGY_CATALOG_SCHEMA];
+/** The schemas that `parseStrategyCatalog` reads, oldest first. Schema 2 adds the field `output` of an entry, and schema 3 adds the field `fingerprint`. */
+export const STRATEGY_CATALOG_SCHEMAS: readonly ["strategy-catalog/1", "strategy-catalog/2", "strategy-catalog/3"] = ["strategy-catalog/1", "strategy-catalog/2", STRATEGY_CATALOG_SCHEMA];
+
+/** The form of the field `fingerprint` of an entry: the 16 lowercase hex digits that `fingerprintOf` gives. */
+const FINGERPRINT = /^[0-9a-f]{16}$/u;
 
 /** The name of one schema of a strategy catalog. */
 export type StrategyCatalogSchema = (typeof STRATEGY_CATALOG_SCHEMAS)[number];
@@ -113,6 +116,8 @@ export interface CatalogEntry {
   readonly baseline?: true;
   /** The reads of the output of the strategy. A file with this field has the schema 2. */
   readonly output?: readonly OutputRow[];
+  /** The fingerprint of the outputs of the strategy on the probes of its engine, from `fingerprintOf`. A file with this field has the schema 3. */
+  readonly fingerprint?: string;
   /** The declarations of the options, in the order of a form. */
   readonly options: Readonly<Record<string, AnyOption>>;
 }
@@ -210,7 +215,7 @@ const STRATEGY_KINDS: readonly string[] = ["single", "composite", "shape"];
 const NO_DEFAULT_REASONS: readonly NoDefaultReason[] = ["unset", "required", "derived", "function"];
 const SCALES: readonly OptionScale[] = ["linear", "log"];
 const TOP_FIELDS: readonly string[] = ["schema", "engine", "version", "strategies"];
-const ENTRY_FIELDS: readonly string[] = ["key", "id", "step", "family", "kind", "describe", "supports", "limits", "deterministic", "determinismNote", "optIn", "baseline", "output", "options"];
+const ENTRY_FIELDS: readonly string[] = ["key", "id", "step", "family", "kind", "describe", "supports", "limits", "deterministic", "determinismNote", "optIn", "baseline", "output", "fingerprint", "options"];
 const COMMON_FIELDS: readonly string[] = ["type", "describe", "default", "noDefault", "when"];
 const NUMBER_FIELDS: readonly string[] = [...COMMON_FIELDS, "min", "max", "step", "scale", "special", "marks", "values"];
 const ENUM_FIELDS: readonly string[] = [...COMMON_FIELDS, "values", "custom"];
@@ -479,7 +484,7 @@ function checkEvidence(at: string, property: unknown, rowClass: unknown, raw: un
 
 /** This function adds the faults of the field `output` of one entry. */
 function checkOutput(at: string, raw: unknown, schema: unknown, faults: string[]): void {
-  if (schema === STRATEGY_CATALOG_SCHEMAS[0]) faults.push(`${at}: the field "output" needs the schema ${STRATEGY_CATALOG_SCHEMA}.`);
+  if (schema === STRATEGY_CATALOG_SCHEMAS[0]) faults.push(`${at}: the field "output" needs the schema ${STRATEGY_CATALOG_SCHEMAS[1]} or a newer schema.`);
   if (!Array.isArray(raw) || raw.length === 0) {
     faults.push(`${at}: "output" is not a list with rows.`);
     return;
@@ -519,6 +524,10 @@ function readEntry(at: string, raw: unknown, schema: unknown, faults: string[]):
   if (!isFields(raw["supports"]) || !Object.values(raw["supports"]).every(isTextList)) faults.push(`${at}: "supports" is not a record of text lists.`);
   checkLimits(at, raw["limits"], faults);
   if (raw["output"] !== undefined) checkOutput(at, raw["output"], schema, faults);
+  if (raw["fingerprint"] !== undefined) {
+    if (schema !== STRATEGY_CATALOG_SCHEMAS[2]) faults.push(`${at}: the field "fingerprint" needs the schema ${STRATEGY_CATALOG_SCHEMAS[2]}.`);
+    if (!isText(raw["fingerprint"]) || !FINGERPRINT.test(raw["fingerprint"])) faults.push(`${at}: "fingerprint" is not 16 lowercase hex digits.`);
+  }
   if (isText(raw["id"]) && raw["key"] !== catalogKey(raw["id"], raw["step"] as string | undefined)) faults.push(`${at}: the key does not follow from "step" and "id".`);
   if (!isFields(raw["options"])) {
     faults.push(`${at}: "options" is not an object.`);
@@ -552,6 +561,7 @@ function readEntry(at: string, raw: unknown, schema: unknown, faults: string[]):
     optIn: raw["optIn"] as boolean,
     ...(raw["baseline"] === true ? { baseline: true as const } : {}),
     ...(raw["output"] === undefined ? {} : { output: raw["output"] as readonly OutputRow[] }),
+    ...(raw["fingerprint"] === undefined ? {} : { fingerprint: raw["fingerprint"] as string }),
     options,
   };
 }
@@ -726,6 +736,7 @@ function writeEntry(e: CatalogEntry): Fields {
     optIn: e.optIn,
     ...(e.baseline === true ? { baseline: true } : {}),
     ...(e.output === undefined ? {} : { output: e.output.map(writeRow) }),
+    ...(e.fingerprint === undefined ? {} : { fingerprint: e.fingerprint }),
     options,
   };
 }
@@ -741,12 +752,14 @@ function unsafeValues(v: unknown, at: string): string[] {
 
 /**
  * This function gives the text of the catalog file, sorted by key. The same source and version give the same bytes.
- * The file has the oldest schema that holds it, so a catalog with no `output` stays valid for a reader of the schema 1.
+ * The file has the oldest schema that holds it. A catalog with no `output` and no `fingerprint` stays valid for a reader of the schema 1.
+ * A catalog with no `fingerprint` stays valid for a reader of the schema 2.
  * The caller gives the version from `package.json`. The function throws an error if the file breaks a rule of the format.
  */
 export function writeStrategyCatalog(source: StrategyCatalogSource, version: string): string {
   const strategies = [...source.strategies].sort((a, b) => (a.key < b.key ? -1 : a.key > b.key ? 1 : 0)).map(writeEntry);
-  const schema = source.strategies.some((e) => e.output !== undefined) ? STRATEGY_CATALOG_SCHEMA : STRATEGY_CATALOG_SCHEMAS[0];
+  const has = (field: "output" | "fingerprint"): boolean => source.strategies.some((e) => e[field] !== undefined);
+  const schema = has("fingerprint") ? STRATEGY_CATALOG_SCHEMAS[2] : has("output") ? STRATEGY_CATALOG_SCHEMAS[1] : STRATEGY_CATALOG_SCHEMAS[0];
   const doc = { schema, engine: source.engine, version, strategies };
   const unsafe = unsafeValues(doc, "catalog");
   if (unsafe.length > 0) throw new Error(`The catalog of ${source.engine} has values that JSON cannot hold: ${unsafe.join(" ")}`);
