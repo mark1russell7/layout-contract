@@ -139,9 +139,9 @@ export function stepCount(pairs: readonly PairAllocation[]): number {
 
 /**
  * The jobs at once of the nightly gate: `max-parallel` of `memory-probe.yml`. A test compares them.
- * The number is a stated exception to the fleet limit of 3, on trial for 3 nights (`docs/JOINT-BENCH.md`, "The trial of the gate with 6 jobs at once").
+ * The number is the limit of 3 jobs at once for a heavy workflow. The trial of 6 ended on 2026-11-08 (`docs/JOINT-BENCH.md`, "The end of the trial").
  */
-export const GATE_LANES = 6;
+export const GATE_LANES = 3;
 
 /** The expected minutes of a gate with no job record to read: the safe side of the budget of the sweep. */
 export const GATE_FALLBACK_MINUTES = 360;

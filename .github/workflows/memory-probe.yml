@@ -174,9 +174,9 @@ jobs:
     strategy:
       fail-fast: false
       # The account runs at most 20 jobs at once, for all repos together. The fleet rule of 2026-10-30 (STRATEGY.md) gives a heavy workflow 3 jobs at once, so gates and releases get runners.
-      # A stated exception on trial: the nightly gate has 6 jobs at once for 3 nights, from 2026-11-05 (`docs/JOINT-BENCH.md`, "The trial of the gate with 6 jobs at once"). A dispatch keeps 3.
+      # The trial of 6 jobs at once for the nightly gate ended on 2026-11-08 (`docs/JOINT-BENCH.md`, "The end of the trial"). Each run has 3 jobs at once.
       # `GATE_LANES` (src/memory-gate.ts) is this number for the budget of the sweep, and a test compares them.
-      max-parallel: ${{ github.event_name == 'workflow_dispatch' && 3 || 6 }}
+      max-parallel: 3
       # Each job of the plan has an input group, a mode and a repeat (`bench.mjs jobs`).
       matrix:
         include: ${{ fromJSON(needs.plan.outputs.jobs) }}
