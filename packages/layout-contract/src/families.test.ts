@@ -300,29 +300,37 @@ function closure(entry: URL): { files: string[]; external: string[] } {
   return { files, external: [...external] };
 }
 
-/** This function gives the imports of a build that are not on the lists of runtime and transitive dependencies. A module of Node is not on the lists. */
+/** This function gives the package of an import: `@scope/name/sub` gives `@scope/name`, and `name/sub` gives `name`. */
+function packageOf(specifier: string): string {
+  const parts = specifier.split("/");
+  return specifier.startsWith("@") ? parts.slice(0, 2).join("/") : parts[0]!;
+}
+
+/** This function gives the imports of a build whose package is not on the lists of runtime and transitive dependencies. A module of Node is not on the lists. */
 function unlisted(external: readonly string[]): string[] {
-  return external.filter((s) => !RUNTIME_DEPENDENCIES.includes(s) && !TRANSITIVE_DEPENDENCIES.includes(s));
+  return external.filter((s) => !RUNTIME_DEPENDENCIES.includes(packageOf(s)) && !TRANSITIVE_DEPENDENCIES.includes(packageOf(s)));
 }
 
 /**
- * This function examines the build of a dependency, and then the build of each package that it imports.
+ * This function examines the build file of an import, and then the build file of each import of that build.
  * Each import resolves from its importer, so the test examines the copy that the importer loads.
+ * A package import gives the `main` file of the package. A subpath import gives the file of its entry in `exports`.
  */
 function examineBuild(dep: string, from: NodeRequire, seen: Set<string>): void {
-  const manifest = from.resolve(`${dep}/package.json`);
-  if (seen.has(manifest)) return;
-  seen.add(manifest);
+  const manifest = from.resolve(`${packageOf(dep)}/package.json`);
   const main = (JSON.parse(readFileSync(manifest, "utf8")) as { main: string }).main;
-  // A build can have chunks: the closure of its local imports imports only the packages of the list.
-  const { files, external } = closure(new URL(main, pathToFileURL(manifest)));
+  const entry = dep === packageOf(dep) ? new URL(main, pathToFileURL(manifest)) : pathToFileURL(from.resolve(dep));
+  if (seen.has(entry.href)) return;
+  seen.add(entry.href);
+  // A build can have chunks: the closure of its local imports imports only the packages of the lists.
+  const { files, external } = closure(entry);
   expect(unlisted(external), dep).toEqual([]);
   for (const f of files) {
     const code = readFileSync(new URL(f), "utf8").replace(/\/\/.*|\/\*[\s\S]*?\*\//g, "");
     expect(NODE_GLOBAL.test(code), f).toBe(false);
   }
   const own = createRequire(manifest);
-  for (const next of external) examineBuild(next, own, seen);
+  for (const next of new Set(external)) examineBuild(next, own, seen);
 }
 
 describe("browser safety", () => {
@@ -350,6 +358,7 @@ describe("browser safety", () => {
 
   it("refuses a module of Node and a package outside the lists in a build", () => {
     expect(unlisted(["node:fs", "fs", "left-pad", ...RUNTIME_DEPENDENCIES, ...TRANSITIVE_DEPENDENCIES])).toEqual(["node:fs", "fs", "left-pad"]);
+    expect(unlisted(["@mark1russell7/collections/summary-tree", "node:fs/promises", "fs/promises", "@other/collections/summary-tree"])).toEqual(["node:fs/promises", "fs/promises", "@other/collections/summary-tree"]);
   });
 
   it("keeps the transitive dependencies out of the package itself", () => {
