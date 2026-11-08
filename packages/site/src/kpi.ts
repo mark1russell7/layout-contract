@@ -165,10 +165,20 @@ export function coverageRuns(files: readonly JointData[]): JointData[] {
   return files.filter((file) => COVERAGE_ENGINES.every((engine) => file.versions[engine] === cover.versions[engine]));
 }
 
+/** The run that gives one counted name: the newest run of the count with a result of the name. */
+export interface CountSource {
+  readonly name: string;
+  readonly run: string;
+  readonly corpus: string;
+  readonly date: string;
+}
+
 /** A count over some runs, with the time of its oldest part. */
 export interface CoverageCount {
   readonly value: number;
   readonly at: string;
+  /** One source for each counted name, in the order of the names. So a name of another corpus shows its corpus (L140). */
+  readonly sources: readonly CountSource[];
 }
 
 /**
@@ -180,15 +190,46 @@ export interface CoverageCount {
  * @param fallback - The time of a count with no name.
  */
 export function countOverRuns(runs: readonly JointData[], namesOf: (run: JointData) => readonly string[], fallback: string): CoverageCount {
-  const newest = new Map<string, string>();
+  const newest = new Map<string, JointData>();
   for (const run of runs) {
     for (const name of namesOf(run)) {
       const seen = newest.get(name);
-      if (seen === undefined || run.date > seen) newest.set(name, run.date);
+      if (seen === undefined || run.date > seen.date) newest.set(name, run);
     }
   }
-  if (newest.size === 0) return { value: 0, at: fallback };
-  return { value: newest.size, at: `${[...newest.values()].sort()[0]!}T00:00:00Z` };
+  if (newest.size === 0) return { value: 0, at: fallback, sources: [] };
+  const sources = [...newest.entries()]
+    .map(([name, run]): CountSource => ({ name, run: run.run, corpus: run.corpus, date: run.date }))
+    .sort((a, b) => (a.name < b.name ? -1 : a.name > b.name ? 1 : 0));
+  return { value: newest.size, at: `${sources.map((source) => source.date).sort()[0]!}T00:00:00Z`, sources };
+}
+
+/** The format of the file `kpi-sources.json`. */
+export const COUNT_SOURCES_SCHEMA = "kpi-sources/1";
+
+/** The sources of the measures packers-measured and routers-on-compare: for each counted name, its run and its corpus (L140). */
+export interface CountSources {
+  readonly schema: typeof COUNT_SOURCES_SCHEMA;
+  readonly packers: readonly CountSource[];
+  readonly routers: readonly CountSource[];
+}
+
+/**
+ * This function gives the source of each name that packers-measured and routers-on-compare count.
+ * The file `kpi-sources.json` and the joint section of the home page show them. So a join of runs of two corpora is shown, not implied.
+ *
+ * @param files - The data files of `data/joint/`.
+ * @param catalog - The catalog of the build.
+ * @param entries - The bench entries of the joint package.
+ * @param keyed - The names of the router and highway entries of the registry of the pinned `highways`.
+ */
+export function countSources(files: readonly JointData[], catalog: KpiCatalog, entries: readonly BenchEntry[], keyed: readonly string[]): CountSources {
+  const runs = coverageRuns(files);
+  return {
+    schema: COUNT_SOURCES_SCHEMA,
+    packers: countOverRuns(runs, (r) => packersOf(r, catalog, entries), "").sources,
+    routers: countOverRuns(runs, (r) => routersOf(r, keyed), "").sources,
+  };
 }
 
 /**

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { latestFull, shownAge, shownRuns, type JointData } from "./data.ts";
-import { countOverRuns, coverageRun, coverageRuns, enginesCurrent, enginesOnNpm, failedReadStops, type KpiCatalog, type NpmRead, packersMeasured, routersOnCompare, siteKpiInput } from "./kpi.ts";
+import { COUNT_SOURCES_SCHEMA, countOverRuns, countSources, coverageRun, coverageRuns, enginesCurrent, enginesOnNpm, failedReadStops, type KpiCatalog, type NpmRead, packersMeasured, routersOnCompare, siteKpiInput } from "./kpi.ts";
 
 /** A run of the fixture. Its id comes from its date, and its rankings have one group for each pair of a packer and a router. */
 const run = (date: string, pairs: number, versions: Record<string, string>, packers: readonly string[] = ["shelf", "rows"], routers: readonly string[] = ["corners", "trunks"]): JointData => {
@@ -197,8 +197,48 @@ describe("coverageRuns and countOverRuns", () => {
   it("takes the newest run of each name, and the oldest of these dates", () => {
     const names = (r: JointData): string[] => r.stress.byPacker.map((p) => p.id);
     const runs = [run("2026-11-01", 1, now, ["shelf", "rows"]), run("2026-11-05", 1, now, ["shelf"]), run("2026-11-03", 1, now, ["rows", "anneal"])];
-    expect(countOverRuns(runs, names, "x")).toEqual({ value: 3, at: "2026-11-03T00:00:00Z" });
-    expect(countOverRuns([], names, "2026-11-07T00:00:00Z")).toEqual({ value: 0, at: "2026-11-07T00:00:00Z" });
+    const count = countOverRuns(runs, names, "x");
+    expect([count.value, count.at]).toEqual([3, "2026-11-03T00:00:00Z"]);
+    expect(count.sources.map((s) => [s.name, s.date])).toEqual([
+      ["anneal", "2026-11-03"],
+      ["rows", "2026-11-03"],
+      ["shelf", "2026-11-05"],
+    ]);
+    expect(countOverRuns([], names, "2026-11-07T00:00:00Z")).toEqual({ value: 0, at: "2026-11-07T00:00:00Z", sources: [] });
+  });
+});
+
+describe("the sources of the coverage counts (L140)", () => {
+  const now = { packing: "0.10.2", highways: "0.15.0" };
+  const cover = { ...coverOf(run("2026-11-07", 650, now, ["shelf", "rows"], ["corners", "trunks"])), corpus: "joint-v2" };
+  const pairs = { ...shortOf(run("2026-11-08", 30, now, ["anneal-maxrects-bl-k16"], ["steiner"])), corpus: "joint-v3" };
+
+  it("gives one source for each counted name, and the count does not change", () => {
+    const input = siteKpiInput([cover, pairs], catalog, npm, entries, commitAt, keyed);
+    const sources = countSources([cover, pairs], catalog, entries, keyed);
+    expect(sources.schema).toBe(COUNT_SOURCES_SCHEMA);
+    expect(sources.packers.length).toBe(input?.measures.find((m) => m.id === "packers-measured")?.value);
+    expect(sources.routers.length).toBe(input?.measures.find((m) => m.id === "routers-on-compare")?.value);
+    expect(new Set(sources.packers.map((s) => s.name)).size).toBe(sources.packers.length);
+    expect(new Set(sources.routers.map((s) => s.name)).size).toBe(sources.routers.length);
+  });
+
+  it("names the run and the corpus of each name, so a join of two corpora shows", () => {
+    const sources = countSources([cover, pairs], catalog, entries, keyed);
+    expect(sources.packers.map((s) => [s.name, s.run, s.corpus])).toEqual([
+      ["anneal", "20261108", "joint-v3"],
+      ["rows", "20261107", "joint-v2"],
+      ["shelf", "20261107", "joint-v2"],
+    ]);
+    expect(sources.routers.map((s) => [s.name, s.corpus])).toEqual([
+      ["corners", "joint-v2"],
+      ["steiner", "joint-v3"],
+      ["trunks", "joint-v2"],
+    ]);
+  });
+
+  it("gives empty lists with no run", () => {
+    expect(countSources([], catalog, entries, keyed)).toEqual({ schema: COUNT_SOURCES_SCHEMA, packers: [], routers: [] });
   });
 });
 

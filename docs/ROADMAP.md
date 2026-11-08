@@ -10,6 +10,7 @@ This file lists the items of the roadmap of this repository. The status page of 
 | L5 | in progress | P1 | highways reads the contract |
 | L34 | in progress | P1 | The strategy space as data |
 | L52 | in progress | P1 | Measure joint space coverage, with a weekly trend that rises |
+| L140 | in progress | P2 | The coverage counts name the corpus and the run of each counted name: `kpi-sources.json` and the joint section |
 | L81 | in progress | P1 | Memory gate over each family of the bench, then the dense-hubs peak (3.4-4.3 GB) |
 | L82 | in progress | P2 | The bench scripts in TypeScript (rule typed-scripts of conventions 0.5.0) |
 | L134 | in progress | P1 | Each measure of `kpi.json` has its own date: the age reads the newest run, and the coverage reads the newest cover run |
