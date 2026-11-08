@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.9.1
+
+- PATCH before 1.0.0: new exports only. The record `layout-frame/1` is one frame of a layout change (`docs/FRAMES.md`).
+- `frameOf` makes a frame of a layout, and `outputOf` gives the placements of a frame, so an engine can start a layout from it.
+- `frameAt` gives the frame at a time between two layouts, with boxes that stay, enter and leave. The options `enter` and `leave` take `fade` or `cut`.
+- `frameMove` gives the move between two frames, and `fixedPointMove` gives the move of an engine from a start frame.
+- Property tests with `fast-check` examine the laws: the end and the start, a constant rate to the end, the composition of two changes, the range of the presence and the round trip.
+- Each package with Vitest has `@vitest/coverage-v8` 5.0.5 as a dev dependency, at the version of its Vitest. The root has `@mark1russell7/conventions` ^0.38.4.
+
 ## 0.9.0
 
 - MINOR before 1.0.0: the format of a strategy space has its home in `@mark1russell7/strategy-space` 0.0.2. `layout-contract` re-exports its types and functions, with the same names. The types have the operator fields `identity` of a stage option and `chooses` of a member rule.
