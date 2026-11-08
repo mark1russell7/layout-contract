@@ -64,6 +64,8 @@ import {
   planRound2,
   promoteConfigs,
   promoteMarkdown,
+  promoteNoReads,
+  cpuModels,
   promotePlan,
   PROMOTE_SEEDS,
   RACE_NOTE_2026_11_02,
@@ -402,11 +404,14 @@ if (command === "plan") {
   const plan = readJson(join(args.plan ?? "night", "plan.json"));
   const { rows } = corpusOf(plan.corpus, plan.seeds);
   const inputs = corpusOf(plan.corpus, plan.seeds).sweep.map((s, i) => ({ ...s, cell: rows[i].entry.cell }));
-  const report = promoteConfigs(readRecords(args.records ?? "records").records, inputs);
+  const promoteRecords = readRecords(args.records ?? "records").records;
+  const report = promoteConfigs(promoteRecords, inputs);
   const out = args.out ?? "promotion";
   writeJson(join(out, "promotion.json"), report, 2);
   writeFileSync(join(out, "promotion.md"), promoteMarkdown(report));
   console.log(`The promotion test: ${report.passed.length} of ${report.rows.length} configs pass.`);
+  // Each no-read is a warning annotation, so it shows on the check and not only in this log.
+  for (const text of promoteNoReads(report, cpuModels(promoteRecords))) console.log(`::warning::${text}`);
 } else if (command === "race") {
   const dir = args.night ?? "night";
   const state = readJson(join(dir, "state.json"));
