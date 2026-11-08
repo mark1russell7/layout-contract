@@ -1,5 +1,6 @@
 // The numbers of the file `kpi.json` of the site. Each value comes from the joint data or the catalog of the build.
 // So no reader copies a number from a page, and no number has a person as its source.
+import { spaceSize, type StrategySpace } from "@mark1russell7/layout-contract";
 import { compareVersions, parseVersion } from "@mark1russell7/site-pages";
 import type { JointCatalog } from "./catalog.ts";
 import { latestFull, latestJoint, shownAge, type JointData } from "./data.ts";
@@ -276,4 +277,32 @@ export function siteKpiInput(
       ...(sweep === undefined ? [] : [{ id: "coverage-shown", value: sweep.shown ? 1 : 0, at: `${sweep.night}T00:00:00Z` }]),
     ],
   };
+}
+
+/** One data file of `data/spaces/`, with the schema `site-space/1`: the strategy space of an engine, its source and its date. */
+export interface SpaceFile {
+  readonly schema: "site-space/1";
+  /** The package and the version of the space, for example `packing 0.10.2`. */
+  readonly source: string;
+  readonly date: string;
+  readonly space: StrategySpace;
+}
+
+/** The count of the levels of each numeric param in the config counts. The examples of `docs/STRATEGY-SPACE.md` use 3 levels. */
+export const SPACE_LEVELS = 3;
+
+/**
+ * This function gives the config counts of the stored engine spaces (L148).
+ * The measure `space-configs-<engine>` counts the configs of a grid without a meta option, with `SPACE_LEVELS` levels.
+ * The measure `space-configs-product` counts the pairs of the two spaces, with the date of the older file.
+ * A count above `Number.MAX_SAFE_INTEGER` is the nearest number.
+ */
+export function spaceConfigMeasures(files: readonly SpaceFile[]): SiteMeasure[] {
+  const counts = files.map((f) => ({ engine: f.space.engine, base: spaceSize(f.space, { levels: SPACE_LEVELS }).base, at: `${f.date}T00:00:00Z` }));
+  const measures: SiteMeasure[] = counts.map((c) => ({ id: `space-configs-${c.engine}`, value: Number(c.base), unit: "configs", at: c.at }));
+  if (counts.length >= 2) {
+    const product = counts.reduce((p, c) => p * c.base, 1n);
+    measures.push({ id: "space-configs-product", value: Number(product), unit: "configs", at: counts.map((c) => c.at).sort()[0]! });
+  }
+  return measures;
 }
