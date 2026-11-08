@@ -84,7 +84,7 @@ describe("the audit", () => {
     expect(isTimeMeasure("time.hash.ms")).toBe(true);
     expect(isTimeMeasure("route.length")).toBe(false);
     const r = records[0]!;
-    const other = { ...r, ms: r.ms + 5, env: { node: "x" }, commit: "abc", measures: { ...r.measures, "pack.ms": 99, "time.bench.ms": 7 } } as LayoutRecord;
+    const other = { ...r, ms: r.ms + 5, env: { node: "x", os: "y", arch: "z", runner: "local", cpu: "c", cpus: 1 }, commit: "abc", measures: { ...r.measures, "pack.ms": 99, "time.bench.ms": 7 } } as LayoutRecord;
     expect(auditForm(other)).toEqual(auditForm(r));
     expect(auditForm(r)).not.toHaveProperty("ms");
     expect(Object.keys(auditForm(r)["measures"] as object).some(isTimeMeasure)).toBe(false);
@@ -116,7 +116,7 @@ describe("the probes", () => {
   it("gives the same pack hash two times, and REFUSED_PROBE for a cell that the strategy does not support", () => {
     expect(packProbe(rows, three, undefined)).toBe(packProbe(rows, three, undefined));
     expect(packProbe(rows, three, undefined)).not.toBe(packProbe(shelf, three, undefined));
-    expect(packProbe(rows, three, { count: "10", shapes: "circle" })).toBe(REFUSED_PROBE);
+    expect(packProbe(rows, three, { itemShape: "circle" })).toBe(REFUSED_PROBE);
   });
 
   it("gives a probe document that merges with the probe of another shard", () => {
