@@ -151,3 +151,4 @@ This file lists the items of the roadmap of this repository. The status page of 
 | L119 | done | P1 | A meta option that chooses its members from the input: the member rule with `min` and `max` 0. Version 0.5.3. |
 | L115 | done | P1 | A deadline inside each shard with a censored row and a flip, the held configs and the origin of a label in the report, and a count of each planned pair with no value |
 | L130 | done | P1 | The routers measure of kpi.json reads the rows of the run |
+| L145 | done | P1 | Each gate of the joint bench prints a case with no read as a warning annotation on its check |

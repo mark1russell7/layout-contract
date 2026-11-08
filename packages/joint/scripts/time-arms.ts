@@ -17,6 +17,7 @@ import { fileURLToPath } from "node:url";
 import type { LayoutInput } from "@mark1russell7/layout-contract";
 import { freshRun, type ChildLine, type FreshSkip } from "@mark1russell7/rigor-bench/fresh";
 import { jointCorpus, plannedCost, runEnv, runInput, SET_V2, SETS, type JointSet } from "../src/index.ts";
+import { timeNoReads } from "../src/no-read.ts";
 import { JOINT_TIME, jointTimeVerdict, TIME_DEFAULT, TIME_MODE, timeCases, timeFreshOptions, timeMarkdown, timeRecords, timeRunOptions, type TimeJob, type TimeRecord } from "../src/time-arms.ts";
 
 const SELF = fileURLToPath(import.meta.url);
@@ -121,6 +122,8 @@ if (command === "arm") {
   const markdown = timeMarkdown(result);
   writeFileSync(join(out, "verdict.md"), markdown);
   console.log(markdown);
+  // Each no-read is a warning annotation, so it shows on the check and not only in this log.
+  for (const text of timeNoReads(result)) console.log(`::warning::${text}`);
 } else {
   console.error("The command is run, arm or verdict.");
   process.exit(2);
