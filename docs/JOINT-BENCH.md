@@ -82,6 +82,27 @@ The stamp (`runStamp`) holds the corpus, `BENCH_SPACE_VERSION`, the versions of 
 
 The lane pairs, the iteration pairs and the confirmation do not take a resume, because each of them reads the routes of other pairs.
 
+## A carry of the records over an engine release (L147)
+
+A resume keeps only the records of the same stamp, and the stamp holds the versions of the engines. So each release of an engine measures each pair again. Most releases change the outputs of no strategy. A carry keeps the records of these pairs, and measures the other pairs again.
+
+The probe job starts the command `carry-probe` two times: with the engines of the earlier run, and with the engines of this run. Each probe gives two kinds of fingerprints:
+
+- The fingerprint of a pack entry on an input (`packProbe`). It is the hash of the pack output, the measures and the hard counts, from one pack of the input. The stage of the pack of `pairRuns` makes the same calls.
+- The fingerprint of a router: the hashes of its records on the inputs of the slice `pr`, without the times (`routerFingerprint`). The first pack entry packs these inputs.
+
+The command `carry` keeps a record when all of these conditions are true:
+
+1. The record has no field `skipped`.
+2. Its pack strategy and its full pack options are the same in this run.
+3. Its pack entry on its input has the same fingerprint at the two versions.
+4. Its router has the same fingerprint at the two versions.
+5. The local imports of `runner.ts` have the same text at `--from-commit` and in this checkout. Else the command keeps no record.
+
+Each kept record gets the field `carried` of `layout-contract` 0.6.1. It holds the versions of the measure and of this run, the fingerprints, and the earlier run. The command then takes a seeded sample of the kept records: max(30, 5 %) of the pairs (`auditSample`). The run measures these pairs again, and the command `carry-audit` compares them without the times (`auditForm`). One pair with another record fails the audit. Then no record joins, and a resume with no carry measures each pair again.
+
+The probe of a router reads only small inputs. A change of a router on large inputs only can thus pass the probe. The audit is the check of this case. The contract is a workspace package, so the probe has no contract at the earlier version. The audit is also the only check of a change of the contract.
+
 ## The overflow rule
 
 An overflow box has no position, so the router cannot route its edges.

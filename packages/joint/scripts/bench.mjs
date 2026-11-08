@@ -6,6 +6,10 @@
 //   plan --shards <n> [--slice pr] [--corpus <set>] [--lanes on] [--iterate on] [--cover on] [--pairs <id,id>]              prints the planned cost of each shard
 //   Each of run, plan, resume and costs takes --pair-budget <text>: the time budget of each stage of a pair (parsePairBudget). A run with a budget holds its stamp.
 //   resume --records <dir> --out <dir> [--slice pr] [--corpus <set>] [--cover on] [--pairs <id,id>]   keeps the pairs of an earlier run with the stamp of this code (L101)
+//   carry-probe --out <file> [--shards <n> --shard <i>] [--corpus <set>] [--cover on] [--pairs <id,id>]   writes the fingerprints of the installed engines (L147)
+//   carry --records <dir> --from <dir> --to <dir> --from-commit <sha> --run <id> --out <dir> [--seed <s>] [--corpus <set>] [--cover on] [--pairs <id,id>]
+//                                                                            keeps the records of an earlier run over an engine release, and writes the prior files and the audit (L147)
+//   carry-audit --audit <file> --records <dir> [--out <file>]              compares the audit pairs with the records of the run, and fails on one difference (L147)
 //   costs --records <dir> [--corpus <set>] [--top <n>]                      prints the wall time of each pair, from the most time to the least
 //   margins --records <dir> --run <id> --commit <sha> --engines <name=version,...> [--logs <file>] [--corpus <set>]   prints the margin set of a run as JSON (L143)
 //   confirm --confirm on --records <dir> --out <dir>   writes the decision of L40: <dir>/confirm.json and <dir>/confirm.md
@@ -118,6 +122,14 @@ import {
   PRIOR_PAIRS_FILE,
   runShard,
   runStamp,
+  auditCompare,
+  auditSample,
+  carryPlan,
+  carryProbe,
+  localImports,
+  mergeProbes,
+  packFacts,
+  shardOf,
   SHARD_DEADLINE_MINUTES,
   COST_MODEL,
   MARGIN_SETS,
@@ -209,7 +221,7 @@ function corpusSlice() {
   const rows = inputs.map((input, i) => ({ input, entry: manifest.inputs[i] }));
   if (args.slice === undefined) return rows;
   if (args.slice !== "pr") throw new RangeError(`The slice is "pr", not "${args.slice}".`);
-  return rows.filter(({ entry }) => entry.id.endsWith("/s1") && (entry.cell.count === "10" || entry.id.includes("/edge-cases.")));
+  return prSlice(rows);
 }
 
 /** This function gives the shard plan of the slice for the count of the shards of the arguments. Each input has the cost of `plannedCost`: the predicted cost times the margin of its spec. */
@@ -296,6 +308,23 @@ function readRecords(dir) {
   for (const name of readdirSync(dir, { recursive: true }).map(String).filter((n) => n.endsWith(".jsonl")).sort())
     for (const line of readFileSync(join(dir, name), "utf8").split("\n")) if (line.trim() !== "") records.push(JSON.parse(line));
   return records;
+}
+
+/** This function gives the rows of the slice `pr` of rows: seed 1 of the specs with count 10 and of the fixed cases. */
+function prSlice(rows) {
+  return rows.filter(({ entry }) => entry.id.endsWith("/s1") && (entry.cell.count === "10" || entry.id.includes("/edge-cases.")));
+}
+
+/** This function gives the versions of the engines of a carry: the engines and the contract of this process. */
+function carryEngines() {
+  return { packing: installedVersion("packing"), highways: installedVersion("highways"), "layout-contract": installedVersion("layout-contract") };
+}
+
+/** This function reads the probe documents of a file, or of each JSON file of a folder (the artifacts of the shards of a probe job). */
+function probeFiles(path) {
+  const files = existsSync(path) && !path.endsWith(".json") ? readdirSync(path, { recursive: true }).map(String).filter((n) => n.endsWith(".json")).sort().map((n) => join(path, n)) : [path];
+  if (files.length === 0) throw new RangeError(`${path} has no probe files.`);
+  return files.map((file) => JSON.parse(readFileSync(file, "utf8")));
 }
 
 /** This function gives the facts of the inputs of a slice for the analysis. */
@@ -491,6 +520,81 @@ if (command === "check") {
   const pairLines = [...seen].map((key) => byKey.get(key));
   writeFileSync(join(args.out, PRIOR_PAIRS_FILE), pairLines.map((line) => JSON.stringify(line) + "\n").join(""));
   console.log(`Stamp ${stamp}: ${pairLines.length} of ${rows.length * expectedPairs.length} pairs kept. Left out: ${otherStamp} of another stamp, ${outside} of another input or pair, ${broken} cut lines, ${byKey.size - pairLines.length} with no record.`);
+} else if (command === "carry-probe") {
+  // The probe of a carry (L147): the fingerprint of each pack entry on each input of the shard, and in shard 0 the fingerprint of each router.
+  // The probe job runs one time with the engines of the earlier run, and one time with the engines of this run. The command carry reads the two.
+  if (args.out === undefined) throw new RangeError("The arguments of carry-probe are --out <file> [--shards <n> --shard <i>].");
+  const shards = Number(args.shards ?? 1);
+  const shardIndex = Number(args.shard ?? 0);
+  const rows = corpusSlice();
+  const runPacks = cover.packs ?? PACK_ENTRIES;
+  const t0 = performance.now();
+  const probe = carryProbe({
+    corpus: set,
+    engines: carryEngines(),
+    packs: runPacks,
+    inputs: shardOf(rows, shardIndex, shards).map(({ input, entry }) => ({ input, cell: entry.cell })),
+    ...(shardIndex === 0 ? { routers: cover.routers ?? ROUTERS, routerInputs: prSlice(rows).map(({ input, entry }) => ({ input, cell: entry.cell })), routerPack: PACK_ENTRIES[0] } : {}),
+  });
+  mkdirSync(dirname(args.out), { recursive: true });
+  writeFileSync(args.out, JSON.stringify(probe) + "\n");
+  console.log(`Probe of shard ${shardIndex} of ${shards}: ${Object.keys(probe.packs).length} pack probes, ${Object.keys(probe.routers).length} routers, ${((performance.now() - t0) / 60000).toFixed(1)} min, engines ${JSON.stringify(probe.engines)}.`);
+} else if (command === "carry") {
+  // The carry of L147. A record of an earlier run joins this run with no new measure when the probes of its pack and its router agree at the two versions.
+  // The measure code of the runner (the local imports of runner.ts) has the same text at --from-commit and here, else nothing joins.
+  for (const name of ["records", "from", "to", "from-commit", "run", "out"]) if (args[name] === undefined) throw new RangeError(`The command carry needs --${name}.`);
+  const here = (file) => readFileSync(new URL(`../src/${file}`, import.meta.url), "utf8").replaceAll("\r\n", "\n");
+  const changed = localImports("runner.ts", here).filter((file) => {
+    const old = spawnSync("git", ["show", `${args["from-commit"]}:packages/joint/src/${file}`], { encoding: "utf8", maxBuffer: 1 << 26 });
+    return old.status !== 0 || old.stdout.replaceAll("\r\n", "\n") !== here(file);
+  });
+  if (changed.length > 0) throw new RangeError(`The measure code changed after ${args["from-commit"]} (${changed.join(", ")}), so the run measures each pair again.`);
+  const from = mergeProbes(probeFiles(args.from));
+  const to = mergeProbes(probeFiles(args.to));
+  mkdirSync(args.out, { recursive: true });
+  const rows = corpusSlice();
+  const hashes = new Map(rows.map(({ input, entry }) => [entry.id, input.hash ?? ""]));
+  const wanted = new Set(expectedPairs);
+  const names = readdirSync(args.records, { recursive: true }).map(String).sort();
+  const pairTexts = names.filter((n) => n.endsWith(".ndjson")).map((n) => readFileSync(join(args.records, n), "utf8"));
+  // The earlier run has one stamp: the stamp of most of its pair lines.
+  const counts = new Map();
+  for (const text of pairTexts) for (const raw of text.split("\n")) if (raw.trim() !== "") {
+    try { const stamp = JSON.parse(raw).stamp; counts.set(stamp, (counts.get(stamp) ?? 0) + 1); } catch { /* a cut line */ }
+  }
+  const fromStamp = [...counts].sort((a, b) => b[1] - a[1])[0]?.[0];
+  if (fromStamp === undefined) throw new RangeError(`${args.records} has no pair lines.`);
+  const byKey = new Map();
+  for (const text of pairTexts) for (const line of joinLines(text, fromStamp, hashes, wanted).lines) if (!byKey.has(doneKey(line.input, line.strategy))) byKey.set(doneKey(line.input, line.strategy), line);
+  const seen = new Set();
+  const records = [];
+  const accepted = new Set(byKey.keys());
+  for (const name of names.filter((n) => n.endsWith(".jsonl"))) for (const raw of keptRecordLines(readFileSync(join(args.records, name), "utf8"), accepted, seen)) records.push(JSON.parse(raw));
+  const plan = carryPlan(records, { from, to, packs: packFacts(cover.packs ?? PACK_ENTRIES), run: args.run });
+  const audit = new Set(auditSample(plan.carried.map((r) => doneKey(r.input, r.strategy)), args.seed ?? args.run));
+  const kept = plan.carried.filter((r) => !audit.has(doneKey(r.input, r.strategy)));
+  const stamp = benchStamp();
+  const chunk = 20000;
+  for (let i = 0; i * chunk < kept.length; i += 1) writeFileSync(join(args.out, `prior-${i}.jsonl`), kept.slice(i * chunk, (i + 1) * chunk).map((r) => JSON.stringify(r)).join("\n") + "\n");
+  writeFileSync(join(args.out, PRIOR_PAIRS_FILE), kept.map((r) => JSON.stringify({ ...byKey.get(doneKey(r.input, r.strategy)), stamp }) + "\n").join(""));
+  writeFileSync(join(args.out, "carry-audit.jsonl"), plan.carried.filter((r) => audit.has(doneKey(r.input, r.strategy))).map((r) => JSON.stringify(r) + "\n").join(""));
+  const changedPairs = plan.counts["pack changed"] + plan.counts["router changed"] + plan.counts["options changed"];
+  const summary = { fromStamp, stamp, from: from.engines, to: to.engines, records: records.length, carried: plan.carried.length, audit: audit.size, kept: kept.length, again: plan.counts, changedShare: records.length === 0 ? 0 : changedPairs / records.length };
+  writeFileSync(join(args.out, "carry.json"), JSON.stringify(summary, null, 2) + "\n");
+  console.log(`Carry from stamp ${fromStamp} to ${stamp}: ${records.length} records, ${plan.carried.length} carried (${audit.size} of them in the audit, so the run measures them again), ${kept.length} kept.`);
+  console.log(`Measured again: ${JSON.stringify(plan.counts)}. Changed share: ${(100 * summary.changedShare).toFixed(2)} %.`);
+} else if (command === "carry-audit") {
+  // The audit of a carry (L147). The run measured the audit pairs again. One pair with another record, without the times, fails the carry.
+  if (args.audit === undefined || args.records === undefined) throw new RangeError("The arguments of carry-audit are --audit <file> --records <dir> [--out <file>].");
+  const carried = readFileSync(args.audit, "utf8").split("\n").filter((line) => line.trim() !== "").map((line) => JSON.parse(line));
+  const result = auditCompare(carried, readRecords(args.records));
+  if (args.out !== undefined) writeFileSync(args.out, JSON.stringify(result, null, 2) + "\n");
+  console.log(`Audit of the carry: ${result.pairs} pairs, ${result.differing.length} with another record, ${result.missing.length} not measured. ${result.pass ? "pass" : "fail"}.`);
+  for (const d of result.differing.slice(0, 20)) console.log(`  ${d.key.replaceAll("\n", " ")}: ${d.fields.join(", ")}`);
+  if (!result.pass) {
+    console.error("::error::The audit of the carry failed, so the carried records do not join. Measure each pair of the engine again: a resume with no carry.");
+    process.exit(1);
+  }
 } else if (command === "margins") {
   // The margin set of a run (L143). It writes the set as JSON.
   //   margins --records <dir> --run <id> --commit <sha>: the times come from the pair files of the run. The lines of the most common stamp count.
