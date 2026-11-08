@@ -55,10 +55,16 @@ type EnumOption: @mark1russell7/strategy-space#EnumOption (external)
 type EnumerateOptions: @mark1russell7/strategy-space#EnumerateOptions (external)
 ExerciseEvidence: build/index.d.ts#ExerciseEvidence
 FAMILY_ANY_KIND: build/measures.chunk.d.ts#FAMILY_ANY_KIND
+FRAME_SCHEMA: build/index.d.ts#FRAME_SCHEMA
+FRAME_STATES: build/index.d.ts#FRAME_STATES
 FamilyBy: build/measures.chunk.d.ts#FamilyBy
 FamilyCell: build/measures.chunk.d.ts#FamilyCell
 FamilyRegistry: build/index.d.ts#FamilyRegistry
 FamilyVerdict: build/index.d.ts#FamilyVerdict
+FrameAtOptions: build/index.d.ts#FrameAtOptions
+FrameBox: build/index.d.ts#FrameBox
+FrameSource: build/index.d.ts#FrameSource
+FrameState: build/index.d.ts#FrameState
 GenerateContext: build/index.d.ts#GenerateContext
 GenerateOptions: build/index.d.ts#GenerateOptions
 type GridOptions: @mark1russell7/strategy-space#GridOptions (external)
@@ -74,6 +80,7 @@ LayoutBox: build/measures.chunk.d.ts#LayoutBox
 LayoutCell: build/measures.chunk.d.ts#LayoutCell
 LayoutContainer: build/measures.chunk.d.ts#LayoutContainer
 LayoutEdge: build/measures.chunk.d.ts#LayoutEdge
+LayoutFrame: build/index.d.ts#LayoutFrame
 LayoutGenerator: build/measures.chunk.d.ts#LayoutGenerator
 LayoutInput: build/measures.chunk.d.ts#LayoutInput
 LayoutRecord: build/index.d.ts#LayoutRecord
@@ -128,6 +135,7 @@ PortfolioLevel: build/index.d.ts#PortfolioLevel
 PortfolioOptions: build/index.d.ts#PortfolioOptions
 PortfolioPick: build/index.d.ts#PortfolioPick
 PortfolioTrace: build/index.d.ts#PortfolioTrace
+Presence: build/index.d.ts#Presence
 ProcrustesOptions: build/index.d.ts#ProcrustesOptions
 RECORD_EPS: build/index.d.ts#RECORD_EPS
 RECORD_SCALE: build/index.d.ts#RECORD_SCALE
@@ -264,7 +272,11 @@ exercised: build/index.d.ts#exercised
 familyKind: build/index.d.ts#familyKind
 familyOf: build/measures.chunk.d.ts#familyOf
 fingerprintOf: build/index.d.ts#fingerprintOf
+fixedPointMove: build/index.d.ts#fixedPointMove
 fnv1a32: build/index.d.ts#fnv1a32
+frameAt: build/index.d.ts#frameAt
+frameMove: build/index.d.ts#frameMove
+frameOf: build/index.d.ts#frameOf
 grow: build/measures.chunk.d.ts#grow
 hardRuleOf: build/index.d.ts#hardRuleOf
 inputShapeLevel: build/measures.chunk.d.ts#inputShapeLevel
@@ -283,6 +295,7 @@ optionIssue: @mark1russell7/strategy-space#optionIssue (external)
 outputGridClass: build/index.d.ts#outputGridClass
 outputGroups: build/index.d.ts#outputGroups
 outputHash: build/index.d.ts#outputHash
+outputOf: build/index.d.ts#outputOf
 overlapOf: build/measures.chunk.d.ts#overlapOf
 ownerDimension: build/index.d.ts#ownerDimension
 packHard: build/index.d.ts#packHard
@@ -584,6 +597,12 @@ export interface ExerciseEvidence {
   readonly baseHashes?: readonly string[];
 }
 
+### build/index.d.ts#FRAME_SCHEMA
+export declare const FRAME_SCHEMA = "layout-frame/1";
+
+### build/index.d.ts#FRAME_STATES
+export declare const FRAME_STATES: readonly ["stay", "enter", "leave"];
+
 ### build/index.d.ts#FamilyRegistry
 export interface FamilyRegistry<O = LayoutInput> {
   register(family: CorpusFamily<O>): FamilyRegistry<O>;
@@ -606,6 +625,27 @@ export interface FamilyVerdict {
   readonly mean: number;
   readonly sign: -1 | 0 | 1;
 }
+
+### build/index.d.ts#FrameAtOptions
+export interface FrameAtOptions {
+  readonly enter?: Presence;
+  readonly leave?: Presence;
+}
+
+### build/index.d.ts#FrameBox
+export interface FrameBox extends PlacedBox {
+  readonly turn?: 0 | 90;
+  readonly presence: number;
+  readonly state: FrameState;
+}
+
+### build/index.d.ts#FrameSource
+export interface FrameSource extends PlacedBox {
+  readonly turn?: 0 | 90;
+}
+
+### build/index.d.ts#FrameState
+export type FrameState = (typeof FRAME_STATES)[number];
 
 ### build/index.d.ts#GenerateContext
 export interface GenerateContext {
@@ -631,6 +671,12 @@ export interface HashOptions {
 
 ### build/index.d.ts#INVALIDATED_FIELD
 export declare const INVALIDATED_FIELD = "invalidated";
+
+### build/index.d.ts#LayoutFrame
+export interface LayoutFrame {
+  readonly schema: typeof FRAME_SCHEMA;
+  readonly boxes: readonly FrameBox[];
+}
 
 ### build/index.d.ts#LayoutRecord
 export interface LayoutRecord {
@@ -838,6 +884,9 @@ export interface PortfolioTrace {
   readonly deterministic: boolean;
   readonly kept: readonly (readonly string[])[];
 }
+
+### build/index.d.ts#Presence
+export type Presence = "fade" | "cut";
 
 ### build/index.d.ts#ProcrustesOptions
 export interface ProcrustesOptions {
@@ -1201,8 +1250,20 @@ export declare function familyKind(name: string, version: number): string;
 ### build/index.d.ts#fingerprintOf
 export declare function fingerprintOf(hashes: Readonly<Record<string, string>>): string;
 
+### build/index.d.ts#fixedPointMove
+export declare function fixedPointMove(start: LayoutFrame, run: (start: LayoutFrame) => LayoutFrame): number;
+
 ### build/index.d.ts#fnv1a32
 export declare function fnv1a32(text: string): number;
+
+### build/index.d.ts#frameAt
+export declare function frameAt(from: LayoutFrame, to: LayoutFrame, t: number, options?: FrameAtOptions): LayoutFrame;
+
+### build/index.d.ts#frameMove
+export declare function frameMove(a: LayoutFrame, b: LayoutFrame): number;
+
+### build/index.d.ts#frameOf
+export declare function frameOf(boxes: readonly FrameSource[]): LayoutFrame;
 
 ### build/index.d.ts#hardRuleOf
 export declare function hardRuleOf(record: Pick<LayoutRecord, "hardRule">): number;
@@ -1224,6 +1285,9 @@ export declare function outputGroups(hashes: Readonly<Record<string, readonly st
 
 ### build/index.d.ts#outputHash
 export declare function outputHash(value: unknown, options?: HashOptions): string;
+
+### build/index.d.ts#outputOf
+export declare function outputOf(frame: LayoutFrame): Placement[];
 
 ### build/index.d.ts#ownerDimension
 export declare function ownerDimension(name: string, spec: OwnerDimensionSpec): CorpusDimension;
