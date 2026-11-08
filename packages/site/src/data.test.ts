@@ -19,8 +19,9 @@ describe("the data files", () => {
     expect(checkDataFile(path, text)).toEqual([]);
   });
 
-  it("keeps each joint file under 200 KB", () => {
-    for (const [path, text] of files) if (path.startsWith("joint/")) expect(text.length).toBeLessThan(200 * 1024);
+  it("keeps each joint file under 200 KB in the bundle", () => {
+    // The page imports each joint file, and the bundle holds the JSON with no white space. So the limit reads that size, not the size of the file on disk.
+    for (const [path, text] of files) if (path.startsWith("joint/")) expect(JSON.stringify(JSON.parse(text)).length, path).toBeLessThan(200 * 1024);
   });
 
   it("gives each space to checkSpace with no break", () => {
@@ -140,5 +141,14 @@ describe("jointData", () => {
     expect(latestJoint([a, cover])?.run).toBe("99");
     expect(latestJoint([cover])?.run).toBe("99");
     expect(latestJoint([{ ...cover, date: "2020-01-01" }, a])?.run).toBe(a.run);
+  });
+
+  it("marks a short run, and refuses a short run that is also a cover run (L132)", () => {
+    const short = jointData(report, { ...facts, run: "98", date: "2027-01-02", short: true });
+    expect(short.short).toBe(true);
+    expect(jointData(report, facts).short).toBeUndefined();
+    expect(checkJoint(short)).toEqual([]);
+    expect(checkJoint({ ...short, short: "yes" })).toContain("joint.short is not a boolean");
+    expect(checkJoint({ ...short, cover: true })).toContain("joint.cover and joint.short are both true, but a short run is not a cover run");
   });
 });

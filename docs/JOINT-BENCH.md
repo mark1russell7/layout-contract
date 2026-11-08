@@ -434,7 +434,7 @@ A split file of `corpus-split/1` is beside each manifest, in `packages/joint/cor
 - The job `check` reads the split file with `loadSplit`. A missing file, a wrong corpus hash or a bad fold stops the run.
 - `pnpm bench analyze` gives the folds of the split `default` to `analyze`. These folds are the folds of leave-one-seed-out, so the report does not change.
 - On the slice `pr`, a fold without held-out inputs gives no row. A training seed without inputs adds no input.
-- The pinned corpus hashes are `277ffd12181e74ef` for `joint-v1`, `1d0909caec40631e` for `joint-v2` and `af35b46d721b9a5a` for `joint-v3`. A change of an input needs a new split file.
+- The pinned corpus hashes are `277ffd12181e74ef` for `joint-v1`, `1d0909caec40631e` for `joint-v2` and `9b9557161f2eaab9` for `joint-v3`. A change of an input needs a new split file.
 
 ## The Time row
 
@@ -1186,7 +1186,8 @@ The hand lists of the bench missed strategies and routers. `packages/joint/src/c
 - `push` starts each item with no earlier place, so it does not test a change of an input. It tests only that the strategy runs.
 - A cell that a strategy does not support gives a skipped record with the reason. A test fails when a strategy runs on no input.
 - Each new entry meets `corners`, `portfolio` and 2 other routers in turn. Each open router meets `maxrects-cp` and `select`.
-- `COVER_EXCEPTIONS` is a closed list. It holds `hole-degree` and `circle-quasi-physical`, which pack only circles, and `exact-strip`, which refuses each strip input of the corpus. L94 removes the three. A test fails when the list grows, and when an exception starts to run.
+- `COVER_EXCEPTIONS` is a closed list. It is empty since L94. A test fails when the list grows, and when an exception starts to run.
+- `hole-degree` and `circle-quasi-physical` pack only circles, and `exact-strip` takes only small strips of whole sizes with no gap. The array `shapes` of `joint-v3` has inputs for the three. On `joint-v2`, they skip each input, so a cover run of `joint-v2` does not count them.
 - The test reads `strategies`, `composites` and `shapeStrategies` of `packing`. It changes to the single list when `packing` exports one.
 
 The default plan does not change, so the earlier reports stay comparable. A run with `--cover on` has more pairs, so the floors of that run do not compare with the floors of a default run.
@@ -1529,6 +1530,7 @@ The limits of this read:
 - A job in the queue at the read has no wait yet, because GitHub gives it a start time equal to its creation time. The run stays open, so a later read takes its real start.
 - It shows that a wait and a gate came at one time. It does not show that the gate caused the wait.
 - The rate limit can cut a read. The report states the count of runs left out, and the next run goes on from the artifact.
+- The job reads also stop after 25 minutes of the 40 of the job, with the same count. A run with no artifact reads 10 days of runs. From 2026-11-05 to 2026-11-07, each such read passed the timeout, so no run gave an artifact.
 
 This workflow is a dated tool. It ends when one night of its rows matches the queue record of the CI slots, or on 2026-11-14 at the latest. Then the workflow goes, and anything still of use moves to that record.
 

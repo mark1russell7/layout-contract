@@ -402,7 +402,8 @@ describe("the walk draw of a sample", () => {
     expect(out).toHaveLength(200);
     for (const c of out) expect(checkConfig(meta, c)).toEqual([]);
     expect(out.some((c) => c.stages["combine"] != null)).toBe(true);
-  });
+    // The walk of 200 samples took 5064 ms in CI run 42388503014, over the default limit of 5000 ms. Thus the test has its own limit.
+  }, 30_000);
 
   it("is deterministic, and the seed moves it", () => {
     const a = enumerateSpace(tight, { ...options, draw: "walk" });

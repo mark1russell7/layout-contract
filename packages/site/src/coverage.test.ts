@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { addDays, checkSweepIndex, checkTrendRecord, FLAT_WEEK, mainLine, parseTrend, type TrendRecord, weekView } from "./coverage.ts";
-import { costNote, type Fetch, guardChart, loadSweep, nightNote, runUrl, skillChart, stepNote, SWEEP_RAW, sweepHtml, trendFileUrl } from "./sweep.ts";
+import { addDays, chainLine, checkSweepIndex, checkTrendRecord, epochStarts, FLAT_WEEK, MAX_CHAIN, mainLine, parseTrend, type TrendRecord, weekShown, weekView } from "./coverage.ts";
+import { costNote, type Fetch, guardChart, loadSweep, movesNote, nightNote, runUrl, skillChart, stepNote, SWEEP_RAW, sweepHtml, trendFileUrl } from "./sweep.ts";
 
 const EPOCH = "joint-v2_packing-0.4.1_highways-0.10.0_space-bench-3";
 // The first record of the branch `sweep-data`, as the nightly sweep wrote it.
@@ -93,7 +93,7 @@ describe("the week view", () => {
 
 describe("the index of sweep-data", () => {
   it("gives the latest epoch and its entry", () => {
-    expect(checkSweepIndex(INDEX)).toEqual({ latest: EPOCH, entry: { corpus: "joint-v2", nights: 3, last: "2026-11-03", configs: 219, missing: null, step: null, cost: null } });
+    expect(checkSweepIndex(INDEX)).toEqual({ latest: EPOCH, entry: { corpus: "joint-v2", nights: 3, last: "2026-11-03", configs: 219, missing: null, step: null, cost: null }, chain: [EPOCH] });
   });
 
   it("gives the problems of a bad index", () => {
@@ -129,7 +129,7 @@ describe("the section", () => {
 
   it("marks a lambda at the edge, and a flat week", () => {
     const line = [rec("2026-11-03", 0.1), rec("2026-11-10", 0.104, { lambdaAtEdge: true, lambda: 10000 })];
-    const html = sweepHtml({ kind: "ready", index: { latest: EPOCH, entry: { corpus: "joint-v2", nights: 8, last: "2026-11-10", configs: 9, missing: null, step: null, cost: null } }, line, bad: 1, week: weekView(line) }, 500);
+    const html = sweepHtml({ kind: "ready", index: { latest: EPOCH, entry: { corpus: "joint-v2", nights: 8, last: "2026-11-10", configs: 9, missing: null, step: null, cost: null }, chain: [EPOCH] }, line, bad: 1, week: weekView(line) }, 500);
     expect(html).toContain("at the edge");
     expect(html).toContain("Flat week: a finding to explain.");
     expect(html).toContain("+0.004");
@@ -241,7 +241,7 @@ describe("the step between two epochs", () => {
   it("marks the step on the chart and stops the line there", () => {
     const line = [rec("2026-11-02", 0.1), rec("2026-11-03", 0.12), rec("2026-11-05", 0.2), rec("2026-11-06", 0.21)];
     const held = (html: string): string => /<path class="line s1" d="([^"]+)"/.exec(html)![1]!;
-    const marked = skillChart(line, 640, 2);
+    const marked = skillChart(line, 640, [2]);
     expect(marked).toContain("epoch-step");
     expect(held(marked).match(/M/g)).toHaveLength(2);
     expect(held(skillChart(line, 640)).match(/M/g)).toHaveLength(1);
@@ -306,7 +306,7 @@ describe("the cost of the last night", () => {
 });
 
 describe("the line of the last night", () => {
-  const index = (last: string, missing: number | null) => ({ latest: EPOCH, entry: { corpus: "joint-v2", nights: 3, last, configs: 9, missing, step: null, cost: null } });
+  const index = (last: string, missing: number | null) => ({ latest: EPOCH, entry: { corpus: "joint-v2", nights: 3, last, configs: 9, missing, step: null, cost: null }, chain: [EPOCH] });
 
   it("states the date of a night on time", () => {
     const html = nightNote(index("2026-11-03", 0), new Date("2026-11-04T10:00:00Z"));
@@ -331,5 +331,101 @@ describe("the line of the last night", () => {
   it("is part of the section at the time of the call", async () => {
     const state = await loadSweep(fake({ [`${SWEEP_RAW}/index.json`]: JSON.stringify(INDEX), [trendPath]: `${FIRST}\n` }));
     expect(sweepHtml(state, 400, new Date("2030-01-01T00:00:00Z"))).toContain("Late");
+  });
+});
+
+describe("the week view across epochs (L52)", () => {
+  const A = "epoch-a";
+  const B = "epoch-b";
+  const C = "epoch-c";
+  const at = (epoch: string, night: string, median: number | null): TrendRecord => rec(night, median, { epoch });
+  const stepOf = (from: string) => ({
+    from,
+    pairs: 9,
+    dropped: {},
+    metrics: { "joint.fill": { median: 1 }, hard: { median: 1 }, "joint.straight.crossings": { median: 1 } },
+  });
+  const chained = {
+    schema: "sweep-index/1",
+    latest: C,
+    epochs: {
+      [A]: { corpus: "joint-v2", nights: 3, last: "2026-11-03", configs: 9 },
+      [B]: { corpus: "joint-v2", nights: 1, last: "2026-11-05", configs: 9, step: { from: A } },
+      [C]: { corpus: "joint-v2", nights: 2, last: "2026-11-10", configs: 9, step: stepOf(B) },
+    },
+  };
+
+  it("reads the chain of the epochs through step.from, also through a step of an older form", () => {
+    expect(checkSweepIndex(chained)).toMatchObject({ latest: C, chain: [C, B, A], entry: { step: { from: B } } });
+    const loop = { ...chained, epochs: { ...chained.epochs, [A]: { ...chained.epochs[A], step: { from: C } } } };
+    expect(checkSweepIndex(loop)).toMatchObject({ chain: [C, B, A] });
+    const gone = { ...chained, epochs: { [C]: chained.epochs[C] } };
+    expect(checkSweepIndex(gone)).toMatchObject({ chain: [C, B] });
+    const long = Object.fromEntries(Array.from({ length: 12 }, (_, i) => [`e${i}`, { corpus: "joint-v2", nights: 1, last: "2026-11-01", configs: 1, step: { from: `e${i + 1}` } }]));
+    const read = checkSweepIndex({ schema: "sweep-index/1", latest: "e0", epochs: long });
+    expect(Array.isArray(read) ? read : read.chain).toHaveLength(MAX_CHAIN);
+  });
+
+  it("joins the lines in night order, with one record for each night", () => {
+    const line = chainLine([[at(C, "2026-11-05", 0.3), at(C, "2026-11-10", 0.2)], [at(B, "2026-11-05", 0.9), at(B, "2026-11-04", 0.1)].reverse(), [at(A, "2026-11-03", 0.1)]]);
+    expect(line.map((r) => `${r.epoch} ${r.night}`)).toEqual([`${A} 2026-11-03`, `${B} 2026-11-04`, `${C} 2026-11-05`, `${C} 2026-11-10`]);
+    expect(epochStarts(line)).toEqual([1, 2]);
+    expect(chainLine([[], [at(A, "2026-11-03", 0.1)]])).toHaveLength(1);
+  });
+
+  it("compares nights of two epochs, and gives the move of the skill at each step", () => {
+    const line = [at(A, "2026-11-03", 0.109), at(B, "2026-11-05", 0.078), at(C, "2026-11-06", 0.201), at(C, "2026-11-10", 0.104)];
+    const week = weekView(line);
+    expect(week).toMatchObject({ kind: "flat", steps: 2 });
+    if (week.kind !== "flat") throw new Error("not a week view");
+    expect(week.change).toBeCloseTo(-0.005, 6);
+    expect(week.moves.map((m) => m.night)).toEqual(["2026-11-05", "2026-11-06"]);
+    expect(week.moves[0]!.move).toBeCloseTo(-0.031, 6);
+    expect(week.moves[1]!.move).toBeCloseTo(0.123, 6);
+    expect(weekShown(week)).toBe(true);
+    expect(weekView([at(A, "2026-11-03", 0.1), at(C, "2026-11-07", 0.2)])).toMatchObject({ kind: "young", steps: 1 });
+    expect(weekShown(weekView([at(A, "2026-11-03", 0.1), at(C, "2026-11-07", 0.2)]))).toBe(false);
+    expect(weekView([at(A, "2026-11-03", 0.1), at(A, "2026-11-10", 0.2)])).toMatchObject({ kind: "rising", steps: 0, moves: [] });
+  });
+
+  it("names the move of each step, and the part of the change inside the epochs", () => {
+    const note = movesNote(0.1, [
+      { night: "2026-11-05", move: 0.12 },
+      { night: "2026-11-06", move: -0.05 },
+    ]);
+    expect(note).toContain("The two nights are 2 engine steps apart (Nov 5: +0.120, Nov 6: -0.050).");
+    expect(note).toContain("The steps moved the skill by +0.070, and the nights inside the epochs by +0.030.");
+    expect(movesNote(0.1, [{ night: "2026-11-05", move: null }])).toContain("the part of the change inside the epochs is not known");
+    expect(movesNote(0.1, [])).toBe("");
+  });
+
+  it("reads back along the chain until the line covers a week, and marks each step on the charts", async () => {
+    const path = (e: string): string => `${SWEEP_RAW}/epochs/${e}/surrogate-trend.jsonl`;
+    const file = (...records: TrendRecord[]): string => `${records.map((r) => JSON.stringify(r)).join("\n")}\n`;
+    const reads: string[] = [];
+    const files = {
+      [`${SWEEP_RAW}/index.json`]: JSON.stringify(chained),
+      [path(C)]: file(at(C, "2026-11-06", 0.201), at(C, "2026-11-10", 0.104)),
+      [path(B)]: file(at(B, "2026-11-05", 0.078)),
+      [path(A)]: file(at(A, "2026-11-03", 0.109)),
+    };
+    const get: Fetch = async (url, init) => {
+      reads.push(url);
+      return fake(files)(url, init);
+    };
+    const state = await loadSweep(get);
+    expect(state).toMatchObject({ kind: "ready", week: { kind: "flat", steps: 2 } });
+    if (state.kind !== "ready") throw new Error("not ready");
+    expect(state.weekLine!.map((r) => r.night)).toEqual(["2026-11-03", "2026-11-05", "2026-11-06", "2026-11-10"]);
+    expect(reads.filter((u) => u === path(B))).toHaveLength(1);
+    const html = sweepHtml(state, 640);
+    expect(html).toContain("The two nights are 2 engine steps apart");
+    expect(html.match(/class="epoch-step"/g)).toHaveLength(4);
+    // A line that covers a week stops the reads: the epoch A is not read again when B already covers the week.
+    const short = await loadSweep(fake({ ...files, [path(B)]: file(at(B, "2026-11-02", 0.078)) }));
+    expect(short).toMatchObject({ kind: "ready", week: { kind: "rising", steps: 1 } });
+    // A failed read of an older epoch gives a shorter line, not a failed section.
+    const lost = await loadSweep(async (url, init) => (url === path(A) ? Promise.reject(new Error("offline")) : fake(files)(url, init)));
+    expect(lost).toMatchObject({ kind: "ready", week: { kind: "young", steps: 1 } });
   });
 });

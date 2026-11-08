@@ -6,15 +6,19 @@ This file lists the items of the roadmap of this repository. The status page of 
 
 | ID | Status | Priority | Title |
 | --- | --- | --- | --- |
+| L129 | in progress | P1 | The joint bench and the site use `packing` 0.10.2 and `highways` 0.15.0, and read the routers of `KEYED_STRATEGIES` (88 names) |
 | L5 | in progress | P1 | highways reads the contract |
 | L34 | in progress | P1 | The strategy space as data |
 | L52 | in progress | P1 | Measure joint space coverage, with a weekly trend that rises |
 | L81 | in progress | P1 | Memory gate over each family of the bench, then the dense-hubs peak (3.4-4.3 GB) |
 | L82 | in progress | P2 | The bench scripts in TypeScript (rule typed-scripts of conventions 0.5.0) |
+| L134 | in progress | P1 | Each measure of `kpi.json` has its own date: the age reads the newest run, and the coverage reads the newest cover run |
+| L136 | in progress | P1 | The publish of a sweep night builds on the commit that its check read, so a night that runs at the same time is not lost |
+| L132 | in progress | P1 | A short run of chosen rows on each engine release, at most one a day. Part 1: the site reads a short run, opens on the newest full run, and the age of the data is the age of the oldest shown pair |
 | L95 | done | P1 | Open size families in the joint corpus (`joint-v3`) |
 | L96 | in progress | P2 | Two named tables of the family `recorded` in `rigor-generators`, with source, license and date, as joint inputs and size choices of the site |
 | L98 | done | P2 | Bench: run only chosen rows of the cover |
-| L94 | in progress | P1 | Circle items in the joint bench: one shared family and an exact hard rule in the contract (0.4.0), then the joint corpus. Routes read the box until highways routes around the true shape |
+| L94 | in progress | P1 | Circle items in the joint bench: one shared family and an exact hard rule in the contract (0.4.0), then the joint corpus. Part 1: the array `shapes` of `joint-v3` gives inputs to `hole-degree`, `circle-quasi-physical` and `exact-strip`. Part 2: a cover run of `joint-v3` removes the 3 cover exceptions. Routes read the box until highways routes around the true shape |
 | L108 | in progress | P2 | The news of the site holds no typed version. The release page is the one list of versions |
 | L111 | in progress | P2 | The cost claim of the sweep is an interval for the whole night, then for each shard, and the night record states the inputs of its budget |
 | L110 | in progress | P1 | The step between two sweep nights reads route values: detour, routed crossings and the route length of the contract (`joint.route.length`) |
@@ -27,6 +31,7 @@ This file lists the items of the roadmap of this repository. The status page of 
 | L100 | in progress | P1 | The step between two epochs: raw values of the baseline arm, with a marked step on the charts |
 | L122 | in progress | P1 | A floor per option for a walk sample: the count per option beside uniform, a floor with its reason, a stratum if an option falls under it, and a test that pins the smallest count. By 2026-11-17. Part 1, the sample option `fixed`, is in version 0.5.4. |
 | L99 | in progress | P1 | A night with no result shows: `night-check.yml`, a line on the site, retries on API reads, and no green skip after a failed gate |
+| L131 | in progress | P1 | Targets per rung for the routers on the compare view, the date of the run and the current engines. Rung 1: the site data of the cover run 41898523423 |
 
 ## Next
 
@@ -41,6 +46,7 @@ This file lists the items of the roadmap of this repository. The status page of 
 | L66 | next | P1 | An objective spec with one evaluator |
 | L72 | next | P1 | Neat is a family of objectives, not one |
 | L73 | next | P1 | Clarity of structure: macro and micro measures |
+| L127 | next | P1 | The page says that the data is current at the start of a run, and what it does not know |
 
 ## Later
 
@@ -77,6 +83,7 @@ This file lists the items of the roadmap of this repository. The status page of 
 | L117 | next | P1 | One timed run over 60 s on the joint runner, with a same-twice check that can go red and its flip, in the engine epoch of 2026-11-15 |
 | L113 | in progress | P1 | A CI read of the wait of each pull request gate and release gate, by UTC hour, with the memory gate running and not |
 | L116 | in progress | P1 | A held config cannot stay out of the full race for ever: a censored row after 2 planned nights with a miss, a limit of 0.5 % of the inputs, a plan in part, and kept records that give a value once their reference returns. By 2026-11-12 |
+| L133 | later | P2 | The epoch key changes when the joint space changes |
 
 ## Done
 
@@ -139,3 +146,4 @@ This file lists the items of the roadmap of this repository. The status page of 
 | L118 | done | P1 | A sample of a space whose constraints reject most draws: the option `draw: "walk"` of `enumerateSpace`. Version 0.5.2. |
 | L119 | done | P1 | A meta option that chooses its members from the input: the member rule with `min` and `max` 0. Version 0.5.3. |
 | L115 | done | P1 | A deadline inside each shard with a censored row and a flip, the held configs and the origin of a label in the report, and a count of each planned pair with no value |
+| L130 | done | P1 | The routers measure of kpi.json reads the rows of the run |

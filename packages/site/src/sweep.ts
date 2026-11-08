@@ -1,7 +1,7 @@
 // The section "Sweep coverage": the trend of the coverage surrogate, read from the branch `sweep-data` when the page opens.
 // The build does not read the branch, so the page reads it at runtime. A failed read shows a link to the data.
 import { LOST_METHOD_NOTE, nightDue, nightVerdict } from "@layout-contract/joint/browser";
-import { checkSweepIndex, type CostClaimFacts, type CostFacts, dayOf, FLAT_WEEK, mainLine, parseTrend, type StepFacts, type StepRouteFacts, type SweepIndex, type TrendRecord, type WeekView, weekView } from "./coverage.ts";
+import { chainLine, checkSweepIndex, epochStarts, type CostClaimFacts, type CostFacts, dayOf, FLAT_WEEK, mainLine, parseTrend, type StepFacts, type StepMove, type StepRouteFacts, type SweepIndex, type TrendRecord, WEEK_DAYS, type WeekView, weekView } from "./coverage.ts";
 import { esc, pct } from "./ui.ts";
 
 const REPO = "https://github.com/mark1russell7/layout-contract";
@@ -14,7 +14,16 @@ const READ_LIMIT_MS = 15_000;
 export type SweepState =
   | { readonly kind: "loading" }
   | { readonly kind: "failed"; readonly message: string }
-  | { readonly kind: "ready"; readonly index: SweepIndex; readonly line: readonly TrendRecord[]; readonly prior?: readonly TrendRecord[]; readonly bad: number; readonly week: WeekView };
+  | {
+      readonly kind: "ready";
+      readonly index: SweepIndex;
+      readonly line: readonly TrendRecord[];
+      readonly prior?: readonly TrendRecord[];
+      /** The line of the week view, over the epochs of the chain (`chainLine`). The charts draw it, with a mark at each engine step. */
+      readonly weekLine?: readonly TrendRecord[];
+      readonly bad: number;
+      readonly week: WeekView;
+    };
 
 /** The part of `fetch` that the section uses. A test gives a fake. */
 export type Fetch = (url: string, init?: { readonly signal?: AbortSignal }) => Promise<{ readonly ok: boolean; readonly status: number; text(): Promise<string> }>;
@@ -47,10 +56,33 @@ export async function loadSweep(get: Fetch): Promise<SweepState> {
     if (!trend.ok) return { kind: "failed", message: `surrogate-trend.jsonl gave HTTP ${trend.status}` };
     const file = parseTrend(await trend.text());
     const line = mainLine(file.records.filter((r) => r.epoch === index.latest));
-    return { kind: "ready", index, line, prior: await priorLine(get, index.entry.step?.from, init), bad: file.bad, week: weekView(line) };
+    const from = index.entry.step?.from;
+    const prior = await priorLine(get, from, init);
+    const chained = await weekLine(get, index.chain, [line, ...(from !== undefined && from === index.chain[1] ? [prior] : [])], init);
+    return { kind: "ready", index, line, prior, weekLine: chained, bad: file.bad, week: weekView(chained) };
   } catch (error) {
     return { kind: "failed", message: error instanceof Error ? error.message : String(error) };
   }
+}
+
+/**
+ * This function gives the line of the week view. It starts with the lines that it has, newest epoch first.
+ * It reads the next epoch of the chain until the line covers `WEEK_DAYS` days or the chain ends. A failed read of an older epoch ends the chain there, so the view is only shorter.
+ */
+async function weekLine(get: Fetch, chain: readonly string[], have: readonly (readonly TrendRecord[])[], init: Parameters<Fetch>[1]): Promise<TrendRecord[]> {
+  const lines = [...have];
+  for (const epoch of chain.slice(lines.length)) {
+    const line = chainLine(lines);
+    const first = line[0];
+    const last = line.at(-1);
+    if (first !== undefined && last !== undefined && dayOf(last.night) - dayOf(first.night) >= WEEK_DAYS) break;
+    try {
+      lines.push(await priorLine(get, epoch, init));
+    } catch {
+      break;
+    }
+  }
+  return chainLine(lines);
 }
 
 /** This function reads the line of the epoch before the step. With no such line the charts show only the latest epoch, so a failure here is no failure of the section. */
@@ -63,6 +95,21 @@ async function priorLine(get: Fetch, epoch: string | undefined, init: Parameters
 // The numbers and the dates of the section.
 const f3 = (v: number): string => v.toFixed(3);
 const signed = (v: number): string => `${v >= 0 ? "+" : ""}${v.toFixed(3)}`;
+/** This function gives the words for a count of engine steps, for example `2 engine steps`. */
+const stepWords = (steps: number): string => `${steps} engine ${steps === 1 ? "step" : "steps"}`;
+
+/**
+ * This function gives the sentences on the engine steps of a week. They give the move of the skill at each step, the sum of the moves and the part of the change inside the epochs.
+ * Each step fits the surrogate on new data, so only the part inside the epochs is a change of the sweep. A week with no step gives no sentence.
+ */
+export function movesNote(change: number, moves: readonly StepMove[]): string {
+  if (moves.length === 0) return "";
+  const each = moves.map((m) => `${esc(shortDate(m.night))}: ${m.move === null ? "no skill on one side" : signed(m.move)}`).join(", ");
+  const head = ` The two nights are ${stepWords(moves.length)} apart (${each}).`;
+  if (moves.some((m) => m.move === null)) return `${head} One step has no move, so the part of the change inside the epochs is not known.`;
+  const atSteps = moves.reduce((sum, m) => sum + m.move!, 0);
+  return `${head} The steps moved the skill by ${signed(atSteps)}, and the nights inside the epochs by ${signed(change - atSteps)}. Each step fits the surrogate on new data, so only the part inside the epochs is a change of the sweep.`;
+}
 const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 /** This function gives a short date, for example `Nov 3`. */
 export const shortDate = (date: string): string => `${MONTHS[Number(date.slice(5, 7)) - 1] ?? "?"} ${Number(date.slice(8, 10))}`;
@@ -112,9 +159,12 @@ interface ChartSpec {
   readonly base?: number;
   /** The text of the hover note of each night. */
   readonly notes: readonly string[];
-  /** The index of the first night of the new epoch. The lines stop before it, and a marked line shows the step. */
-  readonly stepAt?: number;
+  /** The index of the first night of each new epoch. The lines stop before each of them, and a marked line shows each step. */
+  readonly stepsAt?: readonly number[];
 }
+
+/** A label of a step mark needs this count of pixels. A step closer than this to the last label has a mark with no label. */
+const STEP_LABEL_PX = 72;
 
 /**
  * This function gives a line chart as an inline SVG of `width` pixels. The x axis is the night, the y axis is one measure.
@@ -166,9 +216,14 @@ function lineChart(spec: ChartSpec): string {
     spec.band.forEach((b, i) => (b === null ? flush() : run.push(i)));
     flush();
   }
-  if (spec.stepAt !== undefined && spec.stepAt > 0 && spec.stepAt < nights.length) {
-    const at = (x(spec.stepAt - 1) + x(spec.stepAt)) / 2;
-    parts.push(`<line class="epoch-step" x1="${n(at)}" x2="${n(at)}" y1="${m.top}" y2="${m.top + ph}" />`, `<text class="axis" x="${n(at + 4)}" y="${m.top + 10}">new engines</text>`);
+  const stepsAt = (spec.stepsAt ?? []).filter((i) => i > 0 && i < nights.length);
+  let labelEnd = Number.NEGATIVE_INFINITY;
+  for (const i of stepsAt) {
+    const at = (x(i - 1) + x(i)) / 2;
+    parts.push(`<line class="epoch-step" x1="${n(at)}" x2="${n(at)}" y1="${m.top}" y2="${m.top + ph}" />`);
+    if (at < labelEnd || at + STEP_LABEL_PX > width) continue;
+    parts.push(`<text class="axis" x="${n(at + 4)}" y="${m.top + 10}">new engines</text>`);
+    labelEnd = at + STEP_LABEL_PX;
   }
   // The lines, their points and their labels.
   const ends: { readonly cls: string; readonly text: string; readonly x: number; readonly y: number }[] = [];
@@ -176,7 +231,7 @@ function lineChart(spec: ChartSpec): string {
     let d = "";
     let pen = false;
     s.values.forEach((v, i) => {
-      if (i === spec.stepAt) pen = false;
+      if (stepsAt.includes(i)) pen = false;
       if (v === null) {
         pen = false;
         return;
@@ -208,13 +263,13 @@ function lineChart(spec: ChartSpec): string {
 }
 
 /** This function gives the chart of the held-out median skill, its q10 to q90 band and the in-sample median. */
-export function skillChart(line: readonly TrendRecord[], width: number, stepAt?: number): string {
+export function skillChart(line: readonly TrendRecord[], width: number, stepsAt: readonly number[] = []): string {
   const vals = line.flatMap((r) => [r.skill?.q10, r.skill?.q90, r.inSampleSkill?.median].filter((v): v is number => v !== undefined));
   return lineChart({
     label: "The held-out median skill of each night, with the band from q10 to q90, and the in-sample median skill",
     width,
     height: 240,
-    ...(stepAt === undefined ? {} : { stepAt }),
+    stepsAt,
     nights: line.map((r) => r.night),
     lo: Math.min(0, ...vals),
     hi: Math.max(0, ...vals),
@@ -234,13 +289,13 @@ export function skillChart(line: readonly TrendRecord[], width: number, stepAt?:
 }
 
 /** This function gives the chart of the guard lines: the cells with rows, the cells with 20 rows or more and the covered cells. */
-export function guardChart(line: readonly TrendRecord[], width: number, stepAt?: number): string {
+export function guardChart(line: readonly TrendRecord[], width: number, stepsAt: readonly number[] = []): string {
   const count = (v: number): string => String(Math.round(v));
   return lineChart({
     label: "The count of the cells with rows, of the cells with 20 rows or more, and of the covered cells, for each night",
     width,
     height: 190,
-    ...(stepAt === undefined ? {} : { stepAt }),
+    stepsAt,
     nights: line.map((r) => r.night),
     lo: 0,
     hi: Math.max(1, ...line.map((r) => r.withRows)),
@@ -277,13 +332,13 @@ export function weekNote(week: WeekView): string {
     case "one":
       return `<p class="week-note">One night so far. The trend starts with the next night.</p>`;
     case "young":
-      return `<p class="week-note">${week.nights} nights so far, from ${esc(week.first.night)} to ${esc(week.latest.night)}. The week view starts on ${esc(week.startsOn)}.</p>`;
+      return `<p class="week-note">${week.nights} nights so far, from ${esc(week.first.night)} to ${esc(week.latest.night)}${week.steps > 0 ? `, over ${stepWords(week.steps)}` : ""}. The week view starts on ${esc(week.startsOn)}.</p>`;
     case "no-skill":
       return `<p class="week-note">No week view: the night ${esc(week.latest.skill === null ? week.latest.night : week.prior.night)} has no held-out skill, because no cell has 20 rows or more.</p>`;
     default: {
       const from = `${f3(week.prior.skill!.median)} on ${esc(week.prior.night)}`;
       const to = `${f3(week.latest.skill!.median)} on ${esc(week.latest.night)}`;
-      const change = `The held-out median skill changed by ${signed(week.change)}, from ${from} to ${to}.`;
+      const change = `The held-out median skill changed by ${signed(week.change)}, from ${from} to ${to}.${movesNote(week.change, week.moves)}`;
       if (week.kind === "flat")
         return `<p class="week-note flat"><span class="badge warn">Flat week</span> <strong>Flat week: a finding to explain.</strong> ${change} A change below ${FLAT_WEEK} is flat.</p>`;
       if (week.kind === "rising") return `<p class="week-note rising"><span class="badge good">Rising</span> ${change}</p>`;
@@ -372,9 +427,8 @@ export function sweepHtml(state: SweepState, width: number = START_WIDTH, now: D
   if (state.kind === "failed")
     return `<div class="note trend-failed" role="status"><strong>The page did not get the trend.</strong> ${esc(state.message)}. The data is on the branch <a href="${REPO}/tree/sweep-data"><code>sweep-data</code></a>.</div>`;
   const { index, line, bad, week } = state;
-  const prior = state.prior ?? [];
-  const joined = [...prior, ...line];
-  const stepAt = prior.length > 0 ? prior.length : undefined;
+  const joined = chartLine(state);
+  const stepsAt = epochStarts(joined);
   const latest = line.at(-1);
   const bads = bad > 0 ? `<p class="hint">${bad} ${bad === 1 ? "line" : "lines"} of the file did not pass the check. The page skips them.</p>` : "";
   const source = `<a href="${trendFileUrl(index.latest)}"><code>surrogate-trend.jsonl</code></a>`;
@@ -389,12 +443,12 @@ export function sweepHtml(state: SweepState, width: number = START_WIDTH, now: D
     <div class="two trend-charts">
       <figure class="chart"><figcaption>Skill inside the cells, each night</figcaption>
         <div class="legend"><span class="item"><span class="key s1"></span>Held-out median</span><span class="item"><span class="key band"></span>q10 to q90</span><span class="item"><span class="key s2"></span>In-sample median</span></div>
-        <div class="trend-plot" data-chart="skill">${skillChart(joined, width, stepAt)}</div>
+        <div class="trend-plot" data-chart="skill">${skillChart(joined, width, stepsAt)}</div>
         <p class="hint">Higher is better. On the line 0, the model is as good as the mean of each cell. The gap between the two lines is the overfit.</p>
       </figure>
       <figure class="chart"><figcaption>The guard lines: the cells, each night</figcaption>
         <div class="legend"><span class="item"><span class="key s1"></span>Covered</span><span class="item"><span class="key s2"></span>20 rows or more</span><span class="item"><span class="key s0"></span>With rows</span></div>
-        <div class="trend-plot" data-chart="guard">${guardChart(joined, width, stepAt)}</div>
+        <div class="trend-plot" data-chart="guard">${guardChart(joined, width, stepsAt)}</div>
         <p class="hint">A rise of the skill with a drop of the covered cells is no gain. The guard lines show such a drop.</p>
       </figure>
     </div>
@@ -402,13 +456,18 @@ export function sweepHtml(state: SweepState, width: number = START_WIDTH, now: D
     ${bads}`;
 }
 
+/** This function gives the line of the charts, which is the line of the week view. A state with no week line gives the epoch before the step and the latest epoch. */
+function chartLine(state: Extract<SweepState, { kind: "ready" }>): readonly TrendRecord[] {
+  return state.weekLine !== undefined && state.weekLine.length > 0 ? state.weekLine : [...(state.prior ?? []), ...state.line];
+}
+
 /** This function draws the charts again at the width of their boxes. */
-function fit(root: HTMLElement, line: readonly TrendRecord[], stepAt?: number): void {
+function fit(root: HTMLElement, line: readonly TrendRecord[], stepsAt: readonly number[]): void {
   for (const box of root.querySelectorAll<HTMLElement>("[data-chart]")) {
     const width = Math.floor(box.clientWidth);
     if (width <= 0 || box.dataset["width"] === String(width)) continue;
     box.dataset["width"] = String(width);
-    box.innerHTML = box.dataset["chart"] === "skill" ? skillChart(line, width, stepAt) : guardChart(line, width, stepAt);
+    box.innerHTML = box.dataset["chart"] === "skill" ? skillChart(line, width, stepsAt) : guardChart(line, width, stepsAt);
   }
 }
 
@@ -418,9 +477,8 @@ export async function renderSweep(root: HTMLElement, get: Fetch): Promise<void> 
   const state = await loadSweep(get);
   root.innerHTML = sweepHtml(state);
   if (state.kind !== "ready" || state.line.length === 0) return;
-  const prior = state.prior ?? [];
-  const joined = [...prior, ...state.line];
-  const stepAt = prior.length > 0 ? prior.length : undefined;
-  fit(root, joined, stepAt);
-  new ResizeObserver(() => fit(root, joined, stepAt)).observe(root);
+  const joined = chartLine(state);
+  const stepsAt = epochStarts(joined);
+  fit(root, joined, stepsAt);
+  new ResizeObserver(() => fit(root, joined, stepsAt)).observe(root);
 }

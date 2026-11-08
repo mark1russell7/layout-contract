@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import type { JointData, NewsData, SpaceFile } from "./data.ts";
+import { type JointData, latestFull, type NewsData, type SpaceFile } from "./data.ts";
 import { renderJoint } from "./joint.ts";
 import { renderNews } from "./news.ts";
 import { renderSpace } from "./space.ts";
@@ -14,6 +14,8 @@ const fakeRoot = (): FakeRoot => ({ innerHTML: "", addEventListener() {}, queryS
 const asElement = (root: FakeRoot): HTMLElement => root as unknown as HTMLElement;
 
 const joint = Object.values(import.meta.glob<JointData>("../data/joint/*.json", { eager: true, import: "default" }));
+/** The newest full joint run. The section shows it first, with its run, its date and its versions. A short run does not open the section (L132). */
+const newest = latestFull(joint)!;
 const spaces = Object.entries(import.meta.glob<SpaceFile>("../data/examples/*.json", { eager: true, import: "default" }));
 const engineSpaces = Object.entries(import.meta.glob<SpaceFile>("../data/spaces/*.json", { eager: true, import: "default" }));
 const news = Object.values(import.meta.glob<NewsData>("../data/news.json", { eager: true, import: "default" }))[0];
@@ -21,17 +23,17 @@ const news = Object.values(import.meta.glob<NewsData>("../data/news.json", { eag
 describe("the sections", () => {
   it("marks a cover run, and states that its floors do not compare", () => {
     const root = fakeRoot();
-    renderJoint(asElement(root), [{ ...joint[0]!, cover: true }]);
+    renderJoint(asElement(root), [{ ...newest, cover: true }]);
     expect(root.innerHTML).toContain("cover run");
     expect(root.innerHTML).toContain("do not compare");
-    renderJoint(asElement(root), joint);
+    renderJoint(asElement(root), [{ ...newest, cover: false }]);
     expect(root.innerHTML).not.toContain("cover run");
   });
 
   it(" with its run, its date and its versions", () => {
     const root = fakeRoot();
     renderJoint(asElement(root), joint);
-    const d = joint[0]!;
+    const d = newest;
     expect(root.innerHTML).toContain(`run ${d.run}`);
     expect(root.innerHTML).toContain(d.date);
     expect(root.innerHTML).toContain(d.headline.cell.best.pair);

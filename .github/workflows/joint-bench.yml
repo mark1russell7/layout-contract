@@ -389,7 +389,7 @@ jobs:
   # The bench stays in this file: release.yml calls ci.yml with contents: read, and analyze needs actions: read.
   joint-bench-ok:
     name: Joint bench OK
-    if: always()
+    if: ${{ !cancelled() }}
     needs: [check, smoke, stop-flip, plan, prior, run, analyze, reanalyze]
     runs-on: ubuntu-latest
     timeout-minutes: 2

@@ -39,11 +39,15 @@ The data folder has these files:
 | `data/news.json` | `site-news/1` | The news, from the newest item to the oldest. |
 | `data/stamps.json` | `data-stamp/1` | The runs of each measured page, with their dates and engine versions, and a run in flight. |
 
+The time `at` of `kpi.json` is the date of the oldest pair that the page shows, and the age of the data reads it (L132). The page shows the newest full run, and each short run of its date or later. The date of a pair is the date of the newest shown run that has it. So a short run refreshes only its own pairs, and old pairs do not read as new. The measure `pairs-shown` counts the shown pairs, with the date of the median pair. The measure `pairs-in-run` counts the newest cover run, with the date of that run. When no run is a cover run, it counts the newest full run. The measures `packers-measured` and `routers-on-compare` count each run with the versions of `packing` and `highways` of that run. Thus a run of some pairs of the cover adds its strategies. The date of such a count is the oldest of the newest dates of its names. So a default run after a cover run does not lower the coverage, and a new date does not make old coverage look new.
+
+The measure `coverage-shown` of `kpi.json` is 1 when the page shows a week view with its engine steps, and 0 when it does not. The build reads `sweep-data` at its start, as the page does, and the daily build reads it again. Its time is the latest night of the trend. A failed read gives a warning and no measure.
+
 The measure `engines-current` of `kpi.json` counts the engines of the newest run that have the newest stable version on npm. The measure `engine-releases-behind-<engine>` counts the stable versions after the run. The build reads npm, and the daily build reads it again, so these numbers fall when an engine has a release. This limit is stricter than the freshness gate, on purpose. If npm does not answer, the file has no such measures, and each stamped page says that the gap is unknown. So the reading ages, and the KPI rules see it. A scheduled build stops when the last deploy also has no read of npm.
 
 The measure `routers-on-compare` counts the routers with a row in the newest joint run. Each one is a router or highway entry of the registry of the pinned `highways`. A router in a list of the site with no row does not count, because a list is not a comparison. A row of a router outside the registry, for example a member form of the portfolio, does not count. The measure `routers-keyed` gives the count of these registry entries, so a reader sees the count beside its denominator. The other families of the registry are parts of a router, so neither measure counts them.
 
-A run changes `data/stamps.json`. Set `inFlight` when a run starts on newer engines. Move the run to `runs` in the pull request of its data file. The build stops when the stamp does not agree with the newest joint run. The Pages workflow runs the freshness gate on this file at each build and each morning. The limits are 3 days of age, or a newer run in flight, and 1 minor version behind npm at the start of the run. A run in flight for more than 3 days fails the gate, so a resume run takes its place in `inFlight`.
+A run changes `data/stamps.json`. Set `inFlight` when a run starts on newer engines. Move the run to `runs` in the pull request of its data file. The `runs` of a page name only the newest joint run, because the figures of the page come from it. An older result shows its own date in the list of results. The build stops when the stamp does not agree with the newest joint run. The Pages workflow runs the freshness gate on this file at each build and each morning. The limits are 3 days of age, or a newer run in flight, and 1 minor version behind npm at the start of the run. A run in flight for more than 3 days fails the gate, so a resume run takes its place in `inFlight`.
 
 `src/data.ts` holds the formats and their checks:
 
@@ -64,7 +68,7 @@ The records of a run are CI artifacts, and the repository does not keep them. Th
    pnpm --filter @layout-contract/site run data:joint -- <dir>/report.json --run <run> --date <YYYY-MM-DD> --item <id> --versions highways=<v>,packing=<v>
    ```
 
-3. Commit `packages/site/data/joint/<run>.json`. The site shows the newest result first, and a list gives the other results. Give `--cover on` for a cover run. The site marks that result and tells that its floors do not compare with older runs. Until a cover run is in `data/joint/`, each covered entry has the tag "waiting for the first cover run". The next build removes the tag when that file lands.
+3. Commit `packages/site/data/joint/<run>.json`. The site shows the newest result first, and a list gives the other results. Give `--cover on` for a cover run. The site marks that result and tells that its floors do not compare with older runs. Give `--short on` for a short run of some chosen pairs (the workflow input `pairs`). The site marks it, and opens on the newest full run. A short run is not a cover run, so the script refuses both flags on one file. Until a cover run is in `data/joint/`, each covered entry has the tag "waiting for the first cover run". The next build removes the tag when that file lands.
 
 The script `scripts/joint-data.mjs` keeps the headline cell (the rule `all` with the cap 1.25) and the same cell on the stress inputs. It also keeps the 6 cells of the headline inputs and the predictions of the run. The corpus is `joint-v2` by default. The option `--corpus` changes it.
 
@@ -100,6 +104,10 @@ The section shows these parts:
 - A table of the numbers of each night, and the links to the file and to the CI run of the latest record.
 
 The week view compares the latest record with the newest record of at least `WEEK_DAYS` (7) days before it. A change of the held-out median skill below `FLAT_WEEK` (0.01) in absolute value is a flat week. The page labels it "flat week: a finding to explain". With one record, the page tells that the trend starts with the next night.
+
+Each engine release starts a new epoch, and an epoch is often shorter than a week. So the week view reads across epochs (L52). The index gives a chain of the epochs through `step.from`, newest first, with at most `MAX_CHAIN` (8) epochs. The page reads back along the chain until the line covers a week, or until the chain ends. A failed read of an older epoch gives a shorter line, not a failed section.
+
+The charts draw this line, with a mark at each engine step. When the two nights of the week are in different epochs, the note gives the move of the skill at each step. It also gives the sum of these moves, and the part of the change inside the epochs. Each step fits the surrogate on new data, so only the part inside the epochs is a change of the sweep.
 
 The items L35 and L36 add the efficacy maps below the trend. Until then, that part shows no data.
 

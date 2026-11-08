@@ -3,7 +3,8 @@ import { listStrategies, MEMBER_FORMS, routerStrategies, STRATEGIES } from "@mar
 import { describe, expect, it } from "vitest";
 import { BASELINE } from "./analysis.ts";
 import { chosenOptions, COVER_EXCEPTIONS, COVER_PACKS, COVER_ROUTERS, coverEntries, coverOptions, coverPairs, coverRouters, packStrategyIds } from "./cover.ts";
-import { jointInput, jointSpecs, SET_V2 } from "./corpus.ts";
+import { jointInput, jointSpecs, SET_V2, SET_V3 } from "./corpus.ts";
+import { jointRegistry } from "./families.ts";
 import { OPEN_ROUTERS, PACK_ENTRIES, pairId, pairRuns, ROUTERS } from "./runner.ts";
 
 /** This function gives the pack part of a pair id. A router name can hold the separator, and a pack id does not. */
@@ -28,7 +29,8 @@ describe("the cover of the catalogs", () => {
   });
 
   it("keeps the list of exceptions closed", () => {
-    expect(Object.keys(COVER_EXCEPTIONS)).toEqual(["hole-degree", "circle-quasi-physical", "exact-strip"]);
+    // The list is empty since L94: the array shapes of joint-v3 has inputs for the 3 old exceptions.
+    expect(Object.keys(COVER_EXCEPTIONS)).toEqual([]);
     for (const e of Object.values(COVER_EXCEPTIONS)) {
       expect(e.reason).not.toBe("");
       expect(e.removedBy).toMatch(/^L\d+$/);
@@ -89,9 +91,11 @@ describe("a run of chosen pairs of the cover", () => {
 });
 
 describe("the entries of the cover on the corpus", () => {
-  // The inputs of the corpus with at most 120 items, with each container size, because a strategy can support only some sizes.
-  // The strip strategies refuse a gap and a margin, and the only strip inputs without them have more than 50 items.
-  const specs = jointSpecs(SET_V2).map((spec) => jointInput(spec, 1, SET_V2)).filter((made) => made.input.boxes.length > 0 && made.input.boxes.length <= 120 && (made.input.edges?.length ?? 0) > 0);
+  // The inputs of joint-v3 with at most 120 items, with each container size, because a strategy can support only some sizes.
+  // The array shapes of joint-v3 has the circle items and the small strips with no gap and no margin (L94).
+  const registry = jointRegistry(SET_V3);
+  const specs = jointSpecs(SET_V3).map((spec) => jointInput(spec, 1, SET_V3, registry)).filter((made) => made.input.boxes.length > 0 && made.input.boxes.length <= 120 && (made.input.edges?.length ?? 0) > 0);
+  const v2 = jointSpecs(SET_V2).map((spec) => jointInput(spec, 1, SET_V2)).filter((made) => made.input.boxes.length > 0 && made.input.boxes.length <= 120 && (made.input.edges?.length ?? 0) > 0);
 
   it("runs each new entry on some input, and an exception on no input", () => {
     const entries = coverEntries();
@@ -99,16 +103,25 @@ describe("the entries of the cover on the corpus", () => {
     for (const { input, entry } of specs) {
       const pending = entries.filter((e) => !running.has(e.id));
       if (pending.length === 0) break;
-      for (const run of pairRuns(input, entry.cell, { corpus: SET_V2, packs: pending, routers: ["corners"], freeRoutes: true })) {
+      for (const run of pairRuns(input, entry.cell, { corpus: SET_V3, packs: pending, routers: ["corners"], freeRoutes: true })) {
         if (run.record.skipped === undefined) running.add(packOf(run.record.strategy));
       }
     }
     expect(entries.map((e) => e.id).filter((id) => !running.has(id))).toEqual([]);
   }, 300_000);
 
+  it("skips each input of joint-v2 for the 3 old exceptions, so a run of joint-v2 does not count them", () => {
+    const old = ["hole-degree", "circle-quasi-physical", "exact-strip"].map((id) => ({ id, strategy: id, options: {} }));
+    for (const { input, entry } of v2.slice(0, 3)) {
+      for (const run of pairRuns(input, entry.cell, { corpus: SET_V2, packs: old, routers: ["corners"], freeRoutes: true })) {
+        expect(run.record.skipped, run.record.strategy).toBeDefined();
+      }
+    }
+  }, 60_000);
+
   it("fails when an exception starts to run", () => {
     const exceptions = Object.keys(COVER_EXCEPTIONS).map((id) => ({ id, strategy: id, options: {} }));
-    for (const { input, entry } of specs.slice(0, 3)) {
+    for (const { input, entry } of v2.slice(0, 3)) {
       for (const run of pairRuns(input, entry.cell, { corpus: SET_V2, packs: exceptions, routers: ["corners"], freeRoutes: true })) {
         expect(run.record.skipped, run.record.strategy).toBeDefined();
       }

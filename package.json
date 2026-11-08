@@ -21,9 +21,9 @@
   },
   "devDependencies": {
     "@arethetypeswrong/core": "^0.18.5",
-    "@mark1russell7/api-report": "^0.3.0",
+    "@mark1russell7/api-report": "^0.4.1",
     "@mark1russell7/boundaries": "^0.2.0",
-    "@mark1russell7/conventions": "^0.31.0",
+    "@mark1russell7/conventions": "^0.35.0",
     "@mark1russell7/cue": "^2.1.1",
     "@mark1russell7/ste-lint": "^0.1.1",
     "@mark1russell7/template-cli": "^0.1.0",

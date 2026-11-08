@@ -1,0 +1,781 @@
+{
+ "schema": "site-joint/1",
+ "run": "42392708258",
+ "date": "2026-11-07",
+ "item": "L94",
+ "corpus": "joint-v3",
+ "short": true,
+ "versions": {
+  "highways": "0.15.0",
+  "packing": "0.10.2"
+ },
+ "records": 3861,
+ "pairs": 13,
+ "cells": [
+  {
+   "rule": "collection",
+   "cap": 1.1,
+   "best": {
+    "pair": "rows+portfolio",
+    "misses": 6,
+    "score": 0.4655
+   },
+   "oracle": {
+    "score": 0.477,
+    "gain": {
+     "mean": 0.0115,
+     "lo": 0,
+     "hi": 0.0294,
+     "open": true
+    },
+    "wins": 6
+   },
+   "portfolios": [
+    {
+     "k": 3,
+     "share": {
+      "mean": 1,
+      "lo": 1,
+      "hi": 1,
+      "open": false
+     }
+    },
+    {
+     "k": 8,
+     "share": {
+      "mean": 1,
+      "lo": 1,
+      "hi": 1,
+      "open": false
+     }
+    }
+   ]
+  },
+  {
+   "rule": "collection",
+   "cap": 1.25,
+   "best": {
+    "pair": "rows+portfolio",
+    "misses": 6,
+    "score": 0.4655
+   },
+   "oracle": {
+    "score": 0.477,
+    "gain": {
+     "mean": 0.0115,
+     "lo": 0,
+     "hi": 0.0294,
+     "open": true
+    },
+    "wins": 6
+   },
+   "portfolios": [
+    {
+     "k": 3,
+     "share": {
+      "mean": 1,
+      "lo": 1,
+      "hi": 1,
+      "open": false
+     }
+    },
+    {
+     "k": 8,
+     "share": {
+      "mean": 1,
+      "lo": 1,
+      "hi": 1,
+      "open": false
+     }
+    }
+   ]
+  },
+  {
+   "rule": "collection",
+   "cap": 1.5,
+   "best": {
+    "pair": "rows+portfolio",
+    "misses": 6,
+    "score": 0.4655
+   },
+   "oracle": {
+    "score": 0.477,
+    "gain": {
+     "mean": 0.0115,
+     "lo": 0,
+     "hi": 0.0294,
+     "open": true
+    },
+    "wins": 6
+   },
+   "portfolios": [
+    {
+     "k": 3,
+     "share": {
+      "mean": 1,
+      "lo": 1,
+      "hi": 1,
+      "open": false
+     }
+    },
+    {
+     "k": 8,
+     "share": {
+      "mean": 1,
+      "lo": 1,
+      "hi": 1,
+      "open": false
+     }
+    }
+   ]
+  },
+  {
+   "rule": "all",
+   "cap": 1.1,
+   "best": {
+    "pair": "rows+portfolio",
+    "misses": 6,
+    "score": 0.4655
+   },
+   "oracle": {
+    "score": 0.477,
+    "gain": {
+     "mean": 0.0115,
+     "lo": 0,
+     "hi": 0.0294,
+     "open": true
+    },
+    "wins": 6
+   },
+   "portfolios": [
+    {
+     "k": 3,
+     "share": {
+      "mean": 1,
+      "lo": 1,
+      "hi": 1,
+      "open": false
+     }
+    },
+    {
+     "k": 8,
+     "share": {
+      "mean": 1,
+      "lo": 1,
+      "hi": 1,
+      "open": false
+     }
+    }
+   ]
+  },
+  {
+   "rule": "all",
+   "cap": 1.25,
+   "best": {
+    "pair": "rows+portfolio",
+    "misses": 6,
+    "score": 0.4655
+   },
+   "oracle": {
+    "score": 0.477,
+    "gain": {
+     "mean": 0.0115,
+     "lo": 0,
+     "hi": 0.0294,
+     "open": true
+    },
+    "wins": 6
+   },
+   "portfolios": [
+    {
+     "k": 3,
+     "share": {
+      "mean": 1,
+      "lo": 1,
+      "hi": 1,
+      "open": false
+     }
+    },
+    {
+     "k": 8,
+     "share": {
+      "mean": 1,
+      "lo": 1,
+      "hi": 1,
+      "open": false
+     }
+    }
+   ]
+  },
+  {
+   "rule": "all",
+   "cap": 1.5,
+   "best": {
+    "pair": "rows+portfolio",
+    "misses": 6,
+    "score": 0.4655
+   },
+   "oracle": {
+    "score": 0.477,
+    "gain": {
+     "mean": 0.0115,
+     "lo": 0,
+     "hi": 0.0294,
+     "open": true
+    },
+    "wins": 6
+   },
+   "portfolios": [
+    {
+     "k": 3,
+     "share": {
+      "mean": 1,
+      "lo": 1,
+      "hi": 1,
+      "open": false
+     }
+    },
+    {
+     "k": 8,
+     "share": {
+      "mean": 1,
+      "lo": 1,
+      "hi": 1,
+      "open": false
+     }
+    }
+   ]
+  }
+ ],
+ "headline": {
+  "inputs": 297,
+  "cell": {
+   "rule": "all",
+   "cap": 1.25,
+   "best": {
+    "pair": "rows+portfolio",
+    "misses": 6,
+    "score": 0.4655
+   },
+   "oracle": {
+    "score": 0.477,
+    "gain": {
+     "mean": 0.0115,
+     "lo": 0,
+     "hi": 0.0294,
+     "open": true
+    },
+    "wins": 6
+   },
+   "portfolios": [
+    {
+     "k": 3,
+     "share": {
+      "mean": 1,
+      "lo": 1,
+      "hi": 1,
+      "open": false
+     }
+    },
+    {
+     "k": 8,
+     "share": {
+      "mean": 1,
+      "lo": 1,
+      "hi": 1,
+      "open": false
+     }
+    }
+   ]
+  },
+  "ranking": [
+   {
+    "rank": 1,
+    "group": "rows+portfolio",
+    "members": [
+     "rows+portfolio"
+    ],
+    "misses": 6,
+    "score": 0.4655
+   },
+   {
+    "rank": 2,
+    "group": "circle-quasi-physical+corners",
+    "members": [
+     "circle-quasi-physical+corners"
+    ],
+    "misses": 294,
+    "score": 0.0051
+   },
+   {
+    "rank": 3,
+    "group": "hole-degree+corners",
+    "members": [
+     "hole-degree+corners"
+    ],
+    "misses": 294,
+    "score": 0.0064
+   },
+   {
+    "rank": 4,
+    "group": "circle-quasi-physical+portfolio",
+    "members": [
+     "circle-quasi-physical+portfolio"
+    ],
+    "misses": 295,
+    "score": 0.0034
+   },
+   {
+    "rank": 5,
+    "group": "hole-degree+portfolio",
+    "members": [
+     "hole-degree+portfolio"
+    ],
+    "misses": 296,
+    "score": 0.0021
+   },
+   {
+    "rank": 6,
+    "group": "circle-quasi-physical+search",
+    "members": [
+     "circle-quasi-physical+search"
+    ],
+    "misses": 297,
+    "score": 0
+   },
+   {
+    "rank": 7,
+    "group": "circle-quasi-physical+streets",
+    "members": [
+     "circle-quasi-physical+streets"
+    ],
+    "misses": 297,
+    "score": 0
+   },
+   {
+    "rank": 8,
+    "group": "exact-strip+corners",
+    "members": [
+     "exact-strip+corners",
+     "exact-strip+portfolio",
+     "exact-strip+search",
+     "exact-strip+streets"
+    ],
+    "misses": 297,
+    "score": 0
+   },
+   {
+    "rank": 9,
+    "group": "hole-degree+gaps",
+    "members": [
+     "hole-degree+gaps"
+    ],
+    "misses": 297,
+    "score": 0
+   },
+   {
+    "rank": 10,
+    "group": "hole-degree+steiner",
+    "members": [
+     "hole-degree+steiner"
+    ],
+    "misses": 297,
+    "score": 0
+   }
+  ],
+  "byPacker": [
+   {
+    "id": "rows",
+    "misses": 6,
+    "score": 0.4655,
+    "pair": "rows+portfolio"
+   },
+   {
+    "id": "circle-quasi-physical",
+    "misses": 294,
+    "score": 0.0051,
+    "pair": "circle-quasi-physical+corners"
+   },
+   {
+    "id": "hole-degree",
+    "misses": 294,
+    "score": 0.0064,
+    "pair": "hole-degree+corners"
+   },
+   {
+    "id": "exact-strip",
+    "misses": 297,
+    "score": 0,
+    "pair": "exact-strip+corners"
+   }
+  ],
+  "byRouter": [
+   {
+    "id": "portfolio",
+    "misses": 6,
+    "score": 0.4655,
+    "pair": "rows+portfolio"
+   },
+   {
+    "id": "corners",
+    "misses": 294,
+    "score": 0.0051,
+    "pair": "circle-quasi-physical+corners"
+   },
+   {
+    "id": "search",
+    "misses": 297,
+    "score": 0,
+    "pair": "circle-quasi-physical+search"
+   },
+   {
+    "id": "streets",
+    "misses": 297,
+    "score": 0,
+    "pair": "circle-quasi-physical+streets"
+   },
+   {
+    "id": "gaps",
+    "misses": 297,
+    "score": 0,
+    "pair": "hole-degree+gaps"
+   },
+   {
+    "id": "steiner",
+    "misses": 297,
+    "score": 0,
+    "pair": "hole-degree+steiner"
+   }
+  ],
+  "baselines": [
+   {
+    "pair": "rows+portfolio",
+    "misses": 6,
+    "score": 0.4655,
+    "bestGain": {
+     "mean": 0,
+     "lo": 0,
+     "hi": 0,
+     "open": true
+    },
+    "oracleGain": {
+     "mean": 0.0115,
+     "lo": 0,
+     "hi": 0.0294,
+     "open": true
+    },
+    "portfolios": [
+     {
+      "k": 3,
+      "misses": 0,
+      "gain": {
+       "mean": 0.0115,
+       "lo": 0,
+       "hi": 0.0294,
+       "open": true
+      }
+     },
+     {
+      "k": 8,
+      "misses": 0,
+      "gain": {
+       "mean": 0.0115,
+       "lo": 0,
+       "hi": 0.0294,
+       "open": true
+      }
+     }
+    ]
+   }
+  ],
+  "compare": []
+ },
+ "stress": {
+  "inputs": 117,
+  "cell": {
+   "rule": "all",
+   "cap": 1.25,
+   "best": {
+    "pair": "rows+portfolio",
+    "misses": 8,
+    "score": 0.6883
+   },
+   "oracle": {
+    "score": 0.7437,
+    "gain": {
+     "mean": 0.0554,
+     "lo": 0.0108,
+     "hi": 0.1158,
+     "open": false
+    },
+    "wins": 11
+   },
+   "portfolios": [
+    {
+     "k": 3,
+     "share": {
+      "mean": 0.5862,
+      "lo": 0,
+      "hi": 0.9853,
+      "open": true
+     }
+    },
+    {
+     "k": 8,
+     "share": {
+      "mean": 1,
+      "lo": 1,
+      "hi": 1,
+      "open": false
+     }
+    }
+   ]
+  },
+  "ranking": [
+   {
+    "rank": 1,
+    "group": "rows+portfolio",
+    "members": [
+     "rows+portfolio"
+    ],
+    "misses": 8,
+    "score": 0.6883
+   },
+   {
+    "rank": 2,
+    "group": "exact-strip+corners",
+    "members": [
+     "exact-strip+corners",
+     "exact-strip+search",
+     "exact-strip+streets"
+    ],
+    "misses": 112,
+    "score": 0.0427
+   },
+   {
+    "rank": 3,
+    "group": "exact-strip+portfolio",
+    "members": [
+     "exact-strip+portfolio"
+    ],
+    "misses": 112,
+    "score": 0.0427
+   },
+   {
+    "rank": 4,
+    "group": "hole-degree+corners",
+    "members": [
+     "hole-degree+corners"
+    ],
+    "misses": 114,
+    "score": 0.0203
+   },
+   {
+    "rank": 5,
+    "group": "hole-degree+portfolio",
+    "members": [
+     "hole-degree+portfolio"
+    ],
+    "misses": 114,
+    "score": 0.0203
+   },
+   {
+    "rank": 6,
+    "group": "circle-quasi-physical+corners",
+    "members": [
+     "circle-quasi-physical+corners"
+    ],
+    "misses": 114,
+    "score": 0.012
+   },
+   {
+    "rank": 7,
+    "group": "circle-quasi-physical+portfolio",
+    "members": [
+     "circle-quasi-physical+portfolio"
+    ],
+    "misses": 114,
+    "score": 0.012
+   },
+   {
+    "rank": 8,
+    "group": "hole-degree+gaps",
+    "members": [
+     "hole-degree+gaps"
+    ],
+    "misses": 115,
+    "score": 0.0148
+   },
+   {
+    "rank": 9,
+    "group": "hole-degree+steiner",
+    "members": [
+     "hole-degree+steiner"
+    ],
+    "misses": 115,
+    "score": 0.0148
+   },
+   {
+    "rank": 10,
+    "group": "circle-quasi-physical+search",
+    "members": [
+     "circle-quasi-physical+search"
+    ],
+    "misses": 115,
+    "score": 0.0087
+   },
+   {
+    "rank": 11,
+    "group": "circle-quasi-physical+streets",
+    "members": [
+     "circle-quasi-physical+streets"
+    ],
+    "misses": 117,
+    "score": 0
+   }
+  ],
+  "byPacker": [
+   {
+    "id": "rows",
+    "misses": 8,
+    "score": 0.6883,
+    "pair": "rows+portfolio"
+   },
+   {
+    "id": "exact-strip",
+    "misses": 112,
+    "score": 0.0427,
+    "pair": "exact-strip+corners"
+   },
+   {
+    "id": "hole-degree",
+    "misses": 114,
+    "score": 0.0203,
+    "pair": "hole-degree+corners"
+   },
+   {
+    "id": "circle-quasi-physical",
+    "misses": 114,
+    "score": 0.012,
+    "pair": "circle-quasi-physical+corners"
+   }
+  ],
+  "byRouter": [
+   {
+    "id": "portfolio",
+    "misses": 8,
+    "score": 0.6883,
+    "pair": "rows+portfolio"
+   },
+   {
+    "id": "corners",
+    "misses": 112,
+    "score": 0.0427,
+    "pair": "exact-strip+corners"
+   },
+   {
+    "id": "search",
+    "misses": 112,
+    "score": 0.0427,
+    "pair": "exact-strip+search"
+   },
+   {
+    "id": "streets",
+    "misses": 112,
+    "score": 0.0427,
+    "pair": "exact-strip+streets"
+   },
+   {
+    "id": "gaps",
+    "misses": 115,
+    "score": 0.0148,
+    "pair": "hole-degree+gaps"
+   },
+   {
+    "id": "steiner",
+    "misses": 115,
+    "score": 0.0148,
+    "pair": "hole-degree+steiner"
+   }
+  ],
+  "baselines": [
+   {
+    "pair": "rows+portfolio",
+    "misses": 8,
+    "score": 0.6883,
+    "bestGain": {
+     "mean": 0,
+     "lo": 0,
+     "hi": 0,
+     "open": true
+    },
+    "oracleGain": {
+     "mean": 0.0554,
+     "lo": 0.0108,
+     "hi": 0.1158,
+     "open": false
+    },
+    "portfolios": [
+     {
+      "k": 3,
+      "misses": 3,
+      "gain": {
+       "mean": 0.0325,
+       "lo": 0,
+       "hi": 0.0817,
+       "open": true
+      }
+     },
+     {
+      "k": 8,
+      "misses": 0,
+      "gain": {
+       "mean": 0.0554,
+       "lo": 0.0108,
+       "hi": 0.1158,
+       "open": false
+      }
+     }
+    ]
+   }
+  ],
+  "compare": []
+ },
+ "predictions": [
+  {
+   "id": "Q1",
+   "held": false,
+   "detail": "corners 18 of 18, gaps 3 of 3, portfolio 128 of 129, search 15 of 15, steiner 3 of 3, streets 15 of 15"
+  },
+  {
+   "id": "Q2",
+   "held": false,
+   "detail": "The broken records of corners, sections, shared outside the stress cell, by cause: router 6."
+  },
+  {
+   "id": "Q3",
+   "held": false,
+   "detail": "The gain is below 0.445 in 6 of 6 cells, and its interval is above 0 in 0 cells."
+  },
+  {
+   "id": "Q4",
+   "held": true,
+   "detail": "The best pair of the cell all 1.25 is rows+portfolio."
+  },
+  {
+   "id": "Q5",
+   "held": true,
+   "detail": "k = 3 gets at least 60% of the oracle gain in 6 of 6 cells."
+  },
+  {
+   "id": "Q6",
+   "held": true,
+   "detail": "The mean pack.fill is 0.508 for both, 0.542 for gap, 0.406 for margin, 0.774 for stress."
+  },
+  {
+   "id": "Q7",
+   "held": false,
+   "detail": "0 cells have a best pair or an oracle score that differs from the cell all 1.5."
+  }
+ ]
+}

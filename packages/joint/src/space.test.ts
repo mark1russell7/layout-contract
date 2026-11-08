@@ -2,9 +2,19 @@ import { describe, expect, it } from "vitest";
 import { checkSpace, configId, enumerateSpace, spaceSize, splitConfig } from "@mark1russell7/layout-contract";
 import { iterEntries, iterPlanPairs, laneEntries, LANE_CAP, LANE_CLEARANCE, LANE_SPACE } from "./lanes.ts";
 import { PACK_ENTRIES, ROUTERS } from "./runner.ts";
-import { BENCH_ADAPTER, configLabel, configRun, JOINT_ENGINE, JOINT_SPACE, LANE_STAGE, namedId } from "./space.ts";
+import { BENCH_ADAPTER, BENCH_SPACE_VERSION, benchPackSpace, configLabel, configRun, JOINT_ENGINE, JOINT_SPACE, jointSpace, LANE_STAGE, namedId, spaceFingerprint } from "./space.ts";
 
 describe("the joint space of the sweep", () => {
+  it("has the fingerprint of its version, so a change of the space gets a new version (L133)", () => {
+    // A change of JOINT_SPACE fails this test. Then change BENCH_SPACE_VERSION and this pair together, so that the change starts a new epoch.
+    expect([BENCH_SPACE_VERSION, spaceFingerprint(JOINT_SPACE)]).toEqual(["bench-3", "5ec4b3fc987314cf"]);
+    // A space with one pack entry fewer, as before PR 157, has another fingerprint.
+    const pack = benchPackSpace();
+    const fewer = { ...pack, stages: [{ ...pack.stages[0]!, options: pack.stages[0]!.options.slice(1) }] };
+    expect(spaceFingerprint(jointSpace(fewer))).not.toBe(spaceFingerprint(JOINT_SPACE));
+    expect(spaceFingerprint(jointSpace())).toBe(spaceFingerprint(JOINT_SPACE));
+  });
+
   it("has no break, and the stages of the two parts and the stage of the lanes", () => {
     expect(checkSpace(JOINT_SPACE)).toEqual([]);
     expect(JOINT_SPACE.engine).toBe(JOINT_ENGINE);

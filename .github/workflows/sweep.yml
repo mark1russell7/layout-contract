@@ -373,20 +373,26 @@ jobs:
         with:
           node-version: 26
       # Another run can push a night after this run read the branch. Then a push of this tree removes that night, so the job stops.
+      # The output base is the commit that the check read, or empty when the branch does not exist. The push builds on it (L136).
       - name: Check that the night is the next night of the branch
         id: next
         run: |
           mkdir -p "$RUNNER_TEMP/branch"
-          if git fetch --depth 1 origin sweep-data; then git archive FETCH_HEAD | tar -x -C "$RUNNER_TEMP/branch"; fi
+          base=""
+          if git fetch --depth 1 origin sweep-data; then base="$(git rev-parse FETCH_HEAD)"; git archive "$base" | tar -x -C "$RUNNER_TEMP/branch"; fi
           date=$(node packages/joint/scripts/next-night.ts "$RUNNER_TEMP/out" "$RUNNER_TEMP/branch")
           echo "date=$date" >> "$GITHUB_OUTPUT"
+          echo "base=$base" >> "$GITHUB_OUTPUT"
+      # The commit builds on the commit that the check read, not on a new fetch of the branch.
+      # When another night arrives after the check, the push is not a fast-forward. Then it fails, and no night goes away. A rerun of the job checks again.
       - name: Push the data of the night to the branch sweep-data
         env:
           DATE: ${{ needs.plan.outputs.date }}
+          BASE: ${{ steps.next.outputs.base }}
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          if git fetch --depth 1 origin sweep-data; then git switch -C sweep-data FETCH_HEAD; else git switch --orphan sweep-data; fi
+          if [ -n "$BASE" ]; then git switch -C sweep-data "$BASE"; else git switch --orphan sweep-data; fi
           git rm -r -q --cached --ignore-unmatch .
           find . -mindepth 1 -maxdepth 1 ! -name .git -exec rm -rf {} +
           cp -R "$RUNNER_TEMP/out/." .
@@ -394,4 +400,7 @@ jobs:
           git add -A
           if git diff --cached --quiet; then echo "The night gives no change."; exit 0; fi
           git commit -q -m "sweep: the night $DATE (run $GITHUB_RUN_ID)"
-          git push origin HEAD:refs/heads/sweep-data
+          if ! git push origin HEAD:refs/heads/sweep-data; then
+            echo "::error::The branch sweep-data moved after the check, or the push failed. The night is in the artifact sweep-data of this run. Rerun this job to check again."
+            exit 1
+          fi

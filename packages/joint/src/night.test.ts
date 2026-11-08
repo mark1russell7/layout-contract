@@ -1,8 +1,8 @@
 import { describe, expect, it } from "vitest";
 import type { LayoutRecord } from "@mark1russell7/layout-contract";
 import { nightLine, nightVerdict } from "./night-check.ts";
-import { applyRecords, emptyState, labelLine, lostLine, lostPairs, noReferenceRecords, noteLost, planRound1, planRound2, raceLines, raceNight, RACE_NOTE_2026_11_02, statusCounts, valueMaps, applyKept, censoredLimit, censoredLines, nightOf, noteMisses, settleRows, waitingLine, waitAgeLines, WAIT_BOUND, epochEnd, epochEndLines } from "./night.ts";
-import { configRun } from "./space.ts";
+import { applyRecords, emptyState, labelLine, lostLine, lostPairs, noReferenceRecords, noteLost, planRound1, planRound2, raceLines, raceNight, RACE_NOTE_2026_11_02, statusCounts, valueMaps, applyKept, censoredLimit, censoredLines, nightOf, noteMisses, settleRows, waitingLine, waitAgeLines, WAIT_BOUND, epochEnd, epochEndLines, checkStateSpace, type SweepState } from "./night.ts";
+import { configRun, JOINT_SPACE, spaceFingerprint } from "./space.ts";
 import { baselineIds, jobCost, SWEEP_FILL, takeBudget, takeFitting, type SweepInput } from "./sweep.ts";
 
 /** The inputs of a test: 4 specs with 3 seeds each. Spec `d` is a stress spec. */
@@ -26,6 +26,18 @@ function record(strategy: string, input: string, fill: number): LayoutRecord {
 const OPTIONS = { date: "2026-10-28", target: 60000, maxShards: 2, maxConfigs: 12 };
 
 describe("a night of the sweep on small inputs", () => {
+  it("keeps the fingerprint of the space, and refuses a state of another space (L133)", () => {
+    const state = emptyState("test", "test", INPUTS);
+    expect(state.spaceFingerprint).toBe(spaceFingerprint(JOINT_SPACE));
+    expect(() => checkStateSpace(state)).not.toThrow();
+    // A state from before the field gets the fingerprint at its next plan.
+    const old: SweepState = { ...state };
+    delete old.spaceFingerprint;
+    checkStateSpace(old);
+    expect(old.spaceFingerprint).toBe(spaceFingerprint(JOINT_SPACE));
+    expect(() => checkStateSpace({ ...state, spaceFingerprint: "0000000000000000" })).toThrow(/takes a new BENCH_SPACE_VERSION/);
+  });
+
   it("plans round 1: the baseline arm on each input, and new configs on the screen", () => {
     const state = emptyState("test", "test", INPUTS);
     const night = planRound1(state, INPUTS, OPTIONS);

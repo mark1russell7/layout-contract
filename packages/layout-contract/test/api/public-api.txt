@@ -4,7 +4,7 @@
 # and private members. The command `api-report check` compares this file with the built .d.ts files.
 # To accept a change of the API, start the build, then `api-report update`, and review the diff.
 
-## . (build/index.d.ts): 329 names
+## . (build/index.d.ts): names
 
 AnyOption: build/index.d.ts#AnyOption
 BALANCE_MEASURE_SUFFIXES: build/index.d.ts#BALANCE_MEASURE_SUFFIXES
@@ -20,24 +20,24 @@ CatalogEntry: build/index.d.ts#CatalogEntry
 CatalogLimit: build/index.d.ts#CatalogLimit
 CatalogOptionsOptions: build/index.d.ts#CatalogOptionsOptions
 CellsOptions: build/index.d.ts#CellsOptions
-ClaimBreak: build/measures-COqcrCzv.d.ts#ClaimBreak
+ClaimBreak: build/measures.chunk.d.ts#ClaimBreak
 ComposeOptions: build/index.d.ts#ComposeOptions
 ContainerTest: build/index.d.ts#ContainerTest
 CorpusDimension: build/index.d.ts#CorpusDimension
-CorpusEntry: build/measures-COqcrCzv.d.ts#CorpusEntry
+CorpusEntry: build/measures.chunk.d.ts#CorpusEntry
 CorpusFamily: build/index.d.ts#CorpusFamily
-CorpusSplit: build/measures-COqcrCzv.d.ts#CorpusSplit
+CorpusSplit: build/measures.chunk.d.ts#CorpusSplit
 CorpusStep: build/index.d.ts#CorpusStep
 CrossEngine: build/index.d.ts#CrossEngine
 DEFAULT_FAMILY_BY: build/index.d.ts#DEFAULT_FAMILY_BY
 DEFAULT_RNG: build/index.d.ts#DEFAULT_RNG
-DEFAULT_SHAPES: build/measures-COqcrCzv.d.ts#DEFAULT_SHAPES
+DEFAULT_SHAPES: build/measures.chunk.d.ts#DEFAULT_SHAPES
 DEFAULT_TOLERANCE: build/index.d.ts#DEFAULT_TOLERANCE
-DeclaredClaim: build/measures-COqcrCzv.d.ts#DeclaredClaim
+DeclaredClaim: build/measures.chunk.d.ts#DeclaredClaim
 DeclaredStrategy: build/index.d.ts#DeclaredStrategy
-Declares: build/measures-COqcrCzv.d.ts#Declares
+Declares: build/measures.chunk.d.ts#Declares
 DimensionValues: build/index.d.ts#DimensionValues
-Direction: build/measures-COqcrCzv.d.ts#Direction
+Direction: build/measures.chunk.d.ts#Direction
 EDGES_STEP: build/index.d.ts#EDGES_STEP
 EDGE_DENSITY: build/index.d.ts#EDGE_DENSITY
 EDGE_KEY_STEP: build/index.d.ts#EDGE_KEY_STEP
@@ -52,9 +52,9 @@ EdgeStepParams: build/index.d.ts#EdgeStepParams
 EnumOption: build/index.d.ts#EnumOption
 EnumerateOptions: build/index.d.ts#EnumerateOptions
 ExerciseEvidence: build/index.d.ts#ExerciseEvidence
-FAMILY_ANY_KIND: build/measures-COqcrCzv.d.ts#FAMILY_ANY_KIND
-FamilyBy: build/measures-COqcrCzv.d.ts#FamilyBy
-FamilyCell: build/measures-COqcrCzv.d.ts#FamilyCell
+FAMILY_ANY_KIND: build/measures.chunk.d.ts#FAMILY_ANY_KIND
+FamilyBy: build/measures.chunk.d.ts#FamilyBy
+FamilyCell: build/measures.chunk.d.ts#FamilyCell
 FamilyRegistry: build/index.d.ts#FamilyRegistry
 FamilyVerdict: build/index.d.ts#FamilyVerdict
 GenerateContext: build/index.d.ts#GenerateContext
@@ -63,20 +63,20 @@ GridOptions: build/index.d.ts#GridOptions
 HARD_RULE_VERSION: build/index.d.ts#HARD_RULE_VERSION
 HashOptions: build/index.d.ts#HashOptions
 INVALIDATED_FIELD: build/index.d.ts#INVALIDATED_FIELD
-Item: build/measures-COqcrCzv.d.ts#Item
-JOINT_MEASURES: build/measures-COqcrCzv.d.ts#JOINT_MEASURES
-JOINT_MOVED_MIN: build/measures-COqcrCzv.d.ts#JOINT_MOVED_MIN
-JointMeasureId: build/measures-COqcrCzv.d.ts#JointMeasureId
-LayoutBox: build/measures-COqcrCzv.d.ts#LayoutBox
-LayoutCell: build/measures-COqcrCzv.d.ts#LayoutCell
-LayoutContainer: build/measures-COqcrCzv.d.ts#LayoutContainer
-LayoutEdge: build/measures-COqcrCzv.d.ts#LayoutEdge
-LayoutGenerator: build/measures-COqcrCzv.d.ts#LayoutGenerator
-LayoutInput: build/measures-COqcrCzv.d.ts#LayoutInput
+Item: build/measures.chunk.d.ts#Item
+JOINT_MEASURES: build/measures.chunk.d.ts#JOINT_MEASURES
+JOINT_MOVED_MIN: build/measures.chunk.d.ts#JOINT_MOVED_MIN
+JointMeasureId: build/measures.chunk.d.ts#JointMeasureId
+LayoutBox: build/measures.chunk.d.ts#LayoutBox
+LayoutCell: build/measures.chunk.d.ts#LayoutCell
+LayoutContainer: build/measures.chunk.d.ts#LayoutContainer
+LayoutEdge: build/measures.chunk.d.ts#LayoutEdge
+LayoutGenerator: build/measures.chunk.d.ts#LayoutGenerator
+LayoutInput: build/measures.chunk.d.ts#LayoutInput
 LayoutRecord: build/index.d.ts#LayoutRecord
 ListItem: build/index.d.ts#ListItem
-Margin: build/measures-COqcrCzv.d.ts#Margin
-MeasureSpec: build/measures-COqcrCzv.d.ts#MeasureSpec
+Margin: build/measures.chunk.d.ts#Margin
+MeasureSpec: build/measures.chunk.d.ts#MeasureSpec
 Member: build/index.d.ts#Member
 MemberRule: build/index.d.ts#MemberRule
 MemberStatus: build/index.d.ts#MemberStatus
@@ -88,7 +88,7 @@ NumberOption: build/index.d.ts#NumberOption
 OUTPUT_CLASS_MIN_INPUTS: build/index.d.ts#OUTPUT_CLASS_MIN_INPUTS
 OUTPUT_GRID_PROPERTIES: build/index.d.ts#OUTPUT_GRID_PROPERTIES
 OUTPUT_NEAR_WHOLE: build/index.d.ts#OUTPUT_NEAR_WHOLE
-Obstacle: build/measures-COqcrCzv.d.ts#Obstacle
+Obstacle: build/measures.chunk.d.ts#Obstacle
 OptionDeclaration: build/index.d.ts#OptionDeclaration
 OptionIssue: build/index.d.ts#OptionIssue
 OptionRef: build/index.d.ts#OptionRef
@@ -104,11 +104,11 @@ OutputRow: build/index.d.ts#OutputRow
 OwnerDimensionSpec: build/index.d.ts#OwnerDimensionSpec
 PACK_HARD_RULES: build/index.d.ts#PACK_HARD_RULES
 PackHard: build/index.d.ts#PackHard
-PackInput: build/measures-COqcrCzv.d.ts#PackInput
-PackInputOptions: build/measures-COqcrCzv.d.ts#PackInputOptions
-PackLink: build/measures-COqcrCzv.d.ts#PackLink
+PackInput: build/measures.chunk.d.ts#PackInput
+PackInputOptions: build/measures.chunk.d.ts#PackInputOptions
+PackLink: build/measures.chunk.d.ts#PackLink
 PackOutput: build/index.d.ts#PackOutput
-PairGap: build/measures-COqcrCzv.d.ts#PairGap
+PairGap: build/measures.chunk.d.ts#PairGap
 ParamKind: build/index.d.ts#ParamKind
 ParamRoute: build/index.d.ts#ParamRoute
 ParamValue: build/index.d.ts#ParamValue
@@ -117,8 +117,8 @@ PickSpec: build/index.d.ts#PickSpec
 PlacedBox: build/index.d.ts#PlacedBox
 PlacedCircle: build/index.d.ts#PlacedCircle
 Placement: build/index.d.ts#Placement
-Point: build/measures-COqcrCzv.d.ts#Point
-Port: build/measures-COqcrCzv.d.ts#Port
+Point: build/measures.chunk.d.ts#Point
+Port: build/measures.chunk.d.ts#Port
 Portfolio: build/index.d.ts#Portfolio
 PortfolioKey: build/index.d.ts#PortfolioKey
 PortfolioLevel: build/index.d.ts#PortfolioLevel
@@ -129,18 +129,18 @@ ProcrustesOptions: build/index.d.ts#ProcrustesOptions
 RECORD_EPS: build/index.d.ts#RECORD_EPS
 RECORD_SCALE: build/index.d.ts#RECORD_SCALE
 RECT_SCATTERED: build/index.d.ts#RECT_SCATTERED
-Rect: build/measures-COqcrCzv.d.ts#Rect
-Region: build/measures-COqcrCzv.d.ts#Region
+Rect: build/measures.chunk.d.ts#Rect
+Region: build/measures.chunk.d.ts#Region
 RegistryCell: build/index.d.ts#RegistryCell
 RegistryEntry: build/index.d.ts#RegistryEntry
 RngFactory: build/index.d.ts#RngFactory
-RuleLevel: build/measures-COqcrCzv.d.ts#RuleLevel
+RuleLevel: build/measures.chunk.d.ts#RuleLevel
 RunEnv: build/index.d.ts#RunEnv
 RunFacts: build/index.d.ts#RunFacts
-SHAPE_KINDS: build/measures-COqcrCzv.d.ts#SHAPE_KINDS
-SHAPE_KIND_IDS: build/measures-COqcrCzv.d.ts#SHAPE_KIND_IDS
-SIDES: build/measures-COqcrCzv.d.ts#SIDES
-SPLIT_SCHEMA: build/measures-COqcrCzv.d.ts#SPLIT_SCHEMA
+SHAPE_KINDS: build/measures.chunk.d.ts#SHAPE_KINDS
+SHAPE_KIND_IDS: build/measures.chunk.d.ts#SHAPE_KIND_IDS
+SIDES: build/measures.chunk.d.ts#SIDES
+SPLIT_SCHEMA: build/measures.chunk.d.ts#SPLIT_SCHEMA
 STRATEGY_CATALOG_SCHEMA: build/index.d.ts#STRATEGY_CATALOG_SCHEMA
 STRATEGY_CATALOG_SCHEMAS: build/index.d.ts#STRATEGY_CATALOG_SCHEMAS
 STRATEGY_SPACE_SCHEMA: build/index.d.ts#STRATEGY_SPACE_SCHEMA
@@ -148,27 +148,27 @@ SampleOptions: build/index.d.ts#SampleOptions
 SelectCandidate: build/index.d.ts#SelectCandidate
 SelectLevel: build/index.d.ts#SelectLevel
 Selection: build/index.d.ts#Selection
-ShapeBound: build/measures-COqcrCzv.d.ts#ShapeBound
-ShapeCheck: build/measures-COqcrCzv.d.ts#ShapeCheck
+ShapeBound: build/measures.chunk.d.ts#ShapeBound
+ShapeCheck: build/measures.chunk.d.ts#ShapeCheck
 ShapeFilter: build/index.d.ts#ShapeFilter
-ShapeGeometry: build/measures-COqcrCzv.d.ts#ShapeGeometry
-ShapeInput: build/measures-COqcrCzv.d.ts#ShapeInput
-ShapeKind: build/measures-COqcrCzv.d.ts#ShapeKind
-ShapeKindSpec: build/measures-COqcrCzv.d.ts#ShapeKindSpec
-ShapeLevel: build/measures-COqcrCzv.d.ts#ShapeLevel
-ShapeLimit: build/measures-COqcrCzv.d.ts#ShapeLimit
+ShapeGeometry: build/measures.chunk.d.ts#ShapeGeometry
+ShapeInput: build/measures.chunk.d.ts#ShapeInput
+ShapeKind: build/measures.chunk.d.ts#ShapeKind
+ShapeKindSpec: build/measures.chunk.d.ts#ShapeKindSpec
+ShapeLevel: build/measures.chunk.d.ts#ShapeLevel
+ShapeLimit: build/measures.chunk.d.ts#ShapeLimit
 ShapeLink: build/index.d.ts#ShapeLink
-ShapeSupport: build/measures-COqcrCzv.d.ts#ShapeSupport
-Side: build/measures-COqcrCzv.d.ts#Side
-Sides: build/measures-COqcrCzv.d.ts#Sides
-SizedRect: build/measures-COqcrCzv.d.ts#SizedRect
+ShapeSupport: build/measures.chunk.d.ts#ShapeSupport
+Side: build/measures.chunk.d.ts#Side
+Sides: build/measures.chunk.d.ts#Sides
+SizedRect: build/measures.chunk.d.ts#SizedRect
 SpaceConstraint: build/index.d.ts#SpaceConstraint
 SpaceParam: build/index.d.ts#SpaceParam
 SpaceSize: build/index.d.ts#SpaceSize
 SpaceSizeOptions: build/index.d.ts#SpaceSizeOptions
 SpaceStage: build/index.d.ts#SpaceStage
-SplitCorpus: build/measures-COqcrCzv.d.ts#SplitCorpus
-SplitFold: build/measures-COqcrCzv.d.ts#SplitFold
+SplitCorpus: build/measures.chunk.d.ts#SplitCorpus
+SplitFold: build/measures.chunk.d.ts#SplitFold
 Stage: build/index.d.ts#Stage
 StageChoice: build/index.d.ts#StageChoice
 StageOption: build/index.d.ts#StageOption
@@ -194,7 +194,7 @@ VERDICT_EXACT_MAX: build/index.d.ts#VERDICT_EXACT_MAX
 VERDICT_RUNS: build/index.d.ts#VERDICT_RUNS
 VERDICT_SEED: build/index.d.ts#VERDICT_SEED
 ValueOption: build/index.d.ts#ValueOption
-Verdict: build/measures-COqcrCzv.d.ts#Verdict
+Verdict: build/measures.chunk.d.ts#Verdict
 VerdictBreadth: build/index.d.ts#VerdictBreadth
 VerdictInterval: build/index.d.ts#VerdictInterval
 VerdictLabel: build/index.d.ts#VerdictLabel
@@ -209,10 +209,10 @@ applyPack: build/index.d.ts#applyPack
 balanceMeasureSpecs: build/index.d.ts#balanceMeasureSpecs
 balanceMeasures: build/index.d.ts#balanceMeasures
 balanceOf: build/index.d.ts#balanceOf
-boundsOf: build/measures-COqcrCzv.d.ts#boundsOf
-boxArea: build/measures-COqcrCzv.d.ts#boxArea
+boundsOf: build/measures.chunk.d.ts#boundsOf
+boxArea: build/measures.chunk.d.ts#boxArea
 canonicalConfig: build/index.d.ts#canonicalConfig
-canonicalInput: build/measures-COqcrCzv.d.ts#canonicalInput
+canonicalInput: build/measures.chunk.d.ts#canonicalInput
 canonicalJson: build/index.d.ts#canonicalJson
 catalogChoices: build/index.d.ts#catalogChoices
 catalogDefaults: build/index.d.ts#catalogDefaults
@@ -220,31 +220,31 @@ catalogKey: build/index.d.ts#catalogKey
 catalogOptions: build/index.d.ts#catalogOptions
 checkCatalog: build/index.d.ts#checkCatalog
 checkConfig: build/index.d.ts#checkConfig
-checkDeclared: build/measures-COqcrCzv.d.ts#checkDeclared
+checkDeclared: build/measures.chunk.d.ts#checkDeclared
 checkInput: build/index.d.ts#checkInput
 checkLayoutRecord: build/index.d.ts#checkLayoutRecord
 checkOptions: build/index.d.ts#checkOptions
 checkSchema: build/index.d.ts#checkSchema
-checkShapes: build/measures-COqcrCzv.d.ts#checkShapes
+checkShapes: build/measures.chunk.d.ts#checkShapes
 checkSpace: build/index.d.ts#checkSpace
-checkSplit: build/measures-COqcrCzv.d.ts#checkSplit
+checkSplit: build/measures.chunk.d.ts#checkSplit
 circleOverlaps: build/index.d.ts#circleOverlaps
 circlesOutside: build/index.d.ts#circlesOutside
 clampOptions: build/index.d.ts#clampOptions
-compareMeasure: build/measures-COqcrCzv.d.ts#compareMeasure
+compareMeasure: build/measures.chunk.d.ts#compareMeasure
 composeFamily: build/index.d.ts#composeFamily
 configId: build/index.d.ts#configId
-corpusHashOf: build/measures-COqcrCzv.d.ts#corpusHashOf
+corpusHashOf: build/measures.chunk.d.ts#corpusHashOf
 countLinksThroughShapes: build/index.d.ts#countLinksThroughShapes
 countObstacleHits: build/index.d.ts#countObstacleHits
 countOutside: build/index.d.ts#countOutside
 countOverlaps: build/index.d.ts#countOverlaps
 countPortsOffBorder: build/index.d.ts#countPortsOffBorder
 createFamilyRegistry: build/index.d.ts#createFamilyRegistry
-crossingPoint: build/measures-COqcrCzv.d.ts#crossingPoint
+crossingPoint: build/measures.chunk.d.ts#crossingPoint
 declarationIssues: build/index.d.ts#declarationIssues
-declaredClaimOf: build/measures-COqcrCzv.d.ts#declaredClaimOf
-declaredCounts: build/measures-COqcrCzv.d.ts#declaredCounts
+declaredClaimOf: build/measures.chunk.d.ts#declaredClaimOf
+declaredCounts: build/measures.chunk.d.ts#declaredCounts
 decodeOptionValue: build/index.d.ts#decodeOptionValue
 dimensionAt: build/index.d.ts#dimensionAt
 dimensionSupports: build/index.d.ts#dimensionSupports
@@ -256,19 +256,19 @@ encodeOptionValue: build/index.d.ts#encodeOptionValue
 enumerateSpace: build/index.d.ts#enumerateSpace
 exercised: build/index.d.ts#exercised
 familyKind: build/index.d.ts#familyKind
-familyOf: build/measures-COqcrCzv.d.ts#familyOf
+familyOf: build/measures.chunk.d.ts#familyOf
 fnv1a32: build/index.d.ts#fnv1a32
-grow: build/measures-COqcrCzv.d.ts#grow
+grow: build/measures.chunk.d.ts#grow
 hardRuleOf: build/index.d.ts#hardRuleOf
-inputShapeLevel: build/measures-COqcrCzv.d.ts#inputShapeLevel
-isShapeKind: build/measures-COqcrCzv.d.ts#isShapeKind
-itemShapeOf: build/measures-COqcrCzv.d.ts#itemShapeOf
+inputShapeLevel: build/measures.chunk.d.ts#inputShapeLevel
+isShapeKind: build/measures.chunk.d.ts#isShapeKind
+itemShapeOf: build/measures.chunk.d.ts#itemShapeOf
 joinConfigs: build/index.d.ts#joinConfigs
-leaveOneSeedOut: build/measures-COqcrCzv.d.ts#leaveOneSeedOut
+leaveOneSeedOut: build/measures.chunk.d.ts#leaveOneSeedOut
 levelsOf: build/index.d.ts#levelsOf
 listOptions: build/index.d.ts#listOptions
-marginSides: build/measures-COqcrCzv.d.ts#marginSides
-minEffectOf: build/measures-COqcrCzv.d.ts#minEffectOf
+marginSides: build/measures.chunk.d.ts#marginSides
+minEffectOf: build/measures.chunk.d.ts#minEffectOf
 mulberry32: build/index.d.ts#mulberry32
 nearestGaps: build/index.d.ts#nearestGaps
 optionDefaults: build/index.d.ts#optionDefaults
@@ -276,10 +276,10 @@ optionIssue: build/index.d.ts#optionIssue
 outputGridClass: build/index.d.ts#outputGridClass
 outputGroups: build/index.d.ts#outputGroups
 outputHash: build/index.d.ts#outputHash
-overlapOf: build/measures-COqcrCzv.d.ts#overlapOf
+overlapOf: build/measures.chunk.d.ts#overlapOf
 ownerDimension: build/index.d.ts#ownerDimension
 packHard: build/index.d.ts#packHard
-packLinks: build/measures-COqcrCzv.d.ts#packLinks
+packLinks: build/measures.chunk.d.ts#packLinks
 paramActive: build/index.d.ts#paramActive
 paramLevels: build/index.d.ts#paramLevels
 paramProblem: build/index.d.ts#paramProblem
@@ -290,43 +290,43 @@ perChange: build/index.d.ts#perChange
 pickMoves: build/index.d.ts#pickMoves
 placedCircle: build/index.d.ts#placedCircle
 placedRect: build/index.d.ts#placedRect
-pointSegmentDistance: build/measures-COqcrCzv.d.ts#pointSegmentDistance
-portPoint: build/measures-COqcrCzv.d.ts#portPoint
+pointSegmentDistance: build/measures.chunk.d.ts#pointSegmentDistance
+portPoint: build/measures.chunk.d.ts#portPoint
 portfolio: build/index.d.ts#portfolio
 procrustesOf: build/index.d.ts#procrustesOf
 productSpace: build/index.d.ts#productSpace
 randomInt: build/index.d.ts#randomInt
 rectInRegion: build/index.d.ts#rectInRegion
-regionArea: build/measures-COqcrCzv.d.ts#regionArea
+regionArea: build/measures.chunk.d.ts#regionArea
 regionHitsRect: build/index.d.ts#regionHitsRect
 resolveDimensions: build/index.d.ts#resolveDimensions
-ruleLevel: build/measures-COqcrCzv.d.ts#ruleLevel
+ruleLevel: build/measures.chunk.d.ts#ruleLevel
 segmentThroughShape: build/index.d.ts#segmentThroughShape
-segmentsCross: build/measures-COqcrCzv.d.ts#segmentsCross
+segmentsCross: build/measures.chunk.d.ts#segmentsCross
 selectBest: build/index.d.ts#selectBest
 sha256Hex: build/index.d.ts#sha256Hex
-shapeKindOf: build/measures-COqcrCzv.d.ts#shapeKindOf
-shapeKindProblem: build/measures-COqcrCzv.d.ts#shapeKindProblem
-shapeKindsOf: build/measures-COqcrCzv.d.ts#shapeKindsOf
-shapeLevel: build/measures-COqcrCzv.d.ts#shapeLevel
-shapeSupportProblems: build/measures-COqcrCzv.d.ts#shapeSupportProblems
-shapesOf: build/measures-COqcrCzv.d.ts#shapesOf
+shapeKindOf: build/measures.chunk.d.ts#shapeKindOf
+shapeKindProblem: build/measures.chunk.d.ts#shapeKindProblem
+shapeKindsOf: build/measures.chunk.d.ts#shapeKindsOf
+shapeLevel: build/measures.chunk.d.ts#shapeLevel
+shapeSupportProblems: build/measures.chunk.d.ts#shapeSupportProblems
+shapesOf: build/measures.chunk.d.ts#shapesOf
 shapesOverlap: build/index.d.ts#shapesOverlap
 sharedDimension: build/index.d.ts#sharedDimension
 spaceShapeKinds: build/index.d.ts#spaceShapeKinds
 spaceSize: build/index.d.ts#spaceSize
 splitConfig: build/index.d.ts#splitConfig
-splitFileName: build/measures-COqcrCzv.d.ts#splitFileName
-splitFolds: build/measures-COqcrCzv.d.ts#splitFolds
+splitFileName: build/measures.chunk.d.ts#splitFileName
+splitFolds: build/measures.chunk.d.ts#splitFolds
 stepRandom: build/index.d.ts#stepRandom
 sweepGrid: build/index.d.ts#sweepGrid
 sweepOf: build/index.d.ts#sweepOf
 sweepValues: build/index.d.ts#sweepValues
 toLayoutRecord: build/index.d.ts#toLayoutRecord
-toPackInput: build/measures-COqcrCzv.d.ts#toPackInput
-toRect: build/measures-COqcrCzv.d.ts#toRect
-toSizedRect: build/measures-COqcrCzv.d.ts#toSizedRect
-translate: build/measures-COqcrCzv.d.ts#translate
+toPackInput: build/measures.chunk.d.ts#toPackInput
+toRect: build/measures.chunk.d.ts#toRect
+toSizedRect: build/measures.chunk.d.ts#toSizedRect
+translate: build/measures.chunk.d.ts#translate
 turnBox: build/index.d.ts#turnBox
 turnMargin: build/index.d.ts#turnMargin
 turnPoint: build/index.d.ts#turnPoint
@@ -336,7 +336,7 @@ turnSide: build/index.d.ts#turnSide
 verdict: build/index.d.ts#verdict
 writeStrategyCatalog: build/index.d.ts#writeStrategyCatalog
 
-## ./text (build/text.d.ts): 26 names
+## ./text (build/text.d.ts): names
 
 AdvanceFn: build/text.d.ts#AdvanceFn
 CanvasTextContext: build/text.d.ts#CanvasTextContext
@@ -1573,20 +1573,20 @@ export declare function verdict<R extends VerdictRecord>(records: Iterable<R>, o
 ### build/index.d.ts#writeStrategyCatalog
 export declare function writeStrategyCatalog(source: StrategyCatalogSource, version: string): string;
 
-### build/measures-COqcrCzv.d.ts#ClaimBreak
+### build/measures.chunk.d.ts#ClaimBreak
 interface ClaimBreak {
   readonly claim: string;
   readonly detail: string;
   readonly inputs: readonly string[];
 }
 
-### build/measures-COqcrCzv.d.ts#CorpusEntry
+### build/measures.chunk.d.ts#CorpusEntry
 interface CorpusEntry {
   readonly id: string;
   readonly hash: string;
 }
 
-### build/measures-COqcrCzv.d.ts#CorpusSplit
+### build/measures.chunk.d.ts#CorpusSplit
 interface CorpusSplit {
   readonly schema: typeof SPLIT_SCHEMA;
   readonly corpus: string;
@@ -1596,10 +1596,10 @@ interface CorpusSplit {
   }>>;
 }
 
-### build/measures-COqcrCzv.d.ts#DEFAULT_SHAPES
+### build/measures.chunk.d.ts#DEFAULT_SHAPES
 declare const DEFAULT_SHAPES: readonly ShapeKind[];
 
-### build/measures-COqcrCzv.d.ts#DeclaredClaim
+### build/measures.chunk.d.ts#DeclaredClaim
 interface DeclaredClaim {
   readonly minCount: number;
   readonly thin: readonly string[];
@@ -1608,36 +1608,36 @@ interface DeclaredClaim {
   readonly familyMin?: number;
 }
 
-### build/measures-COqcrCzv.d.ts#Declares
+### build/measures.chunk.d.ts#Declares
 type Declares<I> = (input: I) => readonly string[];
 
-### build/measures-COqcrCzv.d.ts#Direction
+### build/measures.chunk.d.ts#Direction
 type Direction = "lower" | "higher";
 
-### build/measures-COqcrCzv.d.ts#FAMILY_ANY_KIND
+### build/measures.chunk.d.ts#FAMILY_ANY_KIND
 declare const FAMILY_ANY_KIND = "*";
 
-### build/measures-COqcrCzv.d.ts#FamilyBy
+### build/measures.chunk.d.ts#FamilyBy
 type FamilyBy = readonly string[] | {
   readonly [kind: string]: readonly string[];
 };
 
-### build/measures-COqcrCzv.d.ts#FamilyCell
+### build/measures.chunk.d.ts#FamilyCell
 type FamilyCell = Readonly<Record<string, unknown>>;
 
-### build/measures-COqcrCzv.d.ts#Item
+### build/measures.chunk.d.ts#Item
 type Item = LayoutBox;
 
-### build/measures-COqcrCzv.d.ts#JOINT_MEASURES
+### build/measures.chunk.d.ts#JOINT_MEASURES
 declare const JOINT_MEASURES: readonly MeasureSpec<JointMeasureId>[];
 
-### build/measures-COqcrCzv.d.ts#JOINT_MOVED_MIN
+### build/measures.chunk.d.ts#JOINT_MOVED_MIN
 declare const JOINT_MOVED_MIN = .01;
 
-### build/measures-COqcrCzv.d.ts#JointMeasureId
+### build/measures.chunk.d.ts#JointMeasureId
 type JointMeasureId = "joint.fill" | "joint.aspectError" | "joint.spill" | "joint.straight.crossings" | "joint.straight.length" | "joint.stability.mean" | "joint.stability.moved" | "joint.proxy.rank" | "joint.route.length" | "joint.ms";
 
-### build/measures-COqcrCzv.d.ts#LayoutBox
+### build/measures.chunk.d.ts#LayoutBox
 interface LayoutBox {
   readonly id: string;
   readonly w: number;
@@ -1656,7 +1656,7 @@ interface LayoutBox {
   readonly data?: Readonly<Record<string, unknown>>;
 }
 
-### build/measures-COqcrCzv.d.ts#LayoutCell
+### build/measures.chunk.d.ts#LayoutCell
 interface LayoutCell {
   readonly containerSize?: "fixed" | "freeHeight" | "freeWidth" | "freeAspect" | "freeArea";
   readonly containerShape?: "rect" | "convex" | "polygon" | "circle" | "ellipse" | "holes";
@@ -1671,7 +1671,7 @@ interface LayoutCell {
   readonly itemShape?: ShapeKind | "mixed";
 }
 
-### build/measures-COqcrCzv.d.ts#LayoutContainer
+### build/measures.chunk.d.ts#LayoutContainer
 interface LayoutContainer {
   readonly w?: number;
   readonly h?: number;
@@ -1682,7 +1682,7 @@ interface LayoutContainer {
   readonly inset?: number;
 }
 
-### build/measures-COqcrCzv.d.ts#LayoutEdge
+### build/measures.chunk.d.ts#LayoutEdge
 interface LayoutEdge {
   readonly id: string;
   readonly source: string;
@@ -1692,7 +1692,7 @@ interface LayoutEdge {
   readonly data?: Readonly<Record<string, unknown>>;
 }
 
-### build/measures-COqcrCzv.d.ts#LayoutGenerator
+### build/measures.chunk.d.ts#LayoutGenerator
 interface LayoutGenerator {
   readonly name: string;
   readonly version: number;
@@ -1700,7 +1700,7 @@ interface LayoutGenerator {
   readonly seed: number;
 }
 
-### build/measures-COqcrCzv.d.ts#LayoutInput
+### build/measures.chunk.d.ts#LayoutInput
 interface LayoutInput {
   readonly schema: "layout-input/1";
   readonly id: string;
@@ -1724,10 +1724,10 @@ interface LayoutInput {
   readonly invalidated?: readonly string[];
 }
 
-### build/measures-COqcrCzv.d.ts#Margin
+### build/measures.chunk.d.ts#Margin
 type Margin = number | Sides;
 
-### build/measures-COqcrCzv.d.ts#MeasureSpec
+### build/measures.chunk.d.ts#MeasureSpec
 interface MeasureSpec<Id extends string = string> {
   readonly id: Id;
   readonly unit: string;
@@ -1745,7 +1745,7 @@ interface MeasureSpec<Id extends string = string> {
   readonly bound?: ShapeBound;
 }
 
-### build/measures-COqcrCzv.d.ts#Obstacle
+### build/measures.chunk.d.ts#Obstacle
 interface Obstacle {
   readonly id: string;
   readonly region: Region;
@@ -1754,7 +1754,7 @@ interface Obstacle {
   };
 }
 
-### build/measures-COqcrCzv.d.ts#PackInput
+### build/measures.chunk.d.ts#PackInput
 interface PackInput {
   readonly container: LayoutContainer;
   readonly items: readonly Item[];
@@ -1764,19 +1764,19 @@ interface PackInput {
   readonly links?: readonly PackLink[];
 }
 
-### build/measures-COqcrCzv.d.ts#PackInputOptions
+### build/measures.chunk.d.ts#PackInputOptions
 interface PackInputOptions {
   readonly links?: boolean;
 }
 
-### build/measures-COqcrCzv.d.ts#PackLink
+### build/measures.chunk.d.ts#PackLink
 interface PackLink {
   readonly a: number;
   readonly b: number;
   readonly weight?: number;
 }
 
-### build/measures-COqcrCzv.d.ts#PairGap
+### build/measures.chunk.d.ts#PairGap
 interface PairGap {
   readonly a: string;
   readonly b: string;
@@ -1784,13 +1784,13 @@ interface PairGap {
   readonly lanes?: number;
 }
 
-### build/measures-COqcrCzv.d.ts#Point
+### build/measures.chunk.d.ts#Point
 interface Point {
   readonly x: number;
   readonly y: number;
 }
 
-### build/measures-COqcrCzv.d.ts#Port
+### build/measures.chunk.d.ts#Port
 interface Port {
   readonly id: string;
   readonly side?: Side;
@@ -1799,7 +1799,7 @@ interface Port {
   readonly along?: number;
 }
 
-### build/measures-COqcrCzv.d.ts#Rect
+### build/measures.chunk.d.ts#Rect
 interface Rect {
   readonly x: number;
   readonly y: number;
@@ -1807,7 +1807,7 @@ interface Rect {
   readonly h: number;
 }
 
-### build/measures-COqcrCzv.d.ts#Region
+### build/measures.chunk.d.ts#Region
 type Region = {
   readonly kind: "rect";
   readonly x: number;
@@ -1831,33 +1831,33 @@ type Region = {
   readonly ry: number;
 };
 
-### build/measures-COqcrCzv.d.ts#RuleLevel
+### build/measures.chunk.d.ts#RuleLevel
 type RuleLevel = "exact" | "safe" | "none";
 
-### build/measures-COqcrCzv.d.ts#SHAPE_KINDS
+### build/measures.chunk.d.ts#SHAPE_KINDS
 declare const SHAPE_KINDS: readonly ShapeKindSpec[];
 
-### build/measures-COqcrCzv.d.ts#SHAPE_KIND_IDS
+### build/measures.chunk.d.ts#SHAPE_KIND_IDS
 declare const SHAPE_KIND_IDS: readonly ShapeKind[];
 
-### build/measures-COqcrCzv.d.ts#SIDES
+### build/measures.chunk.d.ts#SIDES
 declare const SIDES: readonly Side[];
 
-### build/measures-COqcrCzv.d.ts#SPLIT_SCHEMA
+### build/measures.chunk.d.ts#SPLIT_SCHEMA
 declare const SPLIT_SCHEMA = "corpus-split/1";
 
-### build/measures-COqcrCzv.d.ts#ShapeBound
+### build/measures.chunk.d.ts#ShapeBound
 interface ShapeBound {
   readonly shapes: readonly ShapeKind[];
   readonly side: "upper" | "lower";
 }
 
-### build/measures-COqcrCzv.d.ts#ShapeCheck
+### build/measures.chunk.d.ts#ShapeCheck
 interface ShapeCheck {
   readonly level?: "exact" | "safe" | "bound";
 }
 
-### build/measures-COqcrCzv.d.ts#ShapeGeometry
+### build/measures.chunk.d.ts#ShapeGeometry
 interface ShapeGeometry {
   readonly bounds: boolean;
   readonly area: boolean;
@@ -1865,13 +1865,13 @@ interface ShapeGeometry {
   readonly overlap: boolean;
 }
 
-### build/measures-COqcrCzv.d.ts#ShapeInput
+### build/measures.chunk.d.ts#ShapeInput
 type ShapeInput = Pick<LayoutInput, "id" | "boxes"> & Partial<Pick<LayoutInput, "obstacles" | "container">>;
 
-### build/measures-COqcrCzv.d.ts#ShapeKind
+### build/measures.chunk.d.ts#ShapeKind
 type ShapeKind = "rect" | "polygon" | "circle" | "free";
 
-### build/measures-COqcrCzv.d.ts#ShapeKindSpec
+### build/measures.chunk.d.ts#ShapeKindSpec
 interface ShapeKindSpec {
   readonly id: ShapeKind;
   readonly fields: readonly string[];
@@ -1879,17 +1879,17 @@ interface ShapeKindSpec {
   readonly geometry: ShapeGeometry;
 }
 
-### build/measures-COqcrCzv.d.ts#ShapeLevel
+### build/measures.chunk.d.ts#ShapeLevel
 type ShapeLevel = RuleLevel | "bound";
 
-### build/measures-COqcrCzv.d.ts#ShapeLimit
+### build/measures.chunk.d.ts#ShapeLimit
 interface ShapeLimit {
   readonly reads: "neighbours" | "container";
   readonly because: string;
   readonly until: string;
 }
 
-### build/measures-COqcrCzv.d.ts#ShapeSupport
+### build/measures.chunk.d.ts#ShapeSupport
 interface ShapeSupport<Id extends string = string> {
   readonly id: Id;
   readonly shapes?: readonly ShapeKind[];
@@ -1898,10 +1898,10 @@ interface ShapeSupport<Id extends string = string> {
   readonly limit?: ShapeLimit;
 }
 
-### build/measures-COqcrCzv.d.ts#Side
+### build/measures.chunk.d.ts#Side
 type Side = "top" | "right" | "bottom" | "left";
 
-### build/measures-COqcrCzv.d.ts#Sides
+### build/measures.chunk.d.ts#Sides
 interface Sides {
   readonly top: number;
   readonly right: number;
@@ -1909,7 +1909,7 @@ interface Sides {
   readonly left: number;
 }
 
-### build/measures-COqcrCzv.d.ts#SizedRect
+### build/measures.chunk.d.ts#SizedRect
 interface SizedRect {
   readonly x: number;
   readonly y: number;
@@ -1917,7 +1917,7 @@ interface SizedRect {
   readonly height: number;
 }
 
-### build/measures-COqcrCzv.d.ts#SplitCorpus
+### build/measures.chunk.d.ts#SplitCorpus
 interface SplitCorpus {
   readonly corpus: string;
   readonly specs: readonly {
@@ -1926,130 +1926,130 @@ interface SplitCorpus {
   readonly inputs: readonly CorpusEntry[];
 }
 
-### build/measures-COqcrCzv.d.ts#SplitFold
+### build/measures.chunk.d.ts#SplitFold
 interface SplitFold {
   readonly train: readonly number[];
   readonly heldOut: readonly number[];
 }
 
-### build/measures-COqcrCzv.d.ts#Verdict
+### build/measures.chunk.d.ts#Verdict
 type Verdict = "better" | "worse" | "tie";
 
-### build/measures-COqcrCzv.d.ts#boundsOf
+### build/measures.chunk.d.ts#boundsOf
 declare function boundsOf(region: Region): Rect;
 
-### build/measures-COqcrCzv.d.ts#boxArea
+### build/measures.chunk.d.ts#boxArea
 declare function boxArea(box: LayoutBox): number | undefined;
 
-### build/measures-COqcrCzv.d.ts#canonicalInput
+### build/measures.chunk.d.ts#canonicalInput
 declare function canonicalInput<T extends LayoutInput>(input: T): T;
 
-### build/measures-COqcrCzv.d.ts#checkDeclared
+### build/measures.chunk.d.ts#checkDeclared
 declare function checkDeclared<I>(inputs: Iterable<I>, declares: Declares<I>, claim: DeclaredClaim, ids?: readonly string[], cellOf?: (input: I) => FamilyCell | undefined): ClaimBreak[];
 
-### build/measures-COqcrCzv.d.ts#checkShapes
+### build/measures.chunk.d.ts#checkShapes
 declare function checkShapes(input: ShapeInput, uses: readonly ShapeSupport[], options?: ShapeCheck): ClaimBreak[];
 
-### build/measures-COqcrCzv.d.ts#checkSplit
+### build/measures.chunk.d.ts#checkSplit
 declare function checkSplit(split: unknown, corpus: SplitCorpus, name?: string): ClaimBreak[];
 
-### build/measures-COqcrCzv.d.ts#compareMeasure
+### build/measures.chunk.d.ts#compareMeasure
 declare function compareMeasure(candidate: number, baseline: number, spec: Pick<MeasureSpec, "direction" | "minEffect">): Verdict;
 
-### build/measures-COqcrCzv.d.ts#corpusHashOf
+### build/measures.chunk.d.ts#corpusHashOf
 declare function corpusHashOf(corpus: string, inputs: readonly CorpusEntry[]): string;
 
-### build/measures-COqcrCzv.d.ts#crossingPoint
+### build/measures.chunk.d.ts#crossingPoint
 declare function crossingPoint(a: Point, b: Point, c: Point, d: Point): Point | undefined;
 
-### build/measures-COqcrCzv.d.ts#declaredClaimOf
+### build/measures.chunk.d.ts#declaredClaimOf
 declare function declaredClaimOf(manifest: object): DeclaredClaim | undefined;
 
-### build/measures-COqcrCzv.d.ts#declaredCounts
+### build/measures.chunk.d.ts#declaredCounts
 declare function declaredCounts<I>(inputs: Iterable<I>, declares: Declares<I>, ids?: readonly string[]): Record<string, number>;
 
-### build/measures-COqcrCzv.d.ts#familyOf
+### build/measures.chunk.d.ts#familyOf
 declare function familyOf(cell: FamilyCell, familyBy: FamilyBy): string;
 
-### build/measures-COqcrCzv.d.ts#grow
+### build/measures.chunk.d.ts#grow
 declare function grow(rect: Rect, margin: Margin | undefined): Rect;
 
-### build/measures-COqcrCzv.d.ts#inputShapeLevel
+### build/measures.chunk.d.ts#inputShapeLevel
 declare function inputShapeLevel(use: Pick<ShapeSupport, "shapes" | "safe" | "bound" | "limit">, kind: ShapeKind, input: ShapeInput): ShapeLevel;
 
-### build/measures-COqcrCzv.d.ts#isShapeKind
+### build/measures.chunk.d.ts#isShapeKind
 declare function isShapeKind(value: unknown): value is ShapeKind;
 
-### build/measures-COqcrCzv.d.ts#itemShapeOf
+### build/measures.chunk.d.ts#itemShapeOf
 declare function itemShapeOf(input: Pick<LayoutInput, "boxes">): ShapeKind | "mixed";
 
-### build/measures-COqcrCzv.d.ts#leaveOneSeedOut
+### build/measures.chunk.d.ts#leaveOneSeedOut
 declare function leaveOneSeedOut(seeds: readonly number[]): SplitFold[];
 
-### build/measures-COqcrCzv.d.ts#marginSides
+### build/measures.chunk.d.ts#marginSides
 declare function marginSides(margin: Margin | undefined): Sides;
 
-### build/measures-COqcrCzv.d.ts#minEffectOf
+### build/measures.chunk.d.ts#minEffectOf
 declare function minEffectOf(spec: Pick<MeasureSpec, "minEffect">, a?: number, b?: number): number;
 
-### build/measures-COqcrCzv.d.ts#overlapOf
+### build/measures.chunk.d.ts#overlapOf
 declare function overlapOf(a: Rect, b: Rect): {
   readonly x: number;
   readonly y: number;
 };
 
-### build/measures-COqcrCzv.d.ts#packLinks
+### build/measures.chunk.d.ts#packLinks
 declare function packLinks(input: LayoutInput): PackLink[];
 
-### build/measures-COqcrCzv.d.ts#pointSegmentDistance
+### build/measures.chunk.d.ts#pointSegmentDistance
 declare function pointSegmentDistance(p: Point, a: Point, b: Point): number;
 
-### build/measures-COqcrCzv.d.ts#portPoint
+### build/measures.chunk.d.ts#portPoint
 declare function portPoint(box: Pick<LayoutBox, "w" | "h">, port: Port): Point | undefined;
 
-### build/measures-COqcrCzv.d.ts#regionArea
+### build/measures.chunk.d.ts#regionArea
 declare function regionArea(region: Region): number;
 
-### build/measures-COqcrCzv.d.ts#ruleLevel
+### build/measures.chunk.d.ts#ruleLevel
 declare function ruleLevel(rule: Pick<ShapeSupport, "shapes" | "safe">, kind: ShapeKind): RuleLevel;
 
-### build/measures-COqcrCzv.d.ts#segmentsCross
+### build/measures.chunk.d.ts#segmentsCross
 declare function segmentsCross(a: Point, b: Point, c: Point, d: Point): boolean;
 
-### build/measures-COqcrCzv.d.ts#shapeKindOf
+### build/measures.chunk.d.ts#shapeKindOf
 declare function shapeKindOf(box: LayoutBox): ShapeKind;
 
-### build/measures-COqcrCzv.d.ts#shapeKindProblem
+### build/measures.chunk.d.ts#shapeKindProblem
 declare function shapeKindProblem(box: LayoutBox): string | undefined;
 
-### build/measures-COqcrCzv.d.ts#shapeKindsOf
+### build/measures.chunk.d.ts#shapeKindsOf
 declare function shapeKindsOf(input: Pick<LayoutInput, "boxes">): ShapeKind[];
 
-### build/measures-COqcrCzv.d.ts#shapeLevel
+### build/measures.chunk.d.ts#shapeLevel
 declare function shapeLevel(use: Pick<ShapeSupport, "shapes" | "safe" | "bound">, kind: ShapeKind): ShapeLevel;
 
-### build/measures-COqcrCzv.d.ts#shapeSupportProblems
+### build/measures.chunk.d.ts#shapeSupportProblems
 declare function shapeSupportProblems(uses: readonly ShapeSupport[]): string[];
 
-### build/measures-COqcrCzv.d.ts#shapesOf
+### build/measures.chunk.d.ts#shapesOf
 declare function shapesOf(use: Pick<ShapeSupport, "shapes">): readonly ShapeKind[];
 
-### build/measures-COqcrCzv.d.ts#splitFileName
+### build/measures.chunk.d.ts#splitFileName
 declare function splitFileName(corpus: string, hash: string): string;
 
-### build/measures-COqcrCzv.d.ts#splitFolds
+### build/measures.chunk.d.ts#splitFolds
 declare function splitFolds(split: unknown, corpus: SplitCorpus, name: string, where?: string): SplitFold[];
 
-### build/measures-COqcrCzv.d.ts#toPackInput
+### build/measures.chunk.d.ts#toPackInput
 declare function toPackInput(input: LayoutInput, options?: PackInputOptions): PackInput;
 
-### build/measures-COqcrCzv.d.ts#toRect
+### build/measures.chunk.d.ts#toRect
 declare function toRect(rect: SizedRect): Rect;
 
-### build/measures-COqcrCzv.d.ts#toSizedRect
+### build/measures.chunk.d.ts#toSizedRect
 declare function toSizedRect(rect: Rect): SizedRect;
 
-### build/measures-COqcrCzv.d.ts#translate
+### build/measures.chunk.d.ts#translate
 declare function translate(region: Region, dx: number, dy: number): Region;
 
 ### build/text.d.ts#AdvanceFn

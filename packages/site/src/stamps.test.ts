@@ -1,7 +1,7 @@
 import { readdirSync, readFileSync } from "node:fs";
 import type { DataStamps } from "@mark1russell7/site-pages";
 import { describe, expect, it } from "vitest";
-import { type JointData, latestJoint } from "./data.ts";
+import { type JointData, latestFull } from "./data.ts";
 import { NPM_NOT_READ, npmLine, readStamps, stampFaults, withDataStamp } from "./stamps.ts";
 
 const data = new URL("../data/", import.meta.url);
@@ -17,8 +17,8 @@ const stampOf = (id: string, engines: Readonly<Record<string, string>>): DataSta
 const run = { run: "7", date: "2026-10-28", versions: { packing: "0.2.16" } };
 
 describe("the file data/stamps.json", () => {
-  it("agrees with the newest joint run", () => {
-    expect(stampFaults(stamps, latestJoint(joints)!)).toEqual([]);
+  it("agrees with the newest full joint run, not with a short run", () => {
+    expect(stampFaults(stamps, latestFull(joints)!)).toEqual([]);
   });
 
   it("stamps the compare page with the runs of the home page, because its tags read the newest run", () => {
@@ -27,8 +27,9 @@ describe("the file data/stamps.json", () => {
     expect(of("compare.html")?.inFlight).toEqual(of("index.html")?.inFlight);
   });
 
-  it("names a run in flight on newer engines while the data is old", () => {
-    expect(stamps.pages.find((p) => p.page === "index.html")?.inFlight?.engines["@mark1russell7/packing"]).toBeDefined();
+  it("names only the newest full joint run in the runs of each page", () => {
+    // The figures of the page come from the newest run. An older result shows its own date in the list of results, so its stamp does not say that it is current.
+    for (const page of stamps.pages) expect(page.runs.map((r) => r.id), page.page).toEqual([latestFull(joints)!.run]);
   });
 });
 

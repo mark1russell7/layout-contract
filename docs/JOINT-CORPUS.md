@@ -211,8 +211,21 @@ Thus the corpus has 95 specs (55, 37 and 3) and 285 inputs.
 | `grid` | 88: 43 with a closed name and 45 with an open name |
 | `ui` | 36 |
 | fixed cases | 6 |
+| `shapes` | 8: 4 with circle items, 4 small strips (L94) |
 
-Thus the corpus has 130 specs and 390 inputs. The claims are the claims of `joint-v2`.
+Thus the corpus has 138 specs and 414 inputs. The claims are the claims of `joint-v2`.
+
+### The array `shapes` of `joint-v3` (L94)
+
+The array `shapes` gives inputs to the 3 strategies with no cover entry in `joint-v2` (`COVER_EXCEPTIONS` of `cover.ts`). Each row has the seeds 1, 2 and 3, the edges `medium`, `random`, `none`, `free` with the hub by area, and no open sizes.
+
+- 4 rows use the generator `circle-scattered` of the contract, with 40 circle items. The container is a rectangle or a circle, and the spacing is `stress` or `both`. The strategy `hole-degree` packs the rectangle containers, and `circle-quasi-physical` packs the circle containers.
+- The family of a circle input has the container shape and the count, for example `circle-scattered.circle.n40`. Thus the ids of the 2 containers are different.
+- 4 rows use the generator `perfect-cut` of `packing`, with 8 or 12 boxes and the cut `guillotine` or `free`. Each one is a strip of a fixed width with the spacing `stress`. The strategy `exact-strip` takes each one: at most 16 items of whole sizes, with no gap and no margin.
+- The boxes of `rect-grid` do not have whole sizes, so `exact-strip` refuses each one.
+- The cell of a circle input comes from `cellOf` of `packing`, with the item shape `circle`. The cell of a strip input comes from the generator `perfect-cut`.
+- The test `shapes.test.ts` packs each input with its strategy, and examines that no strategy refuses it.
+- The cover runs `joint-v2`, so `COVER_EXCEPTIONS` stays. A cover run of `joint-v3` removes the 3 exceptions (L94, second part).
 
 | Point | Family | Parameters |
 |---|---|---|

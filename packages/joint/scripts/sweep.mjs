@@ -31,6 +31,7 @@ import {
   gateEstimate,
   BENCH_SPACE_VERSION,
   baselineIds,
+  checkStateSpace,
   budgetLine,
   costClaimScore,
   costHistory,
@@ -254,6 +255,8 @@ if (command === "plan") {
   // The data branch keeps the summary in its own file, so the state of the branch has no summary.
   const summaryFile = join(dirname(file), "summary.json");
   const state = existsSync(file) ? { ...readJson(file), summary: existsSync(summaryFile) ? summaryRows(readJson(summaryFile)) : [] } : emptyState(epoch, set, sweep, undefined, date);
+  // The epoch key has the version of the space, not the space. A space that changed under one version stops the plan here (L133).
+  checkStateSpace(state);
   console.log(existsSync(file) ? `The epoch ${epoch} has ${state.nights.length} nights.` : `The epoch ${epoch} is new.`);
   const out = args.out ?? "night";
   if (state.nights.some((n) => n.date === date)) {
