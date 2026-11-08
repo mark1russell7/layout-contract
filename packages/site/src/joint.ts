@@ -1,6 +1,7 @@
 // The section "Joint benchmark": the headline cell of a result, the misses by router and by packer,
 // the ranked pairs, the baselines, the cells and the predictions.
 import { latestFull, shownAge, type CellView, type JointData } from "./data.ts";
+import type { CountSource, CountSources } from "./kpi.ts";
 import { barChart, esc, f3, interval, pct } from "./ui.ts";
 
 const REPO = "https://github.com/mark1russell7/layout-contract";
@@ -130,7 +131,29 @@ function predictions(d: JointData): string {
 }
 
 /** This function shows the joint benchmark results in the element `root`. It shows the latest result first. */
-export function renderJoint(root: HTMLElement, files: readonly JointData[]): void {
+/**
+ * This function gives the list of the runs that the coverage counts, with the names of each run. It gives no html without sources.
+ * A name counts from the newest run with a result of it, so one count can join runs of two corpora (L140).
+ */
+export function countSourcesHtml(sources: CountSources | undefined): string {
+  if (sources === undefined || sources.packers.length + sources.routers.length === 0) return "";
+  const groups = (kind: string, list: readonly CountSource[]): string[] => {
+    const byRun = new Map<string, CountSource[]>();
+    for (const source of list) byRun.set(source.run, [...(byRun.get(source.run) ?? []), source]);
+    return [...byRun.values()]
+      .sort((a, b) => b.length - a.length || b[0]!.date.localeCompare(a[0]!.date))
+      .map((part) => {
+        const first = part[0]!;
+        const names = part.map((source) => `<code>${esc(source.name)}</code>`).join(", ");
+        return `<li><strong>${part.length} ${kind}</strong> from run ${esc(first.run)}, corpus <code>${esc(first.corpus)}</code>, of ${esc(first.date)}: ${names}</li>`;
+      });
+  };
+  const corpora = new Set([...sources.packers, ...sources.routers].map((source) => source.corpus));
+  const note = corpora.size > 1 ? `<p class="hint">The counts join runs of ${corpora.size} corpora. A name counts from the newest run with a result of it.</p>` : "";
+  return `<details class="more"><summary>The runs that the coverage counts: ${sources.packers.length} packers and ${sources.routers.length} routers</summary>${note}<ul class="hint">${[...groups("packers", sources.packers), ...groups("routers", sources.routers)].join("")}</ul><p class="hint">The file <a href="kpi-sources.json"><code>kpi-sources.json</code></a> has the same list.</p></details>`;
+}
+
+export function renderJoint(root: HTMLElement, files: readonly JointData[], sources?: CountSources): void {
   const latest = latestFull(files);
   const age = shownAge(files);
   if (latest === undefined) {
@@ -166,7 +189,8 @@ export function renderJoint(root: HTMLElement, files: readonly JointData[]): voi
       ${ranking(v, state)}
       ${baselines(v)}
       ${cells(d)}
-      ${predictions(d)}`;
+      ${predictions(d)}
+      ${countSourcesHtml(sources)}`;
   };
   root.addEventListener("click", (event) => {
     const el = (event.target as Element).closest<HTMLElement>("[data-view],[data-pick],[data-clear],[data-all]");
