@@ -1,4 +1,7 @@
 // The joint pack entries as points of `packSpace` (roadmap item L34). Each point has the output of its entry on a small set of inputs of `joint-v1`.
+import { readFileSync } from "node:fs";
+import { createRequire } from "node:module";
+import { dirname, join } from "node:path";
 import { checkConfig, configId, type LayoutInput, type StrategySpace } from "@mark1russell7/layout-contract";
 import { configOfStrategy, outputHash as packHash, packConfig, packSpace, packWith, UnsupportedCell, type PackOutput } from "@mark1russell7/packing";
 import { describe, expect, it } from "vitest";
@@ -15,13 +18,21 @@ const SPACE = packSpace as unknown as StrategySpace;
  */
 const OUTSIDE_SPACE: readonly string[] = [];
 
+/** The version of the installed `packing`. The list `KNOWN_DIFFER` depends on it, so the test passes before and after an update of the lockfile. */
+const PACKING_VERSION: string = JSON.parse(readFileSync(join(dirname(createRequire(import.meta.url).resolve("@mark1russell7/packing")), "..", "package.json"), "utf8")).version;
+const [PACKING_MAJOR = 0, PACKING_MINOR = 0, PACKING_PATCH = 0] = PACKING_VERSION.split(".").map((part) => Number.parseInt(part, 10));
+
+/** This value is true from `packing` 0.10.5. That version fixed the points of `near-rects` and `raster-nofit`, and 0.10.4 fixed `side-anchors`. */
+const POINTS_FIXED = PACKING_MAJOR > 0 || PACKING_MINOR > 10 || (PACKING_MINOR === 10 && PACKING_PATCH >= 5);
+
 /**
  * The entries whose point gives, with `packConfig`, an output that is not the output of `packWith` (L129).
  * In `packing` 0.10.2, `packConfig` of the point of `side-anchors` packs 10 inputs that `packWith` refuses. On 1 more input, the two hashes are not equal.
  * On the circle input with a rectangle container, `packWith` packs `near-rects` and `raster-nofit`, but `packConfig` of their points refuses it (L94).
- * The runner uses `packWith`, so the records of the bench do not change. The fix belongs to `packing`.
+ * In `packing` 0.11.0 and 0.11.1, the list is empty (the CI of the release train, pull request 267).
+ * The runner uses `packWith`, so the records of the bench do not change.
  */
-const KNOWN_DIFFER: readonly string[] = ["side-anchors", "near-rects", "raster-nofit"];
+const KNOWN_DIFFER: readonly string[] = POINTS_FIXED ? [] : ["side-anchors", "near-rects", "raster-nofit"];
 
 /**
  * The entries that support none of the inputs of the test, so the test compares no hash of them (L129).
