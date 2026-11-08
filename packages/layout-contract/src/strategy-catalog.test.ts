@@ -125,7 +125,7 @@ describe("the parser", () => {
   it("refuses what is not a catalog", () => {
     expect(parseStrategyCatalog(null)).toEqual({ ok: false, faults: ["The catalog is not an object."] });
     expect(parseStrategyCatalog({ ...fileOf(), strategies: 1 })).toMatchObject({ ok: false });
-    const parsed = parseStrategyCatalog({ ...fileOf(), schema: "strategy-catalog/3", engine: "", version: 1, extra: true });
+    const parsed = parseStrategyCatalog({ ...fileOf(), schema: "strategy-catalog/4", engine: "", version: 1, extra: true });
     expect(parsed.ok ? [] : parsed.faults).toHaveLength(4);
   });
 
