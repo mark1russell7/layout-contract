@@ -588,6 +588,51 @@ node scripts/fit-cost.mjs --logs logs --run <run id> --commit "$(gh run view <ru
 - The option `--terms` selects the terms to fit: `pair`, `lane`, `all` or `auto`. The default `auto` fits both terms only when the ratio of passes to pairs changes between the inputs.
 - The script compares the new fit with the fit of `data/cost-margins.json` before it writes the file.
 
+### The margins by pair set
+
+The margins of a spec depend on the pairs of the plan. A cover plan holds slow pairs that a default plan does not have. Thus each pair set has its own margins (L143).
+
+- The file `packages/joint/data/margin-sets.json` holds the margin sets. The key of a set is a hash of its corpus and its sorted pairs.
+- Each set has the run, the commit and the engine versions of its fit. The versions come from the lockfile of the commit. They are not in the key, so a release does not void a set.
+- When an engine of the set has another version in this run, the line of the plan names both versions. A slow new engine thus shows as a cause before the run.
+- `pickMarginSet` gives the set with the same pairs as the plan. Else it gives the set with the largest overlap: the shared pairs over the pairs of either list.
+- The plan prints a line about its margins. A plan with no set of its own pairs names the set that it uses. The line also gives the error of that set on its own pairs.
+- The error is the mean of the absolute log of real / planned on each seed. The margins of this test come from the other 2 seeds.
+- A set with no margins in the file takes the margins of `cost-margins.json`. The set of the run `40884908305` has this form, so its margins have one home.
+
+The 2 sets in the file:
+
+| Set | Run | Pairs | Default margin | Error on a held-out seed |
+|---|---|---|---|---|
+| `d440b203454d987e` | `40884908305`, 2026-10-29 | 195 | 3.19 | 0.24-0.29 |
+| `3a00af6420c4ccc4` | `41898523423`, 2026-11-04, the cover | 650 | 9.50 | 0.24-0.34 |
+
+- The default plan has 300 pairs. It takes the first set, with 195 shared pairs, so its plan does not change.
+- The cover plan has 694 pairs. It takes the second set, with 618 shared pairs.
+- Round 1 of the cover of 2026-11-07 has 3 inputs with 181 pairs each. With the margins of `cost-margins.json`, real / planned is 1.17-1.66. With the second set, it is 0.63-0.89.
+
+A study over the records of `41898523423` compared 4 models. Each model had a fit on 2 seeds and a test on the third seed. The table gives the mean of the absolute log of real / predicted for the total of each input.
+
+| Model | Error on a held-out seed |
+|---|---|
+| One factor for all pairs | 0.64-0.69 |
+| One factor for each strategy | 0.65-0.69 |
+| One factor for each strategy and size band | No gain on the factor for each strategy |
+| One factor for each spec, fit on the cover | 0.21-0.30 |
+
+A factor for each strategy does not make the plan better. The margin of the pair set does. Thus the key of a set is its pairs, and a new pair mix needs no new option.
+
+To write a set from a run, start `margins` in `packages/joint`:
+
+```sh
+gh run download <run id> -R mark1russell7/layout-contract -p "joint-records-*" -D records
+pnpm bench margins --records records --run <run id> --commit <sha> --engines packing=<version>,highways=<version> > set.json
+```
+
+- The times come from the pair files. Only the lines of the most common stamp count.
+- A run before the pair files also needs `--logs <file>`: the log of the run, as for `fit-cost.mjs`. The pairs are then the strategies of the record files.
+- Add the set to the list `sets` of `data/margin-sets.json`.
+
 `pnpm bench plan --shards <n>` shows the planned cost of the most costly shards. The lines of the logs keep the words "predicted minutes".
 
 The benchmark measures times, so it runs only in CI.
@@ -1176,6 +1221,7 @@ Routers run in the process of the runner and do not yield, so only a hard stop e
 - An overrun in a pack stage counts for the pack entry, and an overrun in a route stage counts for the router. A slow router thus does not count against a packer.
 - A tagged pair is a result, so a resume does not run it again. Its time does not go into the costs of the plan. A run with a larger budget has another stamp, and that run can fill these rows.
 - A resume counts the overruns of the earlier run, so a stop does not change the rows. A group with 1 overrun before a stop reaches its limit at the next overrun.
+- A shard stops after the pair that runs at 330 minutes, and the step limit is 350 minutes. The plan thus refuses a budget that gives all the stages of one pair 20 minutes or more (L142). Then the step limit cannot stop a pair with no record.
 
 ## The cover of the catalogs
 

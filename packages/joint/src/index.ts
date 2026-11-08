@@ -6,6 +6,7 @@ export * from "./config-cost.ts";
 export * from "./cost-claim.ts";
 export * from "./pair-budget.ts";
 export * from "./plan.ts";
+export * from "./margin-sets.ts";
 export * from "./shard-run.ts";
 export * from "./shard-stop.ts";
 export * from "./split.ts";

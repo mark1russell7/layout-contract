@@ -1,9 +1,10 @@
+import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
-import { budgetCases, budgetTag, earlierOverruns, keyParts, pairBudgetMs, parsePairBudget } from "./pair-budget.ts";
+import { budgetCases, budgetMarginError, budgetTag, earlierOverruns, keyParts, longestPairMs, pairBudgetMs, parsePairBudget } from "./pair-budget.ts";
 import type { LayoutRecord } from "@mark1russell7/layout-contract";
 import { budgetLines, budgetReport, NOT_RUN_OVER_BUDGET, OVER_BUDGET } from "./analysis.ts";
 import { pairRuns, PACK_ENTRIES } from "./runner.ts";
-import { doneKey, type PairLine } from "./shard-run.ts";
+import { doneKey, SHARD_DEADLINE_MINUTES, SHARD_STEP_MINUTES, type PairLine } from "./shard-run.ts";
 
 describe("parsePairBudget", () => {
   it("reads one number as the budget of each input", () => {
@@ -39,6 +40,56 @@ describe("budgetCases", () => {
     const [one] = budgetCases([{ id: "i", boxes: 1 }], ["p+a+b"], parsePairBudget("5"));
     expect(one!.groups!["route"]).toBe("i\nroute\na+b");
     expect(keyParts(one!.id)).toEqual({ input: "i", pair: "p+a+b" });
+  });
+});
+
+describe("budgetMarginError", () => {
+  const inputs = [
+    { id: "small", boxes: 100 },
+    { id: "large", boxes: 1000 },
+  ];
+  const margin = (text: string, of = inputs): string | undefined => budgetMarginError(budgetCases(of, ["p+r"], parsePairBudget(text)), SHARD_DEADLINE_MINUTES, SHARD_STEP_MINUTES);
+
+  it("counts each stage of a pair, and 1 stage for a case with no groups", () => {
+    expect(longestPairMs(budgetCases(inputs, ["p+r"], parsePairBudget("200:1,5")))).toBe(600_000);
+    expect(longestPairMs([{ id: "a", budgetMs: 60_000 }])).toBe(60_000);
+    expect(longestPairMs([])).toBe(0);
+  });
+
+  it("passes a budget whose pair ends before the step limit", () => {
+    expect(margin("5")).toBeUndefined();
+    expect(margin("9.9")).toBeUndefined();
+    expect(margin("200:15,5", [{ id: "large", boxes: 1000 }])).toBeUndefined();
+  });
+
+  it("refuses a budget whose pair can run to the step limit, from the largest step of the inputs", () => {
+    expect(margin("10")).toMatch(/up to 20 minutes.*less than 20 minutes/);
+    expect(margin("200:15,5")).toMatch(/up to 30 minutes/);
+  });
+});
+
+// The two limits of the margin are in the workflow and in the script. A change of one of them fails this test (L142).
+describe("the limits of a bench shard", () => {
+  const workflow = readFileSync(new URL("../../../.github/workflows/joint-bench.yml", import.meta.url), "utf8").split("\n");
+  const bench = readFileSync(new URL("../scripts/bench.mjs", import.meta.url), "utf8");
+  const at = workflow.findIndex((line) => line.trim() === "- name: Run one shard");
+  const end = workflow.findIndex((line, i) => i > at && line.trim().startsWith("- name:"));
+  const step = workflow.slice(at, end);
+  const minutesOf = (line: string | undefined): number => Number(line?.split(":")[1]);
+
+  it("has the step limit of SHARD_STEP_MINUTES, inside the job limit", () => {
+    expect(at).toBeGreaterThan(0);
+    expect(minutesOf(step.find((line) => line.trim().startsWith("timeout-minutes:")))).toBe(SHARD_STEP_MINUTES);
+    const job = workflow.slice(0, at).findLast((line) => /^ {4}timeout-minutes:/.test(line));
+    expect(minutesOf(job)).toBeGreaterThan(SHARD_STEP_MINUTES);
+  });
+
+  it("runs each shard to SHARD_DEADLINE_MINUTES, the default of the script", () => {
+    const run = step.find((line) => line.includes("node scripts/bench.mjs run"));
+    expect(run).toBeDefined();
+    expect(run).not.toContain("--deadline-minutes");
+    expect(bench.split('Number(args["deadline-minutes"] ?? SHARD_DEADLINE_MINUTES)').length - 1).toBe(2);
+    expect(SHARD_DEADLINE_MINUTES).toBeLessThan(SHARD_STEP_MINUTES);
   });
 });
 

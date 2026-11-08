@@ -8,6 +8,12 @@ export interface CostFit {
   readonly cross: number;
 }
 
+/** The margin of each spec, and the margin of a spec with no measured time. A cost model and a margin set (`margin-sets.ts`) have this form. */
+export interface SpecMargins {
+  readonly specs: Readonly<Record<string, number>>;
+  readonly default: number;
+}
+
 /**
  * The cost model of the plan, from the file `data/cost-margins.json`. The script `scripts/fit-cost.mjs` writes the file from the shard logs of a full run.
  * - `fit` gives the predicted time of one pair. The fit makes the least sum of the squares of the logs of real / predicted.
@@ -86,14 +92,14 @@ export function inputCost(boxes: number, edges: number, pairs: number, passes = 
   return pairs * fitCost(COST_FIT, boxes, edges) + passes * fitCost(LANE_FIT, boxes, edges);
 }
 
-/** This function gives the margin of a spec: its value in `COST_MODEL.specs`, or the default margin for a spec without a measured time. */
-export function costMargin(spec: string): number {
-  return Object.hasOwn(COST_MODEL.specs, spec) ? COST_MODEL.specs[spec]! : COST_MODEL.default;
+/** This function gives the margin of a spec: its value in `margins.specs`, or the default margin for a spec without a measured time. The margins of `COST_MODEL` are the default. */
+export function costMargin(spec: string, margins: SpecMargins = COST_MODEL): number {
+  return Object.hasOwn(margins.specs, spec) ? margins.specs[spec]! : margins.default;
 }
 
 /** This function gives the planned time of one input in milliseconds: the predicted time of `inputCost` times the margin of its spec. */
-export function plannedCost(spec: string, boxes: number, edges: number, pairs: number, passes = 0): number {
-  return inputCost(boxes, edges, pairs, passes) * costMargin(spec);
+export function plannedCost(spec: string, boxes: number, edges: number, pairs: number, passes = 0, margins: SpecMargins = COST_MODEL): number {
+  return inputCost(boxes, edges, pairs, passes) * costMargin(spec, margins);
 }
 
 /** One input of the plan. The inputs of one spec differ only in the seed. */
