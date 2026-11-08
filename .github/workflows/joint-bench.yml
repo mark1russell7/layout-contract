@@ -15,6 +15,7 @@
 # A manual run with the input pairs runs only those pairs of the cover and the baseline pair, so a new strategy needs no whole cover run.
 # A shard stops at a clean point after 330 minutes, so that the job limit does not lose its records. Each shard writes each pair when the pair ends.
 # A manual run with the input pair-budget holds each stage of a pair to a time budget. A pair over it stops with a tag, so one strategy cannot take a shard.
+# A run with the input cover or pairs and no pair-budget stops in the job plan (L141). With no budget, one pair that does not end can take a shard with no record.
 # A manual run with the input resume-run runs only the pairs that the earlier run did not record, with the same stamp of the code and the same input hashes.
 # Only the times of these jobs count. The benchmark does not run on a local computer.
 name: Joint bench
@@ -153,7 +154,12 @@ jobs:
           FULL: ${{ github.event_name == 'workflow_dispatch' || contains(github.event.pull_request.labels.*.name, 'bench:full') }}
           SHARDS: ${{ inputs.shards || '64' }}
           CORPUS: ${{ inputs.corpus || 'joint-v2' }}
+          COVER: ${{ inputs.cover && 'on' || '' }}
+          PAIRS: ${{ inputs.pairs }}
+          PAIR_BUDGET: ${{ inputs.pair-budget }}
         run: |
+          if [ -n "$COVER$PAIRS" ] && [ -z "$PAIR_BUDGET" ]; then echo "::error::A run with the input cover or pairs has a pair-budget, for example 5. With no budget, one pair that does not end can take a shard with no record (L141)."; exit 1; fi
+          echo "The pair budget of this run: ${PAIR_BUDGET:-none}"
           if [ "$FULL" = "true" ]; then count="$SHARDS"; slice=""; else count=2; slice=pr; fi
           case "$CORPUS" in joint-v1|joint-v2|joint-v3) ;; *) echo "The corpus is joint-v1, joint-v2 or joint-v3, not $CORPUS."; exit 1;; esac
           echo "corpus=$CORPUS" >> "$GITHUB_OUTPUT"
