@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.9.0
+
+- MINOR before 1.0.0: the format of a strategy space has its home in `@mark1russell7/strategy-space` 0.0.1. `layout-contract` re-exports its types and functions, with the same names.
+- The change that can break a caller: a shape kind is a tag. The field `shape` of `OptionSupports` and the field `shapes` of `ShapeFilter` take a `string`, not a `ShapeKind`. `spaceShapeKinds` gives `string[]`.
+- `checkSpace`, `spaceSize`, `enumerateSpace` and `spaceShapeKinds` take the new option `kinds`, with the new type `KindOptions`. Without it, they use `SHAPE_KIND_IDS`, so their results do not change.
+- The id of a config does not change. A test compares `configId` with the SHA-256 of the canonical JSON of the hashes of this package.
+- The modules `strategy-options.ts` and `space-walk.ts` and their tests move whole to the home. The earlier test of `strategy-space.ts` passes on the re-export (192 tests with the catalog and the families), and it stays in the home.
+- `docs/STRATEGY-SPACE.md` keeps the named strategies and the results of L34. The rules of the format are in the home.
+
 ## 0.7.0
 
 The release train changes the range of `@mark1russell7/typeset` to a version outside the old range. The public types name @mark1russell7/typeset, so its new version outside the old range can change them.

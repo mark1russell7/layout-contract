@@ -22,8 +22,7 @@ import {
   writeStrategyCatalog,
 } from "./strategy-catalog.ts";
 import { fingerprintOf, REFUSED_PROBE } from "./hash.ts";
-import type { AnyOption, OptionSchema } from "./strategy-options.ts";
-import { STRATEGY_SPACE_SCHEMA, type StrategySpace } from "./strategy-space.ts";
+import { type AnyOption, type OptionSchema, STRATEGY_SPACE_SCHEMA, type StrategySpace } from "./strategy-space.ts";
 
 const shelf: CatalogEntry = {
   key: "shelf",

@@ -6,12 +6,12 @@
 
 ## . (build/index.d.ts): names
 
-AnyOption: build/index.d.ts#AnyOption
+type AnyOption: @mark1russell7/strategy-space#AnyOption (external)
 BALANCE_MEASURE_SUFFIXES: build/index.d.ts#BALANCE_MEASURE_SUFFIXES
 BALANCE_SIDE_DEPTH: build/index.d.ts#BALANCE_SIDE_DEPTH
 Balance: build/index.d.ts#Balance
 BalanceMeasureSuffix: build/index.d.ts#BalanceMeasureSuffix
-BooleanOption: build/index.d.ts#BooleanOption
+type BooleanOption: @mark1russell7/strategy-space#BooleanOption (external)
 CIRCLE_SCATTERED: build/index.d.ts#CIRCLE_SCATTERED
 CORPUS_DIMENSIONS: build/index.d.ts#CORPUS_DIMENSIONS
 Carried: build/index.d.ts#Carried
@@ -36,7 +36,7 @@ DEFAULT_RNG: build/index.d.ts#DEFAULT_RNG
 DEFAULT_SHAPES: build/measures.chunk.d.ts#DEFAULT_SHAPES
 DEFAULT_TOLERANCE: build/index.d.ts#DEFAULT_TOLERANCE
 DeclaredClaim: build/measures.chunk.d.ts#DeclaredClaim
-DeclaredStrategy: build/index.d.ts#DeclaredStrategy
+type DeclaredStrategy: @mark1russell7/strategy-space#DeclaredStrategy (external)
 Declares: build/measures.chunk.d.ts#Declares
 DimensionValues: build/index.d.ts#DimensionValues
 Direction: build/measures.chunk.d.ts#Direction
@@ -51,8 +51,8 @@ EdgeKey: build/index.d.ts#EdgeKey
 EdgeKeyParams: build/index.d.ts#EdgeKeyParams
 EdgeShape: build/index.d.ts#EdgeShape
 EdgeStepParams: build/index.d.ts#EdgeStepParams
-EnumOption: build/index.d.ts#EnumOption
-EnumerateOptions: build/index.d.ts#EnumerateOptions
+type EnumOption: @mark1russell7/strategy-space#EnumOption (external)
+type EnumerateOptions: @mark1russell7/strategy-space#EnumerateOptions (external)
 ExerciseEvidence: build/index.d.ts#ExerciseEvidence
 FAMILY_ANY_KIND: build/measures.chunk.d.ts#FAMILY_ANY_KIND
 FamilyBy: build/measures.chunk.d.ts#FamilyBy
@@ -61,7 +61,7 @@ FamilyRegistry: build/index.d.ts#FamilyRegistry
 FamilyVerdict: build/index.d.ts#FamilyVerdict
 GenerateContext: build/index.d.ts#GenerateContext
 GenerateOptions: build/index.d.ts#GenerateOptions
-GridOptions: build/index.d.ts#GridOptions
+type GridOptions: @mark1russell7/strategy-space#GridOptions (external)
 HARD_RULE_VERSION: build/index.d.ts#HARD_RULE_VERSION
 HashOptions: build/index.d.ts#HashOptions
 INVALIDATED_FIELD: build/index.d.ts#INVALIDATED_FIELD
@@ -69,6 +69,7 @@ Item: build/measures.chunk.d.ts#Item
 JOINT_MEASURES: build/measures.chunk.d.ts#JOINT_MEASURES
 JOINT_MOVED_MIN: build/measures.chunk.d.ts#JOINT_MOVED_MIN
 JointMeasureId: build/measures.chunk.d.ts#JointMeasureId
+type KindOptions: @mark1russell7/strategy-space#KindOptions (external)
 LayoutBox: build/measures.chunk.d.ts#LayoutBox
 LayoutCell: build/measures.chunk.d.ts#LayoutCell
 LayoutContainer: build/measures.chunk.d.ts#LayoutContainer
@@ -76,28 +77,28 @@ LayoutEdge: build/measures.chunk.d.ts#LayoutEdge
 LayoutGenerator: build/measures.chunk.d.ts#LayoutGenerator
 LayoutInput: build/measures.chunk.d.ts#LayoutInput
 LayoutRecord: build/index.d.ts#LayoutRecord
-ListItem: build/index.d.ts#ListItem
+type ListItem: @mark1russell7/strategy-space#ListItem (external)
 Margin: build/measures.chunk.d.ts#Margin
 MeasureSpec: build/measures.chunk.d.ts#MeasureSpec
 Member: build/index.d.ts#Member
-MemberRule: build/index.d.ts#MemberRule
+type MemberRule: @mark1russell7/strategy-space#MemberRule (external)
 MemberStatus: build/index.d.ts#MemberStatus
 MemberTrace: build/index.d.ts#MemberTrace
 NODE_POSITIONS_DIMENSION: build/index.d.ts#NODE_POSITIONS_DIMENSION
-NoDefault: build/index.d.ts#NoDefault
-NoDefaultReason: build/index.d.ts#NoDefaultReason
-NumberOption: build/index.d.ts#NumberOption
+type NoDefault: @mark1russell7/strategy-space#NoDefault (external)
+type NoDefaultReason: @mark1russell7/strategy-space#NoDefaultReason (external)
+type NumberOption: @mark1russell7/strategy-space#NumberOption (external)
 OUTPUT_CLASS_MIN_INPUTS: build/index.d.ts#OUTPUT_CLASS_MIN_INPUTS
 OUTPUT_GRID_PROPERTIES: build/index.d.ts#OUTPUT_GRID_PROPERTIES
 OUTPUT_NEAR_WHOLE: build/index.d.ts#OUTPUT_NEAR_WHOLE
 Obstacle: build/measures.chunk.d.ts#Obstacle
-OptionDeclaration: build/index.d.ts#OptionDeclaration
-OptionIssue: build/index.d.ts#OptionIssue
-OptionRef: build/index.d.ts#OptionRef
-OptionScale: build/index.d.ts#OptionScale
-OptionSchema: build/index.d.ts#OptionSchema
-OptionSetting: build/index.d.ts#OptionSetting
-OptionSupports: build/index.d.ts#OptionSupports
+type OptionDeclaration: @mark1russell7/strategy-space#OptionDeclaration (external)
+type OptionIssue: @mark1russell7/strategy-space#OptionIssue (external)
+type OptionRef: @mark1russell7/strategy-space#OptionRef (external)
+type OptionScale: @mark1russell7/strategy-space#OptionScale (external)
+type OptionSchema: @mark1russell7/strategy-space#OptionSchema (external)
+type OptionSetting: @mark1russell7/strategy-space#OptionSetting (external)
+type OptionSupports: @mark1russell7/strategy-space#OptionSupports (external)
 OutputEvidence: build/index.d.ts#OutputEvidence
 OutputGridClass: build/index.d.ts#OutputGridClass
 OutputGridCounts: build/index.d.ts#OutputGridCounts
@@ -111,10 +112,10 @@ PackInputOptions: build/measures.chunk.d.ts#PackInputOptions
 PackLink: build/measures.chunk.d.ts#PackLink
 PackOutput: build/index.d.ts#PackOutput
 PairGap: build/measures.chunk.d.ts#PairGap
-ParamKind: build/index.d.ts#ParamKind
+type ParamKind: @mark1russell7/strategy-space#ParamKind (external)
 ParamRoute: build/index.d.ts#ParamRoute
-ParamValue: build/index.d.ts#ParamValue
-ParamWhen: build/index.d.ts#ParamWhen
+type ParamValue: @mark1russell7/strategy-space#ParamValue (external)
+type ParamWhen: @mark1russell7/strategy-space#ParamWhen (external)
 PickSpec: build/index.d.ts#PickSpec
 PlacedBox: build/index.d.ts#PlacedBox
 PlacedCircle: build/index.d.ts#PlacedCircle
@@ -146,14 +147,14 @@ SIDES: build/measures.chunk.d.ts#SIDES
 SPLIT_SCHEMA: build/measures.chunk.d.ts#SPLIT_SCHEMA
 STRATEGY_CATALOG_SCHEMA: build/index.d.ts#STRATEGY_CATALOG_SCHEMA
 STRATEGY_CATALOG_SCHEMAS: build/index.d.ts#STRATEGY_CATALOG_SCHEMAS
-STRATEGY_SPACE_SCHEMA: build/index.d.ts#STRATEGY_SPACE_SCHEMA
-SampleOptions: build/index.d.ts#SampleOptions
+STRATEGY_SPACE_SCHEMA: @mark1russell7/strategy-space#STRATEGY_SPACE_SCHEMA (external)
+type SampleOptions: @mark1russell7/strategy-space#SampleOptions (external)
 SelectCandidate: build/index.d.ts#SelectCandidate
 SelectLevel: build/index.d.ts#SelectLevel
 Selection: build/index.d.ts#Selection
 ShapeBound: build/measures.chunk.d.ts#ShapeBound
 ShapeCheck: build/measures.chunk.d.ts#ShapeCheck
-ShapeFilter: build/index.d.ts#ShapeFilter
+type ShapeFilter: @mark1russell7/strategy-space#ShapeFilter (external)
 ShapeGeometry: build/measures.chunk.d.ts#ShapeGeometry
 ShapeInput: build/measures.chunk.d.ts#ShapeInput
 ShapeKind: build/measures.chunk.d.ts#ShapeKind
@@ -165,38 +166,38 @@ ShapeSupport: build/measures.chunk.d.ts#ShapeSupport
 Side: build/measures.chunk.d.ts#Side
 Sides: build/measures.chunk.d.ts#Sides
 SizedRect: build/measures.chunk.d.ts#SizedRect
-SpaceConstraint: build/index.d.ts#SpaceConstraint
-SpaceParam: build/index.d.ts#SpaceParam
-SpaceSize: build/index.d.ts#SpaceSize
-SpaceSizeOptions: build/index.d.ts#SpaceSizeOptions
-SpaceStage: build/index.d.ts#SpaceStage
+type SpaceConstraint: @mark1russell7/strategy-space#SpaceConstraint (external)
+type SpaceParam: @mark1russell7/strategy-space#SpaceParam (external)
+type SpaceSize: @mark1russell7/strategy-space#SpaceSize (external)
+type SpaceSizeOptions: @mark1russell7/strategy-space#SpaceSizeOptions (external)
+type SpaceStage: @mark1russell7/strategy-space#SpaceStage (external)
 SplitCorpus: build/measures.chunk.d.ts#SplitCorpus
 SplitFold: build/measures.chunk.d.ts#SplitFold
 Stage: build/index.d.ts#Stage
-StageChoice: build/index.d.ts#StageChoice
-StageOption: build/index.d.ts#StageOption
+type StageChoice: @mark1russell7/strategy-space#StageChoice (external)
+type StageOption: @mark1russell7/strategy-space#StageOption (external)
 StageTrace: build/index.d.ts#StageTrace
 StrategyCatalog: build/index.d.ts#StrategyCatalog
 StrategyCatalogParse: build/index.d.ts#StrategyCatalogParse
 StrategyCatalogSchema: build/index.d.ts#StrategyCatalogSchema
 StrategyCatalogSource: build/index.d.ts#StrategyCatalogSource
-StrategyConfig: build/index.d.ts#StrategyConfig
+type StrategyConfig: @mark1russell7/strategy-space#StrategyConfig (external)
 StrategyInfo: build/index.d.ts#StrategyInfo
 StrategyKind: build/index.d.ts#StrategyKind
 StrategyMember: build/index.d.ts#StrategyMember
-StrategySpace: build/index.d.ts#StrategySpace
+type StrategySpace: @mark1russell7/strategy-space#StrategySpace (external)
 SupportProbe: build/index.d.ts#SupportProbe
 SupportedRange: build/index.d.ts#SupportedRange
 SupportedValues: build/index.d.ts#SupportedValues
 Supports: build/index.d.ts#Supports
-SweepOptions: build/index.d.ts#SweepOptions
+type SweepOptions: @mark1russell7/strategy-space#SweepOptions (external)
 Tolerance: build/index.d.ts#Tolerance
 VERDICT_DRAWS: build/index.d.ts#VERDICT_DRAWS
 VERDICT_EXACT_CAP: build/index.d.ts#VERDICT_EXACT_CAP
 VERDICT_EXACT_MAX: build/index.d.ts#VERDICT_EXACT_MAX
 VERDICT_RUNS: build/index.d.ts#VERDICT_RUNS
 VERDICT_SEED: build/index.d.ts#VERDICT_SEED
-ValueOption: build/index.d.ts#ValueOption
+type ValueOption: @mark1russell7/strategy-space#ValueOption (external)
 Verdict: build/measures.chunk.d.ts#Verdict
 VerdictBreadth: build/index.d.ts#VerdictBreadth
 VerdictInterval: build/index.d.ts#VerdictInterval
@@ -214,7 +215,7 @@ balanceMeasures: build/index.d.ts#balanceMeasures
 balanceOf: build/index.d.ts#balanceOf
 boundsOf: build/measures.chunk.d.ts#boundsOf
 boxArea: build/measures.chunk.d.ts#boxArea
-canonicalConfig: build/index.d.ts#canonicalConfig
+canonicalConfig: @mark1russell7/strategy-space#canonicalConfig (external)
 canonicalInput: build/measures.chunk.d.ts#canonicalInput
 canonicalJson: build/index.d.ts#canonicalJson
 carryRecord: build/index.d.ts#carryRecord
@@ -223,21 +224,21 @@ catalogDefaults: build/index.d.ts#catalogDefaults
 catalogKey: build/index.d.ts#catalogKey
 catalogOptions: build/index.d.ts#catalogOptions
 checkCatalog: build/index.d.ts#checkCatalog
-checkConfig: build/index.d.ts#checkConfig
+checkConfig: @mark1russell7/strategy-space#checkConfig (external)
 checkDeclared: build/measures.chunk.d.ts#checkDeclared
 checkInput: build/index.d.ts#checkInput
 checkLayoutRecord: build/index.d.ts#checkLayoutRecord
-checkOptions: build/index.d.ts#checkOptions
-checkSchema: build/index.d.ts#checkSchema
+checkOptions: @mark1russell7/strategy-space#checkOptions (external)
+checkSchema: @mark1russell7/strategy-space#checkSchema (external)
 checkShapes: build/measures.chunk.d.ts#checkShapes
 checkSpace: build/index.d.ts#checkSpace
 checkSplit: build/measures.chunk.d.ts#checkSplit
 circleOverlaps: build/index.d.ts#circleOverlaps
 circlesOutside: build/index.d.ts#circlesOutside
-clampOptions: build/index.d.ts#clampOptions
+clampOptions: @mark1russell7/strategy-space#clampOptions (external)
 compareMeasure: build/measures.chunk.d.ts#compareMeasure
 composeFamily: build/index.d.ts#composeFamily
-configId: build/index.d.ts#configId
+configId: @mark1russell7/strategy-space#configId (external)
 corpusHashOf: build/measures.chunk.d.ts#corpusHashOf
 countLinksThroughShapes: build/index.d.ts#countLinksThroughShapes
 countObstacleHits: build/index.d.ts#countObstacleHits
@@ -246,7 +247,7 @@ countOverlaps: build/index.d.ts#countOverlaps
 countPortsOffBorder: build/index.d.ts#countPortsOffBorder
 createFamilyRegistry: build/index.d.ts#createFamilyRegistry
 crossingPoint: build/measures.chunk.d.ts#crossingPoint
-declarationIssues: build/index.d.ts#declarationIssues
+declarationIssues: @mark1russell7/strategy-space#declarationIssues (external)
 declaredClaimOf: build/measures.chunk.d.ts#declaredClaimOf
 declaredCounts: build/measures.chunk.d.ts#declaredCounts
 decodeOptionValue: build/index.d.ts#decodeOptionValue
@@ -269,16 +270,16 @@ hardRuleOf: build/index.d.ts#hardRuleOf
 inputShapeLevel: build/measures.chunk.d.ts#inputShapeLevel
 isShapeKind: build/measures.chunk.d.ts#isShapeKind
 itemShapeOf: build/measures.chunk.d.ts#itemShapeOf
-joinConfigs: build/index.d.ts#joinConfigs
+joinConfigs: @mark1russell7/strategy-space#joinConfigs (external)
 leaveOneSeedOut: build/measures.chunk.d.ts#leaveOneSeedOut
 levelsOf: build/index.d.ts#levelsOf
-listOptions: build/index.d.ts#listOptions
+listOptions: @mark1russell7/strategy-space#listOptions (external)
 marginSides: build/measures.chunk.d.ts#marginSides
 minEffectOf: build/measures.chunk.d.ts#minEffectOf
 mulberry32: build/index.d.ts#mulberry32
 nearestGaps: build/index.d.ts#nearestGaps
-optionDefaults: build/index.d.ts#optionDefaults
-optionIssue: build/index.d.ts#optionIssue
+optionDefaults: @mark1russell7/strategy-space#optionDefaults (external)
+optionIssue: @mark1russell7/strategy-space#optionIssue (external)
 outputGridClass: build/index.d.ts#outputGridClass
 outputGroups: build/index.d.ts#outputGroups
 outputHash: build/index.d.ts#outputHash
@@ -287,10 +288,10 @@ ownerDimension: build/index.d.ts#ownerDimension
 packHard: build/index.d.ts#packHard
 packLinks: build/measures.chunk.d.ts#packLinks
 packOutputForm: build/index.d.ts#packOutputForm
-paramActive: build/index.d.ts#paramActive
-paramLevels: build/index.d.ts#paramLevels
-paramProblem: build/index.d.ts#paramProblem
-paramValue: build/index.d.ts#paramValue
+paramActive: @mark1russell7/strategy-space#paramActive (external)
+paramLevels: @mark1russell7/strategy-space#paramLevels (external)
+paramProblem: @mark1russell7/strategy-space#paramProblem (external)
+paramValue: @mark1russell7/strategy-space#paramValue (external)
 parseLayoutRecord: build/index.d.ts#parseLayoutRecord
 parseStrategyCatalog: build/index.d.ts#parseStrategyCatalog
 perChange: build/index.d.ts#perChange
@@ -302,7 +303,7 @@ portPoint: build/measures.chunk.d.ts#portPoint
 portfolio: build/index.d.ts#portfolio
 probeHash: build/index.d.ts#probeHash
 procrustesOf: build/index.d.ts#procrustesOf
-productSpace: build/index.d.ts#productSpace
+productSpace: @mark1russell7/strategy-space#productSpace (external)
 randomInt: build/index.d.ts#randomInt
 rectInRegion: build/index.d.ts#rectInRegion
 regionArea: build/measures.chunk.d.ts#regionArea
@@ -323,13 +324,13 @@ shapesOverlap: build/index.d.ts#shapesOverlap
 sharedDimension: build/index.d.ts#sharedDimension
 spaceShapeKinds: build/index.d.ts#spaceShapeKinds
 spaceSize: build/index.d.ts#spaceSize
-splitConfig: build/index.d.ts#splitConfig
+splitConfig: @mark1russell7/strategy-space#splitConfig (external)
 splitFileName: build/measures.chunk.d.ts#splitFileName
 splitFolds: build/measures.chunk.d.ts#splitFolds
 stepRandom: build/index.d.ts#stepRandom
-sweepGrid: build/index.d.ts#sweepGrid
-sweepOf: build/index.d.ts#sweepOf
-sweepValues: build/index.d.ts#sweepValues
+sweepGrid: @mark1russell7/strategy-space#sweepGrid (external)
+sweepOf: @mark1russell7/strategy-space#sweepOf (external)
+sweepValues: @mark1russell7/strategy-space#sweepValues (external)
 toLayoutRecord: build/index.d.ts#toLayoutRecord
 toPackInput: build/measures.chunk.d.ts#toPackInput
 toRect: build/measures.chunk.d.ts#toRect
@@ -375,9 +376,6 @@ textMeasures: build/text.d.ts#textMeasures
 
 ## Declarations
 
-### build/index.d.ts#AnyOption
-export type AnyOption<S extends string = string> = NumberOption | BooleanOption | EnumOption | ValueOption<unknown, S>;
-
 ### build/index.d.ts#BALANCE_MEASURE_SUFFIXES
 export declare const BALANCE_MEASURE_SUFFIXES: readonly BalanceMeasureSuffix[];
 
@@ -394,12 +392,6 @@ export interface Balance {
 
 ### build/index.d.ts#BalanceMeasureSuffix
 export type BalanceMeasureSuffix = "balance.gapCv" | "balance.centroidOffset" | "balance.side.top" | "balance.side.right" | "balance.side.bottom" | "balance.side.left" | "balance.sideRange" | "stability.procrustes" | "stability.seed";
-
-### build/index.d.ts#BooleanOption
-export interface BooleanOption extends OptionBase {
-  readonly type: "boolean";
-  readonly default?: boolean;
-}
 
 ### build/index.d.ts#CIRCLE_SCATTERED
 export declare const CIRCLE_SCATTERED: CorpusFamily<LayoutInput>;
@@ -541,13 +533,6 @@ export declare const DEFAULT_RNG: RngFactory;
 ### build/index.d.ts#DEFAULT_TOLERANCE
 export declare const DEFAULT_TOLERANCE: Tolerance;
 
-### build/index.d.ts#DeclaredStrategy
-export interface DeclaredStrategy<O extends object = object, S extends string = string> {
-  readonly name: string;
-  readonly defaults: O;
-  readonly schema?: OptionSchema<O, S>;
-}
-
 ### build/index.d.ts#DimensionValues
 export type DimensionValues = Readonly<Record<string, ParamValue>>;
 
@@ -592,17 +577,6 @@ export interface EdgeStepParams {
   readonly hubBy?: "area" | "random";
 }
 
-### build/index.d.ts#EnumOption
-export interface EnumOption<V extends string = string> extends OptionBase {
-  readonly type: "enum";
-  readonly values: readonly V[];
-  readonly custom?: "function";
-  readonly default?: V;
-}
-
-### build/index.d.ts#EnumerateOptions
-export type EnumerateOptions = GridOptions | SampleOptions;
-
 ### build/index.d.ts#ExerciseEvidence
 export interface ExerciseEvidence {
   readonly moves?: Readonly<Record<string, number>>;
@@ -644,13 +618,6 @@ export interface GenerateContext {
 export interface GenerateOptions {
   readonly version?: number;
   readonly set?: string;
-}
-
-### build/index.d.ts#GridOptions
-export interface GridOptions extends ShapeFilter {
-  readonly mode: "grid";
-  readonly levels: number;
-  readonly limit?: number;
 }
 
 ### build/index.d.ts#HARD_RULE_VERSION
@@ -699,22 +666,10 @@ export interface LayoutRecord {
   readonly carried?: Carried;
 }
 
-### build/index.d.ts#ListItem
-export type ListItem<S extends string = string> = ItemOf<AnyOption<S>>;
-
 ### build/index.d.ts#Member
 export interface Member<I, O> {
   readonly id: string;
   run(input: I): O;
-}
-
-### build/index.d.ts#MemberRule
-export interface MemberRule {
-  readonly min: number;
-  readonly max: number;
-  readonly ordered: boolean;
-  readonly pool?: readonly (readonly StrategyConfig[])[];
-  readonly view?: "bounds";
 }
 
 ### build/index.d.ts#MemberStatus
@@ -733,28 +688,6 @@ export interface MemberTrace {
 ### build/index.d.ts#NODE_POSITIONS_DIMENSION
 export declare const NODE_POSITIONS_DIMENSION = "nodePositions";
 
-### build/index.d.ts#NoDefault
-export interface NoDefault {
-  readonly reason: NoDefaultReason;
-  readonly describe: string;
-}
-
-### build/index.d.ts#NoDefaultReason
-export type NoDefaultReason = "unset" | "required" | "derived" | "function";
-
-### build/index.d.ts#NumberOption
-export interface NumberOption extends OptionBase {
-  readonly type: "number" | "integer";
-  readonly min: number;
-  readonly max: number;
-  readonly step?: number;
-  readonly scale?: OptionScale;
-  readonly special?: readonly number[];
-  readonly marks?: readonly number[];
-  readonly values?: readonly number[];
-  readonly default?: number;
-}
-
 ### build/index.d.ts#OUTPUT_CLASS_MIN_INPUTS
 export declare const OUTPUT_CLASS_MIN_INPUTS = 30;
 
@@ -763,40 +696,6 @@ export declare const OUTPUT_GRID_PROPERTIES: readonly string[];
 
 ### build/index.d.ts#OUTPUT_NEAR_WHOLE
 export declare const OUTPUT_NEAR_WHOLE = 1e-9;
-
-### build/index.d.ts#OptionDeclaration
-export type OptionDeclaration<V, S extends string = string> = [V] extends [number] ? NumberOption : [V] extends [boolean] ? BooleanOption : [V] extends [string] ? string extends V ? EnumOption<V> | ValueOption<V, S> : EnumOption<V> : [Extract<V, string>] extends [never] ? ValueOption<V, S> : EnumOption<Extract<V, string>> | ValueOption<V, S>;
-
-### build/index.d.ts#OptionIssue
-export interface OptionIssue {
-  readonly key: string;
-  readonly value: unknown;
-  readonly problem: "unknown" | "type" | "range" | "integer" | "value";
-  readonly message: string;
-}
-
-### build/index.d.ts#OptionRef
-export interface OptionRef {
-  readonly stage: string;
-  readonly option: string | null;
-}
-
-### build/index.d.ts#OptionScale
-export type OptionScale = "linear" | "log";
-
-### build/index.d.ts#OptionSchema
-export type OptionSchema<O, S extends string = string> = { readonly [K in keyof O]-?: OptionDeclaration<NonNullable<O[K]>, S>; };
-
-### build/index.d.ts#OptionSetting
-export interface OptionSetting<O extends object> {
-  readonly name: string;
-  readonly options: Partial<O>;
-}
-
-### build/index.d.ts#OptionSupports
-export interface OptionSupports {
-  readonly shape?: readonly ShapeKind[];
-}
 
 ### build/index.d.ts#OutputEvidence
 export interface OutputEvidence {
@@ -861,9 +760,6 @@ export interface PackOutput {
   readonly trace?: readonly StageTrace[];
 }
 
-### build/index.d.ts#ParamKind
-export type ParamKind = "int" | "real" | "enum" | "bool";
-
 ### build/index.d.ts#ParamRoute
 export type ParamRoute = {
   readonly spaceOnly: string;
@@ -871,15 +767,6 @@ export type ParamRoute = {
   readonly option?: string;
   readonly value?: (value: ParamValue) => unknown;
 };
-
-### build/index.d.ts#ParamValue
-export type ParamValue = number | string | boolean;
-
-### build/index.d.ts#ParamWhen
-export interface ParamWhen {
-  readonly param: string;
-  readonly in: readonly ParamValue[];
-}
 
 ### build/index.d.ts#PickSpec
 export type PickSpec = Pick<MeasureSpec, "direction" | "minEffect">;
@@ -1012,20 +899,6 @@ export declare const STRATEGY_CATALOG_SCHEMA = "strategy-catalog/3";
 ### build/index.d.ts#STRATEGY_CATALOG_SCHEMAS
 export declare const STRATEGY_CATALOG_SCHEMAS: readonly ["strategy-catalog/1", "strategy-catalog/2", "strategy-catalog/3"];
 
-### build/index.d.ts#STRATEGY_SPACE_SCHEMA
-export declare const STRATEGY_SPACE_SCHEMA = "strategy-space/1";
-
-### build/index.d.ts#SampleOptions
-export interface SampleOptions extends ShapeFilter {
-  readonly mode: "sample";
-  readonly n: number;
-  readonly seed: number;
-  readonly meta?: "skip" | "sample";
-  readonly maxTries?: number;
-  readonly draw?: "reject" | "walk";
-  readonly fixed?: Readonly<Record<string, string>>;
-}
-
 ### build/index.d.ts#SelectCandidate
 export interface SelectCandidate {
   readonly id: string;
@@ -1044,11 +917,6 @@ export interface Selection {
   readonly kept: readonly (readonly string[])[];
 }
 
-### build/index.d.ts#ShapeFilter
-export interface ShapeFilter {
-  readonly shapes?: readonly ShapeKind[];
-}
-
 ### build/index.d.ts#ShapeLink
 export interface ShapeLink {
   readonly source: string;
@@ -1056,63 +924,8 @@ export interface ShapeLink {
   readonly points: readonly Point[];
 }
 
-### build/index.d.ts#SpaceConstraint
-export interface SpaceConstraint {
-  readonly if: OptionRef;
-  readonly then: OptionRef | {
-    readonly not: OptionRef;
-  };
-}
-
-### build/index.d.ts#SpaceParam
-export interface SpaceParam {
-  readonly name: string;
-  readonly kind: ParamKind;
-  readonly min?: number;
-  readonly max?: number;
-  readonly step?: number;
-  readonly scale?: "linear" | "log";
-  readonly values?: readonly (string | number)[];
-  readonly default: ParamValue;
-  readonly when?: ParamWhen;
-}
-
-### build/index.d.ts#SpaceSize
-export interface SpaceSize {
-  readonly base: bigint;
-  readonly meta: bigint | null;
-}
-
-### build/index.d.ts#SpaceSizeOptions
-export interface SpaceSizeOptions extends ShapeFilter {
-  readonly levels: number;
-  readonly maxMeta?: bigint;
-}
-
-### build/index.d.ts#SpaceStage
-export interface SpaceStage {
-  readonly name: string;
-  readonly options: readonly StageOption[];
-  readonly optional?: boolean;
-}
-
 ### build/index.d.ts#Stage
 export type Stage = "pack" | "route" | "joint";
-
-### build/index.d.ts#StageChoice
-export interface StageChoice {
-  readonly option: string;
-  readonly params?: Readonly<Record<string, ParamValue>>;
-  readonly members?: readonly StrategyConfig[];
-}
-
-### build/index.d.ts#StageOption
-export interface StageOption {
-  readonly id: string;
-  readonly params: readonly SpaceParam[];
-  readonly members?: MemberRule;
-  readonly supports?: OptionSupports;
-}
 
 ### build/index.d.ts#StageTrace
 export interface StageTrace {
@@ -1145,12 +958,6 @@ export interface StrategyCatalogSource {
   readonly strategies: readonly CatalogEntry[];
 }
 
-### build/index.d.ts#StrategyConfig
-export interface StrategyConfig {
-  readonly space: string;
-  readonly stages: Readonly<Record<string, StageChoice | null>>;
-}
-
 ### build/index.d.ts#StrategyInfo
 export interface StrategyInfo<O = unknown, S extends Supports = Supports> {
   readonly id: string;
@@ -1169,17 +976,6 @@ export interface StrategyMember {
   readonly strategy: string;
   readonly options?: Readonly<Record<string, unknown>>;
   readonly id?: string;
-}
-
-### build/index.d.ts#StrategySpace
-export interface StrategySpace {
-  readonly schema: typeof STRATEGY_SPACE_SCHEMA;
-  readonly engine: string;
-  readonly version: string;
-  readonly stages: readonly SpaceStage[];
-  readonly constraints?: readonly SpaceConstraint[];
-  readonly named?: Readonly<Record<string, StrategyConfig>>;
-  readonly parts?: readonly StrategySpace[];
 }
 
 ### build/index.d.ts#SupportProbe
@@ -1201,12 +997,6 @@ export type SupportedValues = readonly ParamValue[] | SupportedRange;
 ### build/index.d.ts#Supports
 export type Supports = Readonly<Record<string, readonly string[]>>;
 
-### build/index.d.ts#SweepOptions
-export interface SweepOptions {
-  readonly count?: number;
-  readonly special?: boolean;
-}
-
 ### build/index.d.ts#Tolerance
 export interface Tolerance {
   readonly overlap: number;
@@ -1227,21 +1017,6 @@ export declare const VERDICT_RUNS = 1e4;
 
 ### build/index.d.ts#VERDICT_SEED
 export declare const VERDICT_SEED = 1;
-
-### build/index.d.ts#ValueOption
-export interface ValueOption<V = unknown, S extends string = string> extends OptionBase {
-  readonly type: "function" | "strategy" | "list" | "object";
-  readonly step?: S;
-  readonly kinds?: readonly string[];
-  readonly optionsKey?: string;
-  readonly inlineOptions?: boolean;
-  readonly optIn?: boolean;
-  readonly needs?: Readonly<Record<string, string>>;
-  readonly of?: ListItem<S>;
-  readonly min?: number;
-  readonly max?: number;
-  readonly default?: V;
-}
 
 ### build/index.d.ts#VerdictBreadth
 export interface VerdictBreadth {
@@ -1333,9 +1108,6 @@ export declare function balanceMeasures<S extends string>(stage: S, balance: Bal
 ### build/index.d.ts#balanceOf
 export declare function balanceOf(boxes: readonly Rect[], container: Rect): Balance;
 
-### build/index.d.ts#canonicalConfig
-export declare function canonicalConfig(space: StrategySpace, config: StrategyConfig): StrategyConfig;
-
 ### build/index.d.ts#canonicalJson
 export declare function canonicalJson(value: unknown): string;
 
@@ -1357,23 +1129,14 @@ export declare function catalogOptions(defaults: Readonly<Record<string, unknown
 ### build/index.d.ts#checkCatalog
 export declare function checkCatalog(source: StrategyCatalogSource, registry: readonly RegistryEntry[], options?: CatalogCheckOptions): CatalogCheck;
 
-### build/index.d.ts#checkConfig
-export declare function checkConfig(space: StrategySpace, config: StrategyConfig, options?: ShapeFilter): ClaimBreak[];
-
 ### build/index.d.ts#checkInput
 export declare function checkInput(input: LayoutInput): readonly string[];
 
 ### build/index.d.ts#checkLayoutRecord
 export declare function checkLayoutRecord(value: unknown): string[];
 
-### build/index.d.ts#checkOptions
-export declare function checkOptions<O extends object>(strategy: DeclaredStrategy<O>, options: Partial<O>): OptionIssue[];
-
-### build/index.d.ts#checkSchema
-export declare function checkSchema(strategy: DeclaredStrategy): string[];
-
 ### build/index.d.ts#checkSpace
-export declare function checkSpace(space: StrategySpace): ClaimBreak[];
+export declare function checkSpace(space: StrategySpace$1, kindOptions?: KindOptions$1): ClaimBreak[];
 
 ### build/index.d.ts#circleOverlaps
 export declare function circleOverlaps(boxes: readonly LayoutBox[], tolerance?: number, pairGaps?: readonly PairGap[], gap?: number): number;
@@ -1381,14 +1144,8 @@ export declare function circleOverlaps(boxes: readonly LayoutBox[], tolerance?: 
 ### build/index.d.ts#circlesOutside
 export declare function circlesOutside(input: LayoutInput, tolerance?: number): number;
 
-### build/index.d.ts#clampOptions
-export declare function clampOptions<O extends object>(strategy: DeclaredStrategy<O>, options: Partial<O>): Partial<O>;
-
 ### build/index.d.ts#composeFamily
 export declare function composeFamily(base: CorpusFamily<LayoutInput>, steps: readonly CorpusStep[], options?: ComposeOptions): CorpusFamily<LayoutInput>;
-
-### build/index.d.ts#configId
-export declare function configId(space: StrategySpace, config: StrategyConfig): string;
 
 ### build/index.d.ts#countLinksThroughShapes
 export declare function countLinksThroughShapes(boxes: readonly LayoutBox[], links: readonly ShapeLink[], tolerance?: number): number;
@@ -1407,9 +1164,6 @@ export declare function countPortsOffBorder(boxes: readonly LayoutBox[], eps?: n
 
 ### build/index.d.ts#createFamilyRegistry
 export declare function createFamilyRegistry<O = LayoutInput>(families?: Iterable<CorpusFamily<O>>): FamilyRegistry<O>;
-
-### build/index.d.ts#declarationIssues
-export declare function declarationIssues(key: string, d: AnyOption): string[];
 
 ### build/index.d.ts#decodeOptionValue
 export declare function decodeOptionValue(value: unknown, declaration: AnyOption | ListItem): unknown;
@@ -1436,7 +1190,7 @@ export declare function edgeStep(input: LayoutInput, params: EdgeStepParams, see
 export declare function encodeOptionValue(value: unknown, declaration: AnyOption | ListItem): unknown;
 
 ### build/index.d.ts#enumerateSpace
-export declare function enumerateSpace(space: StrategySpace, options: EnumerateOptions): StrategyConfig[];
+export declare function enumerateSpace(space: StrategySpace$1, options: EnumerateOptions$1): StrategyConfig$1[];
 
 ### build/index.d.ts#exercised
 export declare function exercised(evidence: ExerciseEvidence): boolean;
@@ -1453,30 +1207,14 @@ export declare function fnv1a32(text: string): number;
 ### build/index.d.ts#hardRuleOf
 export declare function hardRuleOf(record: Pick<LayoutRecord, "hardRule">): number;
 
-### build/index.d.ts#joinConfigs
-export declare function joinConfigs(space: string, parts: readonly StrategyConfig[]): StrategyConfig;
-
 ### build/index.d.ts#levelsOf
 export declare function levelsOf(dim: CorpusDimension, steps?: number): ParamValue[];
-
-### build/index.d.ts#listOptions
-export declare function listOptions<O extends object, S extends string = string>(strategy: DeclaredStrategy<O, S>): {
-  readonly key: keyof O & string;
-  readonly declaration: AnyOption<S>;
-  readonly value: unknown;
-}[];
 
 ### build/index.d.ts#mulberry32
 export declare function mulberry32(seed: number): () => number;
 
 ### build/index.d.ts#nearestGaps
 export declare function nearestGaps(boxes: readonly Rect[]): number[];
-
-### build/index.d.ts#optionDefaults
-export declare function optionDefaults<O extends object, S extends string = string>(strategy: DeclaredStrategy<O, S>): Partial<O>;
-
-### build/index.d.ts#optionIssue
-export declare function optionIssue(key: string, value: unknown, d: AnyOption): OptionIssue | undefined;
 
 ### build/index.d.ts#outputGridClass
 export declare function outputGridClass(counts: OutputGridCounts): OutputGridClass;
@@ -1495,18 +1233,6 @@ export declare function packHard(input: LayoutInput, output: PackOutput, toleran
 
 ### build/index.d.ts#packOutputForm
 export declare function packOutputForm(output: PackOutput): unknown;
-
-### build/index.d.ts#paramActive
-export declare function paramActive(param: SpaceParam, values: Readonly<Record<string, ParamValue>>): boolean;
-
-### build/index.d.ts#paramLevels
-export declare function paramLevels(param: SpaceParam, levels: number): ParamValue[];
-
-### build/index.d.ts#paramProblem
-export declare function paramProblem(param: SpaceParam, value: unknown): string | undefined;
-
-### build/index.d.ts#paramValue
-export declare function paramValue(param: SpaceParam, value: ParamValue): ParamValue;
 
 ### build/index.d.ts#parseLayoutRecord
 export declare function parseLayoutRecord(value: unknown): LayoutRecord;
@@ -1537,9 +1263,6 @@ export declare function probeHash(run: () => unknown, refused: (error: unknown) 
 ### build/index.d.ts#procrustesOf
 export declare function procrustesOf(base: readonly PlacedBox[], next: readonly PlacedBox[], options: ProcrustesOptions): number;
 
-### build/index.d.ts#productSpace
-export declare function productSpace(a: StrategySpace, b: StrategySpace, name: string): StrategySpace;
-
 ### build/index.d.ts#randomInt
 export declare function randomInt(r: () => number, lo: number, hi: number): number;
 
@@ -1568,25 +1291,13 @@ export declare function shapesOverlap(a: LayoutBox, b: LayoutBox, tolerance?: nu
 export declare function sharedDimension(name: string, patch?: Partial<CorpusDimension>): CorpusDimension;
 
 ### build/index.d.ts#spaceShapeKinds
-export declare function spaceShapeKinds(space: StrategySpace): ShapeKind[];
+export declare function spaceShapeKinds(space: StrategySpace$1, options?: KindOptions$1): string[];
 
 ### build/index.d.ts#spaceSize
-export declare function spaceSize(space: StrategySpace, options: SpaceSizeOptions): SpaceSize;
-
-### build/index.d.ts#splitConfig
-export declare function splitConfig(config: StrategyConfig, engine: string): StrategyConfig;
+export declare function spaceSize(space: StrategySpace$1, options: SpaceSizeOptions$1): SpaceSize$1;
 
 ### build/index.d.ts#stepRandom
 export declare function stepRandom(seed: number, step: string): () => number;
-
-### build/index.d.ts#sweepGrid
-export declare function sweepGrid<O extends object>(strategy: DeclaredStrategy<O>, keys: readonly (keyof O & string)[], options?: SweepOptions): OptionSetting<O>[];
-
-### build/index.d.ts#sweepOf
-export declare function sweepOf<O extends object>(strategy: DeclaredStrategy<O>, key: keyof O & string, options?: SweepOptions): OptionSetting<O>[];
-
-### build/index.d.ts#sweepValues
-export declare function sweepValues(declaration: AnyOption, options?: SweepOptions): unknown[];
 
 ### build/index.d.ts#toLayoutRecord
 export declare function toLayoutRecord(input: LayoutInput, run: RunFacts): LayoutRecord;

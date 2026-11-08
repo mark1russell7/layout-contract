@@ -1,6 +1,6 @@
 # The strategy catalog
 
-The schema `strategy-catalog/3` gives each strategy and each option of one engine as JSON. The schema `strategy-catalog/2` adds the field `output` to the schema `strategy-catalog/1`, and the schema 3 adds the field `fingerprint`. A chooser renders it with no code for each strategy. The module `strategy-catalog.ts` of `layout-contract` has the format, the parser, the writer and the check. The module `strategy-options.ts` has the declarations of the options.
+The schema `strategy-catalog/3` gives each strategy and each option of one engine as JSON. The schema `strategy-catalog/2` adds the field `output` to the schema `strategy-catalog/1`, and the schema 3 adds the field `fingerprint`. A chooser renders it with no code for each strategy. The module `strategy-catalog.ts` of `layout-contract` has the format, the parser, the writer and the check. The declarations of the options have their home in `@mark1russell7/strategy-space`, and `layout-contract` exports them.
 
 ## The file
 
@@ -164,4 +164,4 @@ The two formats have two jobs. A space (`docs/STRATEGY-SPACE.md`) holds what a s
 
 ## The options module
 
-`strategy-options.ts` holds the declarations and their functions: `listOptions`, `optionDefaults`, `checkOptions`, `clampOptions`, `sweepValues`, `sweepOf`, `sweepGrid` and `checkSchema`. They take a `DeclaredStrategy`, with `name`, `defaults` and `schema`. An engine with its own type of step uses the type parameter `S` of `OptionSchema`.
+The module `strategy-options.ts` of `@mark1russell7/strategy-space` holds the declarations and their functions: `listOptions`, `optionDefaults`, `checkOptions`, `clampOptions`, `sweepValues`, `sweepOf`, `sweepGrid` and `checkSchema`. They take a `DeclaredStrategy`, with `name`, `defaults` and `schema`. An engine with its own type of step uses the type parameter `S` of `OptionSchema`.
