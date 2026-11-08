@@ -6,3 +6,4 @@
 *.woff2 binary
 *.pdf binary
 *.gz binary linguist-vendored
+packages/layout-contract/test/fixtures/corpus/*.json linguist-generated

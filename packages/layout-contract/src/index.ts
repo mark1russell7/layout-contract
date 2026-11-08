@@ -14,6 +14,7 @@ export * from "./edges.ts";
 export * from "./hash.ts";
 export * from "./portfolio.ts";
 export * from "./corpus.ts";
+export * from "./corpus-manifest.ts";
 export * from "./strategy-space.ts";
 export * from "./strategy-catalog.ts";
 export * from "./verdict.ts";
