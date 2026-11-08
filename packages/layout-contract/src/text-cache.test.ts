@@ -1,3 +1,4 @@
+import { mulberry32 } from "@mark1russell7/rigor-generators";
 import { describe, expect, it } from "vitest";
 import { createMeasurer, createTextCharset, createTextLayoutCache, fontKey, layoutText, textMeasures, type AdvanceFn, type TextLayout, type TextLayoutCache, type TextLayoutOptions, type TextMeasurer } from "./text.ts";
 
@@ -7,18 +8,6 @@ const FONT = "12px sans-serif";
 
 /** The options of a test without the measurer. */
 type Plain = Omit<TextLayoutOptions, "measurer">;
-
-/** A small seeded generator, so each run tests the same values. */
-function rng(seed: number): () => number {
-  let a = seed >>> 0;
-  return () => {
-    a = (a + 0x6d2b79f5) >>> 0;
-    let t = a;
-    t = Math.imul(t ^ (t >>> 15), t | 1);
-    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
-    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
-  };
-}
 
 /** This function gives a text that shows each difference of two layouts, also -0 and a field that a layout does not have. */
 const exact = (layout: TextLayout): string => JSON.stringify(Object.entries(layout), (_key, value: unknown) => (Object.is(value, -0) ? "-0" : value));
@@ -84,7 +73,7 @@ describe("createTextLayoutCache: a result is the result of layoutText", () => {
   it("gives the same layout for a seeded sequence through a small cache that removes entries", () => {
     const measurer = createMeasurer(fake);
     const cache = createTextLayoutCache({ maxEntries: 16 });
-    const r = rng(70);
+    const r = mulberry32(70);
     for (let i = 0; i < 2000; i++) {
       const text = TEXTS[Math.floor(r() * TEXTS.length)]!;
       const options = OPTION_SETS[Math.floor(r() * OPTION_SETS.length)]!;
@@ -337,7 +326,7 @@ describe("createTextLayoutCache: the bound and the eviction rule", () => {
   it("holds the bound over a seeded sequence of many option sets", () => {
     const measurer = createMeasurer(fake);
     const cache = createTextLayoutCache({ maxEntries: 5 });
-    const r = rng(71);
+    const r = mulberry32(71);
     for (let i = 0; i < 2000; i++) {
       const text = `label ${Math.floor(r() * 8)}`;
       const options = { font: FONT, lineHeight: 10 + Math.floor(r() * 4) };

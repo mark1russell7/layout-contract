@@ -1,17 +1,6 @@
+import { mulberry32 } from "@mark1russell7/rigor-generators";
 import { describe, expect, it } from "vitest";
 import { BALANCE_MEASURE_SUFFIXES, balanceMeasures, balanceMeasureSpecs, balanceOf, nearestGaps, perChange, procrustesOf, type PlacedBox, type Rect } from "./index.ts";
-
-/** A small seeded generator, so each run tests the same values. */
-function rng(seed: number): () => number {
-  let a = seed >>> 0;
-  return () => {
-    a = (a + 0x6d2b79f5) >>> 0;
-    let t = a;
-    t = Math.imul(t ^ (t >>> 15), t | 1);
-    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
-    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
-  };
-}
 
 const distance = (a: Rect, b: Rect): number =>
   Math.hypot(Math.max(0, b.x - (a.x + a.w), a.x - (b.x + b.w)), Math.max(0, b.y - (a.y + a.h), a.y - (b.y + b.h)));
@@ -22,7 +11,7 @@ const grid = (n: number, size: number, step: number, x0 = 0, y0 = 0): PlacedBox[
 
 describe("nearestGaps", () => {
   it("gives the gaps of a scan of all pairs, on random boxes of many widths", () => {
-    const r = rng(3);
+    const r = mulberry32(3);
     for (let t = 0; t < 200; t++) {
       const boxes = Array.from({ length: 2 + Math.floor(r() * 30) }, () => ({ x: r() * 200, y: r() * 200, w: 1 + r() * 40, h: 1 + r() * 40 }));
       const brute = boxes.map((a, i) => Math.min(...boxes.filter((_, j) => j !== i).map((b) => distance(a, b))));
@@ -62,7 +51,7 @@ describe("balanceOf", () => {
   });
 
   it("gives values in the ranges of the specs", () => {
-    const r = rng(11);
+    const r = mulberry32(11);
     const specs = new Map(balanceMeasureSpecs("pack").map((s) => [s.id, s]));
     for (let t = 0; t < 100; t++) {
       const boxes = Array.from({ length: Math.floor(r() * 12) }, () => ({ x: r() * 90, y: r() * 90, w: 1 + r() * 30, h: 1 + r() * 30 }));

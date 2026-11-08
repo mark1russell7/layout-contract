@@ -1,3 +1,4 @@
+import { mulberry32 } from "@mark1russell7/rigor-generators";
 import { describe, expect, it, vi } from "vitest";
 import { canvasAdvance, createMeasurer, fontKey, graphemesOf, layoutText, TEXT_MEASURES, TEXT_UNITS, textMeasures, type AdvanceFn } from "./text.ts";
 
@@ -5,18 +6,6 @@ import { canvasAdvance, createMeasurer, fontKey, graphemesOf, layoutText, TEXT_M
 const fake: AdvanceFn = (text) => Array.from(text).reduce((s, c) => s + (c === " " ? 3.1 : c === "W" ? 11.9 : 7.3), 0);
 const FONT = "12px sans-serif";
 const base = (extra: object = {}) => ({ font: FONT, measurer: createMeasurer(fake), lineHeight: 16, ...extra });
-
-/** A small seeded generator, so each run tests the same values. */
-function rng(seed: number): () => number {
-  let a = seed >>> 0;
-  return () => {
-    a = (a + 0x6d2b79f5) >>> 0;
-    let t = a;
-    t = Math.imul(t ^ (t >>> 15), t | 1);
-    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
-    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
-  };
-}
 
 const VOCAB = ["node", "edge", "Graph", "layout", "W", "a", "contract", "measure", "supercalifragilistic", "of", "the", "box"];
 const sentence = (r: () => number): string => Array.from({ length: 1 + Math.floor(r() * 14) }, () => VOCAB[Math.floor(r() * VOCAB.length)]).join(r() < 0.2 ? "  " : " ");
@@ -115,7 +104,7 @@ describe("layoutText", () => {
   });
 
   it("gives the same lines with the cache and without it (T1), and each line width is the sum of its parts", () => {
-    const r = rng(5);
+    const r = mulberry32(5);
     for (let t = 0; t < 300; t++) {
       const text = sentence(r);
       const opts = { wrapWidth: 20 + r() * 200, maxLines: r() < 0.3 ? 2 : undefined, wordBreak: r() < 0.5 ? ("anywhere" as const) : ("keep" as const) };
@@ -164,7 +153,7 @@ describe("the segmentation of typeset (L144)", () => {
       const fresh = await import("./text.ts");
       made = 0;
       const measurer = fresh.createMeasurer(fake);
-      const r = rng(9);
+      const r = mulberry32(9);
       for (let t = 0; t < 500; t++) fresh.layoutText(sentence(r), { font: FONT, measurer, lineHeight: 16, wrapWidth: 60, maxLines: 2, wordBreak: "anywhere" });
       expect(made).toBe(0);
     } finally {
