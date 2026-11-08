@@ -1,17 +1,6 @@
+import { mulberry32 } from "@mark1russell7/rigor-generators";
 import { describe, expect, it } from "vitest";
 import { compareMeasure, EPS, EPS_STEPS, JOINT_MEASURES, minEffectOf, RECORD_EPS, RECORD_SCALE, type MeasureSpec, type Verdict } from "./index.ts";
-
-/** A small seeded generator, so each run tests the same values. */
-function rng(seed: number): () => number {
-  let a = seed >>> 0;
-  return () => {
-    a = (a + 0x6d2b79f5) >>> 0;
-    let t = a;
-    t = Math.imul(t ^ (t >>> 15), t | 1);
-    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
-    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
-  };
-}
 
 const swap: Record<Verdict, Verdict> = { better: "worse", worse: "better", tie: "tie" };
 const lower: Pick<MeasureSpec, "direction" | "minEffect"> = { direction: "lower", minEffect: 0.01 };
@@ -20,7 +9,7 @@ const relative: Pick<MeasureSpec, "direction" | "minEffect"> = { direction: "low
 
 describe("compareMeasure", () => {
   it("is symmetric on random values, for both directions and many sizes of minEffect", () => {
-    const r = rng(7);
+    const r = mulberry32(7);
     for (let i = 0; i < 5000; i++) {
       const direction = r() < 0.5 ? ("lower" as const) : ("higher" as const);
       const spec: Pick<MeasureSpec, "direction" | "minEffect"> = { direction, minEffect: r() < 0.3 ? { rel: r() * 0.2 } : r() < 0.2 ? 0 : r() * 0.1 };
@@ -31,7 +20,7 @@ describe("compareMeasure", () => {
   });
 
   it("gives a tie for each change of at most the threshold, and better or worse just above it", () => {
-    const r = rng(11);
+    const r = mulberry32(11);
     for (let i = 0; i < 2000; i++) {
       const base = Math.round(r() * 1000) / 8;
       const t = minEffectOf(lower);
@@ -70,7 +59,7 @@ describe("compareMeasure", () => {
   });
 
   it("gives the verdict of the rounded record for a live value", () => {
-    const r = rng(23);
+    const r = mulberry32(23);
     const round3 = (x: number): number => Math.round(x * RECORD_SCALE) / RECORD_SCALE;
     for (let i = 0; i < 20000; i++) {
       const spec: Pick<MeasureSpec, "direction" | "minEffect"> = {
@@ -88,7 +77,7 @@ describe("compareMeasure", () => {
     expect(RECORD_EPS).toBe(1 / RECORD_SCALE);
     expect(Number.isInteger(EPS_STEPS)).toBe(true);
     expect(EPS_STEPS).toBe(Math.round(1 / EPS));
-    const r = rng(29);
+    const r = mulberry32(29);
     for (let i = 0; i < 20000; i++) {
       const k = Math.round((r() - 0.5) * 2e7);
       const v = i % 3 === 0 ? (k + 0.5) / RECORD_SCALE : i % 3 === 1 ? k / RECORD_SCALE : (r() - 0.5) * 10 ** Math.floor(r() * 7);
