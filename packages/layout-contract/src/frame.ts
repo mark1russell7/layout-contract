@@ -49,7 +49,7 @@ function finite(value: number, name: string): void {
   if (!Number.isFinite(value)) throw new RangeError(`layout-frame: the ${name} ${value} is not a finite number.`);
 }
 
-/** This function gives the boxes of a frame by id, and throws a `RangeError` for an id that occurs two times or for a bad value. */
+/** This function gives the boxes of a frame by id. An id two times or a bad value causes a `RangeError`. */
 function byId(frame: LayoutFrame, name: string): Map<string, FrameBox> {
   if (frame.schema !== FRAME_SCHEMA) throw new RangeError(`layout-frame: the ${name} frame has the schema ${String(frame.schema)}, not ${FRAME_SCHEMA}.`);
   const map = new Map<string, FrameBox>();
@@ -96,6 +96,7 @@ function presenceAt(mode: Presence, up: boolean, from: number, t: number): numbe
 /**
  * This function gives the frame at the time `t` of the change from `from` to `to`. The time is a number from 0 to 1.
  * A box in the two frames moves on a straight line, and its size and presence change on a straight line. It keeps the turn of `from` before the time 1.
+ *
  * A box only in `to` enters at its place in `to`. A box only in `from` leaves at its place in `from`. `options` sets how their presence changes.
  * At the time 1, the result has the boxes of `to`. At the time 0, the result has the boxes of `from` and the entering boxes.
  * The order of the result: the boxes of `to`, then the leaving boxes in the order of `from`.

@@ -49,7 +49,11 @@ function expectSame(actual: LayoutFrame, expected: LayoutFrame): void {
 
 describe("frameAt", () => {
   it("gives the end layout at the time 1", () => {
-    fc.assert(fc.property(pair, presence, ([a, b], options) => expect(frameAt(a, b, 1, options)).toEqual(b)));
+    fc.assert(
+      fc.property(pair, presence, ([a, b], options) => {
+        expect(frameAt(a, b, 1, options)).toEqual(b);
+      }),
+    );
   });
 
   it("gives the start layout at the time 0, and each entering box is not visible", () => {

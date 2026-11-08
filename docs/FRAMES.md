@@ -21,7 +21,11 @@ interface FrameBox {
 - A box with the state `stay` is in the start layout and in the end layout.
 - A box with the state `enter` is only in the end layout.
 - A box with the state `leave` is only in the start layout.
-- Each function refuses a frame with an id two times, a value that is not finite, a presence out of 0 to 1, a bad turn or a bad state. The error is a `RangeError`.
+- Each function gives a `RangeError` for a frame with one of these errors:
+  - an id two times
+  - a value that is not finite
+  - a presence out of 0 to 1
+  - a turn that is not 0 or 90, or a bad state
 
 ## The functions
 
