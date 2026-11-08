@@ -14,7 +14,7 @@ This file lists the items of the roadmap of this repository. The status page of 
 | L81 | in progress | P1 | Memory gate over each family of the bench, then the dense-hubs peak (3.4-4.3 GB) |
 | L82 | in progress | P2 | The bench scripts in TypeScript (rule typed-scripts of conventions 0.5.0) |
 | L134 | in progress | P1 | Each measure of `kpi.json` has its own date: the age reads the newest run, and the coverage reads the newest cover run |
-| L135 | in progress | P1 | One form of the output fingerprint of an engine entry in the contract: `skip`, `packOutputForm`, `probeHash`, `REFUSED_PROBE` and `fingerprintOf` (0.5.5). The engines give the fingerprints. |
+| L135 | in progress | P1 | One form of the output fingerprint of an engine entry in the contract: `skip`, `packOutputForm`, `probeHash`, `REFUSED_PROBE` and `fingerprintOf` (0.5.5), and the catalog field `fingerprint` of the schema `strategy-catalog/3` (0.5.6). The engines give the fingerprints. |
 | L136 | in progress | P1 | The publish of a sweep night builds on the commit that its check read, so a night that runs at the same time is not lost |
 | L132 | in progress | P1 | A short run of chosen rows on each engine release, at most one a day. Part 1: the site reads a short run, opens on the newest full run, and the age of the data is the age of the oldest shown pair |
 | L95 | done | P1 | Open size families in the joint corpus (`joint-v3`) |

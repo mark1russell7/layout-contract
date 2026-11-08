@@ -1,6 +1,6 @@
 # The strategy catalog
 
-The schema `strategy-catalog/2` gives each strategy and each option of one engine as JSON. It adds the field `output` to the schema `strategy-catalog/1`. A chooser renders it with no code for each strategy. The module `strategy-catalog.ts` of `layout-contract` has the format, the parser, the writer and the check. The module `strategy-options.ts` has the declarations of the options.
+The schema `strategy-catalog/3` gives each strategy and each option of one engine as JSON. The schema `strategy-catalog/2` adds the field `output` to the schema `strategy-catalog/1`, and the schema 3 adds the field `fingerprint`. A chooser renders it with no code for each strategy. The module `strategy-catalog.ts` of `layout-contract` has the format, the parser, the writer and the check. The module `strategy-options.ts` has the declarations of the options.
 
 ## The file
 
@@ -20,8 +20,9 @@ Each engine exports the file `./strategy-catalog.json` at a package path. The fi
 - The file has no time, commit or run stamp. The same source and version give the same bytes.
 - The strategies are sorted by `key`. The options keep the order of the schema, because a form shows them in that order.
 - `parseStrategyCatalog` refuses each unknown field. A new field is a new version of the schema.
-- `parseStrategyCatalog` reads the two schemas, and it refuses `output` in a file of the schema 1. So a file of the schema 1 stays valid, and each engine moves at its own time.
-- `writeStrategyCatalog` writes the oldest schema that holds the file. A catalog with no `output` keeps the schema 1 and its bytes. A reader with an older contract refuses a file of the schema 2.
+- `parseStrategyCatalog` reads the three schemas. It refuses `output` in a file of the schema 1, and `fingerprint` in a file of the schema 1 or 2. So an older file stays valid, and each engine moves at its own time.
+- `writeStrategyCatalog` writes the oldest schema that holds the file. A catalog with no `output` and no `fingerprint` keeps the schema 1 and its bytes. A catalog with `output` and no `fingerprint` keeps the schema 2.
+- A reader with an older contract refuses a file of a newer schema.
 - An engine test fails if the file differs from the writer output, or if `version` differs from `package.json`.
 
 ## The entry
@@ -40,7 +41,8 @@ Each engine exports the file `./strategy-catalog.json` at a package path. The fi
 | `determinismNote` | Optional: one sentence on what can change the claim, for example a clock. |
 | `optIn` | `true` when the strategy is outside the default set of the engine, and a caller asks for it by name. |
 | `baseline` | Optional, and only the value `true`: the strategy is a baseline of a bench, and a screen compares with it. It has `optIn: true`, and a chooser does not offer it. |
-| `output` | Optional, in the schema 2: the reads of the output of the strategy, as rows. Each pair of `property` and `optionSet` has one row. |
+| `output` | Optional, in the schema 2 or 3: the reads of the output of the strategy, as rows. Each pair of `property` and `optionSet` has one row. |
+| `fingerprint` | Optional, in the schema 3: the fingerprint of the outputs of the strategy on the probes of its engine. It is the value of `fingerprintOf`, 16 lowercase hex digits. A bench runs again only the entries with a changed fingerprint. |
 | `options` | The declarations. |
 
 The entry has no `defaults` field, because two places can disagree. The default is on the declaration, and `catalogDefaults(entry)` gives the record.
