@@ -24,6 +24,8 @@ export interface MarginSet extends SpecMargins {
   readonly run: number;
   /** The commit of the run. The lockfile of this commit gives the versions of the engines. */
   readonly commit: string;
+  /** The versions of the engines of the run, for example `{ packing: "0.7.0" }`. They are not in the key, so a release does not void a set. */
+  readonly engines?: Readonly<Record<string, string>>;
   readonly pairs: readonly string[];
   readonly quantile: number;
   /** The error of the margins on each seed, from a fit on the other seeds. */
@@ -115,6 +117,7 @@ export interface MarginFit {
   readonly totals: readonly InputTotal[];
   readonly inputs: readonly MarginInput[];
   readonly quantile: number;
+  readonly engines?: Readonly<Record<string, string>>;
 }
 
 /** This function gives the margin set of a run: its margins, and their error on each seed from a fit on the other seeds. */
@@ -124,7 +127,7 @@ export function fitMarginSet(fit: MarginFit): MarginSet {
   if (ratios.size === 0) throw new RangeError("A margin set needs the time of at least one known input.");
   if (fit.pairs.length === 0) throw new RangeError("A margin set needs at least one pair.");
   const pairs = sortedUnique(fit.pairs);
-  return { id: pairSetId(fit.corpus, pairs), corpus: fit.corpus, run: fit.run, commit: fit.commit, pairs, quantile: fit.quantile, ...marginsOf(ratios, fit.quantile), heldOut: heldOutErrors(ratios, fit.quantile) };
+  return { id: pairSetId(fit.corpus, pairs), corpus: fit.corpus, run: fit.run, commit: fit.commit, ...(fit.engines === undefined ? {} : { engines: fit.engines }), pairs, quantile: fit.quantile, ...marginsOf(ratios, fit.quantile), heldOut: heldOutErrors(ratios, fit.quantile) };
 }
 
 /** The margin set of a plan. `shared` counts the pairs of both, and `overlap` is `shared` over the count of the pairs of either. `exact` is true when the set has the same pairs as the plan. */
@@ -160,13 +163,29 @@ function heldOutSentence(set: MarginSet): string {
   return `Its mean |log(real / planned)| on a held-out seed is ${Math.min(...values).toFixed(2)}-${Math.max(...values).toFixed(2)}.`;
 }
 
-/** This function gives the lines of the plan about its margins. A plan with no set of its own pairs says which set it uses, and the error of that set on its own pairs. */
-export function marginNote(pick: MarginPick | undefined, pairs: readonly string[], fallback: string): string {
+/**
+ * This function gives the sentences about the engines of a set and of this run, when their versions differ. Else it gives undefined.
+ * A slow new engine then shows as a cause of a long shard before the run.
+ */
+export function engineMismatch(set: MarginSet, engines: Readonly<Record<string, string>>): string | undefined {
+  const names = Object.keys(set.engines ?? {}).filter((name) => Object.hasOwn(engines, name) && engines[name] !== set.engines![name]).sort();
+  if (names.length === 0) return undefined;
+  const list = (versions: Readonly<Record<string, string>>): string => names.map((name) => `${name} ${versions[name]}`).join(", ");
+  return `The set was fit on ${list(set.engines!)}. This run has ${list(engines)}.`;
+}
+
+/**
+ * This function gives the lines of the plan about its margins. A plan with no set of its own pairs says which set it uses, and the error of that set on its own pairs.
+ * `engines` are the versions of the engines of this run. The lines name each engine with another version in the set.
+ */
+export function marginNote(pick: MarginPick | undefined, pairs: readonly string[], fallback: string, engines: Readonly<Record<string, string>> = {}): string {
   const count = new Set(pairs).size;
   if (pick === undefined) return `No margin set has the corpus of this plan. The estimate uses the margins of ${fallback}. Their error on these pairs is not measured.`;
   const { set } = pick;
-  if (pick.exact) return `The margins come from pair set ${set.id} of run ${set.run}, with the ${count} pairs of this plan. ${heldOutSentence(set)}`;
-  return `No margin set has the ${count} pairs of this plan. The estimate uses another pair set: ${set.id} of run ${set.run}, with ${set.pairs.length} pairs, and ${pick.shared} of them are in this plan. ${heldOutSentence(set)}`;
+  const mismatch = engineMismatch(set, engines);
+  const end = mismatch === undefined ? heldOutSentence(set) : `${heldOutSentence(set)} ${mismatch}`;
+  if (pick.exact) return `The margins come from pair set ${set.id} of run ${set.run}, with the ${count} pairs of this plan. ${end}`;
+  return `No margin set has the ${count} pairs of this plan. The estimate uses another pair set: ${set.id} of run ${set.run}, with ${set.pairs.length} pairs, and ${pick.shared} of them are in this plan. ${end}`;
 }
 
 /**

@@ -7,7 +7,7 @@
 //   Each of run, plan, resume and costs takes --pair-budget <text>: the time budget of each stage of a pair (parsePairBudget). A run with a budget holds its stamp.
 //   resume --records <dir> --out <dir> [--slice pr] [--corpus <set>] [--cover on] [--pairs <id,id>]   keeps the pairs of an earlier run with the stamp of this code (L101)
 //   costs --records <dir> [--corpus <set>] [--top <n>]                      prints the wall time of each pair, from the most time to the least
-//   margins --records <dir> --run <id> --commit <sha> [--logs <file>] [--corpus <set>]   prints the margin set of a run as JSON (L143)
+//   margins --records <dir> --run <id> --commit <sha> --engines <name=version,...> [--logs <file>] [--corpus <set>]   prints the margin set of a run as JSON (L143)
 //   confirm --confirm on --records <dir> --out <dir>   writes the decision of L40: <dir>/confirm.json and <dir>/confirm.md
 //   analyze --records <dir> --out <dir> [--slice pr] [--corpus <set>] [--allow-missing <file>] [--subset <file>] [--baseline <pair[,pair]>]
 //           [--compare <a:b[,a:b]>] [--exclude-pack <id[,id]>] [--oracle-without <id[,id]>] [--times <spec[,spec]>] [--jobs <file>] [--rank-top <n>]
@@ -218,7 +218,7 @@ function shardPlan() {
   // The margins of the pair set of this plan, or of the set with the largest overlap (L143). The note says which set the plan uses.
   const pick = pickMarginSet(MARGIN_SETS, set, expectedPairs);
   const margins = pick?.set;
-  const note = marginNote(pick, expectedPairs, "cost-margins.json");
+  const note = marginNote(pick, expectedPairs, "cost-margins.json", { packing: installedVersion("packing"), highways: installedVersion("highways") });
   if (prior === undefined) return { rows, shards, plan: planShards(costedRows(rows, pairs, passes, margins), shards), done: new Set(), prior: [], note };
   // With a prior run, each input costs only its missing pairs, and each pair costs its measured time against the plan.
   const done = new Set(prior.map((line) => doneKey(line.input, line.strategy)));
@@ -485,7 +485,12 @@ if (command === "check") {
   //   margins --records <dir> --run <id> --commit <sha>: the times come from the pair files of the run. The lines of the most common stamp count.
   //   margins --records <dir> --logs <file> --run <id> --commit <sha>: a run before the pair files (L29). The times come from the line of each input in the log of the run.
   //     Then the pairs are the strategies of the record files, and each input has each pair.
-  if (args.records === undefined || args.run === undefined || args.commit === undefined) throw new RangeError("The arguments of margins are --records <dir> --run <id> --commit <sha>, and --logs <file> for a run with no pair files.");
+  if (args.records === undefined || args.run === undefined || args.commit === undefined || args.engines === undefined) {
+    throw new RangeError("The arguments of margins are --records <dir> --run <id> --commit <sha> --engines <name=version,...>, and --logs <file> for a run with no pair files.");
+  }
+  // The versions of the engines of the run come from the lockfile of its commit, for example packing=0.7.0,highways=0.14.0.
+  const engines = Object.fromEntries(args.engines.split(",").map((part) => part.trim().split("=")));
+  if (Object.values(engines).some((v) => typeof v !== "string" || v === "")) throw new RangeError(`The option --engines is name=version,... , not "${args.engines}".`);
   const files = (pattern) => readdirSync(args.records, { recursive: true }).map(String).filter((n) => pattern.test(n)).sort();
   const jsonLines = (name) => readFileSync(join(args.records, name), "utf8").split("\n").filter((t) => t.trim() !== "").map((t) => JSON.parse(t));
   let pairs;
@@ -507,7 +512,7 @@ if (command === "check") {
     console.error(`${totals.length} inputs in the log, ${pairs.length} pairs in the records.`);
   }
   const inputs = corpusSlice().map(({ input, entry }) => ({ id: entry.id, boxes: input.boxes.length, edges: input.edges?.length ?? 0 }));
-  const marginSet = fitMarginSet({ corpus: set, run: Number(args.run), commit: args.commit, pairs, totals, inputs, quantile: Number(args.quantile ?? COST_MODEL.quantile) });
+  const marginSet = fitMarginSet({ corpus: set, run: Number(args.run), commit: args.commit, pairs, totals, inputs, engines, quantile: Number(args.quantile ?? COST_MODEL.quantile) });
   console.error(`The set ${marginSet.id} has ${marginSet.pairs.length} pairs and ${Object.keys(marginSet.specs).length} specs.`);
   console.log(JSON.stringify(marginSet, null, 2));
 } else if (command === "costs") {

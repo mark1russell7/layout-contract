@@ -3,6 +3,7 @@ import { COST_MODEL, inputCost } from "./plan.ts";
 import { coverOptions } from "./cover.ts";
 import { pairId, PACK_ENTRIES, ROUTERS } from "./runner.ts";
 import {
+  engineMismatch,
   fitMarginSet,
   heldOutErrors,
   inputRatios,
@@ -149,6 +150,17 @@ describe("marginNote", () => {
     expect(note).toBe(`No margin set has the 3 pairs of this plan. The estimate uses another pair set: ${measured.id} of run 41, with 2 pairs, and 2 of them are in this plan. Its mean |log(real / planned)| on a held-out seed is 0.21-0.30.`);
   });
 
+  it("names each engine whose version differs from the version of the fit", () => {
+    const fitted = { ...measured, engines: { packing: "0.7.0", highways: "0.14.0" } };
+    const pick = pickMarginSet([fitted], "c", ["a", "b"]);
+    expect(marginNote(pick, ["a", "b"], "x", { packing: "0.10.5", highways: "0.14.0" })).toMatch(/0\.21-0\.30\. The set was fit on packing 0\.7\.0\. This run has packing 0\.10\.5\.$/);
+    expect(engineMismatch(fitted, { packing: "0.10.5", highways: "0.15.0" })).toBe("The set was fit on highways 0.14.0, packing 0.7.0. This run has highways 0.15.0, packing 0.10.5.");
+    expect(engineMismatch(fitted, { packing: "0.7.0", highways: "0.14.0" })).toBeUndefined();
+    // An engine that only one side names is no mismatch.
+    expect(engineMismatch(measured, { packing: "0.10.5" })).toBeUndefined();
+    expect(engineMismatch(fitted, { node: "26.0.0" })).toBeUndefined();
+  });
+
   it("says when no set has the corpus, and when a set has no held-out error", () => {
     expect(marginNote(undefined, ["a"], "cost-margins.json")).toMatch(/^No margin set has the corpus of this plan\. The estimate uses the margins of cost-margins\.json\./);
     const bare = set(pairSetId("c", ["a"]), "c", ["a"], 1);
@@ -183,15 +195,16 @@ describe("MARGIN_SETS", () => {
   });
 
   it("gives the cover plan the set of the cover run with the most of its pairs", () => {
-    const pairs = coverOptions().pairs;
+    const pairs = coverOptions().pairs!;
     const pick = pickMarginSet(MARGIN_SETS, COST_MODEL.corpus, pairs)!;
     const best = Math.max(...MARGIN_SETS.map((s) => s.pairs.filter((pair) => pairs.includes(pair)).length / new Set([...s.pairs, ...pairs]).size));
     expect(pick.overlap).toBe(best);
     expect(pick.set.run).not.toBe(COST_MODEL.run);
   });
 
-  it("has a held-out error on each seed of each set", () => {
+  it("has a held-out error on each seed of each set, and the engine versions of its fit", () => {
     for (const marginSet of MARGIN_SETS) {
+      expect(Object.keys(marginSet.engines ?? {}).sort()).toEqual(["highways", "packing"]);
       expect(Object.keys(marginSet.heldOut).sort()).toEqual(["s1", "s2", "s3"]);
       for (const error of Object.values(marginSet.heldOut)) expect(error.meanAbsLog).toBeGreaterThan(0);
     }

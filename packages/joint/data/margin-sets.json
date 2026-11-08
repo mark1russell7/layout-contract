@@ -6,6 +6,10 @@
       "corpus": "joint-v2",
       "run": 40884908305,
       "commit": "b50fe42766fdcdaf650b9dea9054f52a54ef6e67",
+      "engines": {
+        "packing": "0.2.17",
+        "highways": "0.9.3"
+      },
       "quantile": 0.9,
       "note": "The margins of this set are in cost-margins.json.",
       "pairs": [
@@ -228,6 +232,10 @@
       "corpus": "joint-v2",
       "run": 41898523423,
       "commit": "ac2aa1226b253f99f94fd38890bfaeebcdeebe1e",
+      "engines": {
+        "packing": "0.7.0",
+        "highways": "0.14.0"
+      },
       "quantile": 0.9,
       "default": 9.5,
       "specs": {

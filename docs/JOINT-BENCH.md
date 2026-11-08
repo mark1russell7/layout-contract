@@ -593,7 +593,8 @@ node scripts/fit-cost.mjs --logs logs --run <run id> --commit "$(gh run view <ru
 The margins of a spec depend on the pairs of the plan. A cover plan holds slow pairs that a default plan does not have. Thus each pair set has its own margins (L143).
 
 - The file `packages/joint/data/margin-sets.json` holds the margin sets. The key of a set is a hash of its corpus and its sorted pairs.
-- Each set has the run and the commit of its fit. The lockfile of the commit gives the versions of the engines.
+- Each set has the run, the commit and the engine versions of its fit. The versions come from the lockfile of the commit. They are not in the key, so a release does not void a set.
+- When an engine of the set has another version in this run, the line of the plan names both versions. A slow new engine thus shows as a cause before the run.
 - `pickMarginSet` gives the set with the same pairs as the plan. Else it gives the set with the largest overlap: the shared pairs over the pairs of either list.
 - The plan prints a line about its margins. A plan with no set of its own pairs names the set that it uses. The line also gives the error of that set on its own pairs.
 - The error is the mean of the absolute log of real / planned on each seed. The margins of this test come from the other 2 seeds.
@@ -625,7 +626,7 @@ To write a set from a run, start `margins` in `packages/joint`:
 
 ```sh
 gh run download <run id> -R mark1russell7/layout-contract -p "joint-records-*" -D records
-pnpm bench margins --records records --run <run id> --commit <sha> > set.json
+pnpm bench margins --records records --run <run id> --commit <sha> --engines packing=<version>,highways=<version> > set.json
 ```
 
 - The times come from the pair files. Only the lines of the most common stamp count.
