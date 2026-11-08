@@ -1594,6 +1594,12 @@ The claim for night 1 is on the span from the first job start to the last job en
 
 The trial stops if a release gate or a PR gate waits more than 15 minutes because of it. It also stops if a heavy dispatch stays refused overnight because of it. Each seed that costs more than 60 minutes gets its own job after night 1, so that night 1 reads the lanes alone. A job that reaches the limit of 340 minutes is a fault of the job limit, not a memory result.
 
+### The end of the trial
+
+The trial ended on 2026-11-08, after its 3 nights. Each run of the gate has 3 jobs at once again, and `GATE_LANES` is 3.
+
+The stop rule of the trial also applies. On 2026-11-08 at 10:16Z, gates of other repositories waited up to 117 minutes for runners. At that time, the gate run `42460396953` had 100 jobs in its queue.
+
 ### The prediction for the first run of the gate
 
 I wrote these claims before the run. The model of memory and of the time in CI is weak (L79), so those claims have a p of 0.6 or less. M2 has more because bench-4 measured it. The peaks of bench-4 are shard peaks: the RSS of a shard includes the inputs before it. Thus a probe of one input alone can have a lower peak.
