@@ -11,6 +11,8 @@
 - The seed of each step is `deriveSeed(seed, step)`, so each stream is the stream of `stepRandom(seed, step)`. The intervals and the permutation p stay the same.
 - A test compares the text of the intervals and of the permutation with the earlier loops, for 24 made-up screens. Some screens use the exact test, and some use draws.
 - `signTest.p` of a result can differ in the last digits, by at most 1e-13 of its value. It is a report only, so no label changes.
+  - A comparison with the exact p (bigint terms, for each count of families up to 80) shows the earlier loop is closer. Its largest relative error is 5.8e-16, and the largest of `signTest` is 2.5e-14.
+  - The fix goes to the home of `signTest`: mark1russell7/rigor#158.
 - `@mark1russell7/rigor-generators` goes to ^0.1.8, the range of `@mark1russell7/rigor-statistics` 0.1.23.
 
 ## 0.6.2
