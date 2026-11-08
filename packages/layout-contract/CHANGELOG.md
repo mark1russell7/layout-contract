@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.7.0
+
+The release train changes the range of `@mark1russell7/typeset` to a version outside the old range. The public types name @mark1russell7/typeset, so its new version outside the old range can change them.
+
+### Breaking
+
+- The range `^0.1.8` of `@mark1russell7/typeset` in `dependencies` does not hold `0.2.0`, so it changes.
+
 ## 0.6.2
 
 - PATCH before 1.0.0: the new export `dropIndex` gives the index at which a point goes among the items of a list on the screen.
