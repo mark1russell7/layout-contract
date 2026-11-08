@@ -6,17 +6,13 @@ This file lists the items of the roadmap of this repository. The status page of 
 
 | ID | Status | Priority | Title |
 | --- | --- | --- | --- |
-| L144 | in progress | P1 | `layoutText` breaks lines at the break places of UAX #14 from `@mark1russell7/typeset` 0.1.8, with the test of `LineBreakTest.txt` |
 | L129 | in progress | P1 | The joint bench and the site use `packing` 0.10.2 and `highways` 0.15.0, and read the routers of `KEYED_STRATEGIES` (88 names) |
 | L5 | in progress | P1 | highways reads the contract |
 | L34 | in progress | P1 | The strategy space as data |
 | L52 | in progress | P1 | Measure joint space coverage, with a weekly trend that rises |
 | L81 | in progress | P1 | Memory gate over each family of the bench, then the dense-hubs peak (3.4-4.3 GB) |
 | L82 | in progress | P2 | The bench scripts in TypeScript (rule typed-scripts of conventions 0.5.0) |
-| L134 | in progress | P1 | Each measure of `kpi.json` has its own date: the age reads the newest run, and the coverage reads the newest cover run |
-| L136 | in progress | P1 | The publish of a sweep night builds on the commit that its check read, so a night that runs at the same time is not lost |
 | L132 | in progress | P1 | A short run of chosen rows on each engine release, at most one a day. Part 1: the site reads a short run, opens on the newest full run, and the age of the data is the age of the oldest shown pair |
-| L95 | done | P1 | Open size families in the joint corpus (`joint-v3`) |
 | L96 | in progress | P2 | Two named tables of the family `recorded` in `rigor-generators`, with source, license and date, as joint inputs and size choices of the site |
 | L98 | done | P2 | Bench: run only chosen rows of the cover |
 | L94 | in progress | P1 | Circle items in the joint bench: one shared family and an exact hard rule in the contract (0.4.0), then the joint corpus. Part 1: the array `shapes` of `joint-v3` gives inputs to `hole-degree`, `circle-quasi-physical` and `exact-strip`. Part 2: a cover run of `joint-v3` removes the 3 cover exceptions. Routes read the box until highways routes around the true shape |
@@ -90,6 +86,9 @@ This file lists the items of the roadmap of this repository. The status page of 
 
 | ID | Status | Priority | Title |
 | --- | --- | --- | --- |
+| L144 | done | P1 | `layoutText` breaks lines at the break places of UAX #14 from `@mark1russell7/typeset` 0.1.8, with the test of `LineBreakTest.txt` |
+| L136 | done | P1 | The publish of a sweep night builds on the commit that its check read, so a night that runs at the same time is not lost |
+| L95 | done | P1 | Open size families in the joint corpus (`joint-v3`) |
 | L140 | done | P2 | The coverage counts name the corpus and the run of each counted name: `kpi-sources.json` and the joint section |
 | L134 | done | P1 | Each measure of `kpi.json` has its own date: the age reads the newest run, and the coverage reads the newest cover run |
 | L1 | done | P0 | Answer the 5 open questions of the Packer draft |
