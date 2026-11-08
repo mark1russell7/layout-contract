@@ -274,6 +274,12 @@ const NODE_IMPORT = /^(node:|fs$|path$|os$|crypto$|worker_threads$|child_process
 const NODE_GLOBAL = /\b(process\.|Buffer\.|require\(|__dirname|__filename)/;
 /** The runtime dependencies of the package. Each one is the home of an area in the map of homes. The test examines its build too. */
 const RUNTIME_DEPENDENCIES = ["@mark1russell7/rigor-generators", "@mark1russell7/typeset"];
+/**
+ * The packages that the builds of the runtime dependencies import, and that the package itself does not import.
+ * Each one is the home of an area in the map of homes. The test examines its build too.
+ * `@mark1russell7/typeset` 0.1.8 imports `@mark1russell7/collections`, and that package imports `@mark1russell7/optional`.
+ */
+const TRANSITIVE_DEPENDENCIES = ["@mark1russell7/collections", "@mark1russell7/optional"];
 
 /** This function gives the local files of the import closure of a module, and the external imports. */
 function closure(entry: URL): { files: string[]; external: string[] } {
@@ -294,9 +300,9 @@ function closure(entry: URL): { files: string[]; external: string[] } {
   return { files, external: [...external] };
 }
 
-/** This function gives the imports that are not on the list of runtime dependencies. A module of Node is not on the list. */
+/** This function gives the imports of a build that are not on the lists of runtime and transitive dependencies. A module of Node is not on the lists. */
 function unlisted(external: readonly string[]): string[] {
-  return external.filter((s) => !RUNTIME_DEPENDENCIES.includes(s));
+  return external.filter((s) => !RUNTIME_DEPENDENCIES.includes(s) && !TRANSITIVE_DEPENDENCIES.includes(s));
 }
 
 /**
@@ -342,8 +348,12 @@ describe("browser safety", () => {
     expect(seen.size).toBeGreaterThanOrEqual(RUNTIME_DEPENDENCIES.length);
   });
 
-  it("refuses a module of Node and a package outside the list in a build", () => {
-    expect(unlisted(["node:fs", "fs", "left-pad", ...RUNTIME_DEPENDENCIES])).toEqual(["node:fs", "fs", "left-pad"]);
+  it("refuses a module of Node and a package outside the lists in a build", () => {
+    expect(unlisted(["node:fs", "fs", "left-pad", ...RUNTIME_DEPENDENCIES, ...TRANSITIVE_DEPENDENCIES])).toEqual(["node:fs", "fs", "left-pad"]);
+  });
+
+  it("keeps the transitive dependencies out of the package itself", () => {
+    for (const dep of TRANSITIVE_DEPENDENCIES) expect(RUNTIME_DEPENDENCIES, dep).not.toContain(dep);
   });
 });
 

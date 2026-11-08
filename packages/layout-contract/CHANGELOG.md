@@ -6,6 +6,7 @@
 - The words come from `lineBreaks` of `@mark1russell7/typeset` 0.1.8 (Unicode 17.0.0). The word segments of the measure cache come from `wordBreaks`, and `graphemesOf` gives `graphemes`. The three use no locale.
 - A new text gets one call of `wordBreaks` for all its words: the words joined by line feeds. UAX #29 breaks on the two sides of a line feed, so each word gets the segments of a call on the word alone.
 - The local splitter and its `Intl.Segmenter` objects are gone. The module needs `Intl.Segmenter` when it loads, because typeset makes its segmenters at that time. Before, a runtime with no `Intl.Segmenter` got code points.
+- The install tree gets 2 packages through `@mark1russell7/typeset` 0.1.8: `@mark1russell7/collections` and `@mark1russell7/optional`. The browser-safety test examines their builds too.
 
 ### Migration: the inputs with other lines
 
