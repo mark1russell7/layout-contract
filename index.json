@@ -187,7 +187,140 @@
     "budget": "The budget of the gate is 304 minutes, from 3 gates.",
     "thin": false
    }
+  },
+  "joint-v2_packing-0.10.2_highways-0.15.0_space-bench-3": {
+   "corpus": "joint-v2",
+   "nights": 1,
+   "last": "2026-11-08",
+   "missing": 0,
+   "configs": 34,
+   "counts": {
+    "baseline": 3,
+    "screened": 0,
+    "alive": 4,
+    "dropped": 19,
+    "halved": 8,
+    "design": 0
+   },
+   "step": {
+    "from": "joint-v2_packing-0.7.0_highways-0.14.0_space-bench-3",
+    "to": "joint-v2_packing-0.10.2_highways-0.15.0_space-bench-3",
+    "pairs": 906,
+    "dropped": {
+     "space": 0,
+     "input": 0,
+     "hash": 0,
+     "config": 0,
+     "missing": 3
+    },
+    "metrics": {
+     "joint.fill": {
+      "n": 906,
+      "median": 1,
+      "q10": 1,
+      "q90": 1
+     },
+     "hard": {
+      "n": 520,
+      "median": 1,
+      "q10": 0.9076555023923446,
+      "q90": 1
+     },
+     "joint.straight.crossings": {
+      "n": 784,
+      "median": 1,
+      "q10": 1,
+      "q90": 1
+     }
+    },
+    "routes": {
+     "route.detour.mean": {
+      "ratio": {
+       "n": 906,
+       "median": 1,
+       "q10": 1,
+       "q90": 1.002830079587234
+      },
+      "noOld": 0,
+      "noNew": 0,
+      "oldZero": 0,
+      "mixed": 0
+     },
+     "route.detour.q95": {
+      "ratio": {
+       "n": 906,
+       "median": 1,
+       "q10": 1,
+       "q90": 1
+      },
+      "noOld": 0,
+      "noNew": 0,
+      "oldZero": 0,
+      "mixed": 0
+     },
+     "joint.route.length": {
+      "ratio": {
+       "n": 877,
+       "median": 1,
+       "q10": 1,
+       "q90": 1.0029076144149294
+      },
+      "noOld": 29,
+      "noNew": 0,
+      "oldZero": 0,
+      "mixed": 0
+     },
+     "route.crossings": {
+      "ratio": {
+       "n": 796,
+       "median": 1,
+       "q10": 1,
+       "q90": 1
+      },
+      "noOld": 0,
+      "noNew": 0,
+      "oldZero": 110,
+      "mixed": 0
+     }
+    }
+   },
+   "cost": {
+    "date": "2026-11-08",
+    "jobMinutes": {
+     "planned": 159.45210673233038,
+     "lo": 141.75977258583117,
+     "hi": 385.7974124885886,
+     "real": 354.1133486800333,
+     "side": "hit",
+     "brier": 0.03999999999999998
+    },
+    "jobMinutesStatus": "scored",
+    "wall": {
+     "planned": 53.15084019463639,
+     "lo": 63.8404200245091,
+     "hi": 162.10384610798818,
+     "real": 194.46666666666667,
+     "side": "high",
+     "brier": 0.6400000000000001
+    },
+    "wallStatus": "scored",
+    "shards": {
+     "lo": 0.7028156776263966,
+     "hi": 4.314064655098387,
+     "width": 6.1382589951154465,
+     "overCap": true,
+     "shards": 11,
+     "hits": 10,
+     "low": 0,
+     "high": 1,
+     "stopped": 0,
+     "brier": 0.09454545454545454
+    },
+    "widthCap": 5,
+    "budget": "The budget of the gate is 360 minutes, from 0 gates. The read of the run 42357250161 failed after 4 tries, so the budget uses only the runs that it read. The estimate is the fallback, because no gate has job times.",
+    "thin": true
+   }
   }
  },
- "latest": "joint-v2_packing-0.7.0_highways-0.14.0_space-bench-3"
+ "latest": "joint-v2_packing-0.10.2_highways-0.15.0_space-bench-3"
 }
