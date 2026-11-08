@@ -1,7 +1,7 @@
 // The strategy catalog: every strategy and every option of an engine, as JSON (`docs/STRATEGY-CATALOG.md`).
 import { canonicalJson } from "./hash.ts";
 import type { Supports } from "./record.ts";
-import { type AnyOption, declarationIssues, type ListItem, type NoDefaultReason, optionIssue, type OptionScale, type ValueOption } from "./strategy-options.ts";
+import { type AnyOption, declarationIssues, type ListItem, type NoDefaultReason, optionIssue, type OptionScale, type ValueOption } from "./strategy-space.ts";
 import type { ParamValue, StrategySpace } from "./strategy-space.ts";
 
 /** The newest schema of a strategy catalog. A new field is a new version of the schema. */
