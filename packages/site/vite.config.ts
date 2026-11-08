@@ -10,7 +10,7 @@ import { buildCatalog } from "./src/build-catalog.ts";
 import { keyedRouterNames } from "./src/engines.ts";
 import { checkDataFile, type JointData, latestFull } from "./src/data.ts";
 import { weekShown } from "./src/coverage.ts";
-import { countSources, ENGINE_SCOPE, enginesOnNpm, failedReadStops, type NpmRead, siteKpiInput, type SweepRead } from "./src/kpi.ts";
+import { countSources, ENGINE_SCOPE, enginesOnNpm, failedReadStops, type NpmRead, siteKpiInput, type SpaceFile, spaceConfigMeasures, type SweepRead } from "./src/kpi.ts";
 import { withEngineLinks } from "./src/links.ts";
 import { readStamps, stampFaults, withDataStamp } from "./src/stamps.ts";
 import { loadSweep } from "./src/sweep.ts";
@@ -150,6 +150,15 @@ function jointFiles(): JointData[] {
     .map((name) => JSON.parse(readFileSync(new URL(name, dir), "utf8")) as JointData);
 }
 
+/** This function gives the stored engine spaces of `data/spaces/`, in the order of their file names. */
+function spaceFiles(): SpaceFile[] {
+  const dir = new URL("./data/spaces/", import.meta.url);
+  return readdirSync(dir)
+    .filter((name) => name.endsWith(".json"))
+    .sort()
+    .map((name) => JSON.parse(readFileSync(new URL(name, dir), "utf8")) as SpaceFile);
+}
+
 /** This function gives the time of the commit of the build, in UTC. Two builds of one commit give the same time, so a rebuild does not make old data look new. */
 function commitTime(): string {
   const seconds = Number(execFileSync("git", ["log", "-1", "--format=%ct"], { encoding: "utf8" }).trim());
@@ -160,6 +169,7 @@ function commitTime(): string {
 function kpiInput(): NonNullable<ReturnType<typeof siteKpiInput>> {
   const input = siteKpiInput(jointFiles(), catalogOfTheRuns(), npmRead, [...PACK_ENTRIES, ...coverEntries()], commitTime(), keyedRouterNames(), sweepRead);
   if (input === undefined) throw new Error("data/joint/ has no run, so kpi.json has no time of the data.");
+  input.measures.push(...spaceConfigMeasures(spaceFiles()));
   return input;
 }
 

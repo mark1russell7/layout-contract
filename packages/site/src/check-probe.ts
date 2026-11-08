@@ -62,14 +62,17 @@ check("the file of measures has a data time", !Number.isNaN(Date.parse(kpi?.at ?
 // Each measure of the joint data is present. With no answer from npm, the build leaves out each measure that reads npm.
 const kpiIds = (kpi?.measures ?? []).map((measure) => String((measure as { id?: unknown }).id));
 const JOINT_MEASURES = ["pairs-in-run", "pairs-shown", "packers-measured", "routers-on-compare", "routers-keyed"];
+// The build reads the spaces of the engines from data/spaces/ of this package: a count for each engine, and the count of the pairs (L148).
+const SPACE_MEASURES = ["space-configs-highways", "space-configs-packing", "space-configs-product"];
 // The build gives coverage-shown only when it read the branch sweep-data (L52).
 const OPTIONAL_MEASURES: string[] = ["coverage-shown"];
 const npmIds = kpiIds.filter((id) => id === "engines-current" || id.startsWith("engine-releases-behind-"));
 check("the file of measures has each measure of the joint data", JOINT_MEASURES.every((id) => kpiIds.includes(id)), kpiIds.join(", "));
+check("the file of measures has the config count of each stored space", SPACE_MEASURES.every((id) => kpiIds.includes(id)), kpiIds.join(", "));
 check("the file of measures has each measure that reads npm, or none of them", npmIds.length === 0 || (npmIds.includes("engines-current") && npmIds.length === 3), npmIds.join(", "));
 check(
   "the file of measures has no repeated or unknown measure",
-  new Set(kpiIds).size === kpiIds.length && kpiIds.every((id) => JOINT_MEASURES.includes(id) || OPTIONAL_MEASURES.includes(id) || npmIds.includes(id)),
+  new Set(kpiIds).size === kpiIds.length && kpiIds.every((id) => JOINT_MEASURES.includes(id) || SPACE_MEASURES.includes(id) || OPTIONAL_MEASURES.includes(id) || npmIds.includes(id)),
   kpiIds.join(", "),
 );
 

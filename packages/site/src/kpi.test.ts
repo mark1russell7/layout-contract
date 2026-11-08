@@ -1,6 +1,8 @@
+import { readdirSync, readFileSync } from "node:fs";
+import { spaceSize, STRATEGY_SPACE_SCHEMA, type StrategySpace } from "@mark1russell7/layout-contract";
 import { describe, expect, it } from "vitest";
 import { latestFull, shownAge, shownRuns, type JointData } from "./data.ts";
-import { COUNT_SOURCES_SCHEMA, countOverRuns, countSources, coverageRun, coverageRuns, enginesCurrent, enginesOnNpm, failedReadStops, type KpiCatalog, type NpmRead, packersMeasured, routersOnCompare, siteKpiInput } from "./kpi.ts";
+import { COUNT_SOURCES_SCHEMA, countOverRuns, countSources, coverageRun, coverageRuns, enginesCurrent, enginesOnNpm, failedReadStops, type KpiCatalog, type NpmRead, packersMeasured, routersOnCompare, siteKpiInput, SPACE_LEVELS, type SpaceFile, spaceConfigMeasures } from "./kpi.ts";
 
 /** A run of the fixture. Its id comes from its date, and its rankings have one group for each pair of a packer and a router. */
 const run = (date: string, pairs: number, versions: Record<string, string>, packers: readonly string[] = ["shelf", "rows"], routers: readonly string[] = ["corners", "trunks"]): JointData => {
@@ -313,5 +315,49 @@ describe("routersOnCompare", () => {
 
   it("counts a router one time", () => {
     expect(routersOnCompare(run("2026-10-28", 130, {}, [], ["corners", "corners"]), keyed)).toBe(1);
+  });
+});
+
+describe("spaceConfigMeasures", () => {
+  /** A made-up packer: 3 order options (a bool param gives 2) times 4 placement options (an enum of 3 values and 1 option), so 12 configs. */
+  const pack: StrategySpace = {
+    schema: STRATEGY_SPACE_SCHEMA,
+    engine: "pack",
+    version: "1",
+    stages: [
+      { name: "order", options: [{ id: "area", params: [] }, { id: "height", params: [{ name: "reverse", kind: "bool", default: false }] }] },
+      { name: "placement", options: [{ id: "maxrects", params: [{ name: "rule", kind: "enum", values: ["a", "b", "c"], default: "a" }] }, { id: "shelf", params: [] }] },
+    ],
+  };
+  /** A made-up router with 1 stage of 2 options, so 2 configs. */
+  const route: StrategySpace = { schema: STRATEGY_SPACE_SCHEMA, engine: "route", version: "1", stages: [{ name: "path", options: [{ id: "straight", params: [] }, { id: "ortho", params: [] }] }] };
+  const file = (space: StrategySpace, date: string): SpaceFile => ({ schema: "site-space/1", source: `${space.engine} 1.0.0`, date, space });
+
+  it("counts the configs of each space and of the product, with the date of the older file for the product", () => {
+    expect(spaceConfigMeasures([file(pack, "2026-11-07"), file(route, "2026-11-05")])).toEqual([
+      { id: "space-configs-pack", value: 12, unit: "configs", at: "2026-11-07T00:00:00Z" },
+      { id: "space-configs-route", value: 2, unit: "configs", at: "2026-11-05T00:00:00Z" },
+      { id: "space-configs-product", value: 24, unit: "configs", at: "2026-11-05T00:00:00Z" },
+    ]);
+  });
+
+  it("gives no product for one space, and no measure for no space", () => {
+    expect(spaceConfigMeasures([file(route, "2026-11-05")]).map((m) => m.id)).toEqual(["space-configs-route"]);
+    expect(spaceConfigMeasures([])).toEqual([]);
+  });
+
+  it("gives the count of spaceSize for each stored engine space", () => {
+    const dir = new URL("../data/spaces/", import.meta.url);
+    const files = readdirSync(dir)
+      .filter((n) => n.endsWith(".json"))
+      .sort()
+      .map((n) => JSON.parse(readFileSync(new URL(n, dir), "utf8")) as SpaceFile);
+    expect(files.length).toBeGreaterThanOrEqual(2);
+    const measures = spaceConfigMeasures(files);
+    for (const f of files) {
+      const m = measures.find((x) => x.id === `space-configs-${f.space.engine}`);
+      expect(m?.value, f.source).toBe(Number(spaceSize(f.space, { levels: SPACE_LEVELS }).base));
+      expect(m!.value, f.source).toBeGreaterThan(1);
+    }
   });
 });
