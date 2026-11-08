@@ -200,6 +200,7 @@ export function pointSegmentDistance(p: Point, a: Point, b: Point): number {
  * The reading order is the rows from top to bottom, and each row from left to right.
  * The index is that of the first item whose center comes after the point, from 0 to the number of items.
  * A center within `rowTolerance` of the point on the vertical axis is in the row of the point.
+ * The tolerance has the units of the points: on a screen, the default 24 is 24 pixels.
  *
  * Give the centers in reading order and without the item that moves.
  *
