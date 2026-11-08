@@ -25,10 +25,28 @@ This file lists the items of the roadmap of this repository. The status page of 
 | L104 | in progress | P1 | A response explorer on the site, from the records of a joint run: the builder first, the page with the data of the cover run |
 | L102 | in progress | P1 | The strategy catalog: each strategy and option of an engine as JSON (`docs/STRATEGY-CATALOG.md`) |
 | L101 | in progress | P0 | Bench: a shard with a deadline, a record for each pair, and a resume of a run |
+| L147 | in progress | P1 | After an engine release, the joint bench measures again only the pairs whose engine output fingerprint changed |
 | L100 | in progress | P1 | The step between two epochs: raw values of the baseline arm, with a marked step on the charts |
 | L122 | in progress | P1 | A floor per option for a walk sample: the count per option beside uniform, a floor with its reason, a stratum if an option falls under it, and a test that pins the smallest count. By 2026-11-17. Part 1, the sample option `fixed`, is in version 0.5.4. |
 | L99 | in progress | P1 | A night with no result shows: `night-check.yml`, a line on the site, retries on API reads, and no green skip after a failed gate |
 | L131 | in progress | P1 | Targets per rung for the routers on the compare view, the date of the run and the current engines. Rung 1: the site data of the cover run 41898523423 |
+
+## Order after L101
+
+This order holds after L101 and L147. Each step gives the reason for its place.
+
+1. L147: after an engine release, the bench measures again only the pairs whose engine output fingerprint changed. Without it, each release makes the whole joint record old, and a full bench of the joint corpus takes approximately 3 days.
+2. L65, size M: one registry of the measures. L66 and each later step read the measures from it.
+3. L66, size M: an objective spec with compactness first, in tiers, and a term for stability. The first consumer wants compactness first and a stable layout.
+4. L50: refinement after the pack, a physical step. Its bench jobs go to CI beside L66.
+5. L36: efficacy maps on the records after the catch-up. It unblocks L16 and L67.
+6. L12, then L14: terms of the L66 objective in the packer. The packer code goes to `packing`.
+7. L15: one joint search with the L66 objective.
+8. L62, then L68: the physical layout step, then one optimizer with energy terms. L62 is its first slice.
+
+L67 is later: it needs the models of L36, the spec of L66 and a new page of the site. L34 keeps the part of the contract that it has. The stages of each engine are the work of `packing` and `highways`.
+
+Of 21 items of size M that shipped, the median took less than 1 day from start to ship, and the longest took 4 days. So L65 and L66 take 1 to 8 days together, from the end of the catch-up.
 
 ## Next
 
@@ -60,6 +78,7 @@ This file lists the items of the roadmap of this repository. The status page of 
 | L53 | blocked by the full cover run | P1 | Mark solved regions in the atlas |
 | L67 | later | P2 | Any objective, answered post hoc by the atlas |
 | L68 | later | P2 | One optimizer with pluggable energy terms |
+| L146 | later | P2 | `layoutText` gives the visual order of each line from the UAX #9 levels of `@mark1russell7/typeset` |
 | L69 | later | P3 | Learned preferences from pairwise choices |
 | L74 | later | P2 | Forces you compose from queries (ghost edges) |
 | L75 | later | P2 | Objectives under an interaction |
