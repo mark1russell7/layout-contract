@@ -254,6 +254,7 @@ dimensionAt: build/index.d.ts#dimensionAt
 dimensionSupports: build/index.d.ts#dimensionSupports
 dimensionUnit: build/index.d.ts#dimensionUnit
 documentHash: build/index.d.ts#documentHash
+dropIndex: build/measures.chunk.d.ts#dropIndex
 edgeKeyStep: build/index.d.ts#edgeKeyStep
 edgeStep: build/index.d.ts#edgeStep
 encodeOptionValue: build/index.d.ts#encodeOptionValue
@@ -2008,6 +2009,9 @@ declare function declaredClaimOf(manifest: object): DeclaredClaim | undefined;
 
 ### build/measures.chunk.d.ts#declaredCounts
 declare function declaredCounts<I>(inputs: Iterable<I>, declares: Declares<I>, ids?: readonly string[]): Record<string, number>;
+
+### build/measures.chunk.d.ts#dropIndex
+declare function dropIndex(point: Point, centers: readonly Point[], rowTolerance?: number): number;
 
 ### build/measures.chunk.d.ts#familyOf
 declare function familyOf(cell: FamilyCell, familyBy: FamilyBy): string;

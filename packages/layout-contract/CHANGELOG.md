@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.6.2
+
+- PATCH before 1.0.0: the new export `dropIndex` gives the index at which a point goes among the items of a list on the screen.
+- The reading order is the rows from top to bottom, and each row from left to right. A center within `rowTolerance` of the point is in its row.
+- `dropIndex` came from `@mark1russell7/collections`, whose API review gives it this home. Collections marks its copy `@deprecated`.
+
 ## 0.6.1
 
 - PATCH before 1.0.0: a record of `layout-record/1` can have the new optional field `carried` (L147). The new exports are the type `Carried`, the type `CarryFacts` and the function `carryRecord`.
