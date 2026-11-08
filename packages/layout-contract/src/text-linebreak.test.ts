@@ -13,8 +13,8 @@ const FILE = new URL("../test/fixtures/LineBreakTest-17.0.0.txt.gz", import.meta
 const SHA256 = "e69884e0dde6a8724873f885d68c52dc14518abf9ae4ca9e2283b8773db3b752";
 
 /** The white space that collapses in `layoutText`. */
-const COLLAPSE = /[ \t\n\v\f\r\u0085  ]+/gu;
-const TRAILING = /[ \t\n\v\f\r\u0085  ]+$/u;
+const COLLAPSE = /[ \t\n\v\f\r\u0085\u2028\u2029]+/gu;
+const TRAILING = /[ \t\n\v\f\r\u0085\u2028\u2029]+$/u;
 
 /** A test line: its number in the file, its text, and the offsets in UTF-16 units of each break (÷) after the start. */
 interface Case {

@@ -13,6 +13,9 @@
 - A text with a no-break space: the words on the two sides stay on one line, and the no-break space stays a no-break space. Before, it was a space between two words.
 - A text with an ideographic space: that space stays in its word, with its own advance. The same is true for each white space of Unicode that CSS keeps.
 - A text with a combining mark after a space: the mark starts the next word, as UAX #14 rule LB10 tells.
+- A text with a space before a closing bracket, or before `!`, `?`, `/`, `.`, `,`, `:` or `;`. UAX #14 has no break place at that space.
+  - The space stays in the word, so a line cannot end there. For example, `r .` stays on one line.
+  - The measure cache also gets one more request for the space.
 - A text with white space at its break places only gives the same lines, widths and cache counts as 0.5.5. The parity test against 0.2.21 in `src/text-breakers.test.ts` names each text of its corpus with other lines.
 - `docs/TEXT.md` gives the rules and the test against `LineBreakTest.txt`.
 

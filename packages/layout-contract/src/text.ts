@@ -114,7 +114,7 @@ interface Word {
 }
 
 /**
- * A run of the white space that collapses: the white space of CSS (space, tab, line feed, form feed, carriage return) and the other required breaks of UAX #14.
+ * A run of the white space that collapses: the white space of CSS (space, tab, line feed, form feed, carriage return) and the other mandatory breaks of UAX #14.
  * A no-break space or an ideographic space stays in its word, as in CSS.
  */
 const SPACES = /[ \t\n\v\f\r\u0085\u2028\u2029]+/gu;
@@ -144,7 +144,7 @@ function wordsOf(text: string): readonly Word[] {
  * This function gives the words of `wordsOf` with no memo.
  * A break place of UAX #14 comes after a run of white space, so the white space of a piece is at its end. That white space goes, and the word records it.
  * White space inside a piece, for example before a closing bracket, collapses to one space, as `white-space: normal` in CSS.
- * A required break inside the text, for example at a line feed, is white space as in CSS. Only the end of the text ends the last line.
+ * A mandatory break inside the text, for example at a line feed, is white space as in CSS. Only the end of the text ends the last line.
  */
 function splitWords(text: string): Word[] {
   const words: Word[] = [];

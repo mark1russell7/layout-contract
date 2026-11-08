@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { deriveSeed, fnv1a32, random, type Random } from "@mark1russell7/rigor-generators";
-import { lineBreaks } from "@mark1russell7/typeset/segmentation";
 import * as released from "layout-contract-0221/text";
+import { breakWords, oldWords } from "../scripts/text-words.ts";
 import { createMeasurer, layoutText, TEXT_UNITS, textMeasures, type TextLayoutOptions } from "./text.ts";
 
 // The texts of the typeset corpus (github.com/mark1russell7/typeset, packages/corpus): the same seeds and draws, for the four
@@ -85,24 +85,6 @@ const TEXTS = Object.keys(SCRIPTS).flatMap((script) => Object.keys(CLASSES).flat
 const EDGE_TEXTS = ["", "   ", "a", "a ́b c", "one two three", "a\n\nb\tc  d", "x".repeat(90) + " y z", "👩‍👩‍👧 family 👍🏽 ok", "W W W W W W W W W W"];
 const FONT = "16px report";
 
-/** The words of 0.2.21: the text split at white space. */
-const spaceWords = (text: string): string => JSON.stringify(text.split(/\s+/u).filter((w) => w !== ""));
-
-/** The white space that collapses in `layoutText` since 0.6.0. */
-const COLLAPSE = /[ \t\n\v\f\r\u0085\u2028\u2029]+/gu;
-
-/** The words of 0.6.0: the text split at the break places of UAX #14, with the white space of `COLLAPSE` collapsed. */
-function breakWords(text: string): string {
-  const words: string[] = [];
-  let start = 0;
-  for (const place of lineBreaks(text)) {
-    const body = text.slice(start, place.offset).replace(COLLAPSE, " ").replace(/^ | $/gu, "");
-    start = place.offset;
-    if (body !== "") words.push(body);
-  }
-  return JSON.stringify(words);
-}
-
 type Variant = Omit<TextLayoutOptions, "font" | "measurer" | "lineHeight">;
 /** The variants of the parity test: a name, the wrap widths and the options at a wrap width. */
 const VARIANTS: readonly (readonly [string, readonly number[], (w: number) => Variant])[] = [
@@ -138,7 +120,7 @@ describe("layoutText with the typeset breakers", () => {
           const b = released.layoutText(text, { font: FONT, measurer: old, lineHeight: 20, ...options });
           cases++;
           if (JSON.stringify(a) === JSON.stringify(b) && JSON.stringify(head.stats()) === JSON.stringify(old.stats())) same++;
-          else if (spaceWords(text) !== breakWords(text)) changed.add(t);
+          else if (oldWords(text) !== breakWords(text)) changed.add(t);
           else if (diffs.length < 5) diffs.push(`${name}, text ${t}, width ${w}`);
         }
       }
