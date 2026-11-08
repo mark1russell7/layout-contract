@@ -194,3 +194,25 @@ export function pointSegmentDistance(p: Point, a: Point, b: Point): number {
   const t = l2 === 0 ? 0 : Math.max(0, Math.min(1, ((p.x - a.x) * dx + (p.y - a.y) * dy) / l2));
   return Math.hypot(p.x - (a.x + t * dx), p.y - (a.y + t * dy));
 }
+
+/**
+ * This function gives the index at which a point goes among the items of a list on the screen.
+ * The reading order is the rows from top to bottom, and each row from left to right.
+ * The index is that of the first item whose center comes after the point, from 0 to the number of items.
+ * A center within `rowTolerance` of the point on the vertical axis is in the row of the point.
+ *
+ * Give the centers in reading order and without the item that moves.
+ *
+ * @example
+ * ```ts
+ * const index = dropIndex(pointer, others.map(centerOf));
+ * ```
+ */
+export function dropIndex(point: Point, centers: readonly Point[], rowTolerance = 24): number {
+  for (let i = 0; i < centers.length; i++) {
+    const c = centers[i] as Point;
+    if (point.y < c.y - rowTolerance) return i;
+    if (Math.abs(point.y - c.y) <= rowTolerance && point.x < c.x) return i;
+  }
+  return centers.length;
+}
