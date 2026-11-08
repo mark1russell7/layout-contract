@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.6.0
+
+- MINOR before 1.0.0: a break. A reader with an older contract refuses a file of the schema `strategy-catalog/3`. `STRATEGY_CATALOG_SCHEMA` has a new value, and the type of `StrategyCatalog.schema` is wider.
+- The new schema `strategy-catalog/3` adds an optional text `fingerprint` to `CatalogEntry`. It is the value of `fingerprintOf` for the probes of the engine: 16 lowercase hex digits.
+- `parseStrategyCatalog` refuses another form, and it refuses the field in a file of the schema 1 or 2.
+- `writeStrategyCatalog` writes the oldest schema that holds the file. A catalog with no `fingerprint` keeps its schema and its bytes.
+
 ## 0.5.5
 
 - PATCH before 1.0.0: new exports and one new optional option, with no change to an old hash.

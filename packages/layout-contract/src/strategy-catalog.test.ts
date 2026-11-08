@@ -21,6 +21,7 @@ import {
   type StrategyCatalogSource,
   writeStrategyCatalog,
 } from "./strategy-catalog.ts";
+import { fingerprintOf, REFUSED_PROBE } from "./hash.ts";
 import type { AnyOption, OptionSchema } from "./strategy-options.ts";
 import { STRATEGY_SPACE_SCHEMA, type StrategySpace } from "./strategy-space.ts";
 
@@ -236,8 +237,8 @@ describe("the output of a strategy", () => {
     return parsed.ok ? [] : parsed.faults;
   };
 
-  it("names the two schemas, and the newest is the last", () => {
-    expect(STRATEGY_CATALOG_SCHEMAS).toEqual(["strategy-catalog/1", "strategy-catalog/2"]);
+  it("names the three schemas, and the newest is the last", () => {
+    expect(STRATEGY_CATALOG_SCHEMAS).toEqual(["strategy-catalog/1", "strategy-catalog/2", "strategy-catalog/3"]);
     expect(STRATEGY_CATALOG_SCHEMAS.at(-1)).toBe(STRATEGY_CATALOG_SCHEMA);
     expect(OUTPUT_GRID_PROPERTIES).toEqual(["position-grid", "size-grid"]);
   });
@@ -270,21 +271,77 @@ describe("the output of a strategy", () => {
   it("writes schema 2 for a catalog with output, and reads the same rows back", () => {
     const rows = [row("position-grid", "whole", 240, 0), row("size-grid", "fractional", 240, 25), row("position-grid", "fractional", 6, 6, 0, "bench-entries")];
     const text = writeStrategyCatalog(withRows(rows), "1.2.3");
-    expect(JSON.parse(text)).toMatchObject({ schema: STRATEGY_CATALOG_SCHEMA });
+    expect(JSON.parse(text)).toMatchObject({ schema: "strategy-catalog/2" });
     const parsed = parseStrategyCatalog(JSON.parse(text));
     if (!parsed.ok) throw new Error(parsed.faults.join(" "));
-    expect(parsed.catalog.schema).toBe(STRATEGY_CATALOG_SCHEMA);
+    expect(parsed.catalog.schema).toBe("strategy-catalog/2");
     expect(parsed.catalog.strategies.find((s) => s.key === "shelf")?.output).toEqual(rows);
     expect(parsed.catalog.strategies.find((s) => s.key === "aspect-fit")).not.toHaveProperty("output");
     expect(writeStrategyCatalog(parsed.catalog, "1.2.3")).toBe(text);
   });
 
-  it("reads a schema 2 file with no output", () => {
+  it("reads a schema 2 file and a schema 3 file with no output", () => {
+    expect(parseStrategyCatalog({ ...fileOf(), schema: "strategy-catalog/2" }).ok).toBe(true);
     expect(parseStrategyCatalog({ ...fileOf(), schema: STRATEGY_CATALOG_SCHEMA }).ok).toBe(true);
   });
 
   it("refuses output in a schema 1 file", () => {
-    expect(faultsOf("shelf", (e) => (e["output"] = [row("position-grid", "whole", 240, 0)]))).toEqual([`The strategy shelf: the field "output" needs the schema ${STRATEGY_CATALOG_SCHEMA}.`]);
+    expect(faultsOf("shelf", (e) => (e["output"] = [row("position-grid", "whole", 240, 0)]))).toEqual(['The strategy shelf: the field "output" needs the schema strategy-catalog/2 or a newer schema.']);
+  });
+
+  it("reads output in a schema 3 file", () => {
+    expect(outputFaults([row("position-grid", "whole", 240, 0)])).toEqual([]);
+  });
+
+  describe("the fingerprint of an entry (schema 3)", () => {
+    const print = fingerprintOf({ "rect-small": "0123456789abcdef", "points-large": REFUSED_PROBE });
+    const withPrint = (fingerprint: string): StrategyCatalogSource => ({ engine: "packing", strategies: [{ ...shelf, fingerprint }, wrap] });
+    /** This function gives the faults of a file whose entry `shelf` has this `fingerprint`, with this schema. */
+    const printFaults = (fingerprint: unknown, schema: string = STRATEGY_CATALOG_SCHEMA): readonly string[] => {
+      const doc = fileOf() as { schema: string; strategies: Record<string, unknown>[] };
+      doc.schema = schema;
+      doc.strategies.find((s) => s["key"] === "shelf")!["fingerprint"] = fingerprint;
+      const parsed = parseStrategyCatalog(doc);
+      return parsed.ok ? [] : parsed.faults;
+    };
+
+    it("writes schema 3 for a catalog with a fingerprint, and reads it back", () => {
+      expect(print).toMatch(/^[0-9a-f]{16}$/u);
+      const text = writeStrategyCatalog(withPrint(print), "1.2.3");
+      expect(JSON.parse(text)).toMatchObject({ schema: "strategy-catalog/3" });
+      const parsed = parseStrategyCatalog(JSON.parse(text));
+      if (!parsed.ok) throw new Error(parsed.faults.join(" "));
+      expect(parsed.catalog.schema).toBe("strategy-catalog/3");
+      expect(parsed.catalog.strategies.find((s) => s.key === "shelf")?.fingerprint).toBe(print);
+      expect(parsed.catalog.strategies.find((s) => s.key === "aspect-fit")).not.toHaveProperty("fingerprint");
+      expect(writeStrategyCatalog(parsed.catalog, "1.2.3")).toBe(text);
+    });
+
+    it("gives a fingerprint no other effect on the file than the schema and the field", () => {
+      const doc = JSON.parse(writeStrategyCatalog(withPrint(print), "1.2.3")) as { schema: string; strategies: Record<string, unknown>[] };
+      const entry = doc.strategies.find((s) => s["key"] === "shelf")!;
+      expect(Object.keys(entry).slice(-2)).toEqual(["fingerprint", "options"]);
+      delete entry["fingerprint"];
+      doc.schema = "strategy-catalog/1";
+      expect(`${JSON.stringify(doc, null, 2)}\n`).toBe(writeStrategyCatalog(source, "1.2.3"));
+    });
+
+    it("writes the fingerprint after the output, with schema 3", () => {
+      const both: StrategyCatalogSource = { engine: "packing", strategies: [{ ...shelf, output: [row("position-grid", "whole", 240, 0)], fingerprint: print }, wrap] };
+      const doc = JSON.parse(writeStrategyCatalog(both, "1.2.3")) as { schema: string; strategies: Record<string, unknown>[] };
+      expect(doc.schema).toBe("strategy-catalog/3");
+      expect(Object.keys(doc.strategies.find((s) => s["key"] === "shelf")!).slice(-3)).toEqual(["output", "fingerprint", "options"]);
+    });
+
+    it("refuses a fingerprint in a schema 1 or a schema 2 file", () => {
+      const fault = 'The strategy shelf: the field "fingerprint" needs the schema strategy-catalog/3.';
+      expect(printFaults(print, "strategy-catalog/1")).toEqual([fault]);
+      expect(printFaults(print, "strategy-catalog/2")).toEqual([fault]);
+    });
+
+    it.each([["upper case", "0123456789ABCDEF"], ["15 digits", "0123456789abcde"], ["17 digits", "0123456789abcdef0"], ["a number", 12], ["an empty text", ""], ["a full sha256", "0".repeat(64)]])("refuses a fingerprint that is %s", (_, value) => {
+      expect(printFaults(value)).toEqual(['The strategy shelf: "fingerprint" is not 16 lowercase hex digits.']);
+    });
   });
 
   it("takes the class from the counts: one fraction proves fractional at any count", () => {

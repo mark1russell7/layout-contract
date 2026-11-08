@@ -434,6 +434,7 @@ export interface CatalogEntry {
   readonly optIn: boolean;
   readonly baseline?: true;
   readonly output?: readonly OutputRow[];
+  readonly fingerprint?: string;
   readonly options: Readonly<Record<string, AnyOption>>;
 }
 
@@ -985,10 +986,10 @@ export interface RunEnv {
 export type RunFacts = Omit<LayoutRecord, "schema" | "input" | "inputHash" | "set" | "nodes" | "edges" | "shapes">;
 
 ### build/index.d.ts#STRATEGY_CATALOG_SCHEMA
-export declare const STRATEGY_CATALOG_SCHEMA = "strategy-catalog/2";
+export declare const STRATEGY_CATALOG_SCHEMA = "strategy-catalog/3";
 
 ### build/index.d.ts#STRATEGY_CATALOG_SCHEMAS
-export declare const STRATEGY_CATALOG_SCHEMAS: readonly ["strategy-catalog/1", "strategy-catalog/2"];
+export declare const STRATEGY_CATALOG_SCHEMAS: readonly ["strategy-catalog/1", "strategy-catalog/2", "strategy-catalog/3"];
 
 ### build/index.d.ts#STRATEGY_SPACE_SCHEMA
 export declare const STRATEGY_SPACE_SCHEMA = "strategy-space/1";
