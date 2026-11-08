@@ -73,6 +73,6 @@
   },
   "dependencies": {
     "@mark1russell7/rigor-generators": "^0.1.0",
-    "@mark1russell7/typeset": "^0.1.6"
+    "@mark1russell7/typeset": "^0.1.8"
   }
 }

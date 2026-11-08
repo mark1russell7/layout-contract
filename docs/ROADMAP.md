@@ -6,7 +6,7 @@ This file lists the items of the roadmap of this repository. The status page of 
 
 | ID | Status | Priority | Title |
 | --- | --- | --- | --- |
-| L144 | in progress | P1 | `layoutText` breaks lines at the break places of UAX #14 from `@mark1russell7/typeset` 0.1.6, with the test of `LineBreakTest.txt` |
+| L144 | in progress | P1 | `layoutText` breaks lines at the break places of UAX #14 from `@mark1russell7/typeset` 0.1.8, with the test of `LineBreakTest.txt` |
 | L129 | in progress | P1 | The joint bench and the site use `packing` 0.10.2 and `highways` 0.15.0, and read the routers of `KEYED_STRATEGIES` (88 names) |
 | L5 | in progress | P1 | highways reads the contract |
 | L34 | in progress | P1 | The strategy space as data |
@@ -14,7 +14,6 @@ This file lists the items of the roadmap of this repository. The status page of 
 | L81 | in progress | P1 | Memory gate over each family of the bench, then the dense-hubs peak (3.4-4.3 GB) |
 | L82 | in progress | P2 | The bench scripts in TypeScript (rule typed-scripts of conventions 0.5.0) |
 | L134 | in progress | P1 | Each measure of `kpi.json` has its own date: the age reads the newest run, and the coverage reads the newest cover run |
-| L135 | in progress | P1 | One form of the output fingerprint of an engine entry in the contract: `skip`, `packOutputForm`, `probeHash`, `REFUSED_PROBE` and `fingerprintOf` (0.5.5), and the catalog field `fingerprint` of the schema `strategy-catalog/3` (0.5.6). The engines give the fingerprints. |
 | L136 | in progress | P1 | The publish of a sweep night builds on the commit that its check read, so a night that runs at the same time is not lost |
 | L132 | in progress | P1 | A short run of chosen rows on each engine release, at most one a day. Part 1: the site reads a short run, opens on the newest full run, and the age of the data is the age of the oldest shown pair |
 | L95 | done | P1 | Open size families in the joint corpus (`joint-v3`) |
@@ -152,3 +151,4 @@ This file lists the items of the roadmap of this repository. The status page of 
 | L115 | done | P1 | A deadline inside each shard with a censored row and a flip, the held configs and the origin of a label in the report, and a count of each planned pair with no value |
 | L130 | done | P1 | The routers measure of kpi.json reads the rows of the run |
 | L145 | done | P1 | Each gate of the joint bench prints a case with no read as a warning annotation on its check |
+| L135 | done | P1 | One form of the output fingerprint of an engine entry in the contract: `skip`, `packOutputForm`, `probeHash`, `REFUSED_PROBE` and `fingerprintOf` (0.5.5), and the catalog field `fingerprint` of the schema `strategy-catalog/3` (0.5.6). The engines give the fingerprints. |
