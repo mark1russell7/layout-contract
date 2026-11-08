@@ -221,7 +221,7 @@ importers:
         specifier: ^0.2.8
         version: 0.2.32(esbuild@0.28.2)
       '@mark1russell7/rigor-generators':
-        specifier: ^0.1.3
+        specifier: ^0.1.7
         version: 0.1.8
       '@mark1russell7/rigor-statistics':
         specifier: ^0.1.10
@@ -243,8 +243,11 @@ importers:
   packages/layout-contract:
     dependencies:
       '@mark1russell7/rigor-generators':
-        specifier: ^0.1.0
+        specifier: ^0.1.8
         version: 0.1.8
+      '@mark1russell7/rigor-statistics':
+        specifier: ^0.1.23
+        version: 0.1.24
       '@mark1russell7/typeset':
         specifier: ^0.2.0
         version: 0.2.0

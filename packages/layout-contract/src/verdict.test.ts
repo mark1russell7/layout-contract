@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { mulberry32, verdict, VERDICT_EXACT_MAX, type VerdictOptions, type VerdictRecord } from "./index.ts";
+import { mulberry32, stepRandom, verdict, VERDICT_EXACT_MAX, type VerdictOptions, type VerdictRecord } from "./index.ts";
 
 // The verdict over families (VERDICT, SCREEN-WEIGHT step 1). All data is made up.
 
@@ -226,5 +226,76 @@ describe("verdict: the scope and the breadth (SCREEN-WEIGHT step 2)", () => {
     expect(v.label).toBe("no verdict");
     expect(v.breadth).toEqual({ against: 0, of: 3, ties: 1 });
     expect(v.summary).toBe("no verdict: the family mean is 0, on 3 families (1 tie)");
+  });
+});
+
+describe("verdict: the functions of rigor-statistics give the numbers of the earlier loops (L149)", () => {
+  // The loops of verdict before L149, as the test oracle: the bootstraps, the sign flips and their streams.
+  function earlier(lists: readonly (readonly number[])[], runs: number, draws: number, seed: number, level: number, exactMax: number) {
+    const quantileOf = (v: readonly number[], q: number): number => {
+      const at = (v.length - 1) * q;
+      const lo = Math.floor(at);
+      return v[lo]! + (v[Math.ceil(at)]! - v[lo]!) * (at - lo);
+    };
+    const ends = (samples: number[]): [number, number] => {
+      samples.sort((x, y) => x - y);
+      return [quantileOf(samples, level / 2), quantileOf(samples, 1 - level / 2)];
+    };
+    const rs = stepRandom(seed, "verdict.stratified");
+    const strat: number[] = [];
+    for (let run = 0; run < runs; run++) {
+      let sum = 0;
+      for (const list of lists) {
+        let t = 0;
+        for (let j = 0; j < list.length; j++) t += list[Math.floor(rs() * list.length)]!;
+        sum += t / list.length;
+      }
+      strat.push(sum / lists.length);
+    }
+    const all = lists.flat();
+    const n = all.length;
+    const rp = stepRandom(seed, "verdict.pooled");
+    const pooled: number[] = [];
+    for (let run = 0; run < runs; run++) {
+      let t = 0;
+      for (let j = 0; j < n; j++) t += all[Math.floor(rp() * n)]!;
+      pooled.push(t / n);
+    }
+    const terms = lists.flatMap((list) => list.map((d) => d / (lists.length * list.length)));
+    const observed = Math.abs(terms.reduce((x, t) => x + t, 0));
+    const slack = 1e-12 * terms.reduce((x, t) => x + Math.abs(t), 0);
+    const exact = n <= exactMax;
+    const total = exact ? 2 ** n : draws;
+    const rf = stepRandom(seed, "verdict.permutation");
+    let hits = 0;
+    for (let k = 0; k < total; k++) {
+      let t = 0;
+      for (let i = 0; i < n; i++) t += (exact ? k & (1 << i) : rf() < 0.5) ? -terms[i]! : terms[i]!;
+      if (Math.abs(t) >= observed - slack) hits++;
+    }
+    return { stratified: ends(strat), pooled: ends(pooled), permutation: { p: exact ? hits / total : (hits + 1) / (total + 1), exact, draws: total, seed } };
+  }
+
+  it("gives the same text of the intervals and of the permutation for 24 made-up screens, exact and drawn", () => {
+    const r = mulberry32(149);
+    let drawn = 0;
+    for (let k = 0; k < 24; k++) {
+      const count = 1 + Math.floor(r() * 4);
+      const data: Record<string, number[]> = {};
+      for (let f = 0; f < count; f++) data[`F${f}`] = Array.from({ length: 1 + Math.floor(r() * 7) }, () => Math.round((r() - 0.4) * 1000) / 1000);
+      const seed = 1 + Math.floor(r() * 1000);
+      const lists = Object.keys(data)
+        .sort()
+        // A difference of verdict is the baseline minus the candidate, as the records give it: 10 - (10 - d).
+        .map((f) => data[f]!.map((d) => 10 - (10 - d)));
+      const v = verdict(recordsOf(data), options({ runs: 300, draws: 400, seed, exactMax: 12 }));
+      const want = earlier(lists, 300, 400, seed, 0.05, 12);
+      const got = { stratified: [v.stratified.lo, v.stratified.hi], pooled: [v.pooled.lo, v.pooled.hi], permutation: v.permutation };
+      expect(JSON.stringify(got), JSON.stringify(data)).toBe(JSON.stringify(want));
+      if (!v.permutation.exact) drawn++;
+    }
+    // The screens test the two kinds of the permutation test.
+    expect(drawn).toBeGreaterThan(0);
+    expect(drawn).toBeLessThan(24);
   });
 });
