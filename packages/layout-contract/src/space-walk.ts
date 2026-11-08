@@ -25,7 +25,7 @@ export interface WalkPlan {
   readonly stages: readonly SpaceStage[];
   /** The options of each stage for a draw. */
   readonly lists: readonly (readonly (StageOption | null)[])[];
-  /** The indexes of the stages, from the largest stage to the smallest. */
+  /** The indexes of the stages. The stages of `first` come first, in the order of the space. The others follow, from the largest stage to the smallest. */
   readonly order: readonly number[];
   /** The constraints that name each stage. */
   readonly naming: readonly (readonly SpaceConstraint[])[];
@@ -33,13 +33,22 @@ export interface WalkPlan {
   readonly n: number;
 }
 
-/** This function gives the plan of a walk. Stages of equal size keep the order of the space. */
-export function walkPlan(stages: readonly SpaceStage[], lists: readonly (readonly (StageOption | null)[])[], constraints: readonly SpaceConstraint[], n: number): WalkPlan {
+/**
+ * This function gives the plan of a walk. Stages of equal size keep the order of the space.
+ * The stages of `first` go first, for example the stages of the sample option `fixed`. Thus the other stages draw only from the options that keep the constraints with them.
+ */
+export function walkPlan(
+  stages: readonly SpaceStage[],
+  lists: readonly (readonly (StageOption | null)[])[],
+  constraints: readonly SpaceConstraint[],
+  n: number,
+  first: ReadonlySet<string> = new Set(),
+): WalkPlan {
   return {
     stages,
     lists,
     n,
-    order: stages.map((_, k) => k).sort((a, b) => lists[b]!.length - lists[a]!.length || a - b),
+    order: stages.map((_, k) => k).sort((a, b) => Number(first.has(stages[b]!.name)) - Number(first.has(stages[a]!.name)) || lists[b]!.length - lists[a]!.length || a - b),
     naming: stages.map((s) => constraints.filter((c) => c.if.stage === s.name || otherStage(c) === s.name)),
   };
 }
