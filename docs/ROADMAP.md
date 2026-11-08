@@ -4,31 +4,34 @@ This file lists the items of the roadmap of this repository. The status page of 
 
 ## In progress
 
+A row with the status `later (parked to 11-11)` waits until 2026-11-11. Until that date, the work goes to the measures of the targets of the site.
+
 | ID | Status | Priority | Title |
 | --- | --- | --- | --- |
 | L129 | in progress | P1 | The joint bench and the site use `packing` 0.10.2 and `highways` 0.15.0, and read the routers of `KEYED_STRATEGIES` (88 names) |
-| L5 | in progress | P1 | highways reads the contract |
+| L5 | later (parked to 11-11) | P2 | highways reads the contract |
 | L34 | in progress | P1 | The strategy space as data |
 | L52 | in progress | P1 | Measure joint space coverage, with a weekly trend that rises |
-| L81 | in progress | P1 | Memory gate over each family of the bench, then the dense-hubs peak (3.4-4.3 GB) |
-| L82 | in progress | P2 | The bench scripts in TypeScript (rule typed-scripts of conventions 0.5.0) |
+| L81 | later (parked to 11-11) | P2 | Memory gate over each family of the bench, then the dense-hubs peak (3.4-4.3 GB) |
+| L82 | later (parked to 11-11) | P2 | The bench scripts in TypeScript (rule typed-scripts of conventions 0.5.0) |
 | L132 | in progress | P1 | A short run of chosen rows on each engine release, at most one a day. Part 1: the site reads a short run, opens on the newest full run, and the age of the data is the age of the oldest shown pair |
-| L96 | in progress | P2 | Two named tables of the family `recorded` in `rigor-generators`, with source, license and date, as joint inputs and size choices of the site |
+| L96 | later (parked to 11-11) | P2 | Two named tables of the family `recorded` in `rigor-generators`, with source, license and date, as joint inputs and size choices of the site |
 | L98 | done | P2 | Bench: run only chosen rows of the cover |
 | L94 | in progress | P1 | Circle items in the joint bench: one shared family and an exact hard rule in the contract (0.4.0), then the joint corpus. Part 1: the array `shapes` of `joint-v3` gives inputs to `hole-degree`, `circle-quasi-physical` and `exact-strip`. Part 2: a cover run of `joint-v3` removes the 3 cover exceptions. Routes read the box until highways routes around the true shape |
-| L108 | in progress | P2 | The news of the site holds no typed version. The release page is the one list of versions |
-| L111 | in progress | P2 | The cost claim of the sweep is an interval for the whole night, then for each shard, and the night record states the inputs of its budget |
-| L110 | in progress | P1 | The step between two sweep nights reads route values: detour, routed crossings and the route length of the contract (`joint.route.length`) |
-| L109 | in progress | P2 | The point where two segments cross has its home in the contract, beside `segmentsCross`, and gives a point exactly when that function is true |
-| L105 | in progress | P1 | State the key of the edges as a dimension (`edgeKey`), and do not read crossings alone across routers that share segments |
-| L103 | next | P1 | A load factor for each shard from the router `straight`, so a time limit does not depend on the runner |
+| L108 | later (parked to 11-11) | P2 | The news of the site holds no typed version. The release page is the one list of versions |
+| L111 | later (parked to 11-11) | P2 | The cost claim of the sweep is an interval for the whole night, then for each shard, and the night record states the inputs of its budget |
+| L110 | later (parked to 11-11) | P2 | The step between two sweep nights reads route values: detour, routed crossings and the route length of the contract (`joint.route.length`) |
+| L109 | later (parked to 11-11) | P2 | The point where two segments cross has its home in the contract, beside `segmentsCross`, and gives a point exactly when that function is true |
+| L105 | later (parked to 11-11) | P2 | State the key of the edges as a dimension (`edgeKey`), and do not read crossings alone across routers that share segments |
+| L103 | later (parked to 11-11) | P2 | A load factor for each shard from the router `straight`, so a time limit does not depend on the runner |
 | L104 | in progress | P1 | A response explorer on the site, from the records of a joint run: the builder first, the page with the data of the cover run |
-| L102 | in progress | P1 | The strategy catalog: each strategy and option of an engine as JSON (`docs/STRATEGY-CATALOG.md`) |
+| L102 | later (parked to 11-11) | P2 | The strategy catalog: each strategy and option of an engine as JSON (`docs/STRATEGY-CATALOG.md`) |
 | L101 | in progress | P0 | Bench: a shard with a deadline, a record for each pair, and a resume of a run |
 | L147 | in progress | P1 | After an engine release, the joint bench measures again only the pairs whose engine output fingerprint changed |
-| L100 | in progress | P1 | The step between two epochs: raw values of the baseline arm, with a marked step on the charts |
-| L122 | in progress | P1 | A floor per option for a walk sample: the count per option beside uniform, a floor with its reason, a stratum if an option falls under it, and a test that pins the smallest count. By 2026-11-17. Part 1, the sample option `fixed`, is in version 0.5.4. |
-| L99 | in progress | P1 | A night with no result shows: `night-check.yml`, a line on the site, retries on API reads, and no green skip after a failed gate |
+| L148 | in progress | P1 | The strategy space as a package of its own (`@mark1russell7/strategy-space`): operators, combinators, the count of the grammar, screening and racing |
+| L100 | later (parked to 11-11) | P2 | The step between two epochs: raw values of the baseline arm, with a marked step on the charts |
+| L122 | later (parked to 11-11) | P2 | A floor per option for a walk sample: the count per option beside uniform, a floor with its reason, a stratum if an option falls under it, and a test that pins the smallest count. By 2026-11-17. Part 1, the sample option `fixed`, is in version 0.5.4. |
+| L99 | later (parked to 11-11) | P2 | A night with no result shows: `night-check.yml`, a line on the site, retries on API reads, and no green skip after a failed gate |
 | L131 | in progress | P1 | Targets per rung for the routers on the compare view, the date of the run and the current engines. Rung 1: the site data of the cover run 41898523423 |
 
 ## Order after L101
@@ -53,14 +56,14 @@ Of 21 items of size M that shipped, the median took less than 1 day from start t
 | ID | Status | Priority | Title |
 | --- | --- | --- | --- |
 | L36 | next | P1 | Efficacy maps |
-| L40 | in progress | P1 | Confirm the first joint default |
-| L44 | next | P1 | The atlas of the joint space |
-| L61 | in progress | P2 | Promotion test of the 9 night-1 configs against the default lanes-sides |
+| L40 | later (parked to 11-11) | P2 | Confirm the first joint default |
+| L44 | later (parked to 11-11) | P2 | The atlas of the joint space |
+| L61 | later (parked to 11-11) | P2 | Promotion test of the 9 night-1 configs against the default lanes-sides |
 | L62 | next | P1 | Node layout by physics as a joint step |
 | L65 | next | P1 | One measure registry in layout-contract |
 | L66 | next | P1 | An objective spec with one evaluator |
-| L72 | next | P1 | Neat is a family of objectives, not one |
-| L73 | next | P1 | Clarity of structure: macro and micro measures |
+| L72 | later (parked to 11-11) | P2 | Neat is a family of objectives, not one |
+| L73 | later (parked to 11-11) | P2 | Clarity of structure: macro and micro measures |
 | L127 | next | P1 | The page says that the data is current at the start of a run, and what it does not know |
 
 ## Later
@@ -73,13 +76,13 @@ Of 21 items of size M that shipped, the median took less than 1 day from start t
 | L16 | blocked by L36 | P1 | A learned selector over the pair |
 | L25 | later | P3 | A cooperative time budget for portfolio() members |
 | L38 | later | P2 | A select rule learned on the joint records |
-| L48 | next | P1 | Route-first skeleton |
+| L48 | later (parked to 11-11) | P2 | Route-first skeleton |
 | L50 | next | P1 | Force-directed refinement after pack |
 | L53 | blocked by the full cover run | P1 | Mark solved regions in the atlas |
 | L67 | later | P2 | Any objective, answered post hoc by the atlas |
 | L68 | later | P2 | One optimizer with pluggable energy terms |
 | L146 | later | P2 | `layoutText` gives the visual order of each line from the UAX #9 levels of `@mark1russell7/typeset` |
-| L69 | later | P3 | Learned preferences from pairwise choices |
+| L69 | later | P1 | Learned preferences from pairwise choices |
 | L74 | later | P2 | Forces you compose from queries (ghost edges) |
 | L75 | later | P2 | Objectives under an interaction |
 | L76 | later | P2 | The orbit of a node: a soft keep-out margin |
@@ -94,11 +97,10 @@ Of 21 items of size M that shipped, the median took less than 1 day from start t
 | L121 | later | P3 | The local `permutation` of the strategy space uses `Random.shuffle` of `@mark1russell7/rigor-generators`, after a byte-equal read. |
 | L106 | later | P2 | One name for routes through a shape: `route.through` takes the true shape when the measure of the router is on npm, and the extra key stops |
 | L107 | later | P2 | An exact rule for a circle beside another shape kind, an obstacle or a polygon container, due 2026-11-28 |
-| L112 | next | P1 | A flip test for each gate check of a measure: an injected fault turns the check red, with a clean copy green in the same job |
-| L116 | next | P1 | A bound on a held config: a config that misses the same planned input on 2 nights in a row gets a censored row for that input and goes into the full race, by 2026-11-12 |
-| L117 | next | P1 | One timed run over 60 s on the joint runner, with a same-twice check that can go red and its flip, in the engine epoch of 2026-11-15 |
-| L113 | in progress | P1 | A CI read of the wait of each pull request gate and release gate, by UTC hour, with the memory gate running and not |
-| L116 | in progress | P1 | A held config cannot stay out of the full race for ever: a censored row after 2 planned nights with a miss, a limit of 0.5 % of the inputs, a plan in part, and kept records that give a value once their reference returns. By 2026-11-12 |
+| L112 | later (parked to 11-11) | P2 | A flip test for each gate check of a measure: an injected fault turns the check red, with a clean copy green in the same job |
+| L117 | later (parked to 11-11) | P2 | One timed run over 60 s on the joint runner, with a same-twice check that can go red and its flip, in the engine epoch of 2026-11-15 |
+| L113 | later (parked to 11-11) | P2 | A CI read of the wait of each pull request gate and release gate, by UTC hour, with the memory gate running and not |
+| L116 | later (parked to 11-11) | P2 | A held config cannot stay out of the full race for ever: a censored row after 2 planned nights with a miss, a limit of 0.5 % of the inputs, a plan in part, and kept records that give a value once their reference returns. By 2026-11-12 |
 | L133 | later | P2 | The epoch key changes when the joint space changes |
 
 ## Done
