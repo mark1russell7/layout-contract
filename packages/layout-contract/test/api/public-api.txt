@@ -1001,6 +1001,7 @@ export interface SampleOptions extends ShapeFilter {
   readonly meta?: "skip" | "sample";
   readonly maxTries?: number;
   readonly draw?: "reject" | "walk";
+  readonly fixed?: Readonly<Record<string, string>>;
 }
 
 ### build/index.d.ts#SelectCandidate
