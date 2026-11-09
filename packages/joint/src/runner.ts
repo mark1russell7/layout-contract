@@ -2,6 +2,9 @@
 // It does not use Node, so the site operates it in a Web Worker. `runEnv` is in `src/env.ts`.
 import {
   applyPack,
+  canonicalConfig,
+  checkConfig,
+  configId,
   outputHash,
   RECORD_EPS,
   toLayoutRecord,
@@ -14,8 +17,26 @@ import {
   type PackInputOptions,
   type PackOutput,
   type RunEnv,
+  type StrategyConfig,
+  type StrategySpace,
 } from "@mark1russell7/layout-contract";
-import { checkHard, GRAPH_ORDERS, measure, outputHash as packHash, packWith, SELECT_MEMBERS, SELECT_TABLE, selectFeatures, selectLeaf, strategy as packStrategy, unsupportedOf, type SelectNode } from "@mark1russell7/packing";
+import {
+  checkHard,
+  GRAPH_ORDERS,
+  measure,
+  outputHash as packHash,
+  packConfig,
+  packSpace,
+  packWith,
+  SELECT_MEMBERS,
+  SELECT_TABLE,
+  selectFeatures,
+  selectLeaf,
+  strategy as packStrategy,
+  UnsupportedCell,
+  unsupportedOf,
+  type SelectNode,
+} from "@mark1russell7/packing";
 import {
   asRouter,
   benchRun,
@@ -67,6 +88,54 @@ export interface PackEntry {
   readonly options: Readonly<Record<string, unknown>>;
   /** The mode of the pack, for a strategy that needs another mode than the mode of the input. The default is the mode of the input. */
   readonly mode?: string;
+  /**
+   * A canonical config of `packSpace` of `packing`. An entry with a config has the strategy `CONFIG_PACK` and no options, and packs with `packConfig`.
+   * Make it with `configEntry`.
+   */
+  readonly config?: StrategyConfig;
+}
+
+/** The strategy of a pack entry with a config of `packSpace`. It is not the id of a strategy of the registry of `packing`. */
+export const CONFIG_PACK = "config";
+
+/** The start of the id of a pack entry with a config and no name, before the `configId` of the config. */
+export const CONFIG_ID_PREFIX = "cfg-";
+
+/** The strategy space of `packing`, with the type of `layout-contract`. */
+const PACK_SPACE = packSpace as unknown as StrategySpace;
+
+/**
+ * This function gives the pack entry of a config of `packSpace`. The entry holds the canonical config.
+ * The default id is `cfg-` and the `configId` of the config. A config with a break of `checkConfig` causes a `RangeError`.
+ */
+export function configEntry(config: StrategyConfig, id?: string): PackEntry {
+  const breaks = checkConfig(PACK_SPACE, config);
+  if (breaks.length > 0) throw new RangeError(`The config is not a config of packSpace: ${breaks.map((b) => `${b.claim}: ${b.detail}`).join("; ")}.`);
+  const canonical = canonicalConfig(PACK_SPACE, config);
+  const name = id ?? `${CONFIG_ID_PREFIX}${configId(PACK_SPACE, canonical)}`;
+  if (name.includes(PAIR_SEPARATOR)) throw new RangeError(`The id "${name}" of a pack entry has the pair separator "${PAIR_SEPARATOR}".`);
+  return { id: name, strategy: CONFIG_PACK, options: {}, config: canonical };
+}
+
+/** This function packs an input with a pack entry: `packConfig` for an entry with a config, else `packWith` with the strategy and the options of the entry. */
+export function packEntry(entry: PackEntry, input: PackInput, seed: number): PackOutput {
+  return entry.config === undefined ? packWith(entry.strategy, input, entry.options, seed) : packConfig(input, entry.config, seed);
+}
+
+/**
+ * This function gives the value of the cell that the strategy of a pack entry does not support, or `undefined`.
+ * `packSpace` holds no cells, so an entry with a config has no miss here. `packConfig` throws `UnsupportedCell` for an input that its run does not support.
+ */
+export function cellMiss(entry: PackEntry, cell: Readonly<Record<string, unknown>> | undefined): { readonly dimension: string; readonly value: string } | undefined {
+  if (cell === undefined || entry.config !== undefined) return undefined;
+  return unsupportedOf(packStrategy(entry.strategy).supports, { ...(cell as Record<string, string>), groups: "none", ...(entry.mode === undefined ? {} : { mode: entry.mode }) });
+}
+
+/** This function tells if a config of `packSpace` or one of its members has an order of `GRAPH_ORDERS`. */
+function configReadsLinks(config: StrategyConfig): boolean {
+  return Object.values(config.stages).some(
+    (choice) => choice !== null && ((GRAPH_ORDERS as readonly string[]).includes(choice.option) || (choice.members ?? []).some(configReadsLinks)),
+  );
 }
 
 /**
@@ -123,6 +192,7 @@ export const PACK_ENTRIES: readonly PackEntry[] = Object.freeze([
  * Only these entries get a pack input with `links`. Thus the pack input of each other entry does not change.
  */
 export function readsLinks(entry: PackEntry): boolean {
+  if (entry.config !== undefined) return configReadsLinks(entry.config);
   const order = fullOptions(entry)["sortOrder"];
   return (GRAPH_ORDERS as readonly unknown[]).includes(order);
 }
@@ -446,28 +516,36 @@ type PackRun =
  * The hard breaks and the measures use `score`, the default is the packed input. A lane pass packs an input with larger margins, and scores the pack on the input of the corpus.
  */
 function packOnce(entry: PackEntry, input: PackInput, cell: Readonly<Record<string, unknown>> | undefined, seed: number, now: () => number, score: PackInput = input): PackRun {
-  const s = packStrategy(entry.strategy);
-  if (cell !== undefined) {
-    const miss = unsupportedOf(s.supports, { ...(cell as Record<string, string>), groups: "none", ...(entry.mode === undefined ? {} : { mode: entry.mode }) });
-    if (miss !== undefined) return { ok: false, reason: `The strategy does not support ${miss.dimension} ${miss.value}.` };
-  }
+  const miss = cellMiss(entry, cell);
+  if (miss !== undefined) return { ok: false, reason: unsupportedReason(miss) };
   try {
     const t0 = now();
-    const output = packWith(entry.strategy, input, entry.options, seed);
+    const output = packEntry(entry, input, seed);
     const t1 = now();
-    const again = packWith(entry.strategy, input, entry.options, seed);
+    const again = packEntry(entry, input, seed);
     const t2 = now();
     const hash = packHash(output);
     const hard = Object.fromEntries(Object.entries(checkHard(score, output, undefined, { exactContainer: true })).map(([k, v]) => [`pack.${k}`, v]));
     const measures = finite(measure(score, output) as unknown as Record<string, number>);
     return { ok: true, output, hash, ms: (t1 - t0 + (t2 - t1)) / 2, deterministic: packHash(again) === hash, measures, hard };
   } catch (e) {
+    // A config entry has no cell check before the pack, so its refusal is a skip, not an error. A registry entry keeps the reason of earlier records.
+    if (entry.config !== undefined && e instanceof UnsupportedCell) return { ok: false, reason: unsupportedReason(e) };
     return { ok: false, reason: `error: ${messageOf(e)}` };
   }
 }
 
-/** This function gives the full options of a pack entry: the defaults of its strategy and the options of the entry. */
-function fullOptions(entry: PackEntry): Record<string, unknown> {
+/** This function gives the skip reason of a cell that a pack entry does not support. */
+function unsupportedReason(miss: { readonly dimension: string; readonly value: string }): string {
+  return `The strategy does not support ${miss.dimension} ${miss.value}.`;
+}
+
+/**
+ * This function gives the full options of a pack entry: the defaults of its strategy and the options of the entry.
+ * For an entry with a config, the full options are `{ config }` with the canonical config. The records hold them in `packOptions`.
+ */
+export function fullOptions(entry: PackEntry): Record<string, unknown> {
+  if (entry.config !== undefined) return { config: entry.config };
   return { ...(packStrategy(entry.strategy).defaults as Record<string, unknown>), ...entry.options };
 }
 

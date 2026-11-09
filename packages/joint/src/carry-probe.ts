@@ -2,9 +2,9 @@
 // A pack probe packs one input with one pack entry one time, as the pack stage of `pairRuns` does, and hashes the output, the measures and the hard counts.
 // A router probe runs the pairs of one pack entry and the router on the probe inputs with `pairRuns`, and hashes the records without the times.
 import { probeHash, REFUSED_PROBE, type LayoutInput } from "@mark1russell7/layout-contract";
-import { checkHard, measure, outputHash as packHash, packWith, strategy as packStrategy, unsupportedOf } from "@mark1russell7/packing";
+import { checkHard, measure, outputHash as packHash } from "@mark1russell7/packing";
 import { CARRY_PROBE_SCHEMA, packKey, routerFingerprint, type CarryProbe } from "./carry.ts";
-import { packInputOf, pairRuns, readsLinks, routerEntryOf, type PackEntry, type RouterEntry } from "./runner.ts";
+import { cellMiss, fullOptions, packEntry, packInputOf, pairRuns, readsLinks, routerEntryOf, type PackEntry, type RouterEntry } from "./runner.ts";
 
 /**
  * This function gives the hash of the pack of one input with one pack entry.
@@ -12,15 +12,12 @@ import { packInputOf, pairRuns, readsLinks, routerEntryOf, type PackEntry, type 
  * It gives `REFUSED_PROBE` when the strategy does not support the cell of the input, or when the pack throws. Then the pair of the run has no measures.
  */
 export function packProbe(entry: PackEntry, input: LayoutInput, cell: Readonly<Record<string, unknown>> | undefined): string {
-  const s = packStrategy(entry.strategy);
-  if (cell !== undefined && unsupportedOf(s.supports, { ...(cell as Record<string, string>), groups: "none", ...(entry.mode === undefined ? {} : { mode: entry.mode }) }) !== undefined) {
-    return REFUSED_PROBE;
-  }
+  if (cellMiss(entry, cell) !== undefined) return REFUSED_PROBE;
   const score = packInputOf(input);
   const packInput = readsLinks(entry) ? packInputOf(input, { links: true }) : score;
   return probeHash(
     () => {
-      const output = packWith(entry.strategy, packInput, entry.options, input.seed ?? 0);
+      const output = packEntry(entry, packInput, input.seed ?? 0);
       const hard = Object.fromEntries(Object.entries(checkHard(score, output, undefined, { exactContainer: true })).map(([k, v]) => [`pack.${k}`, v]));
       return { hash: packHash(output), measures: measure(score, output), hard };
     },
@@ -84,5 +81,5 @@ export function carryProbe(options: ProbeOptions): CarryProbe {
  * The full options are the defaults of the installed strategy and the options of the entry.
  */
 export function packFacts(entries: readonly PackEntry[]): Map<string, { readonly strategy: string; readonly options: Readonly<Record<string, unknown>> }> {
-  return new Map(entries.map((entry) => [entry.id, { strategy: entry.strategy, options: { ...(packStrategy(entry.strategy).defaults as Record<string, unknown>), ...entry.options } }]));
+  return new Map(entries.map((entry) => [entry.id, { strategy: entry.strategy, options: fullOptions(entry) }]));
 }
