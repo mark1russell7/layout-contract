@@ -152,6 +152,7 @@ Rect: build/measures.chunk.d.ts#Rect
 Region: build/measures.chunk.d.ts#Region
 RegistryCell: build/index.d.ts#RegistryCell
 RegistryEntry: build/index.d.ts#RegistryEntry
+Ring: build/measures.chunk.d.ts#Ring
 RngFactory: build/index.d.ts#RngFactory
 RuleLevel: build/measures.chunk.d.ts#RuleLevel
 RunEnv: build/index.d.ts#RunEnv
@@ -230,6 +231,7 @@ balanceMeasures: build/index.d.ts#balanceMeasures
 balanceOf: build/index.d.ts#balanceOf
 boundsOf: build/measures.chunk.d.ts#boundsOf
 boxArea: build/measures.chunk.d.ts#boxArea
+boxCenterDistance: build/measures.chunk.d.ts#boxCenterDistance
 canonicalConfig: @mark1russell7/strategy-space#canonicalConfig (external)
 canonicalInput: build/measures.chunk.d.ts#canonicalInput
 canonicalJson: build/index.d.ts#canonicalJson
@@ -321,6 +323,8 @@ perChange: build/index.d.ts#perChange
 pickMoves: build/index.d.ts#pickMoves
 placedCircle: build/index.d.ts#placedCircle
 placedRect: build/index.d.ts#placedRect
+pointInRing: build/measures.chunk.d.ts#pointInRing
+pointInRings: build/measures.chunk.d.ts#pointInRings
 pointSegmentDistance: build/measures.chunk.d.ts#pointSegmentDistance
 portPoint: build/measures.chunk.d.ts#portPoint
 portfolio: build/index.d.ts#portfolio
@@ -1693,8 +1697,8 @@ type Region = {
   readonly h: number;
 } | {
   readonly kind: "polygon";
-  readonly points: readonly (readonly [number, number])[];
-  readonly holes?: readonly (readonly (readonly [number, number])[])[];
+  readonly points: Ring;
+  readonly holes?: readonly Ring[];
 } | {
   readonly kind: "circle";
   readonly cx: number;
@@ -1707,6 +1711,9 @@ type Region = {
   readonly rx: number;
   readonly ry: number;
 };
+
+### build/measures.chunk.d.ts#Ring
+type Ring = readonly (readonly [number, number])[];
 
 ### build/measures.chunk.d.ts#RuleLevel
 type RuleLevel = "exact" | "safe" | "none";
@@ -1818,6 +1825,9 @@ declare function boundsOf(region: Region): Rect;
 ### build/measures.chunk.d.ts#boxArea
 declare function boxArea(box: LayoutBox): number | undefined;
 
+### build/measures.chunk.d.ts#boxCenterDistance
+declare function boxCenterDistance(a: Rect, b: Rect): number;
+
 ### build/measures.chunk.d.ts#canonicalInput
 declare function canonicalInput<T extends LayoutInput>(input: T): T;
 
@@ -1880,6 +1890,12 @@ declare function overlapOf(a: Rect, b: Rect): {
 
 ### build/measures.chunk.d.ts#packLinks
 declare function packLinks(input: LayoutInput): PackLink[];
+
+### build/measures.chunk.d.ts#pointInRing
+declare function pointInRing(x: number, y: number, ring: Ring): boolean;
+
+### build/measures.chunk.d.ts#pointInRings
+declare function pointInRings(x: number, y: number, rings: readonly Ring[]): boolean;
 
 ### build/measures.chunk.d.ts#pointSegmentDistance
 declare function pointSegmentDistance(p: Point, a: Point, b: Point): number;
