@@ -117,7 +117,7 @@ export function configEntry(config: StrategyConfig, id?: string): PackEntry {
   return { id: name, strategy: CONFIG_PACK, options: {}, config: canonical };
 }
 
-/** This function packs an input with a pack entry: `packConfig` for an entry with a config, else `packWith` with the strategy and the options of the entry. */
+/** This function packs an input with a pack entry. An entry with a config uses `packConfig`. Each other entry uses `packWith` with its strategy and options. */
 export function packEntry(entry: PackEntry, input: PackInput, seed: number): PackOutput {
   return entry.config === undefined ? packWith(entry.strategy, input, entry.options, seed) : packConfig(input, entry.config, seed);
 }

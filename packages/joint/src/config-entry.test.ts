@@ -47,7 +47,7 @@ function testInputs(): LayoutInput[] {
   return out;
 }
 
-/** This function gives the facts of a record that a config entry and its registry entry share: the hashes, the skip and the measures without the times. */
+/** This function gives the facts that a config entry and its registry entry share. These are the hashes, the skip and the measures without the times. */
 function sameFacts(record: LayoutRecord): Record<string, unknown> {
   const measures = Object.fromEntries(Object.entries(record.measures).filter(([key]) => !key.endsWith(".ms") && !key.startsWith("time.")));
   return { input: record.input, outputHash: record.outputHash, skipped: record.skipped, hard: record.hard, measures };
