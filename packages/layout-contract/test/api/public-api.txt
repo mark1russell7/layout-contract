@@ -108,6 +108,8 @@ MemberStatus: build/index.d.ts#MemberStatus
 MemberTrace: build/index.d.ts#MemberTrace
 NODE_POSITIONS_DIMENSION: build/index.d.ts#NODE_POSITIONS_DIMENSION
 NOISE_KINDS: build/index.d.ts#NOISE_KINDS
+NO_FINITE_RANGE: build/index.d.ts#NO_FINITE_RANGE
+NO_UNIT: build/index.d.ts#NO_UNIT
 type NoDefault: @mark1russell7/strategy-space#NoDefault (external)
 type NoDefaultReason: @mark1russell7/strategy-space#NoDefaultReason (external)
 NoiseKind: build/index.d.ts#NoiseKind
@@ -169,6 +171,7 @@ RunEnv: build/index.d.ts#RunEnv
 RunFacts: build/index.d.ts#RunFacts
 SHAPE_KINDS: build/measures.chunk.d.ts#SHAPE_KINDS
 SHAPE_KIND_IDS: build/measures.chunk.d.ts#SHAPE_KIND_IDS
+SHARE_UNIT: build/index.d.ts#SHARE_UNIT
 SIDES: build/measures.chunk.d.ts#SIDES
 SPLIT_SCHEMA: build/measures.chunk.d.ts#SPLIT_SCHEMA
 STRATEGY_CATALOG_SCHEMA: build/index.d.ts#STRATEGY_CATALOG_SCHEMA
@@ -392,6 +395,7 @@ turnPoint: build/index.d.ts#turnPoint
 turnPort: build/index.d.ts#turnPort
 turnRegion: build/index.d.ts#turnRegion
 turnSide: build/index.d.ts#turnSide
+unitFault: build/index.d.ts#unitFault
 verdict: build/index.d.ts#verdict
 writeStrategyCatalog: build/index.d.ts#writeStrategyCatalog
 
@@ -649,6 +653,7 @@ export interface EntryFacts {
   readonly noise?: NoiseKind;
   readonly normalize?: MeasureNormalize;
   readonly cost?: CostOrder;
+  readonly planned?: string;
 }
 
 ### build/index.d.ts#ExerciseEvidence
@@ -813,6 +818,7 @@ export interface MeasureEntry<Id extends string = string> extends MeasureSpec<Id
   readonly noise: NoiseKind;
   readonly normalize: MeasureNormalize;
   readonly cost?: CostOrder;
+  readonly planned?: string;
 }
 
 ### build/index.d.ts#MeasureNormalize
@@ -824,6 +830,7 @@ export type MeasureNormalize = {
   readonly reason: string;
 } | {
   readonly kind: "none";
+  readonly reason: string;
 };
 
 ### build/index.d.ts#MeasureSurvey
@@ -857,6 +864,12 @@ export declare const NODE_POSITIONS_DIMENSION = "nodePositions";
 
 ### build/index.d.ts#NOISE_KINDS
 export declare const NOISE_KINDS: readonly NoiseKind[];
+
+### build/index.d.ts#NO_FINITE_RANGE
+export declare const NO_FINITE_RANGE = "The range is not finite, and the registry has no agreed scale for the measure.";
+
+### build/index.d.ts#NO_UNIT
+export declare const NO_UNIT = "no unit";
 
 ### build/index.d.ts#NoiseKind
 export type NoiseKind = "exact" | "sampled" | "timed";
@@ -1068,6 +1081,9 @@ export interface RunEnv {
 
 ### build/index.d.ts#RunFacts
 export type RunFacts = Omit<LayoutRecord, "schema" | "input" | "inputHash" | "set" | "nodes" | "edges" | "shapes">;
+
+### build/index.d.ts#SHARE_UNIT
+export declare const SHARE_UNIT = "share";
 
 ### build/index.d.ts#STRATEGY_CATALOG_SCHEMA
 export declare const STRATEGY_CATALOG_SCHEMA = "strategy-catalog/3";
@@ -1471,7 +1487,7 @@ export declare function nameAfterStage(id: string): string;
 export declare function nearestGaps(boxes: readonly Rect[]): number[];
 
 ### build/index.d.ts#normalizeMeasure
-export declare function normalizeMeasure(value: number, entry: Pick<MeasureEntry, "id" | "direction" | "min" | "max" | "normalize">): number | undefined;
+export declare function normalizeMeasure(value: number, entry: Pick<MeasureEntry, "id" | "direction" | "min" | "max" | "normalize" | "planned">): number | undefined;
 
 ### build/index.d.ts#outputGridClass
 export declare function outputGridClass(counts: OutputGridCounts): OutputGridClass;
@@ -1582,6 +1598,9 @@ export declare function turnRegion(region: Region, h: number): Region;
 
 ### build/index.d.ts#turnSide
 export declare function turnSide(side: Side): Side;
+
+### build/index.d.ts#unitFault
+export declare function unitFault(spec: Pick<MeasureSpec, "unit" | "min" | "max">): string | undefined;
 
 ### build/index.d.ts#verdict
 export declare function verdict<R extends VerdictRecord>(records: Iterable<R>, options: VerdictOptions<R>): VerdictResult;

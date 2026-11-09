@@ -1,8 +1,21 @@
 import { mulberry32 } from "@mark1russell7/rigor-generators";
 import { describe, expect, it } from "vitest";
-import { checkRegistry, defaultNormalize, JOINT_MEASURES, JOINT_SOURCE, MEASURE_REGISTRY, measureEntry, normalizeMeasure, type MeasureEntry } from "./index.ts";
+import {
+  balanceMeasureSpecs,
+  checkRegistry,
+  defaultNormalize,
+  JOINT_MEASURES,
+  JOINT_SOURCE,
+  MEASURE_REGISTRY,
+  measureEntry,
+  NO_FINITE_RANGE,
+  normalizeMeasure,
+  unitFault,
+  type MeasureEntry,
+} from "./index.ts";
+import { TEXT_MEASURES } from "./text.ts";
 
-const base: MeasureEntry = { id: "x.a", unit: "0 to 1", direction: "lower", min: 0, max: 1, source: "pkg", noise: "exact", normalize: { kind: "range" } };
+const base: MeasureEntry = { id: "x.a", unit: "share", direction: "lower", min: 0, max: 1, source: "pkg", noise: "exact", normalize: { kind: "range" } };
 
 describe("MEASURE_REGISTRY", () => {
   it("has one entry for each joint measure, in the order of JOINT_MEASURES, with no faults", () => {
@@ -18,15 +31,44 @@ describe("MEASURE_REGISTRY", () => {
   it("gives joint.ms the noise timed, and the other joint measures the noise exact", () => {
     for (const e of MEASURE_REGISTRY) expect(e.noise).toBe(e.id === "joint.ms" ? "timed" : "exact");
   });
+
+  it("marks the two stability measures planned, because no joint code computes them", () => {
+    const planned = MEASURE_REGISTRY.filter((e) => e.planned !== undefined).map((e) => e.id);
+    expect(planned).toEqual(["joint.stability.mean", "joint.stability.moved"]);
+    for (const e of MEASURE_REGISTRY) if (e.planned !== undefined) expect(e.cost).toBeUndefined();
+  });
+
+  it("gives a reason for each rule none", () => {
+    for (const e of MEASURE_REGISTRY) if (e.normalize.kind === "none") expect(e.normalize.reason.length).toBeGreaterThan(0);
+  });
+});
+
+describe("unitFault", () => {
+  it("finds no fault in the units of the contract specs", () => {
+    for (const spec of [...JOINT_MEASURES, ...TEXT_MEASURES, ...balanceMeasureSpecs("pack")]) expect(unitFault(spec), spec.id).toBeUndefined();
+  });
+
+  it("refuses a unit text that names a range, and the other words of a share", () => {
+    expect(unitFault({ unit: "0 to 1", min: 0, max: 1 })).toContain("names a range");
+    expect(unitFault({ unit: "0 or 1", min: 0, max: 1 })).toContain("names a range");
+    expect(unitFault({ unit: "-0.5 to 1", min: -0.5, max: 1 })).toContain("names a range");
+    expect(unitFault({ unit: "boolean", min: 0, max: 1 })).toContain('use "share"');
+    expect(unitFault({ unit: "share", min: 0, max: 2 })).toContain("needs the range 0 to 1");
+    expect(unitFault({ unit: "", min: 0, max: 1 })).toBe("the unit is empty");
+    expect(unitFault({ unit: "no unit", min: -1, max: 1 })).toBeUndefined();
+    expect(unitFault({ unit: "share of the gap", min: 0, max: 1 })).toBeUndefined();
+  });
 });
 
 describe("measureEntry", () => {
   it("adds the defaults: the noise exact, and the rule range only for a finite range", () => {
-    const finite = measureEntry({ id: "a.b", unit: "0 to 1", direction: "higher", min: 0, max: 1 }, { source: "s" });
+    const finite = measureEntry({ id: "a.b", unit: "share", direction: "higher", min: 0, max: 1 }, { source: "s" });
     expect(finite).toMatchObject({ noise: "exact", normalize: { kind: "range" } });
     expect(finite.cost).toBeUndefined();
     const open = measureEntry({ id: "a.c", unit: "count", direction: "lower", min: 0, max: Infinity }, { source: "s", cost: "n" });
-    expect(open).toMatchObject({ normalize: { kind: "none" }, cost: "n" });
+    expect(open).toMatchObject({ normalize: { kind: "none", reason: NO_FINITE_RANGE }, cost: "n" });
+    expect(open.planned).toBeUndefined();
+    expect(measureEntry({ id: "a.d", unit: "W", direction: "lower", min: 0, max: Infinity }, { source: "s", planned: "p" }).planned).toBe("p");
     expect(defaultNormalize({ min: -1, max: 1 })).toEqual({ kind: "range" });
   });
 });
@@ -73,15 +115,25 @@ describe("normalizeMeasure", () => {
   });
 
   it("gives undefined for the rule none, and an error for a value outside the range or NaN", () => {
-    expect(normalizeMeasure(0.5, { ...base, normalize: { kind: "none" } })).toBeUndefined();
+    expect(normalizeMeasure(0.5, { ...base, normalize: { kind: "none", reason: "r" } })).toBeUndefined();
+    const signed: MeasureEntry = { ...base, unit: "ratio", min: -Infinity, max: Infinity, normalize: { kind: "none", reason: "r" } };
+    expect(normalizeMeasure(-5, signed)).toBeUndefined();
     expect(() => normalizeMeasure(1.5, base)).toThrow(RangeError);
     expect(() => normalizeMeasure(-0.1, base)).toThrow(RangeError);
     expect(() => normalizeMeasure(Number.NaN, base)).toThrow(RangeError);
   });
 
+  it("gives an error for a planned measure", () => {
+    expect(() => normalizeMeasure(0.5, { ...base, planned: "no code" })).toThrow(/x\.a is planned, and no code computes it: no code/);
+  });
+
   it("gives a loss for each joint value in the range of its rule range or scale", () => {
     for (const e of MEASURE_REGISTRY) {
       const v = Number.isFinite(e.max) ? (e.min + e.max) / 2 : e.min + 1;
+      if (e.planned !== undefined) {
+        expect(() => normalizeMeasure(v, e)).toThrow(/is planned/);
+        continue;
+      }
       const loss = normalizeMeasure(v, e);
       if (e.normalize.kind === "none") expect(loss).toBeUndefined();
       else expect(loss).toBeGreaterThan(0);
@@ -94,8 +146,12 @@ describe("checkRegistry", () => {
     const cases: [Record<string, unknown>, string][] = [
       [{ id: "" }, "the id is empty"],
       [{ unit: "" }, "the unit is empty"],
+      [{ unit: "0 to 1" }, "names a range"],
+      [{ unit: "share", max: 2 }, "needs the range 0 to 1"],
       [{ direction: "up" }, "the direction is not lower or higher"],
-      [{ min: -Infinity }, "min is not a finite number"],
+      [{ min: Number.NaN }, "min is not a number below Infinity"],
+      [{ min: -Infinity, unit: "ratio" }, "the normalization range needs a finite min and max"],
+      [{ min: -Infinity, max: Infinity, unit: "ratio", normalize: { kind: "scale", half: 1, reason: "r" } }, "the normalization scale needs a finite min"],
       [{ max: 0 }, "max is not above min"],
       [{ floor: 2 }, "the floor is not in the range"],
       [{ source: "" }, "the source is empty"],
@@ -103,7 +159,10 @@ describe("checkRegistry", () => {
       [{ cost: "n^4" }, "is not an order of growth"],
       [{ cost: "n +" }, "is not an order of growth"],
       [{ normalize: { kind: "log" } }, "the normalization is not range, scale or none"],
-      [{ max: Infinity }, "the normalization range needs a finite max"],
+      [{ max: Infinity, unit: "W" }, "the normalization range needs a finite min and max"],
+      [{ normalize: { kind: "none" } }, "the normalization none has no reason"],
+      [{ planned: "" }, "the planned reason is empty"],
+      [{ planned: "r", cost: "n" }, "a planned measure has no code, so it has no cost"],
       [{ normalize: { kind: "scale", half: 0, reason: "r" } }, "the half of the normalization scale is not above 0"],
       [{ normalize: { kind: "scale", half: 1, reason: "" } }, "the normalization scale has no reason"],
     ];
@@ -112,6 +171,7 @@ describe("checkRegistry", () => {
       expect(faults.some((f) => f.includes(text)), `${JSON.stringify(patch)}: ${faults.join(" | ")}`).toBe(true);
     }
     expect(checkRegistry([base, base])).toEqual(['measure "x.a": the id is not unique']);
+    expect(checkRegistry([{ ...base, unit: "ratio", min: -Infinity, max: Infinity, normalize: { kind: "none", reason: "r" } }])).toEqual([]);
   });
 
   it("accepts each cost form of the docs", () => {

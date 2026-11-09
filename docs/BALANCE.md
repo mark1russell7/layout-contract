@@ -9,9 +9,9 @@ Each stage adds its prefix to the suffixes of `BALANCE_MEASURE_SUFFIXES`. The pa
 | Suffix | Unit | Better | Range | Minimum effect | Role |
 |---|---|---|---|---|---|
 | `balance.gapCv` | ratio | lower | 0 and more | 0.01 | objective |
-| `balance.centroidOffset` | 0 to 1 | lower | 0 to 1 | 0.01 | objective |
-| `balance.side.top`, `.right`, `.bottom`, `.left` | 0 to 1 | lower | 0 to 1 | none | diagnostic |
-| `balance.sideRange` | 0 to 1 | lower | 0 to 1 | 0.02 | objective |
+| `balance.centroidOffset` | share | lower | 0 to 1 | 0.01 | objective |
+| `balance.side.top`, `.right`, `.bottom`, `.left` | share | lower | 0 to 1 | none | diagnostic |
+| `balance.sideRange` | share | lower | 0 to 1 | 0.02 | objective |
 | `stability.procrustes` | `W` for each change share | lower | 0 and more | 0.005 | guard on change pairs |
 | `stability.seed` | `W` | lower | 0 and more | 0.005 | objective |
 

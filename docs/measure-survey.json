@@ -15,7 +15,7 @@
         },
         {
           "id": "joint.fill",
-          "unit": "0 to 1",
+          "unit": "share",
           "direction": "higher",
           "min": 0,
           "max": 1
@@ -29,7 +29,7 @@
         },
         {
           "id": "joint.proxy.rank",
-          "unit": "-1 to 1",
+          "unit": "no unit",
           "direction": "higher",
           "min": -1,
           "max": 1
@@ -43,7 +43,7 @@
         },
         {
           "id": "joint.spill",
-          "unit": "0 to 1",
+          "unit": "share",
           "direction": "lower",
           "min": 0,
           "max": 1
@@ -57,7 +57,7 @@
         },
         {
           "id": "joint.stability.moved",
-          "unit": "0 to 1",
+          "unit": "share",
           "direction": "lower",
           "min": 0,
           "max": 1

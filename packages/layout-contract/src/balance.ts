@@ -224,9 +224,9 @@ export function balanceMeasureSpecs<S extends string>(stage: S): readonly Measur
   const centers = SHAPE_KIND_IDS;
   return Object.freeze([
     { id: id("balance.gapCv"), unit: "ratio", direction: "lower", min: 0, max: Infinity, minEffect: 0.01, family: "balance", shapes: rect },
-    { id: id("balance.centroidOffset"), unit: "0 to 1", direction: "lower", min: 0, max: 1, minEffect: 0.01, family: "balance", shapes: rect },
-    ...SIDES.map((s) => ({ id: id(`balance.side.${s}`), unit: "0 to 1", direction: "lower" as const, min: 0, max: 1, family: "balance", role: "diagnostic" as const, shapes: rect })),
-    { id: id("balance.sideRange"), unit: "0 to 1", direction: "lower", min: 0, max: 1, minEffect: 0.02, family: "balance", shapes: rect },
+    { id: id("balance.centroidOffset"), unit: "share", direction: "lower", min: 0, max: 1, minEffect: 0.01, family: "balance", shapes: rect },
+    ...SIDES.map((s) => ({ id: id(`balance.side.${s}`), unit: "share", direction: "lower" as const, min: 0, max: 1, family: "balance", role: "diagnostic" as const, shapes: rect })),
+    { id: id("balance.sideRange"), unit: "share", direction: "lower", min: 0, max: 1, minEffect: 0.02, family: "balance", shapes: rect },
     { id: id("stability.procrustes"), unit: "W for each change share", direction: "lower", min: 0, max: Infinity, floor: 0, tol: 0.005, minEffect: 0.005, family: "stability", role: "change-guard", shapes: centers },
     { id: id("stability.seed"), unit: "W", direction: "lower", min: 0, max: Infinity, floor: 0, tol: 0.005, minEffect: 0.005, family: "stability", shapes: centers },
   ]);
