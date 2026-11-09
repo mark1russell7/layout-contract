@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.9.4
+
+- PATCH before 1.0.0: a new export only. `scaleRect(rect, factor)` gives a rectangle with each coordinate and each size times the factor. It changes the unit of a rectangle, for example from CSS pixels to the pixels of a window.
+
 ## 0.9.3
 
 - PATCH before 1.0.0: a new export only. `snapRect(rect)` gives a rectangle on whole pixels. It rounds each edge, not the size, so two rectangles that touch still touch.
