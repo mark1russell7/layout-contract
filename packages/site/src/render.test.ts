@@ -30,6 +30,26 @@ describe("the sections", () => {
     expect(root.innerHTML).not.toContain("cover run");
   });
 
+  it("shows the date of the measure run next to the date of a carry, and the audit of a code bridge (L147)", () => {
+    const root = fakeRoot();
+    const carry = { run: "42428038369", date: "2026-11-08", kept: 6500 };
+    renderJoint(asElement(root), [{ ...newest, date: "2026-11-10", carry }]);
+    expect(root.innerHTML).toContain("2026-11-10 (measured 2026-11-08,");
+    expect(root.innerHTML).toContain("run 42428038369");
+    expect(root.innerHTML).toContain("kept 6,500 records");
+    expect(root.innerHTML).toContain(">carry<");
+    expect(root.innerHTML).not.toContain("code bridge");
+    const code = { from: "8a5e2d3000000000000000000000000000000000", to: "1c41dda000000000000000000000000000000000", audit: 340, upper: 0.0111 };
+    renderJoint(asElement(root), [{ ...newest, date: "2026-11-10", carry: { ...carry, code } }]);
+    expect(root.innerHTML).toContain(">code bridge<");
+    expect(root.innerHTML).toContain("<code>8a5e2d3</code>");
+    expect(root.innerHTML).toContain("A code audit of 340 pairs gave no difference");
+    expect(root.innerHTML).toContain("1.1 %");
+    expect(root.innerHTML).toContain("the next full run measures each kept record again");
+    renderJoint(asElement(root), [newest]);
+    expect(root.innerHTML).not.toContain("measured ");
+  });
+
   it(" with its run, its date and its versions", () => {
     const root = fakeRoot();
     renderJoint(asElement(root), joint);

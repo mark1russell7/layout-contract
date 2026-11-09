@@ -153,6 +153,20 @@ export function countSourcesHtml(sources: CountSources | undefined): string {
   return `<details class="more"><summary>The runs that the coverage counts: ${sources.packers.length} packers and ${sources.routers.length} routers</summary>${note}<ul class="hint">${[...groups("packers", sources.packers), ...groups("routers", sources.routers)].join("")}</ul><p class="hint">The file <a href="kpi-sources.json"><code>kpi-sources.json</code></a> has the same list.</p></details>`;
 }
 
+/**
+ * This function gives the note of a carry (L147). The note has the date of the measure run and the date of the run that keeps the records.
+ * A code bridge (rule B) also gives its code audit and the 95 % upper bound of the rate of a difference.
+ */
+export function carryNote(d: JointData): string {
+  const c = d.carry;
+  if (c === undefined) return "";
+  const kept = `This run kept ${c.kept.toLocaleString("en")} records of <a href="${REPO}/actions/runs/${esc(c.run)}">run ${esc(c.run)}</a> of ${esc(c.date)}. The run of ${esc(d.date)} measured the other records again.`;
+  if (c.code === undefined) return `<p class="note">${kept} The measure code and the fingerprint of each kept strategy did not change.</p>`;
+  const commit = (sha: string): string => `<a href="${REPO}/commit/${esc(sha)}"><code>${esc(sha.slice(0, 7))}</code></a>`;
+  const upper = `${(100 * c.code.upper).toFixed(1)} %`;
+  return `<p class="note">${kept} The measure code changed from ${commit(c.code.from)} to ${commit(c.code.to)}. A code audit of ${c.code.audit.toLocaleString("en")} pairs gave no difference, so the 95 % upper bound of the rate of a difference is ${upper}. This carry is a bridge only: the next full run measures each kept record again.</p>`;
+}
+
 export function renderJoint(root: HTMLElement, files: readonly JointData[], sources?: CountSources): void {
   const latest = latestFull(files);
   const age = shownAge(files);
@@ -171,13 +185,14 @@ export function renderJoint(root: HTMLElement, files: readonly JointData[], sour
       files.length > 1
         ? `<label class="runs">Result <select data-run>${[...files]
             .sort((a, b) => b.date.localeCompare(a.date) || b.run.localeCompare(a.run))
-            .map((f) => `<option value="${esc(f.run)}"${f.run === d.run ? " selected" : ""}>${esc(f.date)} · ${esc(f.item)}${f.cover === true ? " · cover" : ""}${f.short === true ? " · short" : ""} · run ${esc(f.run)}</option>`)
+            .map((f) => `<option value="${esc(f.run)}"${f.run === d.run ? " selected" : ""}>${esc(f.date)} · ${esc(f.item)}${f.cover === true ? " · cover" : ""}${f.short === true ? " · short" : ""}${f.carry === undefined ? "" : f.carry.code === undefined ? " · carry" : " · code bridge"} · run ${esc(f.run)}</option>`)
             .join("")}</select></label>`
         : "";
     root.innerHTML = `
-      <p class="dataline"><span class="badge">${esc(d.item)}</span>${d.cover === true ? ` <span class="badge warn">cover run</span>` : ""}${d.short === true ? ` <span class="badge warn">short run</span>` : ""} Data of <a href="${REPO}/actions/runs/${esc(d.run)}">run ${esc(d.run)}</a>, ${esc(d.date)} · ${versions} · corpus <code>${esc(d.corpus)}</code> · ${d.records.toLocaleString("en")} records, ${d.pairs} pairs</p>
+      <p class="dataline"><span class="badge">${esc(d.item)}</span>${d.cover === true ? ` <span class="badge warn">cover run</span>` : ""}${d.short === true ? ` <span class="badge warn">short run</span>` : ""}${d.carry === undefined ? "" : ` <span class="badge warn">${d.carry.code === undefined ? "carry" : "code bridge"}</span>`} Data of <a href="${REPO}/actions/runs/${esc(d.run)}">run ${esc(d.run)}</a>, ${esc(d.date)}${d.carry === undefined ? "" : ` (measured ${esc(d.carry.date)}, <a href="${REPO}/actions/runs/${esc(d.carry.run)}">run ${esc(d.carry.run)}</a>)`} · ${versions} · corpus <code>${esc(d.corpus)}</code> · ${d.records.toLocaleString("en")} records, ${d.pairs} pairs</p>
       ${d.cover === true ? `<p class="note">This cover run has each strategy and each open router, so it has more pairs. Its floors do not compare with the floors of a default run.</p>` : ""}
       ${d.short === true ? `<p class="note">This short run has only ${d.pairs} chosen pairs, on the corpus <code>${esc(d.corpus)}</code>. Its rows do not compare with the rows of a full run. The page opens on the newest full run.</p>` : ""}
+      ${carryNote(d)}
       ${age === undefined ? "" : `<p class="hint">Age of the data: the oldest of the ${age.pairs} shown pairs is of ${esc(age.oldest)}, and the median pair is of ${esc(age.median)}. A short run refreshes only its own pairs.</p>`}
       ${runs}
       <div class="seg" role="radiogroup" aria-label="Inputs">
