@@ -67,7 +67,7 @@ Thus each input, record and hash of 0.2.12 stays the same.
 | `joint.straight.crossings` | each kind | It reads the centers of the bounding boxes. |
 | `joint.stability.mean`, `joint.stability.moved` | each kind | They read the positions and the width `W` of the bounding boxes. |
 | `joint.proxy.rank`, `joint.route.length`, `joint.ms` | each kind | They read the ranks of lengths, the points of the routes and the time. |
-| `no-overlap`, `in-container` | `rect` and `circle`, and `safe` for `polygon` and `free` | Two circles, and a circle in a circle container, count by distance since 0.4.0. Each other test reads the bounding boxes, and the count is an upper bound. The section "The rule on circles" tells the limit. |
+| `no-overlap`, `in-container` | `rect` and `circle`, and `safe` for `polygon` and `free` | Two circles, and a circle in a circle container, count by distance since 0.4.0. A convex polygon without a margin counts exactly since L161. Each other test reads the bounding boxes, and the count is an upper bound. The sections "The rule on circles" and "The rule on convex polygons" tell the limits. |
 | `locked-kept`, `complete` | each kind | They read only the positions and the ids. |
 
 `PACK_HARD_RULES` gives the kinds of the 4 hard rules of a pack. A measure that supports only `rect` keeps its exact values.
@@ -109,6 +109,22 @@ Thus each input, record and hash of 0.2.12 stays the same.
 - `inputShapeLevel(rule, kind, input)` gives the level for one input. It reads the field `limit` of the rule. `checkShapes` uses it, so at its default level it refuses an input that the limit names.
 - On a record of version 1, a count on a circle is by its bounding box. A count over 0 proves nothing, so no page reads it as a fault.
 - These tests compare squared distances with the tolerance of the rule. A rule with a tolerance does not need an exact sign, so they use no predicate of `@mark1russell7/predicates`.
+
+### The rule on convex polygons (L161)
+
+`HARD_RULE_VERSION` is 3 since L161 part 3. A convex polygon without a margin counts exactly. The cells of a Voronoi treemap are convex polygons, so their counts are exact.
+
+| Pair | Test | Level |
+|---|---|---|
+| A convex polygon beside a rectangle or a convex polygon | The separating axis theorem: an overlap over the tolerance on the normal of each side (`convexOverlap`) | Exact |
+| A convex polygon in a convex container | Each corner against each side of the container made smaller by `inset` (`cornersInConvex`) | Exact |
+| A box with a margin, a concave polygon or a polygon with a hole | The bounding boxes | `safe` |
+
+- `convexCorners` gives the corners of a `rect` and of a convex `polygon` without holes. The turns use exact signs, and a corner on a straight side is permitted. Each other region gives `undefined`.
+- `placedConvex` gives the corners of a placed box on the board. A box with a margin gives `undefined`, because a margin around a polygon is not a polygon.
+- For two rectangles, the separating axis theorem gives the test of the bounding boxes. Thus a pair without a polygon keeps its count.
+- An obstacle, a pair of `pairGaps` and a route keep the bounding box.
+- The kind `polygon` stays `safe` in `PACK_HARD_RULES`. The rule cannot tell a convex polygon from a concave one by its kind.
 
 ### The bound of a measure (0.2.17)
 

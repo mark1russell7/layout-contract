@@ -1,4 +1,18 @@
-import { boundsOf, grow, marginSides, overlapOf, pointInRings, type Margin, type Point, type Rect, type Region } from "./geometry.ts";
+import {
+  boundsOf,
+  convexCorners,
+  convexOverlap,
+  cornersInConvex,
+  grow,
+  marginSides,
+  overlapOf,
+  pointInRings,
+  type Margin,
+  type Point,
+  type Rect,
+  type Region,
+  type Ring,
+} from "./geometry.ts";
 import type { LayoutBox, LayoutContainer, LayoutInput, Obstacle, PairGap, Port } from "./input.ts";
 import { applyPack, type PackOutput } from "./output.ts";
 import { resizeProblems, sizeFits } from "./resize.ts";
@@ -19,8 +33,10 @@ export function placedRect(box: LayoutBox): Rect | undefined {
  *
  * - Version 1 counts each shape by its bounding box. On a circle, that count is an upper bound. A count over 0 proves nothing.
  * - Version 2 counts two circles, and a circle in a circle container, by the distance of the centers. The other pairs stay on the bounding box.
+ * - Version 3 counts a pair with a convex polygon by the separating axis theorem. The other box is a rectangle or a convex polygon, and neither box has a margin.
+ *   A convex polygon without a margin in a convex container counts by its corners. The counts of the other inputs do not change.
  */
-export const HARD_RULE_VERSION = 2;
+export const HARD_RULE_VERSION = 3;
 
 /** A circle at its place on the board: its center and its radius, without a margin. */
 export interface PlacedCircle {
@@ -33,6 +49,20 @@ export interface PlacedCircle {
 export function placedCircle(box: LayoutBox): PlacedCircle | undefined {
   if (box.shape?.kind !== "circle" || box.x === undefined || box.y === undefined) return undefined;
   return { cx: box.x + box.shape.cx, cy: box.y + box.shape.cy, r: box.shape.r };
+}
+
+/**
+ * This function gives the corners of a placed box on the board, when its outline is convex and it has no margin. Each other box gives `undefined`.
+ * A box without a shape is its rectangle. A box with a shape gives `convexCorners` of the shape at the position of the box.
+ */
+export function placedConvex(box: LayoutBox): Ring | undefined {
+  if (box.x === undefined || box.y === undefined) return undefined;
+  const m = marginSides(box.margin);
+  if (m.top !== 0 || m.right !== 0 || m.bottom !== 0 || m.left !== 0) return undefined;
+  const corners = convexCorners(box.shape ?? { kind: "rect", x: 0, y: 0, w: box.w, h: box.h });
+  if (corners === undefined) return undefined;
+  const { x, y } = box;
+  return corners.map(([cx, cy]) => [cx + x, cy + y] as const);
 }
 
 /** This function gives the largest side of a margin. A circle has one distance to the things near it, so its margin is this side. */
@@ -54,6 +84,7 @@ function nearerThan(a: PlacedCircle, b: PlacedCircle, need: number): boolean {
  *
  * - Two circles break the rule when their centers are nearer than the two radii and the two margins, less `tolerance`. The margin of a circle is the largest side of its margin.
  * - Another pair breaks the rule when the bounding boxes with their margins overlap by more than `tolerance` on each axis. With a shape that is not a rectangle, this test is an upper bound.
+ * - A pair with a convex polygon and no margin also needs an overlap over `tolerance` on the normal of each side (`convexOverlap`). Thus that pair is exact.
  * - With `gap`, the gap replaces the two margins. Two circles are then apart by the two radii and the gap. For another pair, one box grows by the gap.
  * - A box without a position does not overlap.
  */
@@ -65,7 +96,19 @@ export function shapesOverlap(a: LayoutBox, b: LayoutBox, tolerance: number = DE
   const rb = placedRect(b);
   if (ra === undefined || rb === undefined) return false;
   const o = gap === undefined ? overlapOf(grow(ra, a.margin), grow(rb, b.margin)) : overlapOf(grow(ra, gap), rb);
-  return o.x > tolerance && o.y > tolerance;
+  if (!(o.x > tolerance && o.y > tolerance)) return false;
+  return gap !== undefined || !convexApart(a, b, tolerance);
+}
+
+/**
+ * This function tells if the separating axis theorem puts two placed boxes apart, for `no-overlap` of version 3.
+ * Only a pair with a box of a `polygon` shape is tested, and both boxes need `placedConvex`. Each other pair gives `false`, so its count does not change.
+ */
+function convexApart(a: LayoutBox, b: LayoutBox, tolerance: number): boolean {
+  if (a.shape?.kind !== "polygon" && b.shape?.kind !== "polygon") return false;
+  const ca = placedConvex(a);
+  const cb = placedConvex(b);
+  return ca !== undefined && cb !== undefined && convexOverlap(ca, cb) <= tolerance;
 }
 
 /** This function gives the gap of each pair of `pairGaps` by `pairKey`. The first entry of a pair wins. A pair of one box has no gap. */
@@ -81,6 +124,7 @@ function gapsOf(pairGaps: readonly PairGap[] | undefined): Map<string, number> {
 /**
  * This function counts the pairs of placed boxes that break `no-overlap`. `shapesOverlap` is the rule for one pair.
  * Two circles count by the distance of their centers. Each other pair counts by the bounding boxes, so a circle beside another shape is an upper bound (roadmap item L107).
+ * A pair with a convex polygon and no margin also needs an overlap on the normal of each side, so it is exact (version 3).
  *
  * A pair of `pairGaps`, in either order, uses its `gap` in place of the two margins. One box grows by the gap, and the other box does not grow.
  * Thus the pair breaks the rule only when the boxes are nearer than the gap on each axis. The other pairs do not change.
@@ -146,12 +190,15 @@ export function circleOverlaps(boxes: readonly LayoutBox[], tolerance: number = 
   return count;
 }
 
-/** This function counts the overlaps by the bounding boxes with their margins. It skips the pairs of `skip` and the pairs of two circles. */
+/**
+ * This function counts the overlaps by the bounding boxes with their margins. It skips the pairs of `skip` and the pairs of two circles.
+ * A pair that `convexApart` puts apart does not count.
+ */
 function marginOverlaps(boxes: readonly LayoutBox[], tolerance: number, skip: ReadonlyMap<string, number> | undefined): number {
-  const rects: { readonly id: string; readonly r: Rect; readonly circle: boolean }[] = [];
+  const rects: { readonly box: LayoutBox; readonly id: string; readonly r: Rect; readonly circle: boolean }[] = [];
   for (const box of boxes) {
     const r = placedRect(box);
-    if (r !== undefined) rects.push({ id: box.id, r: grow(r, box.margin), circle: box.shape?.kind === "circle" });
+    if (r !== undefined) rects.push({ box, id: box.id, r: grow(r, box.margin), circle: box.shape?.kind === "circle" });
   }
   rects.sort((a, b) => a.r.x - b.r.x);
   let count = 0;
@@ -163,7 +210,7 @@ function marginOverlaps(boxes: readonly LayoutBox[], tolerance: number, skip: Re
       if (rects[i]!.circle && rects[j]!.circle) continue;
       if (skip !== undefined && skip.has(pairKey(rects[i]!.id, rects[j]!.id))) continue;
       const o = overlapOf(a, b);
-      if (o.x > tolerance && o.y > tolerance) count++;
+      if (o.x > tolerance && o.y > tolerance && !convexApart(rects[i]!.box, rects[j]!.box, tolerance)) count++;
     }
   }
   return count;
@@ -326,8 +373,10 @@ export function countLinksThroughShapes(boxes: readonly LayoutBox[], links: read
  *
  * With `exactContainer`, the default, a box of a shaped container with the size `fixed` also counts when it is not inside the shape, by `rectInRegion`.
  * For that test, the box grows by `inset` and becomes smaller by `tolerance` on each side. A shaped container with a free side keeps the bounding test only.
- * A circle in a circle container does not use `rectInRegion`. It counts by distance, as in `circlesOutside`, also when the size is free.
  * An input without a container gives 0.
+ *
+ * A circle in a circle container does not use `rectInRegion`. It counts by distance, as in `circlesOutside`, also when the size is free.
+ * A box of a `polygon` shape with `placedConvex` in a convex shape does not use `rectInRegion`. It counts by its corners (`cornersInConvex`), so the count is exact (version 3).
  */
 export function countOutside(input: LayoutInput, tolerance: number = DEFAULT_TOLERANCE.overlap, options: ContainerTest = {}): number {
   const c = input.container;
@@ -350,9 +399,17 @@ export function countOutside(input: LayoutInput, tolerance: number = DEFAULT_TOL
     if ((fixW && outX) || (fixH && outY)) count++;
     else if (ring !== undefined && disc !== undefined) {
       if (circleOutside(disc, marginReach(box.margin) + inset, ring, tolerance)) count++;
-    } else if (shape !== undefined && !rectInRegion(shape, shrink(grow(r, inset), tolerance))) count++;
+    } else if (shape !== undefined && !inShape(box, shape, r, inset, tolerance)) count++;
   }
   return count;
+}
+
+/** This function tells if a placed box is inside a container shape for `countOutside`. A convex polygon box in a convex shape counts by its corners. */
+function inShape(box: LayoutBox, shape: Region, r: Rect, inset: number, tolerance: number): boolean {
+  const inner = box.shape?.kind === "polygon" ? placedConvex(box) : undefined;
+  const outer = inner === undefined ? undefined : convexCorners(shape);
+  if (inner !== undefined && outer !== undefined) return cornersInConvex(inner, outer, inset, tolerance);
+  return rectInRegion(shape, shrink(grow(r, inset), tolerance));
 }
 
 /** This function counts the fixed ports that are not on the border of their box, with the epsilon of a written file. A port without a side does not count. */
@@ -388,6 +445,9 @@ export interface PackHard {
  * `no-overlap` and `in-container` are exact for a `rect` and a `circle`. `limit` tells the inputs where the count of a circle is only safe (roadmap item L107).
  * For the other kinds, these rules test the bounding box. The count is safe: a shape is inside its bounding box, so the count is an upper bound. A count of 0 tells that the rule has no break.
  * `locked-kept` and `complete` read only the positions and the ids, so they support each kind.
+ *
+ * A convex `polygon` without a margin is exact beside a rectangle or a convex polygon, and in a convex container (version 3).
+ * The kind `polygon` stays `safe`, because a concave polygon is not exact.
  */
 export const PACK_HARD_RULES: readonly ShapeSupport<keyof PackHard>[] = /* @__PURE__ */ Object.freeze([
   {

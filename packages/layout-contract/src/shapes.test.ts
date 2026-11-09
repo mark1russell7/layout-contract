@@ -157,10 +157,13 @@ describe("the safe level of a rule (L57)", () => {
     expect(measures.map((b) => b.detail.split(" ")[0])).toEqual(["joint.fill", "joint.straight.length"]);
   });
 
-  it("over-counts two triangles whose bounding boxes overlap, and gives 0 when the boxes do not overlap", () => {
+  it("over-counts a concave polygon whose bounding box overlaps, and gives 0 when the boxes do not overlap", () => {
+    const ell: LayoutBox = { id: "l", w: 10, h: 10, shape: { kind: "polygon", points: [[0, 0], [10, 0], [10, 2], [2, 2], [2, 10], [0, 10]] } };
     const other: LayoutBox = { id: "q", w: 10, h: 10, shape: { kind: "polygon", points: [[10, 0], [10, 10], [0, 10]] } };
-    expect(countOverlaps([{ ...tri, x: 0, y: 0 }, { ...other, x: 0, y: 0 }])).toBe(1);
-    expect(countOverlaps([{ ...tri, x: 0, y: 0 }, { ...other, x: 10, y: 0 }])).toBe(0);
+    expect(countOverlaps([{ ...ell, x: 0, y: 0 }, { id: "r", x: 5, y: 5, w: 4, h: 4 }])).toBe(1);
+    expect(countOverlaps([{ ...ell, x: 0, y: 0 }, { ...other, x: 10, y: 0 }])).toBe(0);
+    // Since version 3 of the hard rules, two convex triangles count by the separating axis theorem.
+    expect(countOverlaps([{ ...tri, x: 0, y: 0 }, { ...other, x: 0, y: 0 }])).toBe(0);
   });
 });
 
