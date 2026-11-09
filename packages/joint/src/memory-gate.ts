@@ -476,6 +476,68 @@ export function refitLimits(results: readonly ProbeResult[], run: RefitRun, old:
   return { rows, data, refused };
 }
 
+/**
+ * This function gives the refit of new limit data against old limit data, for the command `refit-pr`.
+ * The rows are the inputs of the new data, with the old limits of `limitsOf(old)`.
+ */
+export function refitOfData(data: LimitData, old: LimitData = LIMIT_DATA): Refit {
+  const before = limitsOf(old);
+  const rows = Object.entries(data.probes).map(([input, values]): RefitRow => ({ input, probes: values.allocMb.length, old: before[input], next: limitOf(values) }));
+  return { rows, data, refused: [] };
+}
+
+/** The lowest value and the worst value of the probes of one measure, in MB: the noise band of its repeats. */
+export interface NoiseBand {
+  readonly min: number;
+  readonly max: number;
+}
+
+/** This function gives the noise band of the probes of one measure. */
+export function noiseBand(values: readonly number[]): NoiseBand {
+  return { min: Math.min(...values), max: Math.max(...values) };
+}
+
+/**
+ * The verdict of one measure of a refit against its old probes.
+ * - `rise`: each new probe is above the worst old probe. The rise needs a named cause.
+ * - `fall`: each new probe is below the lowest old probe. The refit keeps the fall as a ratchet.
+ * - `noise`: the two bands overlap.
+ * - `new`: the input has no old probes.
+ */
+export type NoiseVerdict = "rise" | "fall" | "noise" | "new";
+
+/** This function compares the noise band of the new probes of a measure with the noise band of its old probes. */
+export function noiseVerdict(old: NoiseBand | undefined, next: NoiseBand): NoiseVerdict {
+  if (old === undefined) return "new";
+  if (next.min > old.max) return "rise";
+  if (next.max < old.min) return "fall";
+  return "noise";
+}
+
+/** The text of each verdict in the body of a refit. */
+const VERDICT_TEXT: Readonly<Record<NoiseVerdict, string>> = {
+  rise: "**rise past the noise**: name a cause",
+  fall: "fall past the noise: a ratchet",
+  noise: "in the noise",
+  new: "no old probes",
+};
+
+/** This function gives a noise band as text in whole MB, for example `392 to 395`. The text holds each value of the band. */
+function bandText(band: NoiseBand | undefined): string {
+  return band === undefined ? "" : `${Math.floor(band.min)} to ${Math.ceil(band.max)}`;
+}
+
+/** One measure of one input of a refit, with its two noise bands and its verdict. */
+interface RefitMeasure {
+  readonly input: string;
+  readonly name: string;
+  readonly probes: number;
+  readonly old: NoiseBand | undefined;
+  readonly next: NoiseBand;
+  readonly limit: string;
+  readonly verdict: NoiseVerdict;
+}
+
 /** This function gives the change of one value of a refit as text, for example `393 to 395 (+2 MB (+0.51 %))`. */
 function refitCell(from: number | undefined, next: number | undefined): string {
   if (next === undefined) return "";
@@ -484,13 +546,40 @@ function refitCell(from: number | undefined, next: number | undefined): string {
 
 /**
  * This function gives the body of the pull request of a refit as Markdown.
- * The body names the runs and the versions of the old limits and of the new limits, and the change of each input. A refused refit gives its reasons.
+ * The body names the runs and the versions of the old limits and of the new limits. A refused refit gives its reasons.
+ * For each measure of each input, the body gives the two noise bands, the change of the limit and a verdict (`noiseVerdict`).
+ * Each rise past the noise gets a line for its cause.
  */
-export function refitMarkdown(refit: Refit, run: RefitRun, source: LimitSource = LIMIT_SOURCE): string {
+export function refitMarkdown(refit: Refit, run: RefitRun, old: LimitData = LIMIT_DATA): string {
   const head = run.head.slice(0, 7);
   if (refit.data === undefined) {
     return ["### Refit of the memory limits: refused", "", `The probes of the run [${run.run}](${run.url}), on commit \`${head}\`, do not give a valid refit:`, "", ...refit.refused.map((r) => `- ${r}`)].join("\n") + "\n";
   }
+  const source = sourceOf(old);
+  const data = refit.data;
+  const measures = refit.rows.flatMap((r) => {
+    const values = data.probes[r.input];
+    if (values === undefined) return [];
+    const was = old.probes[r.input];
+    const of = (name: string, key: "liveMaxMb" | "allocMb", limit: string): RefitMeasure => {
+      const before = was === undefined ? undefined : noiseBand(was[key]);
+      const next = noiseBand(values[key]);
+      return { input: r.input, name, probes: r.probes, old: before, next, limit, verdict: noiseVerdict(before, next) };
+    };
+    return [of("live heap", "liveMaxMb", refitCell(r.old?.liveMaxMb, r.next?.liveMaxMb)), of("allocation", "allocMb", refitCell(r.old?.allocMb, r.next?.allocMb))];
+  });
+  const rises = measures.filter((m) => m.verdict === "rise");
+  const causes =
+    rises.length === 0
+      ? ["No measure rises past the noise."]
+      : [
+          `#### Rises past the noise: ${rises.length}`,
+          "",
+          "Each rise past the noise needs a named cause before the merge. The cause is a change of a version above, with the commit of that engine if its history shows it.",
+          "A rise with no cause is a finding for the owner of its engine, and it does not become a new limit.",
+          "",
+          ...rises.map((m) => `- [ ] ${m.input}, ${m.name}: ${bandText(m.old)} MB to ${bandText(m.next)} MB. Cause:`),
+        ];
   return [
     "### Refit of the memory limits",
     "",
@@ -499,10 +588,14 @@ export function refitMarkdown(refit: Refit, run: RefitRun, source: LimitSource =
     `- The old limits come from the runs ${source.runs.join(" and ")}, on commit \`${source.head}\`, with ${versionsText(source.engines)}.`,
     `- The probes of this run ran on ${versionsText(refit.data.engines)}. The change of the versions: ${engineChange(source.engines, refit.data.engines) || "none"}.`,
     "- Each new limit is the worst value of the probes plus their spread, with one step of 1 MB at least.",
+    "- The noise band of a measure goes from its lowest probe to its worst probe.",
+    "- A new band above each old probe is a rise past the noise. A new band below each old probe is a fall past the noise, and the refit keeps it as a ratchet.",
     "",
-    "| Input | Probes | Live heap, worst (MB) | Live heap limit (MB) | Allocation, worst (MB) | Allocation limit (MB) |",
-    "| --- | --- | --- | --- | --- | --- |",
-    ...refit.rows.map((r) => `| ${r.input} | ${r.probes} | ${refitCell(r.old?.fromLiveMb, r.next?.fromLiveMb)} | ${refitCell(r.old?.liveMaxMb, r.next?.liveMaxMb)} | ${refitCell(r.old?.fromAllocMb, r.next?.fromAllocMb)} | ${refitCell(r.old?.allocMb, r.next?.allocMb)} |`),
+    "| Input | Measure | Probes | Old band (MB) | New band (MB) | Limit (MB) | Verdict |",
+    "| --- | --- | --- | --- | --- | --- | --- |",
+    ...measures.map((m) => `| ${m.input} | ${m.name} | ${m.probes} | ${bandText(m.old)} | ${bandText(m.next)} | ${m.limit} | ${VERDICT_TEXT[m.verdict]} |`),
+    "",
+    ...causes,
     "",
     "The gate does not change its own limits. Read the change of each input before the merge.",
   ].join("\n") + "\n";

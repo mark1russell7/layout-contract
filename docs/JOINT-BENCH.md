@@ -1937,7 +1937,15 @@ A change of the versions starts a refit in the nightly run. A person reads the c
 2. When a version changed, `bench.mjs jobs --limit-repeats auto` gives each input with limits 5 jobs in the mode `measure-6144` (`REFIT_PROBES`). The other jobs keep their count of repeats.
 3. The gate job runs `bench.mjs refit` on the probes. The refit is the worst value of the 5 probes plus their spread for each input (`refitLimits`). The job uploads it as the artifact `memory-refit`: `refit.json` and `refit.md`.
 4. The first error line of the job names the artifact and the command of the next step. When the gate passes on the new versions, this line is a warning.
-5. In `packages/joint`, `node scripts/bench.mjs refit-pr --run <id>` opens the draft pull request of the refit. It changes only `data/memory-limits.json`. The body has the runs, both sets of versions and the change of each input.
+5. In `packages/joint`, `node scripts/bench.mjs refit-pr --run <id>` opens the draft pull request of the refit. It changes only `data/memory-limits.json`. The body has the runs, both sets of versions and a table of each measure of each input.
+
+The table of the body gives these columns for the live heap and the allocation of each input:
+
+- The noise band of the old probes and of the new probes, from the lowest probe to the worst probe.
+- The old limit, the new limit and their change in MB and in percent.
+- The verdict of `noiseVerdict`. A new band above each old probe is a rise past the noise. A new band below each old probe is a fall past the noise.
+
+Each rise past the noise needs a named cause before the merge. The cause is a change of a version, with the commit of that engine if its history shows it. A rise with no cause is a finding for the owner of its engine, and it does not become a new limit. A fall stays in the refit as a ratchet.
 
 The command `refit-pr` refuses these refits:
 
