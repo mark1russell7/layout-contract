@@ -14,13 +14,13 @@ import {
   codeAuditSample,
   codeAuditSeed,
   isTimeMeasure,
-  localImports,
   lockVersions,
   mergeProbes,
   packKey,
   type CarryProbe,
 } from "./carry.ts";
 import { carryProbe, packProbe } from "./carry-probe.ts";
+import { localImports } from "./carry-sources.ts";
 import { familyOf } from "./memory-gate.ts";
 import { jointInput, jointSpecs, SET } from "./corpus.ts";
 import { PACK_ENTRIES, packInputOf, runInput } from "./runner.ts";
