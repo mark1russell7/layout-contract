@@ -78,6 +78,8 @@ The script `scripts/joint-data.mjs` keeps the headline cell (the rule `all` with
 
 Each engine of `ENGINE_SPACES` has a file `packages/site/data/spaces/<engine>.json` with the schema `site-space/1`. Run `pnpm --filter @layout-contract/site run data:spaces -- <YYYY-MM-DD>` to write these files from the installed engines. A test fails if a file is missing, or if its space is not the space that the engine publishes. Thus a new engine version with a new space needs this script.
 
+The release train starts the root script `release-train:update` after the install of each update. That script writes these files with the date of the update. Thus the pull request of the train that updates an engine holds its new space file.
+
 ```json
 { "schema": "site-space/1", "source": "packing 0.3.0", "date": "2026-11-02", "space": { "schema": "strategy-space/1", "engine": "pack", "version": "1", "stages": [] } }
 ```

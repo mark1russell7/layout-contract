@@ -226,3 +226,34 @@ export function localImports(entry: string, read: (file: string) => string): str
 export function routerFingerprint(records: readonly LayoutRecord[]): string {
   return fingerprintOf(Object.fromEntries(records.map((r) => [r.input, auditHash(r)])));
 }
+
+/** The engines of a probe of a carry, by the package name of npm. */
+export const CARRY_ENGINE_PACKAGES: readonly string[] = Object.freeze(["@mark1russell7/packing", "@mark1russell7/highways"]);
+
+/**
+ * This function gives the installed version of each package of `names` for one importer of a lockfile of pnpm (lockfile version 9).
+ * The probe of a carry installs these versions to probe the engines of an earlier run. A missing importer, a missing package or a link causes a `RangeError`.
+ */
+export function lockVersions(lock: string, importer: string, names: readonly string[] = CARRY_ENGINE_PACKAGES): Record<string, string> {
+  const lines = lock.replaceAll("\r\n", "\n").split("\n");
+  const start = lines.indexOf(`  ${importer}:`);
+  if (start < 0) throw new RangeError(`The lockfile has no importer ${importer}.`);
+  const out: Record<string, string> = {};
+  let name: string | undefined;
+  for (const line of lines.slice(start + 1)) {
+    if (/^ {0,2}\S/.test(line)) break;
+    const key = /^ {6}'?([^':]+)'?:$/.exec(line);
+    if (key !== null) {
+      name = key[1];
+      continue;
+    }
+    const version = /^ {8}version: (\S+)$/.exec(line);
+    if (version !== null && name !== undefined && names.includes(name) && out[name] === undefined) out[name] = version[1]!.replace(/\(.*$/, "");
+  }
+  for (const n of names) {
+    const v = out[n];
+    if (v === undefined) throw new RangeError(`The importer ${importer} of the lockfile has no package ${n}.`);
+    if (!/^\d+\.\d+\.\d+(-[\w.]+)?$/.test(v)) throw new RangeError(`The package ${n} of the importer ${importer} has the version "${v}", not a version of npm.`);
+  }
+  return out;
+}
