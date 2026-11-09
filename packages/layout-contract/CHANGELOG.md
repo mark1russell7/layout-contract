@@ -1,5 +1,13 @@
 # Changelog
 
+## Unreleased
+
+- `Resize.reshape` lets a packer give a `rect` box a shape, for example the polygon cell of a Voronoi treemap (L161).
+- `Placement.shape` gives the shape of the placed box, relative to its origin, as `LayoutBox.shape`. `applyPack` gives the box that shape and removes its `shapeKind`.
+- `size-kept` also counts a placement with a shape on a box without `reshape`, or with a shape outside its size (`shapeFits`). A placement counts one time.
+- `packOutputForm` has the shape of a placement only when it is set. Thus the fingerprint of an output without a shape does not change.
+- `checkInput` gives a problem for a `reshape` value that is not `true` or `false`.
+
 ## 0.9.6
 
 - PATCH before 1.0.0: new optional fields and new exports. A packer can give a box another size.
