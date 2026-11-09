@@ -256,25 +256,31 @@ export function pointInRings(x: number, y: number, rings: readonly Ring[]): bool
 /**
  * This function gives the centroid of the area of a ring, by the shoelace formula. The order of the corners can be
  * clockwise or counterclockwise. A ring with the area 0 gives the mean of its corners. An empty ring is a `RangeError`.
+ * The sums use the corners relative to the first corner. Thus a small ring far from the origin keeps its digits.
  */
 export function ringCentroid(ring: Ring): Point {
   if (ring.length === 0) throw new RangeError("ringCentroid needs a ring with at least one corner.");
+  const [ox, oy] = ring[0]!;
   let twice = 0;
   let sx = 0;
   let sy = 0;
   for (let i = 0; i < ring.length; i++) {
-    const [ax, ay] = ring[i]!;
-    const [bx, by] = ring[(i + 1) % ring.length]!;
+    const a = ring[i]!;
+    const b = ring[(i + 1) % ring.length]!;
+    const ax = a[0] - ox;
+    const ay = a[1] - oy;
+    const bx = b[0] - ox;
+    const by = b[1] - oy;
     const cross = ax * by - bx * ay;
     twice += cross;
     sx += (ax + bx) * cross;
     sy += (ay + by) * cross;
   }
   if (twice === 0) {
-    const mean = (k: 0 | 1): number => ring.reduce((sum, corner) => sum + corner[k], 0) / ring.length;
-    return { x: mean(0), y: mean(1) };
+    const mean = (k: 0 | 1): number => ring.reduce((sum, corner) => sum + (corner[k] - ring[0]![k]), 0) / ring.length;
+    return { x: ox + mean(0), y: oy + mean(1) };
   }
-  return { x: sx / (3 * twice), y: sy / (3 * twice) };
+  return { x: ox + sx / (3 * twice), y: oy + sy / (3 * twice) };
 }
 
 /**

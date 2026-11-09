@@ -36,6 +36,18 @@ describe("ringCentroid", () => {
     expect(ringCentroid(moved)).toEqual({ x: 102, y: -5 });
   });
 
+  it("keeps the digits of a small ring far from the origin", () => {
+    const tiny: Ring = [
+      [1e6, 1e6],
+      [1e6 + 0.001, 1e6],
+      [1e6 + 0.001, 1e6 + 0.001],
+      [1e6, 1e6 + 0.001],
+    ];
+    const c = ringCentroid(tiny);
+    expect(c.x).toBeCloseTo(1e6 + 0.0005, 6);
+    expect(c.y).toBeCloseTo(1e6 + 0.0005, 6);
+  });
+
   it("gives the mean of the corners for a ring with the area 0, and refuses an empty ring", () => {
     expect(ringCentroid([[1, 1], [3, 3], [5, 5]])).toEqual({ x: 3, y: 3 });
     expect(ringCentroid([[2, 7]])).toEqual({ x: 2, y: 7 });
