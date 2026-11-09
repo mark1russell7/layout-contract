@@ -1,8 +1,10 @@
 // Small helpers of the page: HTML escapes, number formats and the bar charts.
 
-/** This function escapes a text for HTML. */
+import { escapeAttribute } from "@mark1russell7/text";
+
+/** This function escapes a value for HTML, after it changes the value to a text. */
 export function esc(value: unknown): string {
-  return String(value).replace(/[&<>"']/g, (c) => `&#${c.charCodeAt(0)};`);
+  return escapeAttribute(String(value));
 }
 
 /** This function gives a number with 3 decimals. */
