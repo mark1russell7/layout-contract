@@ -190,16 +190,16 @@
   },
   "joint-v2_packing-0.10.2_highways-0.15.0_space-bench-3": {
    "corpus": "joint-v2",
-   "nights": 1,
-   "last": "2026-11-08",
-   "missing": 0,
-   "configs": 34,
+   "nights": 2,
+   "last": "2026-11-09",
+   "missing": 34,
+   "configs": 39,
    "counts": {
     "baseline": 3,
-    "screened": 0,
-    "alive": 4,
-    "dropped": 19,
-    "halved": 8,
+    "screened": 1,
+    "alive": 5,
+    "dropped": 21,
+    "halved": 9,
     "design": 0
    },
    "step": {
@@ -285,40 +285,40 @@
     }
    },
    "cost": {
-    "date": "2026-11-08",
+    "date": "2026-11-09",
     "jobMinutes": {
-     "planned": 159.45210673233038,
-     "lo": 141.75977258583117,
-     "hi": 385.7974124885886,
-     "real": 354.1133486800333,
-     "side": "hit",
-     "brier": 0.03999999999999998
+     "planned": 49.11756323047935,
+     "lo": 49.00082570644843,
+     "hi": 119.77929037803993,
+     "real": 210.98706044543334,
+     "side": "high",
+     "brier": 0.6400000000000001
     },
     "jobMinutesStatus": "scored",
     "wall": {
-     "planned": 53.15084019463639,
-     "lo": 63.8404200245091,
-     "hi": 162.10384610798818,
-     "real": 194.46666666666667,
+     "planned": 32.82380125967521,
+     "lo": 45.44374674029386,
+     "hi": 124.64860576932323,
+     "real": 168.21666666666667,
      "side": "high",
      "brier": 0.6400000000000001
     },
     "wallStatus": "scored",
     "shards": {
-     "lo": 0.7028156776263966,
-     "hi": 4.314064655098387,
-     "width": 6.1382589951154465,
+     "lo": 0.7595057413297437,
+     "hi": 4.394312597225591,
+     "width": 5.78575296815008,
      "overCap": true,
-     "shards": 11,
-     "hits": 10,
+     "shards": 3,
+     "hits": 1,
      "low": 0,
-     "high": 1,
-     "stopped": 0,
-     "brier": 0.09454545454545454
+     "high": 2,
+     "stopped": 2,
+     "brier": 0.4400000000000001
     },
     "widthCap": 5,
-    "budget": "The budget of the gate is 360 minutes, from 0 gates. The read of the run 42357250161 failed after 4 tries, so the budget uses only the runs that it read. The estimate is the fallback, because no gate has job times.",
-    "thin": true
+    "budget": "The budget of the gate is 839 minutes, from 3 gates.",
+    "thin": false
    }
   }
  },
