@@ -76,7 +76,7 @@
     "@mark1russell7/predicates": "^0.1.1",
     "@mark1russell7/rigor-generators": "^0.1.8",
     "@mark1russell7/rigor-statistics": "^0.1.23",
-    "@mark1russell7/strategy-space": "^0.0.4",
+    "@mark1russell7/strategy-space": "^0.0.5",
     "@mark1russell7/typeset": "^0.2.0"
   }
 }

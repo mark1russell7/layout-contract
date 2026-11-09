@@ -4,7 +4,8 @@
 
 - PATCH before 1.0.0: a fix and 2 new re-exports. `dimensionAt` and `dimensionUnit` use `paramAt` and `paramUnit` of `@mark1russell7/strategy-space` 0.0.4, so the scale of a range has one home.
 - The values of an `int` or a `real` dimension do not change. A dimension that is not numeric gives a `RangeError`. Before this change it gave a value that is not a number.
-- The package re-exports `paramAt` and `paramUnit`. The range of `@mark1russell7/strategy-space` is `^0.0.4`.
+- The package re-exports `paramAt` and `paramUnit`.
+- The range of `@mark1russell7/strategy-space` is `^0.0.5`. A caret range on `0.0.x` holds one patch only, so `^0.0.4` does not get 0.0.5. Version 0.0.5 adds `omitUnused`, and a space without it keeps each config id.
 
 ## 0.9.7
 
