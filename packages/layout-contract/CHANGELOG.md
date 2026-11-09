@@ -1,5 +1,21 @@
 # Changelog
 
+## 0.9.4
+
+- PATCH before 1.0.0: new optional fields and new exports. A packer can give a box another size.
+- `LayoutBox.resize` (`Resize`) gives the bounds of the size: `minW`, `maxW`, `minH`, `maxH` and `aspect` (`keep` or `free`). A bound that it does not set is the size of the box.
+- `Placement.w` and `Placement.h` give the size of the placed box after the turn. `applyPack` gives the box that size with `resizeBox`. A port with `x` or `y` moves with the scale, and a port with `along` stays. The margin stays.
+- `turnBox` turns the bounds of a resize with `turnResize`.
+- The hard rule `size-kept` (`countResizeBreaks`, `sizeFits`) counts each placement with a size outside the bounds of its box, in the tolerance `RECORD_EPS`. A placement with a size on a box without a resize breaks it.
+- `PackHard` has `size-kept` as an optional key. `packHard` gives it only when a box has `resize` or a placement has `w` or `h`. Thus the counts and the records of each other input do not change, and `HARD_RULE_VERSION` stays 2.
+- `checkInput` gives these problems of a resize (`resizeProblems`):
+  - a resize on a box with a shape, or with a kind other than `rect`
+  - a bound that is not positive and finite
+  - an `aspect` other than `keep` and `free`
+  - a size of the box outside its bounds.
+- `packOutputForm` has `w` and `h` of a placement only when they are set. Thus the fingerprint of an output without a size does not change.
+- `size-kept` is not in `PACK_HARD_RULES`. A rule of that list limits the shape kinds of each input, and `checkInput` already refuses a resize on a shape.
+
 ## 0.9.2
 
 - PATCH before 1.0.0: new exports only. `CorpusManifest<Spec, Claims, Input>` is the type of a corpus manifest `layout-corpus/1`, with `HeldOut` and `ManifestClaims` (`docs/CORPUS.md`).
