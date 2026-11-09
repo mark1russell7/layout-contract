@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.9.3
+
+- PATCH before 1.0.0: a new export only. `snapRect(rect)` gives a rectangle on whole pixels. It rounds each edge, not the size, so two rectangles that touch still touch.
+- `snapRect` gives 0, not -0. A property test with `fast-check` examines 2000 pairs of rectangles that touch.
+
 ## 0.9.2
 
 - PATCH before 1.0.0: new exports only. `CorpusManifest<Spec, Claims, Input>` is the type of a corpus manifest `layout-corpus/1`, with `HeldOut` and `ManifestClaims` (`docs/CORPUS.md`).
