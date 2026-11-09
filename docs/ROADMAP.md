@@ -27,7 +27,7 @@ A row with the status `later (parked to 11-11)` waits until 2026-11-11. Until th
 | L104 | in progress | P1 | A response explorer on the site, from the records of a joint run: the builder first, the page with the data of the cover run |
 | L102 | later (parked to 11-11) | P2 | The strategy catalog: each strategy and option of an engine as JSON (`docs/STRATEGY-CATALOG.md`) |
 | L101 | in progress | P0 | Bench: a shard with a deadline, a record for each pair, and a resume of a run |
-| L147 | in progress | P1 | After an engine release, the joint bench measures again only the pairs whose engine output fingerprint changed |
+| L147 | in progress | P1 | After an engine release, the joint bench measures again only the pairs whose engine output fingerprint changed. Part 3: the carry in `joint-bench.yml` (the input `carry`) |
 | L148 | in progress | P1 | The strategy space as a package of its own (`@mark1russell7/strategy-space`): operators, combinators, the count of the grammar, screening and racing |
 | L153 | in progress | P1 | A frame record (`layout-frame/1`) and the frames between two layouts, with the laws as property tests (`docs/FRAMES.md`, 0.9.1) |
 | L100 | later (parked to 11-11) | P2 | The step between two epochs: raw values of the baseline arm, with a marked step on the charts |
