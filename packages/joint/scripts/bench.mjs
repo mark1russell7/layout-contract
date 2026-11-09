@@ -91,6 +91,7 @@ import {
   limitRepeatsFor,
   refitLimits,
   refitMarkdown,
+  refitOfData,
   refitRefusal,
   memoryGate,
   manifestJson,
@@ -954,13 +955,14 @@ function refitPullRequest(id, trailer, bodyEnd) {
   const work = mkdtempSync(join(tmpdir(), "memory-refit-"));
   run("gh", ["run", "download", String(id), "--name", "memory-refit", "--dir", join(work, "artifact")]);
   const refit = JSON.parse(readFileSync(join(work, "artifact", "refit.json"), "utf8"));
-  const body = readFileSync(join(work, "artifact", "refit.md"), "utf8");
   run("git", ["fetch", "-q", "origin", "main"]);
   // The refusals are in `refitRefusal`, and its tests examine each of them. A refit that main took after the commit of the probes makes this refit old.
   const ancestor = spawnSync("git", ["merge-base", "--is-ancestor", refit.head, "origin/main"]).status === 0;
   const limitsChanged = ancestor && spawnSync("git", ["diff", "--quiet", refit.head, "origin/main", "--", "data/memory-limits.json"]).status !== 0;
   const refusal = refitRefusal(refit, id, { ancestor, limitsChanged });
   if (refusal !== undefined) throw new RangeError(refusal);
+  // The body comes from the code of this checkout, so a refit of an older run also gets the noise bands and the verdicts of each measure.
+  const body = refitMarkdown(refitOfData(refit.data), refit);
   // The change of each input, before the push.
   console.log(body);
   const branch = `memory-refit-${id}`;

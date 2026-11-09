@@ -72,6 +72,14 @@ The records of a run are CI artifacts, and the repository does not keep them. Th
 
 3. Commit `packages/site/data/joint/<run>.json`. The site shows the newest result first, and a list gives the other results. Give `--cover on` for a cover run. The site marks that result and tells that its floors do not compare with older runs. Give `--short on` for a short run of some chosen pairs (the workflow input `pairs`). The site marks it, and opens on the newest full run. A short run is not a cover run, so the script refuses both flags on one file. Until a cover run is in `data/joint/`, each covered entry has the tag "waiting for the first cover run". The next build removes the tag when that file lands.
 
+A run that kept records of an earlier run (a carry, L147) gives three more options:
+
+- `--carry <dir>/carry.json`: the summary of the carry, from the artifact `joint-carry-audit` of the run.
+- `--measured-run <id>`: the id of the earlier run that measured the kept records.
+- `--measured-date <YYYY-MM-DD>`: the date of that run.
+
+The script refuses one of these options without the other two. The page then shows the date of the measure run next to the date of the run, with the count of the kept records. A code bridge (rule B, `docs/JOINT-BENCH.md`) also shows its two commits and the size of its code audit. It also shows the 95 % upper bound of the rate of a difference. The age of the data reads the date of the run.
+
 The script `scripts/joint-data.mjs` keeps the headline cell (the rule `all` with the cap 1.25) and the same cell on the stress inputs. It also keeps the 6 cells of the headline inputs and the predictions of the run. The corpus is `joint-v2` by default. The option `--corpus` changes it.
 
 ### The strategy space of an engine

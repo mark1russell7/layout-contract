@@ -1,6 +1,6 @@
 // The step from the report.json of a joint benchmark run to the compact data file of the site.
 // scripts/joint-data.mjs starts it. Node runs this file with its type stripping, so it uses no TypeScript-only syntax.
-import { JOINT_SCHEMA, type Baseline, type CellSummary, type CellView, type Compare, type Interval, type JointData, type PartBest, type RankRow } from "./data.ts";
+import { JOINT_SCHEMA, type JointCarry, type Baseline, type CellSummary, type CellView, type Compare, type Interval, type JointData, type PartBest, type RankRow } from "./data.ts";
 
 /** The rule and the cap of the headline cell (`docs/JOINT-BENCH.md`). */
 export const HEADLINE = { rule: "all", cap: 1.25 } as const;
@@ -16,6 +16,8 @@ export interface RunFacts {
   readonly cover?: boolean;
   /** This value is true for a short run of some chosen pairs (`--pairs`, L132). */
   readonly short?: boolean;
+  /** The facts of a carry (L147), for a run that kept records of an earlier run. */
+  readonly carry?: JointCarry;
 }
 
 type Obj = Record<string, any>;
@@ -108,6 +110,7 @@ export function jointData(report: Obj, facts: RunFacts): JointData {
     corpus: facts.corpus,
     ...(facts.cover === true ? { cover: true } : {}),
     ...(facts.short === true ? { short: true } : {}),
+    ...(facts.carry === undefined ? {} : { carry: { ...facts.carry, ...(facts.carry.code === undefined ? {} : { code: { ...facts.carry.code } }) } }),
     versions: { ...facts.versions },
     records: report["records"],
     pairs: report["pairs"],
