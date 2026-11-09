@@ -349,6 +349,7 @@ shapeSupportProblems: build/measures.chunk.d.ts#shapeSupportProblems
 shapesOf: build/measures.chunk.d.ts#shapesOf
 shapesOverlap: build/index.d.ts#shapesOverlap
 sharedDimension: build/index.d.ts#sharedDimension
+snapRect: build/measures.chunk.d.ts#snapRect
 spaceShapeKinds: build/index.d.ts#spaceShapeKinds
 spaceSize: build/index.d.ts#spaceSize
 splitConfig: @mark1russell7/strategy-space#splitConfig (external)
@@ -1926,6 +1927,9 @@ declare function shapeSupportProblems(uses: readonly ShapeSupport[]): string[];
 
 ### build/measures.chunk.d.ts#shapesOf
 declare function shapesOf(use: Pick<ShapeSupport, "shapes">): readonly ShapeKind[];
+
+### build/measures.chunk.d.ts#snapRect
+declare function snapRect(rect: Rect): Rect;
 
 ### build/measures.chunk.d.ts#splitFileName
 declare function splitFileName(corpus: string, hash: string): string;

@@ -40,6 +40,19 @@ export function toSizedRect(rect: Rect): SizedRect {
   return { x: rect.x, y: rect.y, width: rect.w, height: rect.h };
 }
 
+/** This function rounds a number to a whole number with `Math.round`. It gives 0, not -0, for a small negative number. */
+const roundEdge = (value: number): number => Math.round(value) + 0;
+
+/**
+ * This function gives a rectangle on whole pixels. It rounds each edge with `Math.round`, not the size. Thus two
+ * rectangles that touch still touch after the rounding, and no gap or overlap of one pixel comes between them.
+ */
+export function snapRect(rect: Rect): Rect {
+  const x = roundEdge(rect.x);
+  const y = roundEdge(rect.y);
+  return { x, y, w: roundEdge(rect.x + rect.w) - x, h: roundEdge(rect.y + rect.h) - y };
+}
+
 /** A value for each side of a box. */
 export interface Sides {
   readonly top: number;

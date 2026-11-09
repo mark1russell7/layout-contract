@@ -148,7 +148,7 @@ describe("boxCenterDistance", () => {
 
 describe("segmentsCross with exact signs", () => {
   type P = { readonly x: number; readonly y: number };
-  // The float rule of the contract before version 0.9.3.
+  // The float rule of the contract before version 0.9.4.
   const orient = (a: P, b: P, c: P): number => (b.x - a.x) * (c.y - a.y) - (b.y - a.y) * (c.x - a.x);
   const opposite = (u: number, v: number): boolean => (u < 0 && v > 0) || (u > 0 && v < 0);
   const floatCross = (a: P, b: P, c: P, d: P): boolean => opposite(orient(c, d, a), orient(c, d, b)) && opposite(orient(a, b, c), orient(a, b, d));
