@@ -105,6 +105,7 @@ The comments of the source name each doc as `docs/<NAME>.md`. The docs are in th
 | Doc | The subject |
 |---|---|
 | [`docs/BALANCE.md`](https://github.com/mark1russell7/layout-contract/blob/main/docs/BALANCE.md) | The balance and stability measures of a pack and of a joint layout |
+| [`docs/FRAMES.md`](https://github.com/mark1russell7/layout-contract/blob/main/docs/FRAMES.md) | The frame record `layout-frame/1`, the frames between two layouts and their laws |
 | [`docs/TEXT.md`](https://github.com/mark1russell7/layout-contract/blob/main/docs/TEXT.md) | The text layout of the subpath `/text`: the rules, the units and the measures |
 | [`docs/CORPUS.md`](https://github.com/mark1russell7/layout-contract/blob/main/docs/CORPUS.md) | The shared corpus registry, its dimensions and families |
 | [`docs/CORPUS-CHECKS.md`](https://github.com/mark1russell7/layout-contract/blob/main/docs/CORPUS-CHECKS.md) | The corpus checks and the split files |
