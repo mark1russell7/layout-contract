@@ -1,0 +1,85 @@
+# The check of the carry sources of a pull request (L147 rule B, docs/JOINT-BENCH.md, "The check of the carry sources").
+# A change of the measure code (packages/joint/src/runner.ts and its local imports) ends the plain carry of each earlier run with the code of the base.
+# A carry from such a run is then a code bridge. The job names each such manual run of the joint bench of the last 30 days.
+# It fails until a line "Carry-Source: <run id>" in the body or in a commit message of the pull request names each of them.
+# The module of the check has no package imports, so the job has no install.
+name: Carry sources
+
+on:
+  # Each pull request starts this workflow, so its summary check is always there. The job changes skips the
+  # work when the pull request changes no file of the gate (CI.md of the template, "A gate with paths").
+  # The type edited starts the check again after a change of the body.
+  pull_request:
+    types: [opened, synchronize, reopened, edited]
+
+concurrency:
+  group: carry-sources-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  changes:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+      pull-requests: read
+    outputs:
+      match: ${{ steps.changes.outputs.match }}
+    steps:
+      - id: changes
+        uses: mark1russell7/template/.github/actions/changes@e8ddfd74e9ddfb92a1feba57b265fa9ef62d672e # main
+        with:
+          paths: |
+            packages/joint/src/**
+            packages/joint/scripts/carry-sources.ts
+            .github/workflows/carry-sources.yml
+
+  check:
+    needs: changes
+    if: needs.changes.outputs.match == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      actions: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          # The check reads the measure code at the commit of each earlier run.
+          fetch-depth: 0
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 26
+      - name: Name the runs whose plain carry this change ends
+        working-directory: packages/joint
+        env:
+          GH_TOKEN: ${{ github.token }}
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          PR_BODY: ${{ github.event.pull_request.body }}
+        # The shell bash of the defaults uses pipefail, so the exit of the check passes through tee.
+        run: |
+          gh run list -R "$GITHUB_REPOSITORY" --workflow joint-bench.yml --event workflow_dispatch --limit 200 --json databaseId,headSha,createdAt > "$RUNNER_TEMP/runs.json"
+          { printf '%s\n' "$PR_BODY"; git log --format=%B "$BASE_SHA..$HEAD_SHA"; } > "$RUNNER_TEMP/names.txt"
+          # HEAD is the merge of the pull request into the base, so the head side is the code after the merge.
+          node scripts/carry-sources.ts "$BASE_SHA" HEAD "$RUNNER_TEMP/runs.json" "$RUNNER_TEMP/names.txt" 30 | tee -a "$GITHUB_STEP_SUMMARY"
+
+  carry-sources-ok:
+    name: Carry sources OK
+    if: ${{ !cancelled() }}
+    needs: [changes, check]
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    permissions: {}
+    steps:
+      - uses: mark1russell7/template/.github/actions/gate-summary@e8ddfd74e9ddfb92a1feba57b265fa9ef62d672e # main
+        with:
+          needs: ${{ toJSON(needs) }}

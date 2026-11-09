@@ -1,8 +1,10 @@
 import { boundsOf, grow, marginSides, overlapOf, pointInRings, type Margin, type Point, type Rect, type Region } from "./geometry.ts";
 import type { LayoutBox, LayoutContainer, LayoutInput, Obstacle, PairGap, Port } from "./input.ts";
 import { applyPack, type PackOutput } from "./output.ts";
+import { resizeProblems, sizeFits } from "./resize.ts";
 import { SHAPE_KIND_IDS, shapeKindProblem, type ShapeSupport } from "./shapes.ts";
 import { DEFAULT_TOLERANCE, EPS, RECORD_EPS } from "./tolerance.ts";
+import { turnBox } from "./turn.ts";
 
 /** This function gives the area of a placed box: its shape or its rectangle, at its position. A box without a position gives `undefined`. */
 export function placedRect(box: LayoutBox): Rect | undefined {
@@ -374,6 +376,11 @@ export interface PackHard {
   readonly "in-container": number;
   readonly "locked-kept": number;
   readonly complete: number;
+  /**
+   * The count of the placements whose size is not in the bounds of their box (`countResizeBreaks`).
+   * `packHard` gives it only when a box of the input has `resize` or a placement has `w` or `h`. Thus the counts of the other inputs do not change.
+   */
+  readonly "size-kept"?: number;
 }
 
 /**
@@ -554,6 +561,24 @@ export function countObstacleHits(
 }
 
 /**
+ * This function gives the count of the placements whose size is not in the bounds of their box (`sizeFits`).
+ * The bounds are in the axes of the placed box: a turned box has the turned bounds. A placement without `w` or `h` keeps that size of the box.
+ * A placement of an id that is not in the input does not count.
+ */
+export function countResizeBreaks(input: LayoutInput, output: PackOutput): number {
+  const was = new Map(input.boxes.map((b) => [b.id, b]));
+  let count = 0;
+  for (const p of output.placements) {
+    if (p.w === undefined && p.h === undefined) continue;
+    const box = was.get(p.id);
+    if (box === undefined) continue;
+    const placed = p.turn === 90 ? turnBox(box) : box;
+    if (!sizeFits(placed, p.w ?? placed.w, p.h ?? placed.h)) count++;
+  }
+  return count;
+}
+
+/**
  * This function gives the count of each hard rule of the output of a packer.
  * It applies the output with `applyPack`. Only the placed boxes and the locked boxes count for the overlaps and the container.
  * `no-overlap` counts the pairs of boxes and the pairs of a box and an obstacle. A pair of `pairGaps` uses its gap in place of the margins. `HARD_RULE_VERSION` tells the version of these counts.
@@ -561,6 +586,7 @@ export function countObstacleHits(
  * A locked box without a placement, or with a move of more than `RECORD_EPS`, breaks `locked-kept`.
  * A locked box without a position in the input is a bad input, not a break. `checkInput` finds it.
  * Another box without a placement that is not in `overflow` breaks `complete`.
+ * `size-kept` is in the result only when a box has `resize` or a placement has `w` or `h` (`countResizeBreaks`).
  *
  * `options` goes to `countOutside` for `in-container`.
  */
@@ -590,7 +616,13 @@ export function packHard(input: LayoutInput, output: PackOutput, tolerance: numb
     "in-container": countOutside({ ...after, boxes: kept }, tolerance, options),
     "locked-kept": lockedMoved,
     complete: incomplete,
+    ...(resizes(input, output) ? { "size-kept": countResizeBreaks(input, output) } : {}),
   };
+}
+
+/** This function tells if a box of the input has `resize` or a placement of the output has `w` or `h`. */
+function resizes(input: LayoutInput, output: PackOutput): boolean {
+  return input.boxes.some((b) => b.resize !== undefined) || output.placements.some((p) => p.w !== undefined || p.h !== undefined);
 }
 
 /**
@@ -598,6 +630,8 @@ export function packHard(input: LayoutInput, output: PackOutput, tolerance: numb
  * A problem is a bad input, not a break of a hard rule. Thus an engine refuses the input.
  * In `pairGaps`, an unknown box, a pair of one box, a repeated pair in either order, a bad `gap` and bad `lanes` are problems.
  * A port with `along` and no `side`, with `x` or `y`, or with a value outside [0, 1] is a problem.
+ *
+ * A bad `resize` is a problem (`resizeProblems`).
  */
 export function checkInput(input: LayoutInput): readonly string[] {
   const problems: string[] = [];
@@ -610,6 +644,7 @@ export function checkInput(input: LayoutInput): readonly string[] {
     const shape = shapeKindProblem(box);
     if (shape !== undefined) problems.push(shape);
     for (const port of box.ports ?? []) problems.push(...alongProblems(box.id, port));
+    problems.push(...resizeProblems(box));
   }
   if (countPortsOffBorder(input.boxes) > 0) problems.push("a fixed port is not on the border of its box");
   for (const edge of input.edges ?? []) {

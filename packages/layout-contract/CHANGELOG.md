@@ -2,10 +2,6 @@
 
 ## Unreleased
 
-- PATCH before 1.0.0: a new optional field. `carried.code` (`CarriedCode`) holds the facts of a carry over a change of the measure code (L147 rule B).
-  These facts are the two commits, the size of the code audit and the 95 % upper bound of the rate of a difference.
-- With `carried.code`, `checkLayoutRecord` accepts the same engine versions in `carried.from` and `carried.to`. A record without `carried.code` keeps the old rule.
-- `carryRecord` takes the option `code`. A record that a run carried before keeps its `carried.code.from`.
 - New exports: the measure registry (L65). `MeasureEntry` adds the source package, the noise, the normalization and the cost to `MeasureSpec`. `MEASURE_REGISTRY` holds the entries of the joint measures.
 - `measureEntry` makes an entry from a spec. `normalizeMeasure` gives a loss from 0 to 1 by the rule `range` or `scale`. `checkRegistry` gives the faults of a list of entries.
 - `MeasureSurvey`, `checkSurvey` and `surveyFindings` read the survey of the measures of each package. `docs/MEASURE-REGISTRY.md` tells the rules and the findings of the survey of 2026-11-09.
@@ -14,6 +10,48 @@
 - `MeasureEntry.planned` holds the reason that no code computes a measure. `joint.stability.mean` and `joint.stability.moved` are planned, and `normalizeMeasure` gives an `Error` for a planned measure.
 - The rule `none` has a reason. A spec can have the `min` `-Infinity`. The rule `range` needs a finite `min` and `max`, and the rule `scale` needs a finite `min`.
 - New measure `balance.gapMean`: the mean of the nearest-neighbour gaps, in layout units. `Balance.gapMean`, `BALANCE_MEASURE_SUFFIXES`, `balanceMeasures` and `balanceMeasureSpecs` give it. Its role is `diagnostic`, because an objective gives it a target.
+
+## 0.9.9
+
+- PATCH before 1.0.0: new optional options and a new type. Without the new options, each layout stays the same.
+- `layoutText` gets `justify: { stretch, shrink }` (the type `TextJustify`). With it, `TextLayout.ratios` gives the adjustment ratio of each line, and `total-fit` chooses the lines by these ratios.
+- `layoutText` gets `hyphenate`, a hook that gives the hyphen places of a word. A break there costs 50, and the line ends with "-". `docs/TEXT.md` tells the rules.
+- `createTextLayoutCache` keys the values of `justify` and the identity of `hyphenate`.
+- Runtime dependency: the range of `@mark1russell7/typeset` goes from `^0.2.0` to `^0.5.1`. The package imports no hyphen pattern set.
+
+## 0.9.8
+
+- PATCH before 1.0.0: a fix and 4 new exports. `dimensionAt` and `dimensionUnit` use `paramAt` and `paramUnit` of `@mark1russell7/strategy-space`, so the scale of a range has one home.
+- The values of an `int` or a `real` dimension do not change. A dimension that is not numeric gives a `RangeError`. Before this change it gave a value that is not a number.
+- The package re-exports `paramAt` and `paramUnit`.
+- The range of `@mark1russell7/strategy-space` is `^0.0.5`. A caret range on `0.0.x` holds one patch only, so `^0.0.2` does not get 0.0.5. Version 0.0.5 adds `omitUnused`, and a space without it keeps each config id.
+- The geometry gets `ringCentroid(ring)` and `clipRing(ring, a, b, c)` for the cells of a power diagram (#311). `ringCentroid` gives the centroid of the area of a ring. `clipRing` gives the part of a ring in the half-plane `a * x + b * y <= c`.
+
+## 0.9.7
+
+- PATCH before 1.0.0: a new form of `ParamRoute`. `{ strategy, fixed }` tells that a stage option of a space is one value of another strategy (`docs/STRATEGY-CATALOG.md`).
+- `checkCatalog` examines the params of such a stage option against the declarations of that strategy, and each value of `fixed` against its declaration.
+- A route with an absent strategy, an absent or bad fixed option, or a param with the name of a fixed option is a fault. A `strategy` route on a param is also a fault.
+
+## 0.9.6
+
+- PATCH before 1.0.0: new optional fields and new exports. A packer can give a box another size.
+- `LayoutBox.resize` (`Resize`) gives the bounds of the size: `minW`, `maxW`, `minH`, `maxH` and `aspect` (`keep` or `free`). A bound that it does not set is the size of the box.
+- `Placement.w` and `Placement.h` give the size of the placed box after the turn. `applyPack` gives the box that size with `resizeBox`. A port with `x` or `y` moves with the scale, and a port with `along` stays. The margin stays.
+- `turnBox` turns the bounds of a resize with `turnResize`.
+- The hard rule `size-kept` (`countResizeBreaks`, `sizeFits`) counts each placement with a size outside the bounds of its box, in the tolerance `RECORD_EPS`. A placement with a size on a box without a resize breaks it.
+- `PackHard` has `size-kept` as an optional key. `packHard` gives it only when a box has `resize` or a placement has `w` or `h`. Thus the counts and the records of each other input do not change, and `HARD_RULE_VERSION` stays 2.
+- `checkInput` gives these problems of a resize (`resizeProblems`):
+  - a resize on a box with a shape, or with a kind other than `rect`
+  - a bound that is not positive and finite
+  - an `aspect` other than `keep` and `free`
+  - a size of the box outside its bounds.
+- `packOutputForm` has `w` and `h` of a placement only when they are set. Thus the fingerprint of an output without a size does not change.
+- `size-kept` is not in `PACK_HARD_RULES`. A rule of that list limits the shape kinds of each input, and `checkInput` already refuses a resize on a shape.
+- The new optional field `carried.code` (`CarriedCode`) holds the facts of a carry over a change of the measure code (L147 rule B).
+  These facts are the two commits, the size of the code audit and the 95 % upper bound of the rate of a difference.
+- With `carried.code`, `checkLayoutRecord` accepts the same engine versions in `carried.from` and `carried.to`. A record without `carried.code` keeps the old rule.
+- `carryRecord` takes the option `code`. A record that a run carried before keeps its `carried.code.from`.
 
 ## 0.9.5
 

@@ -253,6 +253,57 @@ export function pointInRings(x: number, y: number, rings: readonly Ring[]): bool
   return inside;
 }
 
+/**
+ * This function gives the centroid of the area of a ring, by the shoelace formula. The order of the corners can be
+ * clockwise or counterclockwise. A ring with the area 0 gives the mean of its corners. An empty ring is a `RangeError`.
+ * The sums use the corners relative to the first corner. Thus a small ring far from the origin keeps its digits.
+ */
+export function ringCentroid(ring: Ring): Point {
+  if (ring.length === 0) throw new RangeError("ringCentroid needs a ring with at least one corner.");
+  const [ox, oy] = ring[0]!;
+  let twice = 0;
+  let sx = 0;
+  let sy = 0;
+  for (let i = 0; i < ring.length; i++) {
+    const a = ring[i]!;
+    const b = ring[(i + 1) % ring.length]!;
+    const ax = a[0] - ox;
+    const ay = a[1] - oy;
+    const bx = b[0] - ox;
+    const by = b[1] - oy;
+    const cross = ax * by - bx * ay;
+    twice += cross;
+    sx += (ax + bx) * cross;
+    sy += (ay + by) * cross;
+  }
+  if (twice === 0) {
+    const mean = (k: 0 | 1): number => ring.reduce((sum, corner) => sum + (corner[k] - ring[0]![k]), 0) / ring.length;
+    return { x: ox + mean(0), y: oy + mean(1) };
+  }
+  return { x: ox + sx / (3 * twice), y: oy + sy / (3 * twice) };
+}
+
+/**
+ * This function gives the part of a ring in the half-plane `a * x + b * y <= c`, by the steps of Sutherland and Hodgman.
+ * The corners keep their order. A new corner goes where a side crosses the line. A ring with no part in the half-plane
+ * gives an empty ring. The part of a convex ring is convex. The part of a concave ring can have sides of length 0 on the line.
+ */
+export function clipRing(ring: Ring, a: number, b: number, c: number): Ring {
+  const out: (readonly [number, number])[] = [];
+  for (let i = 0; i < ring.length; i++) {
+    const p = ring[i]!;
+    const q = ring[(i + 1) % ring.length]!;
+    const fp = a * p[0] + b * p[1] - c;
+    const fq = a * q[0] + b * q[1] - c;
+    if (fp <= 0) out.push(p);
+    if ((fp < 0 && fq > 0) || (fp > 0 && fq < 0)) {
+      const t = fp / (fp - fq);
+      out.push([p[0] + t * (q[0] - p[0]), p[1] + t * (q[1] - p[1])]);
+    }
+  }
+  return out;
+}
+
 /** This function gives the distance between the centers of two rectangles. */
 export function boxCenterDistance(a: Rect, b: Rect): number {
   return Math.hypot(b.x + b.w / 2 - (a.x + a.w / 2), b.y + b.h / 2 - (a.y + a.h / 2));
