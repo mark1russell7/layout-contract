@@ -1,7 +1,8 @@
 # Changelog
 
-## Unreleased
+## 0.10.0
 
+- MINOR before 1.0.0: a break. The unit text of the measure specs changes for its readers, and `HARD_RULE_VERSION` is 3. The other entries add exports or options.
 - New module `curves`: the Hilbert, Moore and Morton (Z order) curves on a grid. The side of the grid is a power of 2. `docs/CURVES.md` gives the rules.
 - `CurveSpec` holds a curve as data: the order of its four parts and the symmetry of each part. `HILBERT_CURVE`, `MOORE_CURVE` and `MORTON_CURVE` are the three curves, and `HILBERT_PATTERN` and `MOORE_PATTERN` are their patterns.
 - `curveCell` and `curveIndex` give the cell at a place and the place of a cell. `curveCells` gives each cell in the order of the curve.
