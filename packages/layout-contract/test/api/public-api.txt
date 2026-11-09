@@ -12,6 +12,8 @@ BALANCE_SIDE_DEPTH: build/index.d.ts#BALANCE_SIDE_DEPTH
 Balance: build/index.d.ts#Balance
 BalanceMeasureSuffix: build/index.d.ts#BalanceMeasureSuffix
 type BooleanOption: @mark1russell7/strategy-space#BooleanOption (external)
+CELL_MEASURE_SUFFIXES: build/index.d.ts#CELL_MEASURE_SUFFIXES
+CELL_SOURCE: build/index.d.ts#CELL_SOURCE
 CIRCLE_SCATTERED: build/index.d.ts#CIRCLE_SCATTERED
 CORPUS_DIMENSIONS: build/index.d.ts#CORPUS_DIMENSIONS
 CORPUS_MANIFEST_SCHEMA: build/index.d.ts#CORPUS_MANIFEST_SCHEMA
@@ -23,6 +25,9 @@ CatalogCheckOptions: build/index.d.ts#CatalogCheckOptions
 CatalogEntry: build/index.d.ts#CatalogEntry
 CatalogLimit: build/index.d.ts#CatalogLimit
 CatalogOptionsOptions: build/index.d.ts#CatalogOptionsOptions
+CellItem: build/index.d.ts#CellItem
+CellMeasureSuffix: build/index.d.ts#CellMeasureSuffix
+Cells: build/index.d.ts#Cells
 CellsOptions: build/index.d.ts#CellsOptions
 ClaimBreak: build/measures.chunk.d.ts#ClaimBreak
 ComposeOptions: build/index.d.ts#ComposeOptions
@@ -175,6 +180,7 @@ SHAPE_KIND_IDS: build/measures.chunk.d.ts#SHAPE_KIND_IDS
 SHARE_UNIT: build/index.d.ts#SHARE_UNIT
 SIDES: build/measures.chunk.d.ts#SIDES
 SPLIT_SCHEMA: build/measures.chunk.d.ts#SPLIT_SCHEMA
+SQUARE_COMPACTNESS: build/index.d.ts#SQUARE_COMPACTNESS
 STRATEGY_CATALOG_SCHEMA: build/index.d.ts#STRATEGY_CATALOG_SCHEMA
 STRATEGY_CATALOG_SCHEMAS: build/index.d.ts#STRATEGY_CATALOG_SCHEMAS
 STRATEGY_SPACE_SCHEMA: @mark1russell7/strategy-space#STRATEGY_SPACE_SCHEMA (external)
@@ -258,6 +264,10 @@ catalogChoices: build/index.d.ts#catalogChoices
 catalogDefaults: build/index.d.ts#catalogDefaults
 catalogKey: build/index.d.ts#catalogKey
 catalogOptions: build/index.d.ts#catalogOptions
+cellMeasureEntries: build/index.d.ts#cellMeasureEntries
+cellMeasureSpecs: build/index.d.ts#cellMeasureSpecs
+cellMeasures: build/index.d.ts#cellMeasures
+cellsOf: build/index.d.ts#cellsOf
 checkCatalog: build/index.d.ts#checkCatalog
 checkConfig: @mark1russell7/strategy-space#checkConfig (external)
 checkDeclared: build/measures.chunk.d.ts#checkDeclared
@@ -359,6 +369,7 @@ randomInt: build/index.d.ts#randomInt
 rectInRegion: build/index.d.ts#rectInRegion
 regionArea: build/measures.chunk.d.ts#regionArea
 regionHitsRect: build/index.d.ts#regionHitsRect
+regionPerimeter: build/measures.chunk.d.ts#regionPerimeter
 resolveDimensions: build/index.d.ts#resolveDimensions
 ruleLevel: build/measures.chunk.d.ts#ruleLevel
 scaleRect: build/measures.chunk.d.ts#scaleRect
@@ -449,6 +460,12 @@ export interface Balance {
 ### build/index.d.ts#BalanceMeasureSuffix
 export type BalanceMeasureSuffix = "balance.gapCv" | "balance.gapMean" | "balance.centroidOffset" | "balance.side.top" | "balance.side.right" | "balance.side.bottom" | "balance.side.left" | "balance.sideRange" | "stability.procrustes" | "stability.seed";
 
+### build/index.d.ts#CELL_MEASURE_SUFFIXES
+export declare const CELL_MEASURE_SUFFIXES: readonly CellMeasureSuffix[];
+
+### build/index.d.ts#CELL_SOURCE
+export declare const CELL_SOURCE = "@mark1russell7/layout-contract";
+
 ### build/index.d.ts#CIRCLE_SCATTERED
 export declare const CIRCLE_SCATTERED: CorpusFamily<LayoutInput>;
 
@@ -529,6 +546,21 @@ export interface CatalogLimit {
 ### build/index.d.ts#CatalogOptionsOptions
 export interface CatalogOptionsOptions {
   readonly strategyKey?: (value: unknown) => string | undefined;
+}
+
+### build/index.d.ts#CellItem
+export interface CellItem {
+  readonly target: number;
+  readonly cell: Region;
+}
+
+### build/index.d.ts#CellMeasureSuffix
+export type CellMeasureSuffix = "cell.areaError" | "cell.compactness";
+
+### build/index.d.ts#Cells
+export interface Cells {
+  readonly areaError: number;
+  readonly compactness: number;
 }
 
 ### build/index.d.ts#CellsOptions
@@ -1097,6 +1129,9 @@ export type RunFacts = Omit<LayoutRecord, "schema" | "input" | "inputHash" | "se
 ### build/index.d.ts#SHARE_UNIT
 export declare const SHARE_UNIT = "share";
 
+### build/index.d.ts#SQUARE_COMPACTNESS
+export declare const SQUARE_COMPACTNESS: number;
+
 ### build/index.d.ts#STRATEGY_CATALOG_SCHEMA
 export declare const STRATEGY_CATALOG_SCHEMA = "strategy-catalog/3";
 
@@ -1371,6 +1406,18 @@ export declare function catalogKey(id: string, step?: string): string;
 
 ### build/index.d.ts#catalogOptions
 export declare function catalogOptions(defaults: Readonly<Record<string, unknown>>, schema: Readonly<Record<string, AnyOption>>, options?: CatalogOptionsOptions): Record<string, AnyOption>;
+
+### build/index.d.ts#cellMeasureEntries
+export declare function cellMeasureEntries<S extends string>(stage: S): readonly MeasureEntry<`${S}.${CellMeasureSuffix}`>[];
+
+### build/index.d.ts#cellMeasureSpecs
+export declare function cellMeasureSpecs<S extends string>(stage: S): readonly MeasureSpec<`${S}.${CellMeasureSuffix}`>[];
+
+### build/index.d.ts#cellMeasures
+export declare function cellMeasures<S extends string>(stage: S, cells: Cells): Record<`${S}.${CellMeasureSuffix}`, number>;
+
+### build/index.d.ts#cellsOf
+export declare function cellsOf(items: readonly CellItem[], containerArea: number): Cells;
 
 ### build/index.d.ts#checkCatalog
 export declare function checkCatalog(source: StrategyCatalogSource, registry: readonly RegistryEntry[], options?: CatalogCheckOptions): CatalogCheck;
@@ -2071,6 +2118,9 @@ declare function portPoint(box: Pick<LayoutBox, "w" | "h">, port: Port): Point |
 
 ### build/measures.chunk.d.ts#regionArea
 declare function regionArea(region: Region): number;
+
+### build/measures.chunk.d.ts#regionPerimeter
+declare function regionPerimeter(region: Region): number;
 
 ### build/measures.chunk.d.ts#ruleLevel
 declare function ruleLevel(rule: Pick<ShapeSupport, "shapes" | "safe">, kind: ShapeKind): RuleLevel;

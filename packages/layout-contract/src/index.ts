@@ -8,6 +8,7 @@ export * from "./rules.ts";
 export * from "./turn.ts";
 export * from "./measures.ts";
 export * from "./balance.ts";
+export * from "./cell.ts";
 export * from "./frame.ts";
 export * from "./strategy.ts";
 export * from "./random.ts";

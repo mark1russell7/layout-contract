@@ -154,6 +154,42 @@ function ringArea(ring: readonly (readonly [number, number])[]): number {
   return Math.abs(twice) / 2;
 }
 
+/**
+ * This function gives the perimeter of a region. A `rect` gives `2 * (w + h)`, and a circle gives `2 * PI * r`.
+ * A polygon gives the length of its outer ring plus the length of each hole. A ring with fewer than 2 points has the length 0.
+ *
+ * An ellipse has no closed form. It gives the second formula of Ramanujan, with a relative error below 5e-4 of the true perimeter. The error is largest for a flat ellipse.
+ */
+export function regionPerimeter(region: Region): number {
+  switch (region.kind) {
+    case "rect":
+      return 2 * (region.w + region.h);
+    case "circle":
+      return 2 * Math.PI * region.r;
+    case "ellipse": {
+      const a = Math.abs(region.rx);
+      const b = Math.abs(region.ry);
+      if (a + b === 0) return 0;
+      const t = ((a - b) / (a + b)) ** 2;
+      return Math.PI * (a + b) * (1 + (3 * t) / (10 + Math.sqrt(4 - 3 * t)));
+    }
+    case "polygon":
+      return (region.holes ?? []).reduce((length, hole) => length + ringLength(hole), ringLength(region.points));
+  }
+}
+
+/** This function gives the length of the closed ring of a polygon. */
+function ringLength(ring: readonly (readonly [number, number])[]): number {
+  if (ring.length < 2) return 0;
+  let length = 0;
+  for (let i = 0; i < ring.length; i++) {
+    const [ax, ay] = ring[i]!;
+    const [bx, by] = ring[(i + 1) % ring.length]!;
+    length += Math.hypot(bx - ax, by - ay);
+  }
+  return length;
+}
+
 /** This function gives the region moved by `dx` and `dy`. */
 export function translate(region: Region, dx: number, dy: number): Region {
   switch (region.kind) {

@@ -14,6 +14,9 @@
 - `MeasureEntry.planned` holds the reason that no code computes a measure. `joint.stability.mean` and `joint.stability.moved` are planned, and `normalizeMeasure` gives an `Error` for a planned measure.
 - The rule `none` has a reason. A spec can have the `min` `-Infinity`. The rule `range` needs a finite `min` and `max`, and the rule `scale` needs a finite `min`.
 - New measure `balance.gapMean`: the mean of the nearest-neighbour gaps, in layout units. `Balance.gapMean`, `BALANCE_MEASURE_SUFFIXES`, `balanceMeasures` and `balanceMeasureSpecs` give it. Its role is `diagnostic`, because an objective gives it a target.
+- New cell measures (L161 part 2): `cell.areaError` (share, lower) and `cell.compactness` (ratio from 1, lower) of the cells of a Voronoi treemap.
+  `cellsOf`, `cellMeasures`, `cellMeasureSpecs` and `cellMeasureEntries` give the values, the specs and the registry entries. `docs/CELLS.md` gives the definitions.
+- `regionPerimeter` gives the perimeter of a region. An ellipse uses the second formula of Ramanujan.
 
 ## 0.9.5
 
