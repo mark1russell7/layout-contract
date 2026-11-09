@@ -1,3 +1,5 @@
+import { orient2dSign } from "@mark1russell7/predicates";
+
 /** A side of a box. The y axis points down, so `top` has the smallest y. */
 export type Side = "top" | "right" | "bottom" | "left";
 
@@ -77,8 +79,8 @@ export type Region =
   | { readonly kind: "rect"; readonly x: number; readonly y: number; readonly w: number; readonly h: number }
   | {
       readonly kind: "polygon";
-      readonly points: readonly (readonly [number, number])[];
-      readonly holes?: readonly (readonly (readonly [number, number])[])[];
+      readonly points: Ring;
+      readonly holes?: readonly Ring[];
     }
   | { readonly kind: "circle"; readonly cx: number; readonly cy: number; readonly r: number }
   | { readonly kind: "ellipse"; readonly cx: number; readonly cy: number; readonly rx: number; readonly ry: number };
@@ -185,27 +187,36 @@ function orient(a: Point, b: Point, c: Point): number {
   return (b.x - a.x) * (c.y - a.y) - (b.y - a.y) * (c.x - a.x);
 }
 
-/** This function tells if two numbers have opposite signs. Zero and NaN give false, so a touch at an end does not count. */
-function opposite(p: number, q: number): boolean {
-  return (p < 0 && q > 0) || (p > 0 && q < 0);
+/** This function gives the exact sign of the cross product of `ab` and `ac`, from `orient2dSign` of `@mark1russell7/predicates`. */
+function side(a: Point, b: Point, c: Point): number {
+  return orient2dSign(a.x, a.y, b.x, b.y, c.x, c.y);
+}
+
+/** This function tells if each coordinate of the points is finite. */
+function allFinite(...points: readonly Point[]): boolean {
+  return points.every((p) => Number.isFinite(p.x) && Number.isFinite(p.y));
 }
 
 /**
  * This function tells if the segments `ab` and `cd` cross at one point inside both of them.
  * Segments that only touch at an end, or that are collinear, do not cross. The test has no tolerance.
+ * The signs are exact, so an input that is almost collinear gets the correct answer. A coordinate that is not finite gives `false`.
  */
 export function segmentsCross(a: Point, b: Point, c: Point, d: Point): boolean {
-  return opposite(orient(c, d, a), orient(c, d, b)) && opposite(orient(a, b, c), orient(a, b, d));
+  if (!allFinite(a, b, c, d)) return false;
+  return side(c, d, a) * side(c, d, b) === -1 && side(a, b, c) * side(a, b, d) === -1;
 }
 
 /**
  * This function gives the point where the segments `ab` and `cd` cross, or `undefined`.
  * It gives a point exactly when `segmentsCross` is true, so a touch at an end and collinear segments give `undefined`.
+ * The point comes from float cross products. For an input that is almost collinear, the point stays on `ab`.
  */
 export function crossingPoint(a: Point, b: Point, c: Point, d: Point): Point | undefined {
   if (!segmentsCross(a, b, c, d)) return undefined;
   const from = orient(c, d, a);
-  const t = from / (from - orient(c, d, b));
+  const r = from / (from - orient(c, d, b));
+  const t = Number.isNaN(r) ? 0.5 : Math.min(1, Math.max(0, r));
   return { x: a.x + t * (b.x - a.x), y: a.y + t * (b.y - a.y) };
 }
 
@@ -216,6 +227,35 @@ export function pointSegmentDistance(p: Point, a: Point, b: Point): number {
   const l2 = dx * dx + dy * dy;
   const t = l2 === 0 ? 0 : Math.max(0, Math.min(1, ((p.x - a.x) * dx + (p.y - a.y) * dy) / l2));
   return Math.hypot(p.x - (a.x + t * dx), p.y - (a.y + t * dy));
+}
+
+/** A ring of a polygon: its corners in order, as `[x, y]` pairs. The last corner connects to the first. */
+export type Ring = readonly (readonly [number, number])[];
+
+/** This function tells if the point (`x`, `y`) is inside a ring, by the even-odd rule. A ring can be concave. The answer for a point on the border can be each value. */
+export function pointInRing(x: number, y: number, ring: Ring): boolean {
+  return pointInRings(x, y, [ring]);
+}
+
+/**
+ * This function tells if the point (`x`, `y`) is inside a set of rings, by the even-odd rule over all their sides.
+ * Thus a point inside the outer ring and inside a hole is out. The answer for a point on a border can be each value.
+ */
+export function pointInRings(x: number, y: number, rings: readonly Ring[]): boolean {
+  let inside = false;
+  for (const ring of rings) {
+    for (let i = 0, j = ring.length - 1; i < ring.length; j = i++) {
+      const [xi, yi] = ring[i]!;
+      const [xj, yj] = ring[j]!;
+      if (yi > y !== yj > y && x < ((xj - xi) * (y - yi)) / (yj - yi) + xi) inside = !inside;
+    }
+  }
+  return inside;
+}
+
+/** This function gives the distance between the centers of two rectangles. */
+export function boxCenterDistance(a: Rect, b: Rect): number {
+  return Math.hypot(b.x + b.w / 2 - (a.x + a.w / 2), b.y + b.h / 2 - (a.y + a.h / 2));
 }
 
 /**
