@@ -180,13 +180,13 @@ importers:
         version: 0.38.4
       '@mark1russell7/cue':
         specifier: ^2.1.1
-        version: 2.1.2
+        version: 2.1.3
       '@mark1russell7/ste-lint':
         specifier: ^0.3.0
         version: 0.3.0
       '@mark1russell7/template-cli':
         specifier: ^0.1.0
-        version: 0.1.5
+        version: 0.1.7
       '@swc/core':
         specifier: ^1.15.0
         version: 1.16.22
@@ -229,7 +229,7 @@ importers:
     devDependencies:
       '@mark1russell7/cue':
         specifier: ^2.1.1
-        version: 2.1.2
+        version: 2.1.3
       '@types/node':
         specifier: ^26.6.4
         version: 26.6.6
@@ -263,7 +263,7 @@ importers:
     devDependencies:
       '@mark1russell7/cue':
         specifier: ^2.1.1
-        version: 2.1.2
+        version: 2.1.3
       '@types/node':
         specifier: ^26.6.4
         version: 26.6.6
@@ -315,7 +315,7 @@ importers:
     devDependencies:
       '@mark1russell7/cue':
         specifier: ^2.1.1
-        version: 2.1.2
+        version: 2.1.3
       '@types/node':
         specifier: ^26.6.4
         version: 26.6.6
@@ -581,8 +581,8 @@ packages:
     engines: {node: '>=22'}
     hasBin: true
 
-  '@mark1russell7/cue@2.1.2':
-    resolution: {integrity: sha512-PjEWeyq353cz3gZyNmYkv/rUChybd3h9BWRW3UWP+fs0s7/CwGeVRzCpYLnvLR4gyHC367G/PS3kqWJO9GEAkg==}
+  '@mark1russell7/cue@2.1.3':
+    resolution: {integrity: sha512-CeQu2WZKGHjkZxjJ/bY60QiNYlfsDfrKwZfBeOmZSvOmEZlWRa8KlLtJ0mufNJ+pEogvfq+MB10JejCMyRH/Iw==}
     engines: {node: '>=22'}
     hasBin: true
 
@@ -657,8 +657,8 @@ packages:
     resolution: {integrity: sha512-P8BFem+8y1E2zJ1OJj675N3KL7bq9bN8eTUk7qeG9e4LfEkyQqasCCpp2jEFUD3cr0GkjbXBixcBXWVRj1EboA==}
     engines: {node: '>=22'}
 
-  '@mark1russell7/template-cli@0.1.5':
-    resolution: {integrity: sha512-OenwEgVEkrt6HjUtIsTgplkJJTBIZLwb0mxiPow533++mbrrJ8BvHK+MsMLFm6X5A8EJZlLgd6IXJspZy3L2og==}
+  '@mark1russell7/template-cli@0.1.7':
+    resolution: {integrity: sha512-Wy4xa6OgNXyMunSyXOArxmrspLSCuyw1pf1P5X45Uiwe1aWHzn0LJptUYVGUSwT3GTp9FGVDhFMeOnKlapD3Xw==}
     engines: {node: '>=22.12'}
     hasBin: true
 
@@ -1986,7 +1986,7 @@ snapshots:
     dependencies:
       yaml: 2.9.1
 
-  '@mark1russell7/cue@2.1.2': {}
+  '@mark1russell7/cue@2.1.3': {}
 
   '@mark1russell7/highways@0.15.0':
     dependencies:
@@ -2050,7 +2050,7 @@ snapshots:
     dependencies:
       '@mark1russell7/rigor-generators': 0.1.8
 
-  '@mark1russell7/template-cli@0.1.5':
+  '@mark1russell7/template-cli@0.1.7':
     dependencies:
       '@clack/prompts': 1.8.1
 
