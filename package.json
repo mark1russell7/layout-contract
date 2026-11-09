@@ -17,7 +17,8 @@
     "lint:ste": "ste-lint",
     "check:boundaries": "depcruise --config .dependency-cruiser.ts packages",
     "check:api": "api-report check",
-    "check:conventions": "conventions check"
+    "check:conventions": "conventions check",
+    "release-train:update": "pnpm --filter @layout-contract/site run data:spaces -- $(date -u +%F)"
   },
   "devDependencies": {
     "@arethetypeswrong/core": "^0.18.5",
