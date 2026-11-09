@@ -163,4 +163,41 @@ describe("carried", () => {
     expect(() => carryRecord(run, { from, to: { packing: "0.10.5" }, fingerprints })).toThrow(/do not name the same engines/);
     expect(() => carryRecord(run, { from, to, fingerprints: {} })).toThrow(/carried.fingerprints is empty/);
   });
+
+  describe("code (a carry over a change of the measure code)", () => {
+    const code = { from: "ccf99ce0000000000000000000000000000000aa", to: "1c41dda0000000000000000000000000000000bb", audit: 120, upper: 0.0311 };
+
+    it("accepts the same engine versions with code, and refuses them without code", () => {
+      expect(checkLayoutRecord({ ...run, carried: { from, to: from, fingerprints, code } })).toEqual([]);
+      expect(checkLayoutRecord({ ...run, carried: { ...carried, code } })).toEqual([]);
+      expect(checkLayoutRecord({ ...run, carried: { from, to: from, fingerprints } })).toEqual(["carried.to has no other version than carried.from"]);
+    });
+
+    it("refuses a bad code", () => {
+      const bad = (c: unknown): string[] => checkLayoutRecord({ ...run, carried: { from, to: from, fingerprints, code: c } });
+      expect(bad("yes")).toEqual(["carried.code is not an object"]);
+      expect(bad({ ...code, from: "" })).toEqual(["carried.code.from is not a commit"]);
+      expect(bad({ ...code, to: 7 })).toEqual(["carried.code.to is not a commit"]);
+      expect(bad({ ...code, to: code.from })).toEqual(["carried.code.to is the commit of carried.code.from"]);
+      expect(bad({ ...code, audit: 0 })).toEqual(["carried.code.audit is not a count of 1 or more"]);
+      expect(bad({ ...code, audit: 2.5 })).toEqual(["carried.code.audit is not a count of 1 or more"]);
+      expect(bad({ ...code, upper: 0 })).toEqual(["carried.code.upper is not above 0 and at most 1"]);
+      expect(bad({ ...code, upper: 1.01 })).toEqual(["carried.code.upper is not above 0 and at most 1"]);
+      expect(bad({ ...code, upper: Number.NaN })).toEqual(["carried.code.upper is not above 0 and at most 1"]);
+      expect(bad({ ...code, upper: 1 })).toEqual([]);
+    });
+
+    it("carries over a code change, and a later carry keeps the commit of the measure", () => {
+      const once = carryRecord(run, { from, to: from, fingerprints, run: "42428038369", code });
+      expect(once.carried).toEqual({ from, to: from, fingerprints, run: "42428038369", code });
+      expect(checkLayoutRecord(once)).toEqual([]);
+      const later = { from: code.to, to: "2d52eeb0000000000000000000000000000000cc", audit: 45, upper: 0.0787 };
+      const twice = carryRecord(once, { from, to, fingerprints, run: "42500000000", code: later });
+      expect(twice.carried?.code).toEqual({ ...later, from: code.from });
+      // A later carry with no change of the code keeps the facts of the code change.
+      const third = carryRecord(twice, { from: to, to: { packing: "0.10.6", highways: "0.15.2" }, fingerprints });
+      expect(third.carried?.code).toEqual(twice.carried?.code);
+      expect(() => carryRecord(run, { from, to: from, fingerprints, code: { ...code, upper: 0 } })).toThrow(/carried.code.upper is not above 0/);
+    });
+  });
 });

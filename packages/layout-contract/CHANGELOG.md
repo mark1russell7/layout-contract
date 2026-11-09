@@ -1,5 +1,12 @@
 # Changelog
 
+## Unreleased
+
+- PATCH before 1.0.0: a new optional field. `carried.code` (`CarriedCode`) holds the facts of a carry over a change of the measure code (L147 rule B).
+  These facts are the two commits, the size of the code audit and the 95 % upper bound of the rate of a difference.
+- With `carried.code`, `checkLayoutRecord` accepts the same engine versions in `carried.from` and `carried.to`. A record without `carried.code` keeps the old rule.
+- `carryRecord` takes the option `code`. A record that a run carried before keeps its `carried.code.from`.
+
 ## 0.9.4
 
 - PATCH before 1.0.0: a new export only. `scaleRect(rect, factor)` gives a rectangle with each coordinate and each size times the factor. It changes the unit of a rectangle, for example from CSS pixels to the pixels of a window.
