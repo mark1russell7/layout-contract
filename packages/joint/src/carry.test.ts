@@ -1,8 +1,10 @@
 import { REFUSED_PROBE, type LayoutInput, type LayoutRecord } from "@mark1russell7/layout-contract";
+import { measure, packWith } from "@mark1russell7/packing";
 import { describe, expect, it } from "vitest";
 import { AUDIT_LEAST, auditCompare, auditForm, auditHash, auditSample, CARRY_PROBE_SCHEMA, carryPlan, isTimeMeasure, localImports, mergeProbes, packKey, type CarryProbe } from "./carry.ts";
 import { carryProbe, packProbe } from "./carry-probe.ts";
-import { PACK_ENTRIES, runInput } from "./runner.ts";
+import { jointInput, jointSpecs, SET } from "./corpus.ts";
+import { PACK_ENTRIES, packInputOf, runInput } from "./runner.ts";
 import { doneKey } from "./shard-run.ts";
 
 const three: LayoutInput = {
@@ -117,6 +119,19 @@ describe("the probes", () => {
     expect(packProbe(rows, three, undefined)).toBe(packProbe(rows, three, undefined));
     expect(packProbe(rows, three, undefined)).not.toBe(packProbe(shelf, three, undefined));
     expect(packProbe(rows, three, { itemShape: "circle" })).toBe(REFUSED_PROBE);
+  });
+
+  it("gives the same pack hash two times for a container of free size, without the time of the size search", () => {
+    const spec = jointSpecs(SET).find((s) => packInputOf(jointInput(s, s.seeds[0]!, SET).input).container.fixed === "none" && jointInput(s, s.seeds[0]!, SET).input.boxes.length <= 10);
+    expect(spec).toBeDefined();
+    const { input } = jointInput(spec!, spec!.seeds[0]!, SET);
+    const maxrects = PACK_ENTRIES.find((e) => e.id === "maxrects-bl")!;
+    // The measures of a size search hold a time. Without this time measure, the test does not test the rule.
+    const pack = packInputOf(input);
+    const names = Object.keys(measure(pack, packWith(maxrects.strategy, pack, maxrects.options, input.seed ?? 0)));
+    expect(names.filter(isTimeMeasure)).not.toEqual([]);
+    const hashes = new Set([0, 1, 2].map(() => packProbe(maxrects, input, undefined)));
+    expect(hashes.size).toBe(1);
   });
 
   it("gives a probe document that merges with the probe of another shard", () => {

@@ -3,12 +3,13 @@
 // A router probe runs the pairs of one pack entry and the router on the probe inputs with `pairRuns`, and hashes the records without the times.
 import { probeHash, REFUSED_PROBE, type LayoutInput } from "@mark1russell7/layout-contract";
 import { checkHard, measure, outputHash as packHash, packWith, strategy as packStrategy, unsupportedOf } from "@mark1russell7/packing";
-import { CARRY_PROBE_SCHEMA, packKey, routerFingerprint, type CarryProbe } from "./carry.ts";
+import { CARRY_PROBE_SCHEMA, isTimeMeasure, packKey, routerFingerprint, type CarryProbe } from "./carry.ts";
 import { packInputOf, pairRuns, readsLinks, routerEntryOf, type PackEntry, type RouterEntry } from "./runner.ts";
 
 /**
  * This function gives the hash of the pack of one input with one pack entry.
  * It hashes the pack hash, the measures and the hard counts, as the pack stage of `pairRuns` gives them.
+ * It leaves out the time measures of `isTimeMeasure`, for example `pack.search.ms` of a size search. Thus two probes of one pack give one hash.
  * It gives `REFUSED_PROBE` when the strategy does not support the cell of the input, or when the pack throws. Then the pair of the run has no measures.
  */
 export function packProbe(entry: PackEntry, input: LayoutInput, cell: Readonly<Record<string, unknown>> | undefined): string {
@@ -22,7 +23,8 @@ export function packProbe(entry: PackEntry, input: LayoutInput, cell: Readonly<R
     () => {
       const output = packWith(entry.strategy, packInput, entry.options, input.seed ?? 0);
       const hard = Object.fromEntries(Object.entries(checkHard(score, output, undefined, { exactContainer: true })).map(([k, v]) => [`pack.${k}`, v]));
-      return { hash: packHash(output), measures: measure(score, output), hard };
+      const measures = Object.fromEntries(Object.entries(measure(score, output)).filter(([name]) => !isTimeMeasure(name)));
+      return { hash: packHash(output), measures, hard };
     },
     () => true,
   );
