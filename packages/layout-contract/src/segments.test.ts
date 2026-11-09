@@ -145,3 +145,52 @@ describe("boxCenterDistance", () => {
     expect(boxCenterDistance(a, { x: 0, y: 2, w: 2, h: 4 })).toBe(3);
   });
 });
+
+describe("segmentsCross with exact signs", () => {
+  type P = { readonly x: number; readonly y: number };
+  // The float rule of the contract before version 0.9.3.
+  const orient = (a: P, b: P, c: P): number => (b.x - a.x) * (c.y - a.y) - (b.y - a.y) * (c.x - a.x);
+  const opposite = (u: number, v: number): boolean => (u < 0 && v > 0) || (u > 0 && v < 0);
+  const floatCross = (a: P, b: P, c: P, d: P): boolean => opposite(orient(c, d, a), orient(c, d, b)) && opposite(orient(a, b, c), orient(a, b, d));
+
+  // The point `a` is a few units of the last place from the line `cd`, on the side of `b`. The float cross product has the wrong sign.
+  const c = p(0.1, 0.3);
+  const d = p(17.3, 24.9);
+  const a = p(8.699999999999953, 12.599999999999932);
+  const b = p(-1.299999999999999, 22.6);
+
+  it("gives the correct answer for a point almost on the other segment", () => {
+    expect(floatCross(a, b, c, d)).toBe(true);
+    expect(segmentsCross(a, b, c, d)).toBe(false);
+    expect(segmentsCross(c, d, a, b)).toBe(false);
+    expect(crossingPoint(a, b, c, d)).toBeUndefined();
+  });
+
+  it("gives the answers of the float rule on whole numbers, where the float rule is exact", () => {
+    const grid: P[] = [];
+    for (let x = 0; x < 4; x++) for (let y = 0; y < 4; y++) grid.push(p(x, y));
+    let crosses = 0;
+    for (const s of grid) for (const e of grid) for (const g of grid) for (const h of grid) {
+      const answer = segmentsCross(s, e, g, h);
+      if (answer !== floatCross(s, e, g, h)) throw new Error(`The answers differ for ${JSON.stringify([s, e, g, h])}.`);
+      if (answer) crosses++;
+    }
+    expect(crosses).toBeGreaterThan(0);
+  });
+
+  it("gives false for a coordinate that is not finite", () => {
+    expect(segmentsCross(p(Number.NaN, 0), p(10, 10), p(0, 10), p(10, 0))).toBe(false);
+    expect(segmentsCross(p(0, 0), p(Number.POSITIVE_INFINITY, 10), p(0, 10), p(10, 0))).toBe(false);
+    expect(crossingPoint(p(0, 0), p(10, 10), p(0, Number.NEGATIVE_INFINITY), p(10, 0))).toBeUndefined();
+  });
+
+  it("gives a crossing point on the two segments for an input that is almost collinear", () => {
+    // The point `e` is on the other side of `cd`, a few units of the last place from it.
+    const e = p(8.699999999999953, 12.599999999999932 - 2 ** -45);
+    const q = crossingPoint(e, b, c, d);
+    expect(q).toBeDefined();
+    expect(q!.x).toBeGreaterThanOrEqual(Math.min(e.x, b.x));
+    expect(q!.x).toBeLessThanOrEqual(Math.max(e.x, b.x));
+    expect(pointSegmentDistance(q!, c, d)).toBeLessThan(1e-12);
+  });
+});

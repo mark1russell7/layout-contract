@@ -1,3 +1,5 @@
+import { orient2dSign } from "@mark1russell7/predicates";
+
 /** A side of a box. The y axis points down, so `top` has the smallest y. */
 export type Side = "top" | "right" | "bottom" | "left";
 
@@ -162,27 +164,36 @@ function orient(a: Point, b: Point, c: Point): number {
   return (b.x - a.x) * (c.y - a.y) - (b.y - a.y) * (c.x - a.x);
 }
 
-/** This function tells if two numbers have opposite signs. Zero and NaN give false, so a touch at an end does not count. */
-function opposite(p: number, q: number): boolean {
-  return (p < 0 && q > 0) || (p > 0 && q < 0);
+/** This function gives the exact sign of the cross product of `ab` and `ac`, from `orient2dSign` of `@mark1russell7/predicates`. */
+function side(a: Point, b: Point, c: Point): number {
+  return orient2dSign(a.x, a.y, b.x, b.y, c.x, c.y);
+}
+
+/** This function tells if each coordinate of the points is finite. */
+function allFinite(...points: readonly Point[]): boolean {
+  return points.every((p) => Number.isFinite(p.x) && Number.isFinite(p.y));
 }
 
 /**
  * This function tells if the segments `ab` and `cd` cross at one point inside both of them.
  * Segments that only touch at an end, or that are collinear, do not cross. The test has no tolerance.
+ * The signs are exact, so an input that is almost collinear gets the correct answer. A coordinate that is not finite gives `false`.
  */
 export function segmentsCross(a: Point, b: Point, c: Point, d: Point): boolean {
-  return opposite(orient(c, d, a), orient(c, d, b)) && opposite(orient(a, b, c), orient(a, b, d));
+  if (!allFinite(a, b, c, d)) return false;
+  return side(c, d, a) * side(c, d, b) === -1 && side(a, b, c) * side(a, b, d) === -1;
 }
 
 /**
  * This function gives the point where the segments `ab` and `cd` cross, or `undefined`.
  * It gives a point exactly when `segmentsCross` is true, so a touch at an end and collinear segments give `undefined`.
+ * The point comes from float cross products. For an input that is almost collinear, the point stays on `ab`.
  */
 export function crossingPoint(a: Point, b: Point, c: Point, d: Point): Point | undefined {
   if (!segmentsCross(a, b, c, d)) return undefined;
   const from = orient(c, d, a);
-  const t = from / (from - orient(c, d, b));
+  const r = from / (from - orient(c, d, b));
+  const t = Number.isNaN(r) ? 0.5 : Math.min(1, Math.max(0, r));
   return { x: a.x + t * (b.x - a.x), y: a.y + t * (b.y - a.y) };
 }
 

@@ -2,9 +2,11 @@
 
 ## 0.9.3
 
-- PATCH before 1.0.0: new exports only. `pointInRing` and `pointInRings` tell if a point is inside a ring, or a ring with holes, by the even-odd rule. `Ring` is the type of a ring.
+- PATCH before 1.0.0: new exports and a fix. `pointInRing` and `pointInRings` tell if a point is inside a ring, or a ring with holes, by the even-odd rule. `Ring` is the type of a ring.
 - `boxCenterDistance` gives the distance between the centers of two rectangles. `frameMove` uses it, and its values do not change.
 - The rules of the containers use `pointInRings`. Before this change, they had a private copy of it.
+- Fix: `segmentsCross` uses the exact signs of `orient2dSign` of `@mark1russell7/predicates`, in place of a float cross product. An input that is almost collinear gets the correct answer. A coordinate that is not finite gives `false`.
+- `crossingPoint` keeps its point on the segment `ab` when the float cross products and the exact signs do not agree.
 
 ## 0.9.2
 
