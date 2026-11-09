@@ -40,6 +40,19 @@ export function portPoint(box: Pick<LayoutBox, "w" | "h">, port: Port): Point | 
   }
 }
 
+/**
+ * The sizes that a packer can give a box. Each bound is in the axes of the box before a turn.
+ * A bound that the value does not set is the size of the box. Thus `{ maxW: 300 }` lets the width grow from `w` to 300, and the height stays `h`.
+ * With `aspect: "keep"`, the ratio of the width to the height stays the ratio of `w` to `h`. The default is `free`.
+ */
+export interface Resize {
+  readonly minW?: number;
+  readonly maxW?: number;
+  readonly minH?: number;
+  readonly maxH?: number;
+  readonly aspect?: "keep" | "free";
+}
+
 /** A box of an input. In the packer, its name is item. */
 export interface LayoutBox {
   readonly id: string;
@@ -66,6 +79,8 @@ export interface LayoutBox {
   readonly margin?: Margin;
   /** The packer can turn the box by 90 degrees. The output has the turned box and ports. */
   readonly turnable?: boolean;
+  /** The packer can give the box another size in these bounds. The placement has the new size. Only a `rect` box without a shape can have it. */
+  readonly resize?: Resize;
   /** The free data of the node. The grouping rule `keys` of `highways` reads `data.group`. */
   readonly data?: Readonly<Record<string, unknown>>;
 }

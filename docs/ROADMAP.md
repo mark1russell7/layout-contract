@@ -18,6 +18,7 @@ A row with the status `later (parked to 11-11)` waits until 2026-11-11. Until th
 | L96 | later (parked to 11-11) | P2 | Two named tables of the family `recorded` in `rigor-generators`, with source, license and date, as joint inputs and size choices of the site |
 | L98 | done | P2 | Bench: run only chosen rows of the cover |
 | L94 | in progress | P1 | Circle items in the joint bench: one shared family and an exact hard rule in the contract (0.4.0), then the joint corpus. Part 1: the array `shapes` of `joint-v3` gives inputs to `hole-degree`, `circle-quasi-physical` and `exact-strip`. Part 2: a cover run of `joint-v3` removes the 3 cover exceptions. Routes read the box until highways routes around the true shape |
+| L158 | in progress | P1 | A packer can give a box another size: `resize` bounds on a box, `w` and `h` on a placement, and the optional hard rule `size-kept` (0.9.6) |
 | L108 | later (parked to 11-11) | P2 | The news of the site holds no typed version. The release page is the one list of versions |
 | L111 | later (parked to 11-11) | P2 | The cost claim of the sweep is an interval for the whole night, then for each shard, and the night record states the inputs of its budget |
 | L110 | later (parked to 11-11) | P2 | The step between two sweep nights reads route values: detour, routed crossings and the route length of the contract (`joint.route.length`) |
@@ -29,6 +30,7 @@ A row with the status `later (parked to 11-11)` waits until 2026-11-11. Until th
 | L101 | in progress | P0 | Bench: a shard with a deadline, a record for each pair, and a resume of a run |
 | L147 | in progress | P1 | After an engine release, the joint bench measures again only the pairs whose engine output fingerprint changed. Part 3: the carry in `joint-bench.yml` (the input `carry`) |
 | L148 | in progress | P1 | The strategy space as a package of its own (`@mark1russell7/strategy-space`): operators, combinators, the count of the grammar, screening and racing |
+| L159 | in progress | P1 | A catalog route for a stage option that is one value of another strategy (`{ strategy, fixed }`), so the check examines its params (0.9.7) |
 | L100 | later (parked to 11-11) | P2 | The step between two epochs: raw values of the baseline arm, with a marked step on the charts |
 | L122 | later (parked to 11-11) | P2 | A floor per option for a walk sample: the count per option beside uniform, a floor with its reason, a stratum if an option falls under it, and a test that pins the smallest count. By 2026-11-17. Part 1, the sample option `fixed`, is in version 0.5.4. |
 | L99 | later (parked to 11-11) | P2 | A night with no result shows: `night-check.yml`, a line on the site, retries on API reads, and no green skip after a failed gate |
