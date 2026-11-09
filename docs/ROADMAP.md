@@ -29,7 +29,8 @@ A row with the status `later (parked to 11-11)` waits until 2026-11-11. Until th
 | L102 | later (parked to 11-11) | P2 | The strategy catalog: each strategy and option of an engine as JSON (`docs/STRATEGY-CATALOG.md`) |
 | L101 | in progress | P0 | Bench: a shard with a deadline, a record for each pair, and a resume of a run |
 | L147 | in progress | P1 | After an engine release, the joint bench measures again only the pairs whose engine output fingerprint changed. Part 3: the carry in `joint-bench.yml` (the input `carry`) |
-| L65 | in progress | P1 | One measure registry in layout-contract. Part 1: the entries of the joint measures with source, noise, normalization and cost, and the survey of the measures of the engines (`docs/MEASURE-REGISTRY.md`) |
+| L65 | in progress | P1 | One measure registry in layout-contract. Parts 1 to 3 are in version 0.10.0: the entries of the joint measures with source, noise, normalization and cost, the unit rules, and the survey of the measures of the engines (`docs/MEASURE-REGISTRY.md`). Next: the survey again at highways 0.19.0 and packing 0.18.0, and scales for the open rows |
+| L161 | in progress | P2 | A polygon cell on a placement (`Placement.shape`), the cell measures `cell.areaError` and `cell.compactness`, and exact counts of a convex polygon in the hard rules (`HARD_RULE_VERSION` 3). Parts 1 to 3 are in version 0.10.0 |
 | L148 | in progress | P1 | The strategy space as a package of its own (`@mark1russell7/strategy-space`): operators, combinators, the count of the grammar, screening and racing |
 | L159 | in progress | P1 | A catalog route for a stage option that is one value of another strategy (`{ strategy, fixed }`), so the check examines its params (0.9.7) |
 | L100 | later (parked to 11-11) | P2 | The step between two epochs: raw values of the baseline arm, with a marked step on the charts |

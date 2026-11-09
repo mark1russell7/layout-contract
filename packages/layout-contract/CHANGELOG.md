@@ -1,7 +1,9 @@
 # Changelog
 
-## Unreleased
+## 0.10.0
 
+- MINOR before 1.0.0: two breaking changes. A reader of the unit text of a spec can break (L65 part 2). A reader of `HARD_RULE_VERSION` can break (3, L161 part 3).
+- The values of the measures do not change. The counts of `no-overlap` and `in-container` only go down, and only for a convex polygon.
 - New exports: the measure registry (L65). `MeasureEntry` adds the source package, the noise, the normalization and the cost to `MeasureSpec`. `MEASURE_REGISTRY` holds the entries of the joint measures.
 - `measureEntry` makes an entry from a spec. `normalizeMeasure` gives a loss from 0 to 1 by the rule `range` or `scale`. `checkRegistry` gives the faults of a list of entries.
 - `MeasureSurvey`, `checkSurvey` and `surveyFindings` read the survey of the measures of each package. `docs/MEASURE-REGISTRY.md` tells the rules and the findings of the survey of 2026-11-09.
