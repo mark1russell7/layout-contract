@@ -142,6 +142,30 @@ A `CorpusStep` changes an input after its base family, with the same seed. `comp
 - `EDGES_STEP` is the step `edges` of `edgeStep`. Its family part is `e-<edgeDensity>.<edgeShape>.<groups>.<ports>`. The value `random` of `hubBy` adds `.hub-random`. The step is `libm-dependent`, because the shape `hubs` uses `**`.
 - `EDGE_KEY_STEP` is the step `edge-key` of `edgeKeyStep`. It comes directly after `EDGES_STEP`, and it changes only `data.collection`. Its family part is `key-<edgeKey>`. The step is `exact`.
 
+## The manifest of a corpus
+
+A corpus file has the schema `layout-corpus/1`. The type `CorpusManifest<Spec, Claims, Input>` has these fields:
+
+| Field | Value |
+| --- | --- |
+| `schema` | `layout-corpus/1` |
+| `corpus` | The name of the corpus |
+| `heldOut` | Optional. The held-out split of a portfolio report: a seed or `all` |
+| `claims` | Optional. The claims of the corpus. `claims.declared` is a `DeclaredClaim`, and `declaredClaimOf` reads it. |
+| `specs` | The specs of the inputs, in the type of the bench |
+| `inputs` | Optional. The inputs or their entries, in the type of the bench |
+
+`corpusManifestText(manifest, options)` gives the one text of a manifest:
+
+- The fields come in the order of the table. A field with no value is not in the text.
+- Each item of `specs` and of `inputs` has its own line.
+- The style `spaced` (the default) puts a space after each colon and each comma. The bench of `packing` writes this style.
+- The style `compact` gives the text of `JSON.stringify`. The joint bench writes this style.
+
+`manifestText(fields, options)` gives the text of a manifest with other fields, for example the fields `search` and `found` of an adversary corpus. Each field sets its style and its rows.
+
+The tests pin the writer to the bytes of 5 corpus files of `packing` in `test/fixtures/corpus/` and of the 3 joint corpus files.
+
 ## The browser safety
 
 The code path of the registry uses no API of Node: no `fs`, no `crypto` of Node and no `worker_threads`. The SHA-256 and the canonical form come from `@mark1russell7/rigor-generators`, which is plain code with no API of Node.

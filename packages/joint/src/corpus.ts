@@ -1,4 +1,4 @@
-import { CIRCLE_SCATTERED, documentHash, EDGE_STEP_VERSION, type EdgeStepParams, type LayoutInput } from "@mark1russell7/layout-contract";
+import { CIRCLE_SCATTERED, type CorpusManifest, corpusManifestText, documentHash, EDGE_STEP_VERSION, type EdgeStepParams, type LayoutInput } from "@mark1russell7/layout-contract";
 import { cellOf, countCell, generator, toPackInput, type CorpusCell, type GeneratorParams } from "@mark1russell7/packing";
 import { pairwise, type Dimensions, type Row } from "./pairwise.ts";
 import { JOINT_BASES, jointRegistry } from "./families.ts";
@@ -168,12 +168,8 @@ export interface CorpusClaims {
   readonly maxBoxes: number;
 }
 
-/** The manifest `corpus.json` of the corpus: `layout-corpus/1`, with the steps in each spec. A manifest of `joint-v2` also has `claims`. */
-export interface JointManifest {
-  readonly schema: "layout-corpus/1";
-  readonly corpus: string;
-  readonly claims?: CorpusClaims;
-  readonly specs: readonly JointSpec[];
+/** The manifest `corpus.json` of the corpus: `layout-corpus/1` of the contract, with the steps in each spec. A manifest of `joint-v2` also has `claims`. */
+export interface JointManifest extends CorpusManifest<JointSpec, CorpusClaims, JointEntry> {
   readonly inputs: readonly JointEntry[];
 }
 
@@ -357,11 +353,12 @@ export function jointCorpus(set: JointSet = SET, options: { readonly seeds?: rea
   return { manifest, inputs };
 }
 
-/** This function gives the text of a manifest: one line for each spec and for each input, and a newline at the end. The claims come after the name. */
+/**
+ * This function gives the text of a manifest with `corpusManifestText` of the contract, in the compact style.
+ * Each spec and each input has one line, and the claims come after the name.
+ */
 export function manifestJson(manifest: JointManifest): string {
-  const list = (items: readonly unknown[]): string => (items.length === 0 ? "[]" : `[\n${items.map((x) => `    ${JSON.stringify(x)}`).join(",\n")}\n  ]`);
-  const claims = manifest.claims === undefined ? "" : `\n  "claims": ${JSON.stringify(manifest.claims)},`;
-  return `{\n  "schema": ${JSON.stringify(manifest.schema)},\n  "corpus": ${JSON.stringify(manifest.corpus)},${claims}\n  "specs": ${list(manifest.specs)},\n  "inputs": ${list(manifest.inputs)}\n}\n`;
+  return corpusManifestText(manifest, { style: "compact" });
 }
 
 /** This function gives the claims of a corpus: the field `claims` of `joint-v2`, and `JOINT_V1_CLAIMS` for `joint-v1`. Its manifest stays frozen. */

@@ -1,0 +1,32 @@
+{
+  "schema": "layout-corpus/1",
+  "corpus": "pack-known-v1",
+  "heldOut": "all",
+  "claims": {"declared": {"minCount": 10, "thin": ["order", "aspect", "shaped"], "counts": {"order": 0, "aspect": 0, "free-size": 216, "shaped": 0}}},
+  "specs": [
+    {"generator": "perfect-cut", "version": 1, "params": {"cut": "guillotine", "containerSize": "fixed", "count": 10}, "seeds": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]},
+    {"generator": "perfect-cut", "version": 1, "params": {"cut": "guillotine", "containerSize": "fixed", "count": 30}, "seeds": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]},
+    {"generator": "perfect-cut", "version": 1, "params": {"cut": "guillotine", "containerSize": "fixed", "count": 100}, "seeds": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]},
+    {"generator": "perfect-cut", "version": 1, "params": {"cut": "guillotine", "containerSize": "freeHeight", "count": 10}, "seeds": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]},
+    {"generator": "perfect-cut", "version": 1, "params": {"cut": "guillotine", "containerSize": "freeHeight", "count": 30}, "seeds": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]},
+    {"generator": "perfect-cut", "version": 1, "params": {"cut": "guillotine", "containerSize": "freeHeight", "count": 100}, "seeds": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]},
+    {"generator": "perfect-cut", "version": 1, "params": {"cut": "guillotine", "containerSize": "freeArea", "count": 10}, "seeds": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]},
+    {"generator": "perfect-cut", "version": 1, "params": {"cut": "guillotine", "containerSize": "freeArea", "count": 30}, "seeds": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]},
+    {"generator": "perfect-cut", "version": 1, "params": {"cut": "guillotine", "containerSize": "freeArea", "count": 100}, "seeds": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]},
+    {"generator": "perfect-cut", "version": 1, "params": {"cut": "free", "containerSize": "fixed", "count": 10}, "seeds": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]},
+    {"generator": "perfect-cut", "version": 1, "params": {"cut": "free", "containerSize": "fixed", "count": 30}, "seeds": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]},
+    {"generator": "perfect-cut", "version": 1, "params": {"cut": "free", "containerSize": "fixed", "count": 100}, "seeds": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]},
+    {"generator": "perfect-cut", "version": 1, "params": {"cut": "free", "containerSize": "freeHeight", "count": 10}, "seeds": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]},
+    {"generator": "perfect-cut", "version": 1, "params": {"cut": "free", "containerSize": "freeHeight", "count": 30}, "seeds": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]},
+    {"generator": "perfect-cut", "version": 1, "params": {"cut": "free", "containerSize": "freeHeight", "count": 100}, "seeds": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]},
+    {"generator": "perfect-cut", "version": 1, "params": {"cut": "free", "containerSize": "freeArea", "count": 10}, "seeds": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]},
+    {"generator": "perfect-cut", "version": 1, "params": {"cut": "free", "containerSize": "freeArea", "count": 30}, "seeds": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]},
+    {"generator": "perfect-cut", "version": 1, "params": {"cut": "free", "containerSize": "freeArea", "count": 100}, "seeds": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]},
+    {"generator": "consecutive-squares", "version": 1, "params": {"containerSize": "freeHeight", "count": 10}, "seeds": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]},
+    {"generator": "consecutive-squares", "version": 1, "params": {"containerSize": "freeHeight", "count": 30}, "seeds": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]},
+    {"generator": "consecutive-squares", "version": 1, "params": {"containerSize": "freeHeight", "count": 100}, "seeds": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]},
+    {"generator": "consecutive-squares", "version": 1, "params": {"containerSize": "freeArea", "count": 10}, "seeds": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]},
+    {"generator": "consecutive-squares", "version": 1, "params": {"containerSize": "freeArea", "count": 30}, "seeds": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]},
+    {"generator": "consecutive-squares", "version": 1, "params": {"containerSize": "freeArea", "count": 100}, "seeds": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]}
+  ]
+}

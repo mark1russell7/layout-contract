@@ -1,0 +1,25 @@
+{
+  "schema": "layout-corpus/1",
+  "corpus": "pack-anchor-v1",
+  "heldOut": "all",
+  "claims": {"declared": {"minCount": 10, "thin": ["order", "aspect", "shaped"], "counts": {"order": 0, "aspect": 0, "free-size": 24, "shaped": 0}}},
+  "specs": [
+    {"generator": "wall-locks", "version": 1, "params": {"locks": 1, "containerSize": "fixed", "count": 20}, "seeds": [1, 2, 3]},
+    {"generator": "wall-locks", "version": 1, "params": {"locks": 1, "containerSize": "fixed", "count": 40}, "seeds": [1, 2, 3]},
+    {"generator": "wall-locks", "version": 1, "params": {"locks": 1, "containerSize": "freeHeight", "count": 20}, "seeds": [1, 2, 3]},
+    {"generator": "wall-locks", "version": 1, "params": {"locks": 1, "containerSize": "freeHeight", "count": 40}, "seeds": [1, 2, 3]},
+    {"generator": "wall-locks", "version": 1, "params": {"locks": 2, "containerSize": "fixed", "count": 20}, "seeds": [1, 2, 3]},
+    {"generator": "wall-locks", "version": 1, "params": {"locks": 2, "containerSize": "fixed", "count": 40}, "seeds": [1, 2, 3]},
+    {"generator": "wall-locks", "version": 1, "params": {"locks": 2, "containerSize": "freeHeight", "count": 20}, "seeds": [1, 2, 3]},
+    {"generator": "wall-locks", "version": 1, "params": {"locks": 2, "containerSize": "freeHeight", "count": 40}, "seeds": [1, 2, 3]},
+    {"generator": "wall-locks", "version": 1, "params": {"locks": 3, "containerSize": "fixed", "count": 20}, "seeds": [1, 2, 3]},
+    {"generator": "wall-locks", "version": 1, "params": {"locks": 3, "containerSize": "fixed", "count": 40}, "seeds": [1, 2, 3]},
+    {"generator": "wall-locks", "version": 1, "params": {"locks": 3, "containerSize": "freeHeight", "count": 20}, "seeds": [1, 2, 3]},
+    {"generator": "wall-locks", "version": 1, "params": {"locks": 3, "containerSize": "freeHeight", "count": 40}, "seeds": [1, 2, 3]},
+    {"generator": "wall-locks", "version": 1, "params": {"locks": 4, "containerSize": "fixed", "count": 20}, "seeds": [1, 2, 3]},
+    {"generator": "wall-locks", "version": 1, "params": {"locks": 4, "containerSize": "fixed", "count": 40}, "seeds": [1, 2, 3]},
+    {"generator": "wall-locks", "version": 1, "params": {"locks": 4, "containerSize": "freeHeight", "count": 20}, "seeds": [1, 2, 3]},
+    {"generator": "wall-locks", "version": 1, "params": {"locks": 4, "containerSize": "freeHeight", "count": 40}, "seeds": [1, 2, 3]},
+    {"generator": "edge-cases", "version": 1, "params": {"case": "touchObstacles", "count": 12}, "seeds": [1, 2, 3]}
+  ]
+}
