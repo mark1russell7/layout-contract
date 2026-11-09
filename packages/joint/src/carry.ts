@@ -1,8 +1,10 @@
 // The carry of the records of a run over an engine release (docs/JOINT-BENCH.md, section "Carry", roadmap item L147).
 // A probe gives a fingerprint of each pack entry on each input and of each router, at one set of engine versions.
 // A record keeps its measures when its pack and its router have the same fingerprints at the two versions. A seeded audit then measures a sample again.
-import { canonicalJson, carryRecord, fingerprintOf, sha256Hex, type LayoutRecord } from "@mark1russell7/layout-contract";
+import { canonicalJson, carryRecord, fingerprintOf, sha256Hex, type CarriedCode, type LayoutRecord } from "@mark1russell7/layout-contract";
 import { random } from "@mark1russell7/rigor-generators";
+import { wilson, Z95 } from "@mark1russell7/rigor-statistics";
+import { familyOf } from "./memory-gate.ts";
 import { doneKey } from "./shard-run.ts";
 
 /** The schema of a probe document. */
@@ -70,8 +72,11 @@ export function auditHash(record: LayoutRecord): string {
   return sha256Hex(canonicalJson(auditForm(record))).slice(0, 16);
 }
 
-/** The reasons for a pair to go to the run again, in the counts of `CarryPlan`. */
-export type AgainReason = "skipped" | "no pack probe" | "no router probe" | "options changed" | "pack changed" | "router changed";
+/**
+ * The reasons for a pair to go to the run again, in the counts of `CarryPlan`.
+ * `code bridge`: an earlier run kept the record over a change of the measure code. Such a record is a bridge only, so a later carry does not keep it.
+ */
+export type AgainReason = "skipped" | "code bridge" | "no pack probe" | "no router probe" | "options changed" | "pack changed" | "router changed";
 
 /** The plan of one carry: the carried records, and the keys of the pairs that the run measures again, by reason. */
 export interface CarryPlan {
@@ -81,6 +86,18 @@ export interface CarryPlan {
   readonly again: readonly { readonly key: string; readonly reason: AgainReason }[];
   /** The count of the pairs of each reason. */
   readonly counts: Readonly<Record<AgainReason, number>>;
+  /** The `doneKey` of each pair of the code audit (`codeAuditSample`). Only a carry over a change of the measure code has this field. */
+  readonly audit?: readonly string[];
+  /** The field `carried.code` of each carried record. Only a carry over a change of the measure code with 1 audit pair or more has this field. */
+  readonly code?: CarriedCode;
+}
+
+/** A change of the measure code between the measure of the records and the run that keeps them: the two commits (L147 rule B). */
+export interface CodeChange {
+  /** The commit of the measure code of the records (`--from-commit`). */
+  readonly from: string;
+  /** The commit of the run that keeps the records. */
+  readonly to: string;
 }
 
 /** The facts of a carry for `carryPlan`. */
@@ -93,29 +110,37 @@ export interface CarryFacts {
   readonly packs: ReadonlyMap<string, { readonly strategy: string; readonly options: Readonly<Record<string, unknown>> }>;
   /** The id of the run that measured the records. */
   readonly run?: string;
+  /** The change of the measure code. With it, the plan takes a code audit, and the engine versions can be the same. */
+  readonly code?: CodeChange;
 }
 
 /**
  * This function gives the plan of a carry. A record goes to the run again in each of these cases:
  * - The record is skipped.
+ * - An earlier run kept the record over a change of the measure code (`carried.code`).
  * - Its pack entry or its router has no probe.
  * - Its pack strategy or its full pack options changed.
  * - The fingerprint of its pack on its input changed.
  * - The fingerprint of its router changed.
  *
- * The function throws a `RangeError` when the two probes have other corpora, other engine names, or the same versions.
+ * With `facts.code`, the plan also gives the code audit (`codeAuditSample`). Each carried record then gets `carried.code`.
+ * It holds the size of the audit and the 95 % upper bound of the rate of a difference (`wilson` of `rigor-statistics` with 0 differences).
+ *
+ * The function throws a `RangeError` when the two probes have other corpora or other engine names.
+ * It also throws a `RangeError` for the same versions with no change of the code, because a resume then keeps the records.
  */
 export function carryPlan(records: readonly LayoutRecord[], facts: CarryFacts): CarryPlan {
-  const { from, to } = facts;
+  const { from, to, code } = facts;
   if (from.corpus !== to.corpus) throw new RangeError(`The probes have the corpora ${from.corpus} and ${to.corpus}.`);
   const names = (m: Readonly<Record<string, string>>): string => Object.keys(m).sort().join(",");
   if (names(from.engines) !== names(to.engines)) throw new RangeError("The probes do not name the same engines.");
-  if (Object.keys(from.engines).every((name) => from.engines[name] === to.engines[name])) {
+  if (code === undefined && Object.keys(from.engines).every((name) => from.engines[name] === to.engines[name])) {
     throw new RangeError("The probes have the same engine versions, so a resume keeps the records with no carry.");
   }
-  const carried: LayoutRecord[] = [];
+  if (code !== undefined && (code.from === "" || code.from === code.to)) throw new RangeError(`A change of the code needs two commits, not "${code.from}" and "${code.to}".`);
+  const chosen: { record: LayoutRecord; fingerprints: Record<string, string> }[] = [];
   const again: { key: string; reason: AgainReason }[] = [];
-  const counts: Record<AgainReason, number> = { skipped: 0, "no pack probe": 0, "no router probe": 0, "options changed": 0, "pack changed": 0, "router changed": 0 };
+  const counts: Record<AgainReason, number> = { skipped: 0, "code bridge": 0, "no pack probe": 0, "no router probe": 0, "options changed": 0, "pack changed": 0, "router changed": 0 };
   const miss = (record: LayoutRecord, reason: AgainReason): void => {
     again.push({ key: doneKey(record.input, record.strategy), reason });
     counts[reason] += 1;
@@ -123,6 +148,10 @@ export function carryPlan(records: readonly LayoutRecord[], facts: CarryFacts): 
   for (const record of records) {
     if (record.skipped !== undefined) {
       miss(record, "skipped");
+      continue;
+    }
+    if (record.carried?.code !== undefined) {
+      miss(record, "code bridge");
       continue;
     }
     const pack = String(record.options["pack"]);
@@ -149,10 +178,46 @@ export function carryPlan(records: readonly LayoutRecord[], facts: CarryFacts): 
       miss(record, "router changed");
       continue;
     }
-    const fingerprints = { [pack]: to.packs[key]!, [router]: to.routers[router]! };
-    carried.push(carryRecord(record, { from: from.engines, to: to.engines, fingerprints, ...(facts.run === undefined ? {} : { run: facts.run }) }));
+    chosen.push({ record, fingerprints: { [pack]: to.packs[key]!, [router]: to.routers[router]! } });
   }
-  return { carried, again, counts };
+  const audit = code === undefined ? undefined : codeAuditSample(chosen.map((c) => c.record), code);
+  const bridge: CarriedCode | undefined = audit === undefined || audit.length === 0 ? undefined : { ...code!, audit: audit.length, upper: wilson(0, audit.length, Z95).high };
+  const run = facts.run === undefined ? {} : { run: facts.run };
+  // With a change of the code and no record to audit, nothing joins: the contract needs an audit of 1 pair or more.
+  const carried = code !== undefined && bridge === undefined ? [] : chosen.map(({ record, fingerprints }) => carryRecord(record, { from: from.engines, to: to.engines, fingerprints, ...run, ...(bridge === undefined ? {} : { code: bridge }) }));
+  return { carried, again, counts, ...(audit === undefined ? {} : { audit }), ...(bridge === undefined ? {} : { code: bridge }) };
+}
+
+/** This function gives the seed of a code audit from the two commits, so each change of the code gets a new sample. */
+export function codeAuditSeed(code: CodeChange): string {
+  return `code-audit\n${code.from}\n${code.to}`;
+}
+
+/**
+ * This function gives the keys of the pairs of a code audit (L147 rule B). The audit is a gate over the kept records:
+ * 1. One pair or more for each pack entry, each router and each input family (`familyOf`) of the records. The function reads the keys in a seeded order.
+ *    It takes each key with a pack entry, a router or a family that has no pair yet.
+ * 2. Then a seeded sample of max(`AUDIT_LEAST`, `AUDIT_SHARE` of the records) of the other keys, or all of them when there are fewer.
+ *
+ * The seed is `codeAuditSeed` of the two commits. The result is sorted.
+ */
+export function codeAuditSample(records: readonly LayoutRecord[], code: CodeChange): string[] {
+  const byKey = new Map(records.map((r) => [doneKey(r.input, r.strategy), r]));
+  const sorted = [...byKey.keys()].sort();
+  const rng = random(codeAuditSeed(code));
+  const covered = new Set<string>();
+  const picked = new Set<string>();
+  for (const key of rng.shuffle(sorted)) {
+    const r = byKey.get(key)!;
+    const strata = [`pack\n${String(r.options["pack"])}`, `router\n${String(r.options["router"])}`, `family\n${familyOf(r.input)}`];
+    if (strata.every((s) => covered.has(s))) continue;
+    for (const s of strata) covered.add(s);
+    picked.add(key);
+  }
+  const rest = sorted.filter((key) => !picked.has(key));
+  const count = Math.min(rest.length, Math.max(AUDIT_LEAST, Math.ceil(AUDIT_SHARE * sorted.length)));
+  for (const key of rng.sample(rest, count)) picked.add(key);
+  return [...picked].sort();
 }
 
 /** The least count of the pairs of an audit. */

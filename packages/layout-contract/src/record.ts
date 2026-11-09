@@ -88,6 +88,23 @@ export interface Carried {
   readonly fingerprints: Readonly<Record<string, string>>;
   /** The id of the run that measured the record. */
   readonly run?: string;
+  /** The facts of a change of the measure code between the measure and the run that keeps the record. Without the field, the measure code did not change. */
+  readonly code?: CarriedCode;
+}
+
+/**
+ * The facts of a carry over a change of the measure code (L147 rule B). A run kept the record because a code audit gave no difference.
+ * Such a record is a bridge only: the next full run at the commit `to` or later measures it again.
+ */
+export interface CarriedCode {
+  /** The commit of the measure code of the record. A record that a run carried before keeps this commit. */
+  readonly from: string;
+  /** The commit of the run that keeps the record. */
+  readonly to: string;
+  /** The count of the pairs of the code audit. Each pair had the same record, without the times, at the two commits. */
+  readonly audit: number;
+  /** The 95 % upper bound of the rate of a difference, from 0 differences in `audit` pairs (the Wilson interval). It is above 0 and not above 1. */
+  readonly upper: number;
 }
 
 /**
@@ -159,18 +176,32 @@ function numberMap(out: string[], v: unknown, name: string): void {
 /** This function tells if a value is an object whose values are strings. */
 const isStringMap = (v: unknown): v is Readonly<Record<string, string>> => isFields(v) && Object.values(v).every((s) => typeof s === "string");
 
+/** This function gives the problems of the field `carried.code` of a record. */
+function codeProblems(code: unknown): string[] {
+  if (!isFields(code)) return ["carried.code is not an object"];
+  const out: string[] = [];
+  for (const key of ["from", "to"] as const) if (typeof code[key] !== "string" || code[key] === "") out.push(`carried.code.${key} is not a commit`);
+  if (out.length === 0 && code["from"] === code["to"]) out.push("carried.code.to is the commit of carried.code.from");
+  if (!Number.isInteger(code["audit"]) || (code["audit"] as number) < 1) out.push("carried.code.audit is not a count of 1 or more");
+  const upper = code["upper"];
+  if (typeof upper !== "number" || !(upper > 0 && upper <= 1)) out.push("carried.code.upper is not above 0 and at most 1");
+  return out;
+}
+
 /** This function gives the problems of the field `carried` of a record. */
 function carriedProblems(carried: unknown): string[] {
   if (!isFields(carried)) return ["carried is not an object"];
   const out: string[] = [];
   for (const key of ["from", "to", "fingerprints"] as const) if (!isStringMap(carried[key])) out.push(`carried.${key} is not a map of strings`);
   if (carried["run"] !== undefined && typeof carried["run"] !== "string") out.push("carried.run is not a string");
+  if (carried["code"] !== undefined) out.push(...codeProblems(carried["code"]));
   if (out.length > 0) return out;
   const from = carried["from"] as Readonly<Record<string, string>>;
   const to = carried["to"] as Readonly<Record<string, string>>;
   const names = (m: Readonly<Record<string, string>>): string => Object.keys(m).sort().join(",");
   if (names(from) === "" || names(from) !== names(to)) out.push("carried.from and carried.to do not name the same engines");
-  else if (Object.keys(from).every((name) => from[name] === to[name])) out.push("carried.to has no other version than carried.from");
+  // A carry over a change of the measure code can keep the engine versions. Each other carry needs a change of a version.
+  else if (carried["code"] === undefined && Object.keys(from).every((name) => from[name] === to[name])) out.push("carried.to has no other version than carried.from");
   if (Object.keys(carried["fingerprints"] as object).length === 0) out.push("carried.fingerprints is empty");
   return out;
 }
@@ -254,10 +285,16 @@ export interface CarryFacts {
   readonly from?: Readonly<Record<string, string>>;
   /** The id of the run that measured the record. A record that a run carried before keeps its `carried.run`. */
   readonly run?: string;
+  /**
+   * The facts of a change of the measure code, for a carry over such a change. A record with `carried.code` keeps its `carried.code.from`.
+   * Without this value, a record keeps its `carried.code`.
+   */
+  readonly code?: CarriedCode;
 }
 
 /**
  * This function gives a record that a run keeps after an engine release, with the field `carried` (L147).
+ * With `facts.code`, the run keeps the record over a change of the measure code. Then the engine versions can be the same.
  * A record that a run carried before keeps the versions and the run of its measure, so `carried.from` always names the measure.
  * The function throws a `RangeError` for a skipped record: a skip makes no claim on an output, so the run measures the pair again.
  * It also throws a `RangeError` when `checkLayoutRecord` refuses the field `carried` of the result.
@@ -267,7 +304,9 @@ export function carryRecord(record: LayoutRecord, facts: CarryFacts): LayoutReco
   const from = record.carried?.from ?? facts.from;
   if (from === undefined) throw new RangeError(`The record of ${record.strategy} on ${record.input} has no carried.from, so the carry needs from.`);
   const run = record.carried?.run ?? facts.run;
-  const carried: Carried = { from, to: facts.to, fingerprints: facts.fingerprints, ...(run === undefined ? {} : { run }) };
+  const before = record.carried?.code;
+  const code = facts.code === undefined ? before : { ...facts.code, from: before?.from ?? facts.code.from };
+  const carried: Carried = { from, to: facts.to, fingerprints: facts.fingerprints, ...(run === undefined ? {} : { run }), ...(code === undefined ? {} : { code }) };
   const problems = carriedProblems(carried);
   if (problems.length > 0) throw new RangeError(`The carry of ${record.strategy} on ${record.input} is bad: ${problems.join(", ")}.`);
   return { ...record, carried };

@@ -16,6 +16,7 @@ CIRCLE_SCATTERED: build/index.d.ts#CIRCLE_SCATTERED
 CORPUS_DIMENSIONS: build/index.d.ts#CORPUS_DIMENSIONS
 CORPUS_MANIFEST_SCHEMA: build/index.d.ts#CORPUS_MANIFEST_SCHEMA
 Carried: build/index.d.ts#Carried
+CarriedCode: build/index.d.ts#CarriedCode
 CarryFacts: build/index.d.ts#CarryFacts
 CatalogCheck: build/index.d.ts#CatalogCheck
 CatalogCheckOptions: build/index.d.ts#CatalogCheckOptions
@@ -437,6 +438,15 @@ export interface Carried {
   readonly to: Readonly<Record<string, string>>;
   readonly fingerprints: Readonly<Record<string, string>>;
   readonly run?: string;
+  readonly code?: CarriedCode;
+}
+
+### build/index.d.ts#CarriedCode
+export interface CarriedCode {
+  readonly from: string;
+  readonly to: string;
+  readonly audit: number;
+  readonly upper: number;
 }
 
 ### build/index.d.ts#CarryFacts
@@ -445,6 +455,7 @@ export interface CarryFacts {
   readonly fingerprints: Readonly<Record<string, string>>;
   readonly from?: Readonly<Record<string, string>>;
   readonly run?: string;
+  readonly code?: CarriedCode;
 }
 
 ### build/index.d.ts#CatalogCheck
