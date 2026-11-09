@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { deriveSeed, fnv1a32, random, type Random } from "@mark1russell7/rigor-generators";
+import { mean, median } from "@mark1russell7/rigor-statistics";
 import * as released from "layout-contract-0221/text";
 import { breakWords, oldWords } from "../scripts/text-words.ts";
 import { hyphenate as hyphenateEnUs } from "@mark1russell7/typeset/hyphen/en-us";
@@ -205,8 +206,6 @@ describe("layoutText with justify and hyphenate (typeset T14)", () => {
     const measurer = createMeasurer(codePointPx);
     const worst = (wrapWidth: number, breaker: "greedy" | "total-fit"): number[] =>
       PARAGRAPHS.map((text) => Math.max(...layoutText(text, { font: FONT, measurer, lineHeight: 20, wrapWidth, breaker, justify: JUSTIFY }).ratios!.map(Math.abs)));
-    const mean = (values: readonly number[]): number => values.reduce((s, v) => s + v, 0) / values.length;
-    const median = (values: readonly number[]): number => [...values].sort((a, b) => a - b)[values.length >> 1]!;
     const [fit, greedy] = [worst(480, "total-fit"), worst(480, "greedy")];
     expect(mean(fit)).toBeLessThan(mean(greedy));
     expect([fit.filter((r) => r <= 1).length, greedy.filter((r) => r <= 1).length]).toEqual([11, 2]);
