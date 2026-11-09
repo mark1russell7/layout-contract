@@ -24,11 +24,14 @@ import {
   MEMORY_GATE_MB,
   MEMORY_LIMITS,
   memoryGate,
+  noiseBand,
+  noiseVerdict,
   parseLimitData,
   type ProbeResult,
   REFIT_PROBES,
   refitLimits,
   refitMarkdown,
+  refitOfData,
   refitRefusal,
   sourceOf,
   STEP_FUNCTION,
@@ -324,7 +327,12 @@ describe("the versions of the limits", () => {
 
 describe("the refit of the limits", () => {
   const engines = { node: "26.13.0", highways: "0.13.0", packing: "0.6.1" };
-  const source = { runs: [1, 2], head: "abc1234", engines: { node: "26.13.0", highways: "0.10.0", packing: "0.5.0" } };
+  const source = {
+    runs: [1, 2],
+    head: "abc1234",
+    engines: { node: "26.13.0", highways: "0.10.0", packing: "0.5.0" },
+    probes: { a: { allocMb: [2528117, 2530000, 2531692, 2529000, 2530500], liveMaxMb: [392, 393, 393, 392, 393] } },
+  };
   const old = { a: { allocMb: 2535267, liveMaxMb: 394, fromAllocMb: 2531692, fromLiveMb: 393 } };
   const run = { run: 41971168014, url: "https://example.test/runs/41971168014", head: "ef71e84000000000000000000000000000000000" };
   const probe = (allocMb: number, over: Partial<ProbeResult> = {}): ProbeResult => ({ input: "a", mode: LIMITS_MODE, status: 0, peakRssMb: 4400, allocMb, liveMaxMb: 395, engines, ...over });
@@ -357,8 +365,39 @@ describe("the refit of the limits", () => {
     expect(text).toContain("The probes of the run [41971168014](https://example.test/runs/41971168014), on commit `ef71e84`, give new limits");
     expect(text).toContain("- The old limits come from the runs 1 and 2, on commit `abc1234`, with node 26.13.0, highways 0.10.0, packing 0.5.0.");
     expect(text).toContain("The change of the versions: highways 0.10.0 to 0.13.0, packing 0.5.0 to 0.6.1.");
-    expect(text).toContain("| a | 5 | 393 to 395 (+2 MB (+0.51 %)) | 394 to 396 (+2 MB (+0.51 %)) |");
+    expect(text).toContain("| Input | Measure | Probes | Old band (MB) | New band (MB) | Limit (MB) | Verdict |");
+    // Each new live heap is above each old probe: a rise past the noise, with a line for its cause.
+    expect(text).toContain("| a | live heap | 5 | 392 to 393 | 395 to 395 | 394 to 396 (+2 MB (+0.51 %)) | **rise past the noise**: name a cause |");
+    // Each new allocation is below each old probe: a fall past the noise, which the refit keeps.
+    expect(text).toContain("| a | allocation | 5 | 2528117 to 2531692 | 2515500 to 2519000 | 2535267 to 2522500 (-12767 MB (-0.50 %)) | fall past the noise: a ratchet |");
+    expect(text).toContain("#### Rises past the noise: 1");
+    expect(text).toContain("- [ ] a, live heap: 392 to 393 MB to 395 to 395 MB. Cause:");
     expect(refitMarkdown(refitLimits(five.slice(0, 4), run, old), run, source)).toContain("### Refit of the memory limits: refused");
+  });
+
+  it("gives the verdict of the noise bands of a measure", () => {
+    const old = noiseBand([392, 393.4, 393]);
+    expect(old).toEqual({ min: 392, max: 393.4 });
+    expect(noiseVerdict(old, noiseBand([393.5, 395]))).toBe("rise");
+    expect(noiseVerdict(old, noiseBand([393.4, 395]))).toBe("noise");
+    expect(noiseVerdict(old, noiseBand([390, 392]))).toBe("noise");
+    expect(noiseVerdict(old, noiseBand([390, 391.9]))).toBe("fall");
+    expect(noiseVerdict(undefined, noiseBand([390]))).toBe("new");
+  });
+
+  it("gives no cause lines when each measure is in the noise", () => {
+    const same = [392, 393, 393, 392, 393].map((live, i) => probe(source.probes.a.allocMb[i]!, { liveMaxMb: live }));
+    const text = refitMarkdown(refitLimits(same, run, old), run, source);
+    expect(text).toContain("| a | live heap | 5 | 392 to 393 | 392 to 393 | 394 to 394 (0 MB (0.00 %)) | in the noise |");
+    expect(text).toContain("No measure rises past the noise.");
+    expect(text).not.toContain("- [ ]");
+  });
+
+  it("gives the same refit from the limit data of a run as from its probes", () => {
+    const refit = refitLimits(five, run, old);
+    const again = refitOfData(refit.data!, source);
+    expect(again.rows).toEqual(refit.rows.map((r) => ({ ...r, old: limitsOf(source)["a"] })));
+    expect(refitMarkdown(again, run, source)).toBe(refitMarkdown(refitLimits(five, run, limitsOf(source)), run, source));
   });
 
   it("refuses limit data with too few probes, no version of a name or a bad value", () => {

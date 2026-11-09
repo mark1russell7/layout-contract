@@ -94,14 +94,41 @@ The probe job starts the command `carry-probe` two times: with the engines of th
 The command `carry` keeps a record when all of these conditions are true:
 
 1. The record has no field `skipped`.
-2. Its pack strategy and its full pack options are the same in this run.
-3. Its pack entry on its input has the same fingerprint at the two versions.
-4. Its router has the same fingerprint at the two versions.
-5. The local imports of `runner.ts` have the same text at `--from-commit` and in this checkout. Else the command keeps no record.
+2. The record has no field `carried.code`. Such a record is a code bridge of an earlier carry, so this run measures it again.
+3. Its pack strategy and its full pack options are the same in this run.
+4. Its pack entry on its input has the same fingerprint at the two versions.
+5. Its router has the same fingerprint at the two versions.
+
+The command also compares the text of the local imports of `runner.ts` at `--from-commit` and in this checkout. When a file has other text, the carry is a code bridge (the next section).
 
 Each kept record gets the field `carried` of `layout-contract` 0.6.1. It holds the versions of the measure and of this run, the fingerprints, and the earlier run. The command then takes a seeded sample of the kept records: max(30, 5 %) of the pairs (`auditSample`). The run measures these pairs again, and the command `carry-audit` compares them without the times (`auditForm`). One pair with another record fails the audit. Then no record joins, and a resume with no carry measures each pair again.
 
 The probe of a router reads only small inputs. A change of a router on large inputs only can thus pass the probe. The audit is the check of this case. The contract is a workspace package, so the probe has no contract at the earlier version. The audit is also the only check of a change of the contract.
+
+### A carry over a change of the measure code (rule B)
+
+A change of `runner.ts` or of its local imports can change the records with no engine release. Then the carry is a code bridge, and the engine versions can be the same. The audit of a code bridge is a gate (`codeAuditSample`):
+
+1. The audit has one pair or more for each pack entry, each router and each input family of the kept records. The family of an input is its id without the seed (`familyOf`).
+2. The audit also has a seeded sample of max(30, 5 %) of the other pairs.
+3. The seed comes from the two commits (`codeAuditSeed`). So each change of the code gets a new sample.
+
+One pair with another record, without the times, fails the audit. Then no record joins.
+
+Each kept record gets the field `carried.code` of `layout-contract`. It holds the commit of the measure, the commit of this run, the size of the audit and the upper bound. The upper bound is the 95 % upper bound of the rate of a difference with 0 differences in the audit. It is the Wilson interval of `rigor-statistics` (`wilson`). The file `carry.json` of the artifact `joint-carry-audit` has the changed files (`codeChanged`) and these facts (`code`).
+
+A code bridge is a bridge only. The next carry measures each record with `carried.code` again (the reason `code bridge`). So the next full run at the commit of the bridge or later replaces each bridge record.
+
+### The check of the carry sources
+
+A pull request that changes the measure code ends the plain carry of each earlier run with the code of the base. The workflow `carry-sources.yml` names each such run before the merge:
+
+1. It reads the list of each manual start of `joint-bench.yml` in the last 30 days.
+2. It compares the text of the measure files at the commit of each run with the text at the base (`carrySourceCheck` of `src/carry-sources.ts`).
+3. For each run with the code of the base, it gives the line "This pull request ends the plain carry of run <run>".
+4. It fails until a line `Carry-Source: <run>` names each such run. The line goes in the body or in a commit message of the pull request.
+
+The module of the check has no package imports, so the job has no install.
 
 ### A carry in the workflow
 
@@ -1937,7 +1964,15 @@ A change of the versions starts a refit in the nightly run. A person reads the c
 2. When a version changed, `bench.mjs jobs --limit-repeats auto` gives each input with limits 5 jobs in the mode `measure-6144` (`REFIT_PROBES`). The other jobs keep their count of repeats.
 3. The gate job runs `bench.mjs refit` on the probes. The refit is the worst value of the 5 probes plus their spread for each input (`refitLimits`). The job uploads it as the artifact `memory-refit`: `refit.json` and `refit.md`.
 4. The first error line of the job names the artifact and the command of the next step. When the gate passes on the new versions, this line is a warning.
-5. In `packages/joint`, `node scripts/bench.mjs refit-pr --run <id>` opens the draft pull request of the refit. It changes only `data/memory-limits.json`. The body has the runs, both sets of versions and the change of each input.
+5. In `packages/joint`, `node scripts/bench.mjs refit-pr --run <id>` opens the draft pull request of the refit. It changes only `data/memory-limits.json`. The body has the runs, both sets of versions and a table of each measure of each input.
+
+The table of the body gives these columns for the live heap and the allocation of each input:
+
+- The noise band of the old probes and of the new probes, from the lowest probe to the worst probe.
+- The old limit, the new limit and their change in MB and in percent.
+- The verdict of `noiseVerdict`. A new band above each old probe is a rise past the noise. A new band below each old probe is a fall past the noise.
+
+Each rise past the noise needs a named cause before the merge. The cause is a change of a version, with the commit of that engine if its history shows it. A rise with no cause is a finding for the owner of its engine, and it does not become a new limit. A fall stays in the refit as a ratchet.
 
 The command `refit-pr` refuses these refits:
 

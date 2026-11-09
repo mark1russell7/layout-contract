@@ -1,9 +1,27 @@
 import { REFUSED_PROBE, type LayoutInput, type LayoutRecord } from "@mark1russell7/layout-contract";
 import { measure, packWith } from "@mark1russell7/packing";
+import { wilson, Z95 } from "@mark1russell7/rigor-statistics";
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
-import { AUDIT_LEAST, auditCompare, auditForm, auditHash, auditSample, CARRY_PROBE_SCHEMA, carryPlan, isTimeMeasure, localImports, lockVersions, mergeProbes, packKey, type CarryProbe } from "./carry.ts";
+import {
+  AUDIT_LEAST,
+  auditCompare,
+  auditForm,
+  auditHash,
+  auditSample,
+  CARRY_PROBE_SCHEMA,
+  carryPlan,
+  codeAuditSample,
+  codeAuditSeed,
+  isTimeMeasure,
+  lockVersions,
+  mergeProbes,
+  packKey,
+  type CarryProbe,
+} from "./carry.ts";
 import { carryProbe, packProbe } from "./carry-probe.ts";
+import { localImports } from "./carry-sources.ts";
+import { familyOf } from "./memory-gate.ts";
 import { jointInput, jointSpecs, SET } from "./corpus.ts";
 import { PACK_ENTRIES, packInputOf, runInput } from "./runner.ts";
 import { doneKey } from "./shard-run.ts";
@@ -78,6 +96,78 @@ describe("carryPlan", () => {
     expect(() => carryPlan(records, { from: a, to: { ...a, engines: to, corpus: "joint-v2" }, packs: packFacts })).toThrow(/corpora/);
     expect(() => carryPlan(records, { from: a, to: probe({ packing: "0.10.5" }, samePacks, sameRouters), packs: packFacts })).toThrow(/same engines/);
     expect(() => carryPlan(records, { from: a, to: a, packs: packFacts })).toThrow(/same engine versions/);
+  });
+});
+
+describe("a carry over a change of the measure code (L147 rule B)", () => {
+  const code = { from: "ccf99ce0000000000000000000000000000000aa", to: "1c41dda0000000000000000000000000000000bb" };
+  const same = probe(from, samePacks, sameRouters);
+
+  it("keeps the records at the same engine versions, with the facts of the code audit", () => {
+    const plan = carryPlan(records, { from: same, to: same, packs: packFacts, run: "42428038369", code });
+    // The 4 records have 2 packs, 2 routers and 1 family. There are fewer than AUDIT_LEAST, so the audit has each of them.
+    expect(plan.audit).toEqual(records.map((r) => doneKey(r.input, r.strategy)).sort());
+    const facts = { ...code, audit: records.length, upper: wilson(0, records.length, Z95).high };
+    expect(plan.code).toEqual(facts);
+    expect(plan.carried).toHaveLength(records.length);
+    for (const r of plan.carried) expect(r.carried).toEqual({ from, to: from, fingerprints: expect.any(Object), run: "42428038369", code: facts });
+  });
+
+  it("also takes the code audit when the engine versions changed", () => {
+    const plan = carryPlan(records, { from: same, to: probe(to, samePacks, sameRouters), packs: packFacts, code });
+    expect(plan.audit).toHaveLength(records.length);
+    expect(plan.carried[0]?.carried?.to).toEqual(to);
+    expect(plan.carried[0]?.carried?.code?.audit).toBe(records.length);
+  });
+
+  it("measures a record of an earlier code bridge again", () => {
+    const bridged = carryPlan(records, { from: same, to: same, packs: packFacts, code }).carried;
+    const later = { from: code.to, to: "2d52eeb0000000000000000000000000000000cc" };
+    const plan = carryPlan(bridged, { from: same, to: same, packs: packFacts, code: later });
+    expect(plan.counts["code bridge"]).toBe(records.length);
+    expect(plan.carried).toEqual([]);
+    expect(plan.code).toBeUndefined();
+    expect(carryPlan(bridged, { from: same, to: probe(to, samePacks, sameRouters), packs: packFacts }).counts["code bridge"]).toBe(records.length);
+  });
+
+  it("keeps no record when the pack or router changed for each pair, and refuses a change with one commit", () => {
+    const plan = carryPlan(records, { from: same, to: probe(from, { [packKey("rows", three.id)]: "x", [packKey("shelf", three.id)]: "y" }, sameRouters), packs: packFacts, code });
+    expect(plan.carried).toEqual([]);
+    expect(plan.audit).toEqual([]);
+    expect(() => carryPlan(records, { from: same, to: same, packs: packFacts, code: { from: code.from, to: code.from } })).toThrow(/two commits/);
+    expect(() => carryPlan(records, { from: same, to: same, packs: packFacts, code: { from: "", to: code.to } })).toThrow(/two commits/);
+  });
+});
+
+describe("the code audit", () => {
+  const packs = Array.from({ length: 31 }, (_, i) => `pack${i}`);
+  const routers = Array.from({ length: 9 }, (_, i) => `router${i}`);
+  const families = Array.from({ length: 12 }, (_, i) => `ui/family${i}`);
+  const many: LayoutRecord[] = [];
+  for (const family of families) for (let seed = 1; seed <= 2; seed += 1) for (const pack of packs) for (const router of routers) {
+    many.push({ input: `joint-v2/${family}/s${seed}`, strategy: `${pack}+${router}`, options: { pack, router } } as unknown as LayoutRecord);
+  }
+  const code = { from: "ccf99ce0000000000000000000000000000000aa", to: "1c41dda0000000000000000000000000000000bb" };
+
+  it("covers each pack entry, each router and each family, plus max(30, 5 %) of the other pairs", () => {
+    const a = codeAuditSample(many, code);
+    const byKey = new Map(many.map((r) => [doneKey(r.input, r.strategy), r]));
+    const chosen = a.map((key) => byKey.get(key)!);
+    expect(new Set(chosen.map((r) => r.options["pack"])).size).toBe(packs.length);
+    expect(new Set(chosen.map((r) => r.options["router"])).size).toBe(routers.length);
+    expect(new Set(chosen.map((r) => familyOf(r.input))).size).toBe(families.length);
+    expect(new Set(a).size).toBe(a.length);
+    expect([...a].sort()).toEqual(a);
+    // The strata take 31 pairs or more (one for each pack), and at most 31 + 9 + 12. The seeded part has 5 % of 6696 pairs: 335.
+    expect(a.length).toBeGreaterThanOrEqual(packs.length + Math.ceil(0.05 * many.length));
+    expect(a.length).toBeLessThanOrEqual(packs.length + routers.length + families.length + Math.ceil(0.05 * many.length));
+  });
+
+  it("is the same for the same commits in any order of the records, and other for other commits", () => {
+    const a = codeAuditSample(many, code);
+    expect(codeAuditSample([...many].reverse(), code)).toEqual(a);
+    expect(codeAuditSample(many, { ...code, to: "2d52eeb0000000000000000000000000000000cc" })).not.toEqual(a);
+    expect(codeAuditSeed(code)).not.toBe(codeAuditSeed({ from: code.to, to: code.from }));
   });
 });
 

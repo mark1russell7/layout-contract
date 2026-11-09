@@ -151,4 +151,24 @@ describe("jointData", () => {
     expect(checkJoint({ ...short, short: "yes" })).toContain("joint.short is not a boolean");
     expect(checkJoint({ ...short, cover: true })).toContain("joint.cover and joint.short are both true, but a short run is not a cover run");
   });
+
+  it("keeps the facts of a carry, and refuses bad facts (L147)", () => {
+    const carry = { run: "42428038369", date: "2026-10-27", kept: 10 };
+    const code = { from: "8a5e2d3", to: "1c41dda", audit: 340, upper: 0.0111 };
+    const carried = jointData(report, { ...facts, carry: { ...carry, code } });
+    expect(carried.carry).toEqual({ ...carry, code });
+    expect(jointData(report, facts).carry).toBeUndefined();
+    expect(checkJoint(carried)).toEqual([]);
+    expect(checkJoint({ ...carried, carry: carry })).toEqual([]);
+    expect(checkJoint({ ...carried, carry: "yes" })).toContain("joint.carry is not an object");
+    expect(checkJoint({ ...carried, carry: { ...carry, run: "r1" } })).toContain("joint.carry.run is not the id of a CI run");
+    expect(checkJoint({ ...carried, carry: { ...carry, kept: 1.5 } })).toContain("joint.carry.kept is not a count");
+    expect(checkJoint({ ...carried, carry: { ...carry, date: "2026-10-29" } })).toContain("joint.carry.date is after the date of the run");
+    const bad = (c: object) => checkJoint({ ...carried, carry: { ...carry, code: { ...code, ...c } } });
+    expect(bad({ from: "main" })).toContain("joint.carry.code.from is not a commit");
+    expect(bad({ to: "8a5e2d3" })).toContain("joint.carry.code.from and joint.carry.code.to are the same commit");
+    expect(bad({ audit: 0 })).toContain("joint.carry.code.audit is not a count above 0");
+    expect(bad({ upper: 0 })).toContain("joint.carry.code.upper is not above 0 and not above 1");
+    expect(bad({ upper: 1.2 })).toContain("joint.carry.code.upper is not above 0 and not above 1");
+  });
 });

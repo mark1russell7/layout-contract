@@ -21,6 +21,10 @@
   - a size of the box outside its bounds.
 - `packOutputForm` has `w` and `h` of a placement only when they are set. Thus the fingerprint of an output without a size does not change.
 - `size-kept` is not in `PACK_HARD_RULES`. A rule of that list limits the shape kinds of each input, and `checkInput` already refuses a resize on a shape.
+- The new optional field `carried.code` (`CarriedCode`) holds the facts of a carry over a change of the measure code (L147 rule B).
+  These facts are the two commits, the size of the code audit and the 95 % upper bound of the rate of a difference.
+- With `carried.code`, `checkLayoutRecord` accepts the same engine versions in `carried.from` and `carried.to`. A record without `carried.code` keeps the old rule.
+- `carryRecord` takes the option `code`. A record that a run carried before keeps its `carried.code.from`.
 
 ## 0.9.5
 
