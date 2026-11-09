@@ -33,6 +33,7 @@ CorpusFamily: build/index.d.ts#CorpusFamily
 CorpusManifest: build/index.d.ts#CorpusManifest
 CorpusSplit: build/measures.chunk.d.ts#CorpusSplit
 CorpusStep: build/index.d.ts#CorpusStep
+CostOrder: build/index.d.ts#CostOrder
 CrossEngine: build/index.d.ts#CrossEngine
 DEFAULT_FAMILY_BY: build/index.d.ts#DEFAULT_FAMILY_BY
 DEFAULT_RNG: build/index.d.ts#DEFAULT_RNG
@@ -54,6 +55,7 @@ EdgeKey: build/index.d.ts#EdgeKey
 EdgeKeyParams: build/index.d.ts#EdgeKeyParams
 EdgeShape: build/index.d.ts#EdgeShape
 EdgeStepParams: build/index.d.ts#EdgeStepParams
+EntryFacts: build/index.d.ts#EntryFacts
 type EnumOption: @mark1russell7/strategy-space#EnumOption (external)
 type EnumerateOptions: @mark1russell7/strategy-space#EnumerateOptions (external)
 ExerciseEvidence: build/index.d.ts#ExerciseEvidence
@@ -78,6 +80,7 @@ INVALIDATED_FIELD: build/index.d.ts#INVALIDATED_FIELD
 Item: build/measures.chunk.d.ts#Item
 JOINT_MEASURES: build/measures.chunk.d.ts#JOINT_MEASURES
 JOINT_MOVED_MIN: build/measures.chunk.d.ts#JOINT_MOVED_MIN
+JOINT_SOURCE: build/index.d.ts#JOINT_SOURCE
 JointMeasureId: build/measures.chunk.d.ts#JointMeasureId
 JsonStyle: build/index.d.ts#JsonStyle
 type KindOptions: @mark1russell7/strategy-space#KindOptions (external)
@@ -90,18 +93,27 @@ LayoutGenerator: build/measures.chunk.d.ts#LayoutGenerator
 LayoutInput: build/measures.chunk.d.ts#LayoutInput
 LayoutRecord: build/index.d.ts#LayoutRecord
 type ListItem: @mark1russell7/strategy-space#ListItem (external)
+MEASURE_REGISTRY: build/index.d.ts#MEASURE_REGISTRY
+MEASURE_SURVEY_SCHEMA: build/index.d.ts#MEASURE_SURVEY_SCHEMA
 ManifestClaims: build/index.d.ts#ManifestClaims
 ManifestField: build/index.d.ts#ManifestField
 ManifestTextOptions: build/index.d.ts#ManifestTextOptions
 Margin: build/measures.chunk.d.ts#Margin
+MeasureEntry: build/index.d.ts#MeasureEntry
+MeasureNormalize: build/index.d.ts#MeasureNormalize
 MeasureSpec: build/measures.chunk.d.ts#MeasureSpec
+MeasureSurvey: build/index.d.ts#MeasureSurvey
 Member: build/index.d.ts#Member
 type MemberRule: @mark1russell7/strategy-space#MemberRule (external)
 MemberStatus: build/index.d.ts#MemberStatus
 MemberTrace: build/index.d.ts#MemberTrace
 NODE_POSITIONS_DIMENSION: build/index.d.ts#NODE_POSITIONS_DIMENSION
+NOISE_KINDS: build/index.d.ts#NOISE_KINDS
+NO_FINITE_RANGE: build/index.d.ts#NO_FINITE_RANGE
+NO_UNIT: build/index.d.ts#NO_UNIT
 type NoDefault: @mark1russell7/strategy-space#NoDefault (external)
 type NoDefaultReason: @mark1russell7/strategy-space#NoDefaultReason (external)
+NoiseKind: build/index.d.ts#NoiseKind
 type NumberOption: @mark1russell7/strategy-space#NumberOption (external)
 OUTPUT_CLASS_MIN_INPUTS: build/index.d.ts#OUTPUT_CLASS_MIN_INPUTS
 OUTPUT_GRID_PROPERTIES: build/index.d.ts#OUTPUT_GRID_PROPERTIES
@@ -161,6 +173,7 @@ RunEnv: build/index.d.ts#RunEnv
 RunFacts: build/index.d.ts#RunFacts
 SHAPE_KINDS: build/measures.chunk.d.ts#SHAPE_KINDS
 SHAPE_KIND_IDS: build/measures.chunk.d.ts#SHAPE_KIND_IDS
+SHARE_UNIT: build/index.d.ts#SHARE_UNIT
 SIDES: build/measures.chunk.d.ts#SIDES
 SPLIT_SCHEMA: build/measures.chunk.d.ts#SPLIT_SCHEMA
 STRATEGY_CATALOG_SCHEMA: build/index.d.ts#STRATEGY_CATALOG_SCHEMA
@@ -209,8 +222,12 @@ SupportProbe: build/index.d.ts#SupportProbe
 SupportedRange: build/index.d.ts#SupportedRange
 SupportedValues: build/index.d.ts#SupportedValues
 Supports: build/index.d.ts#Supports
+SurveyFindings: build/index.d.ts#SurveyFindings
+SurveyMeasure: build/index.d.ts#SurveyMeasure
+SurveySource: build/index.d.ts#SurveySource
 type SweepOptions: @mark1russell7/strategy-space#SweepOptions (external)
 Tolerance: build/index.d.ts#Tolerance
+TwinConflict: build/index.d.ts#TwinConflict
 VERDICT_DRAWS: build/index.d.ts#VERDICT_DRAWS
 VERDICT_EXACT_CAP: build/index.d.ts#VERDICT_EXACT_CAP
 VERDICT_EXACT_MAX: build/index.d.ts#VERDICT_EXACT_MAX
@@ -249,10 +266,12 @@ checkDeclared: build/measures.chunk.d.ts#checkDeclared
 checkInput: build/index.d.ts#checkInput
 checkLayoutRecord: build/index.d.ts#checkLayoutRecord
 checkOptions: @mark1russell7/strategy-space#checkOptions (external)
+checkRegistry: build/index.d.ts#checkRegistry
 checkSchema: @mark1russell7/strategy-space#checkSchema (external)
 checkShapes: build/measures.chunk.d.ts#checkShapes
 checkSpace: build/index.d.ts#checkSpace
 checkSplit: build/measures.chunk.d.ts#checkSplit
+checkSurvey: build/index.d.ts#checkSurvey
 circleOverlaps: build/index.d.ts#circleOverlaps
 circlesOutside: build/index.d.ts#circlesOutside
 clampOptions: @mark1russell7/strategy-space#clampOptions (external)
@@ -274,6 +293,7 @@ declarationIssues: @mark1russell7/strategy-space#declarationIssues (external)
 declaredClaimOf: build/measures.chunk.d.ts#declaredClaimOf
 declaredCounts: build/measures.chunk.d.ts#declaredCounts
 decodeOptionValue: build/index.d.ts#decodeOptionValue
+defaultNormalize: build/index.d.ts#defaultNormalize
 dimensionAt: build/index.d.ts#dimensionAt
 dimensionSupports: build/index.d.ts#dimensionSupports
 dimensionUnit: build/index.d.ts#dimensionUnit
@@ -304,9 +324,12 @@ lineJson: build/index.d.ts#lineJson
 listOptions: @mark1russell7/strategy-space#listOptions (external)
 manifestText: build/index.d.ts#manifestText
 marginSides: build/measures.chunk.d.ts#marginSides
+measureEntry: build/index.d.ts#measureEntry
 minEffectOf: build/measures.chunk.d.ts#minEffectOf
 mulberry32: build/index.d.ts#mulberry32
+nameAfterStage: build/index.d.ts#nameAfterStage
 nearestGaps: build/index.d.ts#nearestGaps
+normalizeMeasure: build/index.d.ts#normalizeMeasure
 optionDefaults: @mark1russell7/strategy-space#optionDefaults (external)
 optionIssue: @mark1russell7/strategy-space#optionIssue (external)
 outputGridClass: build/index.d.ts#outputGridClass
@@ -369,6 +392,7 @@ splitConfig: @mark1russell7/strategy-space#splitConfig (external)
 splitFileName: build/measures.chunk.d.ts#splitFileName
 splitFolds: build/measures.chunk.d.ts#splitFolds
 stepRandom: build/index.d.ts#stepRandom
+surveyFindings: build/index.d.ts#surveyFindings
 sweepGrid: @mark1russell7/strategy-space#sweepGrid (external)
 sweepOf: @mark1russell7/strategy-space#sweepOf (external)
 sweepValues: @mark1russell7/strategy-space#sweepValues (external)
@@ -384,6 +408,7 @@ turnPort: build/index.d.ts#turnPort
 turnRegion: build/index.d.ts#turnRegion
 turnResize: build/index.d.ts#turnResize
 turnSide: build/index.d.ts#turnSide
+unitFault: build/index.d.ts#unitFault
 verdict: build/index.d.ts#verdict
 writeStrategyCatalog: build/index.d.ts#writeStrategyCatalog
 
@@ -428,13 +453,14 @@ export declare const BALANCE_SIDE_DEPTH = .25;
 ### build/index.d.ts#Balance
 export interface Balance {
   readonly gapCv: number;
+  readonly gapMean: number;
   readonly centroidOffset: number;
   readonly side: Readonly<Record<Side, number>>;
   readonly sideRange: number;
 }
 
 ### build/index.d.ts#BalanceMeasureSuffix
-export type BalanceMeasureSuffix = "balance.gapCv" | "balance.centroidOffset" | "balance.side.top" | "balance.side.right" | "balance.side.bottom" | "balance.side.left" | "balance.sideRange" | "stability.procrustes" | "stability.seed";
+export type BalanceMeasureSuffix = "balance.gapCv" | "balance.gapMean" | "balance.centroidOffset" | "balance.side.top" | "balance.side.right" | "balance.side.bottom" | "balance.side.left" | "balance.sideRange" | "stability.procrustes" | "stability.seed";
 
 ### build/index.d.ts#CIRCLE_SCATTERED
 export declare const CIRCLE_SCATTERED: CorpusFamily<LayoutInput>;
@@ -587,6 +613,9 @@ export interface CorpusStep {
   apply(input: LayoutInput, seed: number, dims: DimensionValues): LayoutInput;
 }
 
+### build/index.d.ts#CostOrder
+export type CostOrder = string;
+
 ### build/index.d.ts#CrossEngine
 export type CrossEngine = "exact" | "libm-dependent";
 
@@ -641,6 +670,15 @@ export interface EdgeStepParams {
   readonly groups?: "none" | "flat" | "nested";
   readonly ports?: "free" | "sides" | "fixed";
   readonly hubBy?: "area" | "random";
+}
+
+### build/index.d.ts#EntryFacts
+export interface EntryFacts {
+  readonly source: string;
+  readonly noise?: NoiseKind;
+  readonly normalize?: MeasureNormalize;
+  readonly cost?: CostOrder;
+  readonly planned?: string;
 }
 
 ### build/index.d.ts#ExerciseEvidence
@@ -728,6 +766,9 @@ export type HeldOut = number | "all";
 ### build/index.d.ts#INVALIDATED_FIELD
 export declare const INVALIDATED_FIELD = "invalidated";
 
+### build/index.d.ts#JOINT_SOURCE
+export declare const JOINT_SOURCE = "@layout-contract/joint";
+
 ### build/index.d.ts#JsonStyle
 export type JsonStyle = "spaced" | "compact";
 
@@ -771,6 +812,12 @@ export interface LayoutRecord {
   readonly carried?: Carried;
 }
 
+### build/index.d.ts#MEASURE_REGISTRY
+export declare const MEASURE_REGISTRY: readonly MeasureEntry<JointMeasureId>[];
+
+### build/index.d.ts#MEASURE_SURVEY_SCHEMA
+export declare const MEASURE_SURVEY_SCHEMA = "measure-survey/1";
+
 ### build/index.d.ts#ManifestClaims
 export interface ManifestClaims {
   readonly declared?: DeclaredClaim;
@@ -788,6 +835,34 @@ export interface ManifestField {
 export interface ManifestTextOptions {
   readonly style?: JsonStyle;
   readonly emptyRows?: "brackets" | "line";
+}
+
+### build/index.d.ts#MeasureEntry
+export interface MeasureEntry<Id extends string = string> extends MeasureSpec<Id> {
+  readonly source: string;
+  readonly noise: NoiseKind;
+  readonly normalize: MeasureNormalize;
+  readonly cost?: CostOrder;
+  readonly planned?: string;
+}
+
+### build/index.d.ts#MeasureNormalize
+export type MeasureNormalize = {
+  readonly kind: "range";
+} | {
+  readonly kind: "scale";
+  readonly half: number;
+  readonly reason: string;
+} | {
+  readonly kind: "none";
+  readonly reason: string;
+};
+
+### build/index.d.ts#MeasureSurvey
+export interface MeasureSurvey {
+  readonly schema: typeof MEASURE_SURVEY_SCHEMA;
+  readonly date: string;
+  readonly sources: readonly SurveySource[];
 }
 
 ### build/index.d.ts#Member
@@ -811,6 +886,18 @@ export interface MemberTrace {
 
 ### build/index.d.ts#NODE_POSITIONS_DIMENSION
 export declare const NODE_POSITIONS_DIMENSION = "nodePositions";
+
+### build/index.d.ts#NOISE_KINDS
+export declare const NOISE_KINDS: readonly NoiseKind[];
+
+### build/index.d.ts#NO_FINITE_RANGE
+export declare const NO_FINITE_RANGE = "The range is not finite, and the registry has no agreed scale for the measure.";
+
+### build/index.d.ts#NO_UNIT
+export declare const NO_UNIT = "no unit";
+
+### build/index.d.ts#NoiseKind
+export type NoiseKind = "exact" | "sampled" | "timed";
 
 ### build/index.d.ts#OUTPUT_CLASS_MIN_INPUTS
 export declare const OUTPUT_CLASS_MIN_INPUTS = 30;
@@ -1026,6 +1113,9 @@ export interface RunEnv {
 ### build/index.d.ts#RunFacts
 export type RunFacts = Omit<LayoutRecord, "schema" | "input" | "inputHash" | "set" | "nodes" | "edges" | "shapes">;
 
+### build/index.d.ts#SHARE_UNIT
+export declare const SHARE_UNIT = "share";
+
 ### build/index.d.ts#STRATEGY_CATALOG_SCHEMA
 export declare const STRATEGY_CATALOG_SCHEMA = "strategy-catalog/3";
 
@@ -1139,10 +1229,52 @@ export type SupportedValues = readonly ParamValue[] | SupportedRange;
 ### build/index.d.ts#Supports
 export type Supports = Readonly<Record<string, readonly string[]>>;
 
+### build/index.d.ts#SurveyFindings
+export interface SurveyFindings {
+  readonly ids: number;
+  readonly bySource: Readonly<Record<string, number>>;
+  readonly conflicts: readonly {
+    readonly id: string;
+    readonly field: "unit" | "direction";
+    readonly sources: readonly string[];
+  }[];
+  readonly twins: readonly TwinConflict[];
+  readonly noRange: readonly string[];
+  readonly units: Readonly<Record<string, number>>;
+}
+
+### build/index.d.ts#SurveyMeasure
+export interface SurveyMeasure {
+  readonly id: string;
+  readonly unit: string;
+  readonly direction: Direction;
+  readonly family?: string;
+  readonly min?: number;
+  readonly max?: number | null;
+}
+
+### build/index.d.ts#SurveySource
+export interface SurveySource {
+  readonly package: string;
+  readonly version: string;
+  readonly measures: readonly SurveyMeasure[];
+}
+
 ### build/index.d.ts#Tolerance
 export interface Tolerance {
   readonly overlap: number;
   readonly through: number;
+}
+
+### build/index.d.ts#TwinConflict
+export interface TwinConflict {
+  readonly name: string;
+  readonly field: "unit" | "direction";
+  readonly values: readonly {
+    readonly id: string;
+    readonly source: string;
+    readonly value: string;
+  }[];
 }
 
 ### build/index.d.ts#VERDICT_DRAWS
@@ -1277,8 +1409,14 @@ export declare function checkInput(input: LayoutInput): readonly string[];
 ### build/index.d.ts#checkLayoutRecord
 export declare function checkLayoutRecord(value: unknown): string[];
 
+### build/index.d.ts#checkRegistry
+export declare function checkRegistry(entries: readonly MeasureEntry[]): string[];
+
 ### build/index.d.ts#checkSpace
 export declare function checkSpace(space: StrategySpace$1, kindOptions?: KindOptions$1): ClaimBreak[];
+
+### build/index.d.ts#checkSurvey
+export declare function checkSurvey(v: unknown): string[];
 
 ### build/index.d.ts#circleOverlaps
 export declare function circleOverlaps(boxes: readonly LayoutBox[], tolerance?: number, pairGaps?: readonly PairGap[], gap?: number): number;
@@ -1315,6 +1453,9 @@ export declare function createFamilyRegistry<O = LayoutInput>(families?: Iterabl
 
 ### build/index.d.ts#decodeOptionValue
 export declare function decodeOptionValue(value: unknown, declaration: AnyOption | ListItem): unknown;
+
+### build/index.d.ts#defaultNormalize
+export declare function defaultNormalize(spec: Pick<MeasureSpec, "min" | "max">): MeasureNormalize;
 
 ### build/index.d.ts#dimensionAt
 export declare function dimensionAt(dim: SpaceParam, t: number): number;
@@ -1376,11 +1517,20 @@ export declare function lineJson(value: unknown, style?: JsonStyle): string;
 ### build/index.d.ts#manifestText
 export declare function manifestText(fields: readonly ManifestField[], options?: ManifestTextOptions): string;
 
+### build/index.d.ts#measureEntry
+export declare function measureEntry<Id extends string>(spec: MeasureSpec<Id>, facts: EntryFacts): MeasureEntry<Id>;
+
 ### build/index.d.ts#mulberry32
 export declare function mulberry32(seed: number): () => number;
 
+### build/index.d.ts#nameAfterStage
+export declare function nameAfterStage(id: string): string;
+
 ### build/index.d.ts#nearestGaps
 export declare function nearestGaps(boxes: readonly Rect[]): number[];
+
+### build/index.d.ts#normalizeMeasure
+export declare function normalizeMeasure(value: number, entry: Pick<MeasureEntry, "id" | "direction" | "min" | "max" | "normalize" | "planned">): number | undefined;
 
 ### build/index.d.ts#outputGridClass
 export declare function outputGridClass(counts: OutputGridCounts): OutputGridClass;
@@ -1480,6 +1630,9 @@ export declare function spaceSize(space: StrategySpace$1, options: SpaceSizeOpti
 ### build/index.d.ts#stepRandom
 export declare function stepRandom(seed: number, step: string): () => number;
 
+### build/index.d.ts#surveyFindings
+export declare function surveyFindings(survey: MeasureSurvey): SurveyFindings;
+
 ### build/index.d.ts#toLayoutRecord
 export declare function toLayoutRecord(input: LayoutInput, run: RunFacts): LayoutRecord;
 
@@ -1503,6 +1656,9 @@ export declare function turnResize(resize: Resize): Resize;
 
 ### build/index.d.ts#turnSide
 export declare function turnSide(side: Side): Side;
+
+### build/index.d.ts#unitFault
+export declare function unitFault(spec: Pick<MeasureSpec, "unit" | "min" | "max">): string | undefined;
 
 ### build/index.d.ts#verdict
 export declare function verdict<R extends VerdictRecord>(records: Iterable<R>, options: VerdictOptions<R>): VerdictResult;

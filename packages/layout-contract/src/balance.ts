@@ -11,6 +11,8 @@ export interface PlacedBox extends Rect {
 export interface Balance {
   /** The standard deviation of the nearest-neighbour gaps divided by their mean. */
   readonly gapCv: number;
+  /** The mean of the nearest-neighbour gaps, in layout units. With fewer than 2 boxes, the value is 0. */
+  readonly gapMean: number;
   /** The distance from the centroid of the free area to the center of the container, as a share of the half-diagonal. */
   readonly centroidOffset: number;
   /** The empty share of the strip at each side of the container. */
@@ -25,6 +27,7 @@ export const BALANCE_SIDE_DEPTH = 0.25;
 /** A suffix of a balance or stability measure. A stage adds its prefix, for example `pack.balance.gapCv`. */
 export type BalanceMeasureSuffix =
   | "balance.gapCv"
+  | "balance.gapMean"
   | "balance.centroidOffset"
   | "balance.side.top"
   | "balance.side.right"
@@ -37,6 +40,7 @@ export type BalanceMeasureSuffix =
 /** The suffixes of the balance and stability measures, in the order of `docs/BALANCE.md`. */
 export const BALANCE_MEASURE_SUFFIXES: readonly BalanceMeasureSuffix[] = /* @__PURE__ */ Object.freeze([
   "balance.gapCv",
+  "balance.gapMean",
   "balance.centroidOffset",
   "balance.side.top",
   "balance.side.right",
@@ -141,7 +145,7 @@ export function balanceOf(boxes: readonly Rect[], container: Rect): Balance {
     side[s] = stripArea > 0 ? Math.min(1, Math.max(0, 1 - filled / stripArea)) : 0;
   }
   const values = SIDES.map((s) => side[s]);
-  return { gapCv, centroidOffset, side, sideRange: Math.max(...values) - Math.min(...values) };
+  return { gapCv, gapMean: mean, centroidOffset, side, sideRange: Math.max(...values) - Math.min(...values) };
 }
 
 /** The options of `procrustesOf`. */
@@ -207,6 +211,7 @@ export function perChange(move: number, changed: number, count: number): number 
 export function balanceMeasures<S extends string>(stage: S, balance: Balance): Record<`${S}.${BalanceMeasureSuffix}`, number> {
   const m: Record<string, number> = {
     [`${stage}.balance.gapCv`]: balance.gapCv,
+    [`${stage}.balance.gapMean`]: balance.gapMean,
     [`${stage}.balance.centroidOffset`]: balance.centroidOffset,
     [`${stage}.balance.sideRange`]: balance.sideRange,
   };
@@ -217,6 +222,7 @@ export function balanceMeasures<S extends string>(stage: S, balance: Balance): R
 /**
  * This function gives the specs of the balance and stability measures, with the prefix of the stage.
  * The balance measures read the area of each box, so they support only `rect`. The stability measures read only the centers.
+ * `balance.gapMean` has no better side. An objective gives it a target, so its role is `diagnostic`, and the joint selector does not rank by it.
  */
 export function balanceMeasureSpecs<S extends string>(stage: S): readonly MeasureSpec<`${S}.${BalanceMeasureSuffix}`>[] {
   const id = (suffix: BalanceMeasureSuffix): `${S}.${BalanceMeasureSuffix}` => `${stage}.${suffix}`;
@@ -224,9 +230,10 @@ export function balanceMeasureSpecs<S extends string>(stage: S): readonly Measur
   const centers = SHAPE_KIND_IDS;
   return Object.freeze([
     { id: id("balance.gapCv"), unit: "ratio", direction: "lower", min: 0, max: Infinity, minEffect: 0.01, family: "balance", shapes: rect },
-    { id: id("balance.centroidOffset"), unit: "0 to 1", direction: "lower", min: 0, max: 1, minEffect: 0.01, family: "balance", shapes: rect },
-    ...SIDES.map((s) => ({ id: id(`balance.side.${s}`), unit: "0 to 1", direction: "lower" as const, min: 0, max: 1, family: "balance", role: "diagnostic" as const, shapes: rect })),
-    { id: id("balance.sideRange"), unit: "0 to 1", direction: "lower", min: 0, max: 1, minEffect: 0.02, family: "balance", shapes: rect },
+    { id: id("balance.gapMean"), unit: "layout units", direction: "higher", min: 0, max: Infinity, family: "balance", role: "diagnostic", shapes: rect },
+    { id: id("balance.centroidOffset"), unit: "share", direction: "lower", min: 0, max: 1, minEffect: 0.01, family: "balance", shapes: rect },
+    ...SIDES.map((s) => ({ id: id(`balance.side.${s}`), unit: "share", direction: "lower" as const, min: 0, max: 1, family: "balance", role: "diagnostic" as const, shapes: rect })),
+    { id: id("balance.sideRange"), unit: "share", direction: "lower", min: 0, max: 1, minEffect: 0.02, family: "balance", shapes: rect },
     { id: id("stability.procrustes"), unit: "W for each change share", direction: "lower", min: 0, max: Infinity, floor: 0, tol: 0.005, minEffect: 0.005, family: "stability", role: "change-guard", shapes: centers },
     { id: id("stability.seed"), unit: "W", direction: "lower", min: 0, max: Infinity, floor: 0, tol: 0.005, minEffect: 0.005, family: "stability", shapes: centers },
   ]);

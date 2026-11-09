@@ -141,7 +141,7 @@ The bench `packages/layout-contract/scripts/bench-text.mjs` gives these numbers.
 | Id | Unit | Better | Role | Definition |
 |---|---|---|---|---|
 | `text.lines` | count | lower | objective | The count of the lines. |
-| `text.raggedness` | 0 to 1 | lower | objective | The mean of `((wrapWidth - width) / wrapWidth)^2` over the lines before the last line. A text on one line has the value 0. |
-| `text.overflow` | share of `wrapWidth` | lower | guard | The largest excess of a line over `wrapWidth`, divided by `wrapWidth`. Only a long word with `wordBreak: "keep"` makes it larger than 0. |
-| `text.cacheHit` | 0 to 1 | higher | diagnostic | The cache hits divided by the requests. The counts of a measurer give the share of the segments. The counts of a layout cache give the share of the layouts. |
+| `text.raggedness` | share | lower | objective | The mean of `((wrapWidth - width) / wrapWidth)^2` over the lines before the last line. A text on one line has the value 0. |
+| `text.overflow` | wrap widths | lower | guard | The largest excess of a line over `wrapWidth`, divided by `wrapWidth`. Only a long word with `wordBreak: "keep"` makes it larger than 0. |
+| `text.cacheHit` | share | higher | diagnostic | The cache hits divided by the requests. The counts of a measurer give the share of the segments. The counts of a layout cache give the share of the layouts. |
 | `text.ms` | milliseconds | lower | time | The time of the layout. The bench measures it. |

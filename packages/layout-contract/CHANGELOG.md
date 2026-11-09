@@ -1,5 +1,16 @@
 # Changelog
 
+## Unreleased
+
+- New exports: the measure registry (L65). `MeasureEntry` adds the source package, the noise, the normalization and the cost to `MeasureSpec`. `MEASURE_REGISTRY` holds the entries of the joint measures.
+- `measureEntry` makes an entry from a spec. `normalizeMeasure` gives a loss from 0 to 1 by the rule `range` or `scale`. `checkRegistry` gives the faults of a list of entries.
+- `MeasureSurvey`, `checkSurvey` and `surveyFindings` read the survey of the measures of each package. `docs/MEASURE-REGISTRY.md` tells the rules and the findings of the survey of 2026-11-09.
+- Unit rules (L65 part 2): `unitFault` gives the fault of a unit. A value from 0 to 1 has the unit `share` (`SHARE_UNIT`), and a unit text that names a range is a fault. `NO_UNIT` is the unit of a range with no other unit.
+- Breaking for a reader of the unit text: the specs use the new words. `joint.fill`, `joint.spill`, `joint.stability.moved`, the three balance measures and `text.raggedness` and `text.cacheHit` change from `0 to 1` to `share`. `joint.proxy.rank` changes from `-1 to 1` to `no unit`, and `text.overflow` changes to `wrap widths`. The values do not change.
+- `MeasureEntry.planned` holds the reason that no code computes a measure. `joint.stability.mean` and `joint.stability.moved` are planned, and `normalizeMeasure` gives an `Error` for a planned measure.
+- The rule `none` has a reason. A spec can have the `min` `-Infinity`. The rule `range` needs a finite `min` and `max`, and the rule `scale` needs a finite `min`.
+- New measure `balance.gapMean`: the mean of the nearest-neighbour gaps, in layout units. `Balance.gapMean`, `BALANCE_MEASURE_SUFFIXES`, `balanceMeasures` and `balanceMeasureSpecs` give it. Its role is `diagnostic`, because an objective gives it a target.
+
 ## 0.9.9
 
 - PATCH before 1.0.0: new optional options and a new type. Without the new options, each layout stays the same.

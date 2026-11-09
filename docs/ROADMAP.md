@@ -29,6 +29,7 @@ A row with the status `later (parked to 11-11)` waits until 2026-11-11. Until th
 | L102 | later (parked to 11-11) | P2 | The strategy catalog: each strategy and option of an engine as JSON (`docs/STRATEGY-CATALOG.md`) |
 | L101 | in progress | P0 | Bench: a shard with a deadline, a record for each pair, and a resume of a run |
 | L147 | in progress | P1 | After an engine release, the joint bench measures again only the pairs whose engine output fingerprint changed. Part 3: the carry in `joint-bench.yml` (the input `carry`) |
+| L65 | in progress | P1 | One measure registry in layout-contract. Part 1: the entries of the joint measures with source, noise, normalization and cost, and the survey of the measures of the engines (`docs/MEASURE-REGISTRY.md`) |
 | L148 | in progress | P1 | The strategy space as a package of its own (`@mark1russell7/strategy-space`): operators, combinators, the count of the grammar, screening and racing |
 | L159 | in progress | P1 | A catalog route for a stage option that is one value of another strategy (`{ strategy, fixed }`), so the check examines its params (0.9.7) |
 | L100 | later (parked to 11-11) | P2 | The step between two epochs: raw values of the baseline arm, with a marked step on the charts |
@@ -62,7 +63,6 @@ Of 21 items of size M that shipped, the median took less than 1 day from start t
 | L44 | later (parked to 11-11) | P2 | The atlas of the joint space |
 | L61 | later (parked to 11-11) | P2 | Promotion test of the 9 night-1 configs against the default lanes-sides |
 | L62 | blocked by L52 and L61 | P1 | Node layout by physics as a joint step |
-| L65 | blocked by the order after L101 | P1 | One measure registry in layout-contract |
 | L66 | blocked by L65 | P1 | An objective spec with one evaluator |
 | L72 | later (parked to 11-11) | P2 | Neat is a family of objectives, not one |
 | L73 | later (parked to 11-11) | P2 | Clarity of structure: macro and micro measures |

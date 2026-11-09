@@ -717,9 +717,9 @@ export type TextMeasureId = "text.lines" | "text.raggedness" | "text.overflow" |
 /** The specs of the text measures. */
 export const TEXT_MEASURES: readonly MeasureSpec<TextMeasureId>[] = /* @__PURE__ */ Object.freeze([
   { id: "text.lines", unit: "count", direction: "lower", min: 1, max: Infinity, minEffect: 0, family: "text" },
-  { id: "text.raggedness", unit: "0 to 1", direction: "lower", min: 0, max: 1, minEffect: 0.005, family: "text" },
-  { id: "text.overflow", unit: "share of the wrap width", direction: "lower", min: 0, max: Infinity, floor: 0, tol: 0, minEffect: 0, family: "text", role: "guard" },
-  { id: "text.cacheHit", unit: "0 to 1", direction: "higher", min: 0, max: 1, family: "text", role: "diagnostic" },
+  { id: "text.raggedness", unit: "share", direction: "lower", min: 0, max: 1, minEffect: 0.005, family: "text" },
+  { id: "text.overflow", unit: "wrap widths", direction: "lower", min: 0, max: Infinity, floor: 0, tol: 0, minEffect: 0, family: "text", role: "guard" },
+  { id: "text.cacheHit", unit: "share", direction: "higher", min: 0, max: 1, family: "text", role: "diagnostic" },
   { id: "text.ms", unit: "milliseconds", direction: "lower", min: 0, max: Infinity, family: "text", role: "time" },
 ] as const);
 
