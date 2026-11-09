@@ -103,6 +103,18 @@ Each kept record gets the field `carried` of `layout-contract` 0.6.1. It holds t
 
 The probe of a router reads only small inputs. A change of a router on large inputs only can thus pass the probe. The audit is the check of this case. The contract is a workspace package, so the probe has no contract at the earlier version. The audit is also the only check of a change of the contract.
 
+### A carry in the workflow
+
+A manual run of `joint-bench.yml` with the inputs `resume-run` and `carry` makes a carry. Without `resume-run`, the job `plan` stops the run.
+
+1. The job `probe` has 8 jobs: the sides `from` and `to`, each in 4 shards. The commit of the earlier run comes from the API of GitHub.
+2. The side `from` installs the engines of the lockfile of that commit (`carry-engines`), and then probes them. The side `to` probes the engines of this checkout.
+3. The job `prior` starts the command `carry` in place of `resume`. The artifact `joint-records-prior` holds only the files `prior-*`. The audit sample goes to the artifact `joint-carry-audit`, so the job `analyze` does not read it as records.
+4. The job `run` measures the pairs that the carry did not keep, and the audit sample.
+5. The job `carry-audit` compares the audit sample with the new records of the shards. When it fails, the job `analyze` does not start. Then start a resume with no carry.
+
+A carried record is in the data of this run. Thus the site gives it the date of this run, which is the date of the carry check.
+
 ## The overflow rule
 
 An overflow box has no position, so the router cannot route its edges.

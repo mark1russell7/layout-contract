@@ -10,6 +10,7 @@
 //   carry --records <dir> --from <dir> --to <dir> --from-commit <sha> --run <id> --out <dir> [--seed <s>] [--corpus <set>] [--cover on] [--pairs <id,id>]
 //                                                                            keeps the records of an earlier run over an engine release, and writes the prior files and the audit (L147)
 //   carry-audit --audit <file> --records <dir> [--out <file>]              compares the audit pairs with the records of the run, and fails on one difference (L147)
+//   carry-engines --commit <sha>                                           prints the engines of the lockfile of a commit as name@version, for the probe of the earlier engines (L147)
 //   costs --records <dir> [--corpus <set>] [--top <n>]                      prints the wall time of each pair, from the most time to the least
 //   margins --records <dir> --run <id> --commit <sha> --engines <name=version,...> [--logs <file>] [--corpus <set>]   prints the margin set of a run as JSON (L143)
 //   confirm --confirm on --records <dir> --out <dir>   writes the decision of L40: <dir>/confirm.json and <dir>/confirm.md
@@ -127,6 +128,7 @@ import {
   carryPlan,
   carryProbe,
   localImports,
+  lockVersions,
   mergeProbes,
   packFacts,
   shardOf,
@@ -595,6 +597,12 @@ if (command === "check") {
     console.error("::error::The audit of the carry failed, so the carried records do not join. Measure each pair of the engine again: a resume with no carry.");
     process.exit(1);
   }
+} else if (command === "carry-engines") {
+  // The engines of an earlier run (L147): the versions of the lockfile of its commit, for `pnpm add` before the probe of these engines.
+  if (args.commit === undefined) throw new RangeError("The arguments of carry-engines are --commit <sha>.");
+  const lock = spawnSync("git", ["show", `${args.commit}:pnpm-lock.yaml`], { encoding: "utf8", maxBuffer: 1 << 26 });
+  if (lock.status !== 0) throw new RangeError(`The commit ${args.commit} has no pnpm-lock.yaml: ${lock.stderr.trim()}`);
+  console.log(Object.entries(lockVersions(lock.stdout, "packages/joint")).map(([name, version]) => `${name}@${version}`).join(" "));
 } else if (command === "margins") {
   // The margin set of a run (L143). It writes the set as JSON.
   //   margins --records <dir> --run <id> --commit <sha>: the times come from the pair files of the run. The lines of the most common stamp count.
