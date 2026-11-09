@@ -28,8 +28,8 @@ A row with the status `later (parked to 11-11)` waits until 2026-11-11. Until th
 | L102 | later (parked to 11-11) | P2 | The strategy catalog: each strategy and option of an engine as JSON (`docs/STRATEGY-CATALOG.md`) |
 | L101 | in progress | P0 | Bench: a shard with a deadline, a record for each pair, and a resume of a run |
 | L147 | in progress | P1 | After an engine release, the joint bench measures again only the pairs whose engine output fingerprint changed. Part 3: the carry in `joint-bench.yml` (the input `carry`) |
+| L152 | in progress | P1 | One manifest type and one writer of `layout-corpus/1` in the contract, pinned to the bytes of the corpus files of `packing` and of the joint bench (0.9.2) |
 | L148 | in progress | P1 | The strategy space as a package of its own (`@mark1russell7/strategy-space`): operators, combinators, the count of the grammar, screening and racing |
-| L153 | in progress | P1 | A frame record (`layout-frame/1`) and the frames between two layouts, with the laws as property tests (`docs/FRAMES.md`, 0.9.1) |
 | L100 | later (parked to 11-11) | P2 | The step between two epochs: raw values of the baseline arm, with a marked step on the charts |
 | L122 | later (parked to 11-11) | P2 | A floor per option for a walk sample: the count per option beside uniform, a floor with its reason, a stratum if an option falls under it, and a test that pins the smallest count. By 2026-11-17. Part 1, the sample option `fixed`, is in version 0.5.4. |
 | L99 | later (parked to 11-11) | P2 | A night with no result shows: `night-check.yml`, a line on the site, retries on API reads, and no green skip after a failed gate |
@@ -56,31 +56,32 @@ Of 21 items of size M that shipped, the median took less than 1 day from start t
 
 | ID | Status | Priority | Title |
 | --- | --- | --- | --- |
-| L36 | next | P1 | Efficacy maps |
+| L36 | blocked by the order after L101 | P1 | Efficacy maps |
 | L40 | later (parked to 11-11) | P2 | Confirm the first joint default |
 | L44 | later (parked to 11-11) | P2 | The atlas of the joint space |
 | L61 | later (parked to 11-11) | P2 | Promotion test of the 9 night-1 configs against the default lanes-sides |
-| L62 | next | P1 | Node layout by physics as a joint step |
-| L65 | next | P1 | One measure registry in layout-contract |
-| L66 | next | P1 | An objective spec with one evaluator |
+| L62 | blocked by L52 and L61 | P1 | Node layout by physics as a joint step |
+| L65 | blocked by the order after L101 | P1 | One measure registry in layout-contract |
+| L66 | blocked by L65 | P1 | An objective spec with one evaluator |
 | L72 | later (parked to 11-11) | P2 | Neat is a family of objectives, not one |
 | L73 | later (parked to 11-11) | P2 | Clarity of structure: macro and micro measures |
 | L127 | next | P1 | The page says that the data is current at the start of a run, and what it does not know |
-| L154 | next | P1 | A start frame and the frames of a run in `packing`: a fixed-point start gives the move 0 |
-| L155 | next | P2 | Coverage in CI: `@vitest/coverage-v8` in each package with Vitest |
+| L154 | blocked by mark1russell7/packing#431 | P1 | A start frame and the frames of a run in `packing`: a fixed-point start gives the move 0 |
+| L156 | next | P1 | Custom terms of the objective spec as Vex formulas over the measure record of one layout, after a bench of the cost of the evaluator (after L66, 11-18) |
+| L157 | next | P1 | A distribution axis for the shared layout families: a `DistributionSpec` for each size and aspect dimension, drawn with `sampler()` of `rigor-generators` (11-20) |
 
 ## Later
 
 | ID | Status | Priority | Title |
 | --- | --- | --- | --- |
-| L12 | next | P1 | Routing-aware placement costs |
-| L14 | next | P1 | Port-aware placement |
-| L15 | next | P1 | Joint search |
+| L12 | blocked by the order after L101 | P1 | Routing-aware placement costs |
+| L14 | blocked by the order after L101 | P1 | Port-aware placement |
+| L15 | blocked by the order after L101 | P1 | Joint search |
 | L16 | blocked by L36 | P1 | A learned selector over the pair |
 | L25 | later | P3 | A cooperative time budget for portfolio() members |
 | L38 | later | P2 | A select rule learned on the joint records |
 | L48 | later (parked to 11-11) | P2 | Route-first skeleton |
-| L50 | next | P1 | Force-directed refinement after pack |
+| L50 | blocked by the order after L101 | P1 | Force-directed refinement after pack |
 | L53 | blocked by the full cover run | P1 | Mark solved regions in the atlas |
 | L67 | later | P2 | Any objective, answered post hoc by the atlas |
 | L68 | later | P2 | One optimizer with pluggable energy terms |
@@ -110,6 +111,8 @@ Of 21 items of size M that shipped, the median took less than 1 day from start t
 
 | ID | Status | Priority | Title |
 | --- | --- | --- | --- |
+| L155 | done | P2 | Coverage in CI: `@vitest/coverage-v8` in each package with Vitest (layout-contract 0.9.1, strategy-space#6) |
+| L153 | done | P1 | A frame record (`layout-frame/1`) and the frames between two layouts, with the laws as property tests (`docs/FRAMES.md`, 0.9.1) |
 | L144 | done | P1 | `layoutText` breaks lines at the break places of UAX #14 from `@mark1russell7/typeset` 0.1.8, with the test of `LineBreakTest.txt` |
 | L136 | done | P1 | The publish of a sweep night builds on the commit that its check read, so a night that runs at the same time is not lost |
 | L95 | done | P1 | Open size families in the joint corpus (`joint-v3`) |
