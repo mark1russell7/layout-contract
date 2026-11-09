@@ -884,6 +884,9 @@ export interface PackOutput {
 export type ParamRoute = {
   readonly spaceOnly: string;
 } | {
+  readonly strategy: string;
+  readonly fixed?: Readonly<Record<string, unknown>>;
+} | {
   readonly option?: string;
   readonly value?: (value: ParamValue) => unknown;
 };

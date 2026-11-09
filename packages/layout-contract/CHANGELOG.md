@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.9.7
+
+- PATCH before 1.0.0: a new form of `ParamRoute`. `{ strategy, fixed }` tells that a stage option of a space is one value of another strategy (`docs/STRATEGY-CATALOG.md`).
+- `checkCatalog` examines the params of such a stage option against the declarations of that strategy, and each value of `fixed` against its declaration.
+- A route with an absent strategy, an absent or bad fixed option, or a param with the name of a fixed option is a fault. A `strategy` route on a param is also a fault.
+
 ## 0.9.6
 
 - PATCH before 1.0.0: new optional fields and new exports. A packer can give a box another size.

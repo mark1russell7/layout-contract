@@ -30,6 +30,7 @@ A row with the status `later (parked to 11-11)` waits until 2026-11-11. Until th
 | L101 | in progress | P0 | Bench: a shard with a deadline, a record for each pair, and a resume of a run |
 | L147 | in progress | P1 | After an engine release, the joint bench measures again only the pairs whose engine output fingerprint changed. Part 3: the carry in `joint-bench.yml` (the input `carry`) |
 | L148 | in progress | P1 | The strategy space as a package of its own (`@mark1russell7/strategy-space`): operators, combinators, the count of the grammar, screening and racing |
+| L159 | in progress | P1 | A catalog route for a stage option that is one value of another strategy (`{ strategy, fixed }`), so the check examines its params (0.9.7) |
 | L100 | later (parked to 11-11) | P2 | The step between two epochs: raw values of the baseline arm, with a marked step on the charts |
 | L122 | later (parked to 11-11) | P2 | A floor per option for a walk sample: the count per option beside uniform, a floor with its reason, a stratum if an option falls under it, and a test that pins the smallest count. By 2026-11-17. Part 1, the sample option `fixed`, is in version 0.5.4. |
 | L99 | later (parked to 11-11) | P2 | A night with no result shows: `night-check.yml`, a line on the site, retries on API reads, and no green skip after a failed gate |

@@ -2,7 +2,7 @@
 import { canonicalJson } from "./hash.ts";
 import type { Supports } from "./record.ts";
 import { type AnyOption, declarationIssues, type ListItem, type NoDefaultReason, optionIssue, type OptionScale, type ValueOption } from "./strategy-space.ts";
-import type { ParamValue, StrategySpace } from "./strategy-space.ts";
+import type { ParamValue, SpaceParam, StageOption, StrategySpace } from "./strategy-space.ts";
 
 /** The newest schema of a strategy catalog. A new field is a new version of the schema. */
 export const STRATEGY_CATALOG_SCHEMA = "strategy-catalog/3";
@@ -167,16 +167,22 @@ export interface SupportProbe {
  *
  * - `spaceOnly` tells that the place sets no option, with one sentence that tells why. A stage option without an entry can also have this statement.
  * - `option` names the option of the param, when the option has another name. `value` gives the option value of one param value, and `undefined` when the param value sets no option.
+ * - `strategy` is for a stage option that is one value of another strategy. The params of the stage option examine against the declarations of that strategy.
+ *   `fixed` holds the options that the stage option sets, in the JSON form of their declarations. The params cannot have the name of a fixed option.
  */
 export type ParamRoute =
   | { readonly spaceOnly: string }
+  | { readonly strategy: string; readonly fixed?: Readonly<Record<string, unknown>> }
   | { readonly option?: string; readonly value?: (value: ParamValue) => unknown };
 
 /** The options of `checkCatalog`. */
 export interface CatalogCheckOptions {
   /** Each param of these spaces is examined against the declaration of its option. */
   readonly spaces?: readonly StrategySpace[];
-  /** The routes of the params of `spaces`. The key is `<stage>/<option>.<param>`, or `<stage>/<option>` for a stage option. A route that matches nothing is a fault. */
+  /**
+   * The routes of the params of `spaces`. The key is `<stage>/<option>.<param>`, or `<stage>/<option>` for a stage option. A route that matches nothing is a fault.
+   * Only a stage option can have a `strategy` route.
+   */
   readonly paramRoutes?: Readonly<Record<string, ParamRoute>>;
   readonly probes?: readonly SupportProbe[];
   /** This function runs `owner` with `choice` in its option `option`. It gives `true` for a refusal, or `undefined` if the input cannot go to `owner`. */
@@ -888,6 +894,41 @@ function checkParamValues(entry: CatalogEntry, engine: string, place: string, op
   }
 }
 
+/** This function examines each option that a `strategy` route fixes. A fixed option is declared, its value is inside the declaration, and no param has its name. */
+function checkFixed(entry: CatalogEntry, engine: string, name: string, fixed: Readonly<Record<string, unknown>>, params: readonly SpaceParam[], faults: string[]): void {
+  for (const [key, value] of Object.entries(fixed)) {
+    const declaration = entry.options[key];
+    if (declaration === undefined) faults.push(`${entry.key}: the route "${name}" fixes "${key}", and the strategy has no such option.`);
+    else {
+      const issue = optionIssue(key, value, declaration);
+      if (issue !== undefined) faults.push(`${entry.key}: the route "${name}" of the space ${engine} fixes a value outside the declaration. ${issue.message}`);
+    }
+    if (params.some((p) => p.name === key)) faults.push(`${entry.key}: the route "${name}" fixes "${key}", and the stage option also has the param "${key}".`);
+  }
+}
+
+/**
+ * This function gives the entry of a stage option: its own entry, or the strategy of its `strategy` route.
+ * It gives `null` for a stage option without an entry or a `strategy` route, and `undefined` after a fault.
+ */
+function stageEntry(space: StrategySpace, name: string, option: StageOption, entries: ReadonlyMap<string, CatalogEntry>, check: SpaceCheck): CatalogEntry | undefined | null {
+  const own = entries.get(name) ?? entries.get(option.id);
+  const route = check.routes[name];
+  if (route === undefined || !("strategy" in route)) return own ?? null;
+  check.used.add(name);
+  if (own !== undefined) {
+    check.faults.push(`${own.key}: the route "${name}" names the strategy "${route.strategy}", and the stage option has its own entry.`);
+    return undefined;
+  }
+  const entry = entries.get(route.strategy);
+  if (entry === undefined) {
+    check.faults.push(`The route "${name}" names the strategy "${route.strategy}", and the catalog has no such entry.`);
+    return undefined;
+  }
+  checkFixed(entry, space.engine, name, route.fixed ?? {}, option.params, check.faults);
+  return entry;
+}
+
 /** This function examines each param of a space against the declaration of its option, with the routes of the engine. */
 function checkSpaceParams(space: StrategySpace, entries: ReadonlyMap<string, CatalogEntry>, check: SpaceCheck): void {
   const { routes, used, faults, notMatched, spaceOnly } = check;
@@ -899,8 +940,9 @@ function checkSpaceParams(space: StrategySpace, entries: ReadonlyMap<string, Cat
   for (const stage of space.stages) {
     for (const option of stage.options) {
       const name = `${stage.name}/${option.id}`;
-      const entry = entries.get(name) ?? entries.get(option.id);
-      if (entry === undefined) {
+      const entry = stageEntry(space, name, option, entries, check);
+      if (entry === undefined) continue;
+      if (entry === null) {
         const reason = routes[name];
         if (reason !== undefined && "spaceOnly" in reason) {
           used.add(name);
@@ -916,6 +958,10 @@ function checkSpaceParams(space: StrategySpace, entries: ReadonlyMap<string, Cat
         if (route !== undefined && "spaceOnly" in route) {
           if (entry.options[param.name] === undefined) spaceOnly.push(`${place}: ${route.spaceOnly}`);
           else faults.push(`${entry.key}: the route "${place}" says that the param is only in the space, and the strategy has this option.`);
+          continue;
+        }
+        if (route !== undefined && "strategy" in route) {
+          faults.push(`${entry.key}: the route "${place}" names a strategy, and only a stage option can have a strategy route.`);
           continue;
         }
         const target = route?.option ?? param.name;
