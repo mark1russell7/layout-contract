@@ -96,7 +96,7 @@ function byId(a: { readonly id: string }, b: { readonly id: string }): number {
  * Thus two packers with the same result in a different order have the same form.
  * The function throws a `RangeError` when `placements`, `overflow` or `moved` has an id two times.
  *
- * A placement has `w` and `h` only when the packer set them, so the form of an output without a resize does not change.
+ * A placement has `w`, `h` and `shape` only when the packer set them, so the form of an output without a resize does not change.
  */
 export function packOutputForm(output: PackOutput): unknown {
   uniqueIds("placements", output.placements.map((p) => p.id));
@@ -104,7 +104,7 @@ export function packOutputForm(output: PackOutput): unknown {
   uniqueIds("moved", output.moved.map((m) => m.id));
   return {
     placements: output.placements
-      .map((p) => ({ id: p.id, x: p.x, y: p.y, turn: p.turn ?? 0, ...(p.w === undefined ? {} : { w: p.w }), ...(p.h === undefined ? {} : { h: p.h }) }))
+      .map((p) => ({ id: p.id, x: p.x, y: p.y, turn: p.turn ?? 0, ...(p.w === undefined ? {} : { w: p.w }), ...(p.h === undefined ? {} : { h: p.h }), ...(p.shape === undefined ? {} : { shape: p.shape }) }))
       .sort(byId),
     overflow: [...output.overflow].sort(),
     size: { w: output.size.w, h: output.size.h },

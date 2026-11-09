@@ -1,4 +1,5 @@
 // The resize of a box (`LayoutBox.resize`): the sizes that a packer can give a box, and the box at a new size.
+import { boundsOf, type Region } from "./geometry.ts";
 import type { LayoutBox, Port } from "./input.ts";
 import { shapeKindOf } from "./shapes.ts";
 import { RECORD_EPS } from "./tolerance.ts";
@@ -44,6 +45,16 @@ export function sizeFits(box: LayoutBox, w: number, h: number): boolean {
   return b.aspect === "free" || Math.abs(w * box.h - h * box.w) <= RECORD_EPS * (box.w + box.h);
 }
 
+/**
+ * This function tells if a placement can give a box the shape `shape` at the size `w` by `h`.
+ * The box needs `resize.reshape`, and the bounding box of the shape stays inside the rectangle from 0, 0 to `w`, `h`, with the tolerance `RECORD_EPS`.
+ */
+export function shapeFits(box: LayoutBox, shape: Region, w: number, h: number): boolean {
+  if (box.resize?.reshape !== true) return false;
+  const b = boundsOf(shape);
+  return b.x >= -RECORD_EPS && b.y >= -RECORD_EPS && b.x + b.w <= w + RECORD_EPS && b.y + b.h <= h + RECORD_EPS;
+}
+
 /** This function gives a port of a box of the size `w` by `h` after a resize to `toW` by `toH`. A port with `along` keeps its value. */
 function resizePort(port: Port, w: number, h: number, toW: number, toH: number): Port {
   return {
@@ -71,7 +82,7 @@ export function resizeBox(box: LayoutBox, w: number, h: number): LayoutBox {
 /**
  * This function gives the problems of the `resize` of a box. A box without `resize` has no problem.
  * Only a `rect` box without a shape can have a resize. Each bound is a positive finite number.
- * The size of the box is in its bounds, and `aspect` is `keep` or `free`.
+ * The size of the box is in its bounds, `aspect` is `keep` or `free`, and `reshape` is `true` or `false`.
  */
 export function resizeProblems(box: LayoutBox): string[] {
   const r = box.resize;
@@ -85,6 +96,7 @@ export function resizeProblems(box: LayoutBox): string[] {
     if (v !== undefined && !(typeof v === "number" && v > 0 && Number.isFinite(v))) problems.push(`${at}: the resize bound ${k} ${String(v)} is not positive and finite`);
   }
   if (r.aspect !== undefined && r.aspect !== "keep" && r.aspect !== "free") problems.push(`${at}: the resize aspect ${String(r.aspect)} is not keep or free`);
+  if (r.reshape !== undefined && typeof r.reshape !== "boolean") problems.push(`${at}: the resize reshape ${String(r.reshape)} is not true or false`);
   const b = sizeBoundsOf(box);
   if (!(b.minW <= box.w && box.w <= b.maxW)) problems.push(`${at}: the width ${box.w} is not in the resize bounds ${b.minW} to ${b.maxW}`);
   if (!(b.minH <= box.h && box.h <= b.maxH)) problems.push(`${at}: the height ${box.h} is not in the resize bounds ${b.minH} to ${b.maxH}`);

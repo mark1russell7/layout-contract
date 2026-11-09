@@ -10,6 +10,11 @@
 - `MeasureEntry.planned` holds the reason that no code computes a measure. `joint.stability.mean` and `joint.stability.moved` are planned, and `normalizeMeasure` gives an `Error` for a planned measure.
 - The rule `none` has a reason. A spec can have the `min` `-Infinity`. The rule `range` needs a finite `min` and `max`, and the rule `scale` needs a finite `min`.
 - New measure `balance.gapMean`: the mean of the nearest-neighbour gaps, in layout units. `Balance.gapMean`, `BALANCE_MEASURE_SUFFIXES`, `balanceMeasures` and `balanceMeasureSpecs` give it. Its role is `diagnostic`, because an objective gives it a target.
+- `Resize.reshape` lets a packer give a `rect` box a shape, for example the polygon cell of a Voronoi treemap (L161).
+- `Placement.shape` gives the shape of the placed box, relative to its origin, as `LayoutBox.shape`. `applyPack` gives the box that shape and removes its `shapeKind`.
+- `size-kept` also counts a placement with a shape on a box without `reshape`, or with a shape outside its size (`shapeFits`). A placement counts one time.
+- `packOutputForm` has the shape of a placement only when it is set. Thus the fingerprint of an output without a shape does not change.
+- `checkInput` gives a problem for a `reshape` value that is not `true` or `false`.
 - New cell measures (L161 part 2): `cell.areaError` (share, lower) and `cell.compactness` (ratio from 1, lower) of the cells of a Voronoi treemap.
   `cellsOf`, `cellMeasures`, `cellMeasureSpecs` and `cellMeasureEntries` give the values, the specs and the registry entries. `docs/CELLS.md` gives the definitions.
 - `regionPerimeter` gives the perimeter of a region. An ellipse uses the second formula of Ramanujan.

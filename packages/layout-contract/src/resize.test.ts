@@ -11,6 +11,8 @@ import {
   outputHash,
   resizeBox,
   resizeProblems,
+  shapeFits,
+  shapeKindOf,
   sizeBoundsOf,
   sizeFits,
   turnBox,
@@ -165,5 +167,58 @@ describe("the form of an output with a size", () => {
     expect((packOutputForm(sized) as { placements: unknown[] }).placements).toEqual([{ id: "a", x: 1, y: 2, turn: 0, w: 5, h: 6 }]);
     expect(outputHash(packOutputForm(sized))).not.toBe(outputHash(packOutputForm(plain)));
     expect(outputHash(packOutputForm(out({ id: "a", x: 1, y: 2, w: 5 })))).not.toBe(outputHash(packOutputForm(out({ id: "a", x: 1, y: 2, h: 5 }))));
+  });
+});
+
+describe("a placement with a shape", () => {
+  const cell: LayoutBox = { id: "c", w: 40, h: 30, resize: { maxW: 80, maxH: 60, reshape: true } };
+  const tri = { kind: "polygon" as const, points: [[0, 0], [60, 0], [0, 50]] as [number, number][] };
+  const input: LayoutInput = { schema: "layout-input/1", id: "i", boxes: [cell, { id: "a", w: 10, h: 10 }] };
+
+  it("gives the placed box the shape, and the kind of the shape", () => {
+    const boxed: LayoutInput = { ...input, boxes: [{ ...cell, shapeKind: "rect" }] };
+    const placed = applyPack(boxed, out({ id: "c", x: 5, y: 6, w: 60, h: 50, shape: tri })).boxes[0]!;
+    expect(placed).toMatchObject({ x: 5, y: 6, w: 60, h: 50, shape: tri });
+    expect(placed.shapeKind).toBeUndefined();
+    expect(shapeKindOf(placed)).toBe("polygon");
+  });
+
+  it("keeps size-kept at 0 for a shape inside the size of a reshape box", () => {
+    expect(shapeFits(cell, tri, 60, 50)).toBe(true);
+    expect(packHard(input, out({ id: "c", x: 0, y: 0, w: 60, h: 50, shape: tri }, { id: "a", x: 500, y: 500 }))["size-kept"]).toBe(0);
+  });
+
+  it("counts a shape on a box without reshape, and a shape outside the size", () => {
+    expect(shapeFits({ ...cell, resize: { maxW: 80, maxH: 60 } }, tri, 60, 50)).toBe(false);
+    expect(countResizeBreaks(input, out({ id: "a", x: 0, y: 0, shape: { kind: "rect", x: 0, y: 0, w: 10, h: 10 } }))).toBe(1);
+    expect(shapeFits(cell, tri, 59, 50)).toBe(false);
+    expect(shapeFits(cell, { kind: "polygon", points: [[-1, 0], [10, 0], [0, 10]] }, 60, 50)).toBe(false);
+    // The shape keeps the size of the box without w and h: 60 by 50 is outside 40 by 30.
+    expect(countResizeBreaks(input, out({ id: "c", x: 0, y: 0, shape: tri }))).toBe(1);
+  });
+
+  it("counts a placement one time when its size and its shape both break", () => {
+    expect(countResizeBreaks(input, out({ id: "c", x: 0, y: 0, w: 90, h: 50, shape: { kind: "polygon", points: [[0, 0], [95, 0], [0, 50]] } }))).toBe(1);
+  });
+
+  it("reads the turned size of a turned placement", () => {
+    const turnable: LayoutInput = { schema: "layout-input/1", id: "i", boxes: [{ ...cell, turnable: true }] };
+    const tall = { kind: "polygon" as const, points: [[0, 0], [50, 0], [0, 70]] as [number, number][] };
+    expect(countResizeBreaks(turnable, out({ id: "c", x: 0, y: 0, turn: 90, w: 50, h: 70, shape: tall }))).toBe(0);
+    expect(countResizeBreaks(turnable, out({ id: "c", x: 0, y: 0, w: 50, h: 70, shape: tall }))).toBe(1);
+  });
+
+  it("is in the form of an output only when the packer set it", () => {
+    const plain = out({ id: "c", x: 1, y: 2, w: 60, h: 50 });
+    const shaped = out({ id: "c", x: 1, y: 2, w: 60, h: 50, shape: tri });
+    expect((packOutputForm(plain) as { placements: unknown[] }).placements).toEqual([{ id: "c", x: 1, y: 2, turn: 0, w: 60, h: 50 }]);
+    expect((packOutputForm(shaped) as { placements: unknown[] }).placements).toEqual([{ id: "c", x: 1, y: 2, turn: 0, w: 60, h: 50, shape: tri }]);
+    expect(outputHash(packOutputForm(shaped))).not.toBe(outputHash(packOutputForm(plain)));
+  });
+
+  it("refuses a reshape value that is not true or false", () => {
+    const bad = { id: "b", w: 10, h: 10, resize: { reshape: "yes" } } as unknown as LayoutBox;
+    expect(resizeProblems(bad)).toEqual(["box b: the resize reshape yes is not true or false"]);
+    expect(resizeProblems(cell)).toEqual([]);
   });
 });

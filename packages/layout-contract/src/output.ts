@@ -1,5 +1,5 @@
-import { boundsOf, translate } from "./geometry.ts";
-import type { LayoutInput } from "./input.ts";
+import { boundsOf, translate, type Region } from "./geometry.ts";
+import type { LayoutBox, LayoutInput } from "./input.ts";
 import { resizeBox } from "./resize.ts";
 import { turnBox } from "./turn.ts";
 
@@ -14,6 +14,11 @@ export interface Placement {
   readonly turn?: 0 | 90;
   readonly w?: number;
   readonly h?: number;
+  /**
+   * The shape of the placed box, relative to its origin, as `LayoutBox.shape`. Only a box with `resize.reshape` can get it (`size-kept`).
+   * The shape stays inside the box: `w` by `h` of the placement, or of the box without them.
+   */
+  readonly shape?: Region;
 }
 
 /** The facts of one stage of a strategy, for the records and the site. */
@@ -35,12 +40,19 @@ export interface PackOutput {
   readonly trace?: readonly StageTrace[];
 }
 
+/** This function gives a box with the shape `shape` and without its `shapeKind`. */
+function reshaped(box: LayoutBox, shape: Region): LayoutBox {
+  const { shapeKind: _kind, ...rest } = box;
+  return { ...rest, shape };
+}
+
 /**
  * This function gives the input with the output of a packer applied. Each placed box gets its position.
  * A turned box gets its turned size, ports, margin and shape. Each moved obstacle moves.
  * The container gets the size of the output. The router reads this result. It does not read `turn`.
  *
  * A placement with `w` or `h` gives the box that size after the turn (`resizeBox`).
+ * A placement with `shape` gives the box that shape. The box loses its `shapeKind`, so `shapeKindOf` reads the kind of the new shape.
  */
 export function applyPack(input: LayoutInput, output: PackOutput): LayoutInput {
   const at = new Map(output.placements.map((p) => [p.id, p]));
@@ -50,7 +62,7 @@ export function applyPack(input: LayoutInput, output: PackOutput): LayoutInput {
     if (p === undefined) return box;
     const turned = p.turn === 90 ? turnBox(box) : box;
     const sized = p.w === undefined && p.h === undefined ? turned : resizeBox(turned, p.w ?? turned.w, p.h ?? turned.h);
-    return { ...sized, x: p.x, y: p.y };
+    return { ...(p.shape === undefined ? sized : reshaped(sized, p.shape)), x: p.x, y: p.y };
   });
   const obstacles = input.obstacles?.map((o) => {
     const m = moved.get(o.id);

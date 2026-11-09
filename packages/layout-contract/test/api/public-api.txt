@@ -386,6 +386,7 @@ segmentThroughShape: build/index.d.ts#segmentThroughShape
 segmentsCross: build/measures.chunk.d.ts#segmentsCross
 selectBest: build/index.d.ts#selectBest
 sha256Hex: build/index.d.ts#sha256Hex
+shapeFits: build/index.d.ts#shapeFits
 shapeKindOf: build/measures.chunk.d.ts#shapeKindOf
 shapeKindProblem: build/measures.chunk.d.ts#shapeKindProblem
 shapeKindsOf: build/measures.chunk.d.ts#shapeKindsOf
@@ -1038,6 +1039,7 @@ export interface Placement {
   readonly turn?: 0 | 90;
   readonly w?: number;
   readonly h?: number;
+  readonly shape?: Region;
 }
 
 ### build/index.d.ts#Portfolio
@@ -1656,6 +1658,9 @@ export declare function selectBest(candidates: readonly SelectCandidate[], level
 ### build/index.d.ts#sha256Hex
 export declare function sha256Hex(text: string): string;
 
+### build/index.d.ts#shapeFits
+export declare function shapeFits(box: LayoutBox, shape: Region, w: number, h: number): boolean;
+
 ### build/index.d.ts#shapesOverlap
 export declare function shapesOverlap(a: LayoutBox, b: LayoutBox, tolerance?: number, gap?: number): boolean;
 
@@ -1979,6 +1984,7 @@ interface Resize {
   readonly minH?: number;
   readonly maxH?: number;
   readonly aspect?: "keep" | "free";
+  readonly reshape?: boolean;
 }
 
 ### build/measures.chunk.d.ts#Ring
