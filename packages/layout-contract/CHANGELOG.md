@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+- New module `curves`: the Hilbert, Moore and Morton (Z order) curves on a grid. The side of the grid is a power of 2. `docs/CURVES.md` gives the rules.
+- `CurveSpec` holds a curve as data: the order of its four parts and the symmetry of each part. `HILBERT_CURVE`, `MOORE_CURVE` and `MORTON_CURVE` are the three curves, and `HILBERT_PATTERN` and `MOORE_PATTERN` are their patterns.
+- `curveCell` and `curveIndex` give the cell at a place and the place of a cell. `curveCells` gives each cell in the order of the curve.
+- `hilbertCell`, `hilbertIndex`, `mooreCell`, `mooreIndex`, `mortonCell` and `mortonIndex` give the same values for one curve.
+- `CurveSymmetry`, `CURVE_SYMMETRIES`, `applySymmetry` and `inverseSymmetry` give the 8 symmetries of a square. `CURVE_MAX_SIDE` is the largest side.
 - New exports: the measure registry (L65). `MeasureEntry` adds the source package, the noise, the normalization and the cost to `MeasureSpec`. `MEASURE_REGISTRY` holds the entries of the joint measures.
 - `measureEntry` makes an entry from a spec. `normalizeMeasure` gives a loss from 0 to 1 by the rule `range` or `scale`. `checkRegistry` gives the faults of a list of entries.
 - `MeasureSurvey`, `checkSurvey` and `surveyFindings` read the survey of the measures of each package. `docs/MEASURE-REGISTRY.md` tells the rules and the findings of the survey of 2026-11-09.
