@@ -53,6 +53,16 @@ export function snapRect(rect: Rect): Rect {
   return { x, y, w: roundEdge(rect.x + rect.w) - x, h: roundEdge(rect.y + rect.h) - y };
 }
 
+/**
+ * This function gives a rectangle with each coordinate and each size times `factor`. It changes the unit of a
+ * rectangle, for example from the CSS pixels of a zoomed page to the pixels of its window. It does not round:
+ * `snapRect` comes after it. A factor that is negative or not finite gives a `RangeError`.
+ */
+export function scaleRect(rect: Rect, factor: number): Rect {
+  if (!Number.isFinite(factor) || factor < 0) throw new RangeError(`The factor of scaleRect must be a finite number of 0 or more, not ${factor}.`);
+  return { x: rect.x * factor, y: rect.y * factor, w: rect.w * factor, h: rect.h * factor };
+}
+
 /** A value for each side of a box. */
 export interface Sides {
   readonly top: number;

@@ -337,6 +337,7 @@ regionArea: build/measures.chunk.d.ts#regionArea
 regionHitsRect: build/index.d.ts#regionHitsRect
 resolveDimensions: build/index.d.ts#resolveDimensions
 ruleLevel: build/measures.chunk.d.ts#ruleLevel
+scaleRect: build/measures.chunk.d.ts#scaleRect
 segmentThroughShape: build/index.d.ts#segmentThroughShape
 segmentsCross: build/measures.chunk.d.ts#segmentsCross
 selectBest: build/index.d.ts#selectBest
@@ -1906,6 +1907,9 @@ declare function regionArea(region: Region): number;
 
 ### build/measures.chunk.d.ts#ruleLevel
 declare function ruleLevel(rule: Pick<ShapeSupport, "shapes" | "safe">, kind: ShapeKind): RuleLevel;
+
+### build/measures.chunk.d.ts#scaleRect
+declare function scaleRect(rect: Rect, factor: number): Rect;
 
 ### build/measures.chunk.d.ts#segmentsCross
 declare function segmentsCross(a: Point, b: Point, c: Point, d: Point): boolean;
