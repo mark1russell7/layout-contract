@@ -29,7 +29,7 @@ concurrency:
 
 jobs:
   pages:
-    uses: mark1russell7/template/.github/workflows/reusable-pages.yml@93668034510218d1ab35f1071d943f96d3fa7c38 # main
+    uses: mark1russell7/template/.github/workflows/reusable-pages.yml@e8ddfd74e9ddfb92a1feba57b265fa9ef62d672e # main
     # The build job of the shared workflow gets only the read permissions. Only its deploy job,
     # which runs no code of the repository, writes to Pages.
     permissions:
@@ -64,9 +64,11 @@ jobs:
 
   # This job examines the deployed site: the Releases page, the Status page and their data files.
   # It starts no code of the repository and reads only the public site.
+  # A run with no deployment has no page URL, so the job does not start. An example: the CI of the commit is red.
+  # Then the shared workflow builds the newest green commit, and a dispatch skips the build and the deployment.
   served:
     needs: pages
-    if: github.event_name != 'pull_request'
+    if: github.event_name != 'pull_request' && needs.pages.outputs.page-url != ''
     runs-on: ubuntu-latest
     timeout-minutes: 5
     permissions: {}

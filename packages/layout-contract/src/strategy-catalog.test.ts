@@ -694,6 +694,41 @@ describe("the check against the engine", () => {
       expect(unmatched.faults).toEqual(['The route "placement/order" matches nothing in the spaces.']);
       expect(check(space([], "order"), { "placement/order": { spaceOnly: " " } }).faults).toEqual(['The route "placement/order" has no reason.']);
     });
+
+    describe("of a stage option that is one value of a strategy", () => {
+      const gap: Params = [{ name: "gap", kind: "real", min: 0, max: 5, default: 1 }];
+      const best = { strategy: "shelf", fixed: { fit: "best" } } as const;
+      const clean = { faults: [], notRun: [], notMatched: [], spaceOnly: [] };
+
+      it("examines the params and the fixed options against the declarations of the strategy", () => {
+        expect(check(space(gap, "best-fit"), { "placement/best-fit": best })).toEqual(clean);
+        expect(check(space(gap, "best-fit"), { "placement/best-fit": { strategy: "shelf" } })).toEqual(clean);
+        const wide: Params = [{ name: "gap", kind: "real", min: 0, max: 50, default: 1 }];
+        expect(check(space(wide, "best-fit"), { "placement/best-fit": best }).faults[0]).toContain("out of the range");
+        const other: Params = [{ name: "other", kind: "bool", default: true }];
+        expect(check(space(other, "best-fit"), { "placement/best-fit": best }).notMatched).toEqual(["placement/best-fit.other"]);
+      });
+
+      it("takes the routes of the params of the stage option", () => {
+        const mode: Params = [{ name: "mode", kind: "enum", values: ["first"], default: "first" }];
+        expect(check(space(mode, "walk"), { "placement/walk": { strategy: "shelf" }, "placement/walk.mode": { option: "fit" } })).toEqual(clean);
+        const flag: Params = [{ name: "flag", kind: "bool", default: true }];
+        expect(check(space(flag, "walk"), { "placement/walk": best, "placement/walk.flag": { spaceOnly: "It is a switch of the space." } }).spaceOnly).toEqual(["placement/walk.flag: It is a switch of the space."]);
+      });
+
+      it("refuses a fixed option that is absent, outside its declaration, or also a param", () => {
+        expect(check(space(gap, "best-fit"), { "placement/best-fit": { strategy: "shelf", fixed: { gone: 1 } } }).faults).toEqual(['shelf: the route "placement/best-fit" fixes "gone", and the strategy has no such option.']);
+        expect(check(space(gap, "best-fit"), { "placement/best-fit": { strategy: "shelf", fixed: { fit: "worst" } } }).faults[0]).toContain('the route "placement/best-fit" of the space packing fixes a value outside the declaration');
+        const fit: Params = [{ name: "fit", kind: "enum", values: ["first"], default: "first" }];
+        expect(check(space(fit, "best-fit"), { "placement/best-fit": best }).faults).toEqual(['shelf: the route "placement/best-fit" fixes "fit", and the stage option also has the param "fit".']);
+      });
+
+      it("refuses an absent strategy, a stage option with its own entry, and a strategy route on a param", () => {
+        expect(check(space(gap, "best-fit"), { "placement/best-fit": { strategy: "gone" } }).faults).toEqual(['The route "placement/best-fit" names the strategy "gone", and the catalog has no such entry.']);
+        expect(check(space(gap), { "placement/shelf": { strategy: "aspect-fit" } }).faults).toEqual(['shelf: the route "placement/shelf" names the strategy "aspect-fit", and the stage option has its own entry.']);
+        expect(check(space(gap), { "placement/shelf.gap": { strategy: "shelf" } }).faults).toEqual(['shelf: the route "placement/shelf.gap" names a strategy, and only a stage option can have a strategy route.']);
+      });
+    });
   });
 });
 

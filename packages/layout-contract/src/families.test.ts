@@ -215,6 +215,17 @@ describe("the family keys", () => {
 });
 
 describe("the ranges and the scales", () => {
+  it("give the value of paramAt on the scale, a whole number for an int, and a RangeError for a param that is not numeric", () => {
+    const real = { name: "r", kind: "real", default: 1, min: 0.5, max: 8, scale: "log" } as const;
+    expect(dimensionAt(real, 0.5)).toBeCloseTo(2, 12);
+    expect(dimensionUnit(real, 2)).toBeCloseTo(0.5, 12);
+    const int = { name: "n", kind: "int", default: 1, min: 1, max: 4 } as const;
+    expect(dimensionAt(int, 0.5)).toBe(3);
+    const choice = { name: "c", kind: "enum", default: "a", values: ["a", "b"] } as const;
+    expect(() => dimensionAt(choice, 0.5)).toThrow(RangeError);
+    expect(() => dimensionUnit(choice, 0)).toThrow(RangeError);
+  });
+
   it("map a log scale from 0 to a slider and back", () => {
     const count = CORPUS_DIMENSIONS["count"]!;
     expect(dimensionAt(count, 0)).toBe(0);

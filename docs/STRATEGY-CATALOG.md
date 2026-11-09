@@ -155,8 +155,17 @@ A param of a space can hold another form of the value of its option. The option 
 | `{ "value": toOption }` | The check examines `toOption(value)` against the declaration. The result `undefined` means that this value sets no option. |
 | `{ "option": "name" }` | The option has another name. A route can also have `value`. |
 | `{ "spaceOnly": "reason" }` | The place sets no option. The place goes to `spaceOnly`, with its reason. |
+| `{ "strategy": "walk", "fixed": { "accept": "climb" } }` | Only for a stage option. The stage option is one value of the strategy `walk`. Its params examine against the declarations of `walk`. |
 
 A route that matches nothing is a fault, and so is a route that names an absent option. A `spaceOnly` route on a param that is an option is also a fault. Thus each route stays true when the space changes.
+
+A `strategy` route has these faults:
+
+- The catalog has no entry with the key of the route.
+- The stage option has its own entry.
+- An option of `fixed` is absent from the strategy, or its value is outside the declaration. The value has the JSON form of the declaration.
+- A param of the stage option has the name of an option of `fixed`.
+- The route is on a param, not on a stage option.
 
 ## The relation to the strategy space
 

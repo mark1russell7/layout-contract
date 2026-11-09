@@ -1,0 +1,1062 @@
+{
+  "schema": "measure-survey/1",
+  "date": "2026-11-09",
+  "sources": [
+    {
+      "package": "@mark1russell7/layout-contract",
+      "version": "0.9.9",
+      "measures": [
+        {
+          "id": "joint.aspectError",
+          "unit": "natural log",
+          "direction": "lower",
+          "min": 0,
+          "max": null
+        },
+        {
+          "id": "joint.fill",
+          "unit": "share",
+          "direction": "higher",
+          "min": 0,
+          "max": 1
+        },
+        {
+          "id": "joint.ms",
+          "unit": "milliseconds",
+          "direction": "lower",
+          "min": 0,
+          "max": null
+        },
+        {
+          "id": "joint.proxy.rank",
+          "unit": "no unit",
+          "direction": "higher",
+          "min": -1,
+          "max": 1
+        },
+        {
+          "id": "joint.route.length",
+          "unit": "layout units for each route",
+          "direction": "lower",
+          "min": 0,
+          "max": null
+        },
+        {
+          "id": "joint.spill",
+          "unit": "share",
+          "direction": "lower",
+          "min": 0,
+          "max": 1
+        },
+        {
+          "id": "joint.stability.mean",
+          "unit": "W",
+          "direction": "lower",
+          "min": 0,
+          "max": null
+        },
+        {
+          "id": "joint.stability.moved",
+          "unit": "share",
+          "direction": "lower",
+          "min": 0,
+          "max": 1
+        },
+        {
+          "id": "joint.straight.crossings",
+          "unit": "count",
+          "direction": "lower",
+          "min": 0,
+          "max": null
+        },
+        {
+          "id": "joint.straight.length",
+          "unit": "S for each edge",
+          "direction": "lower",
+          "min": 0,
+          "max": null
+        }
+      ]
+    },
+    {
+      "package": "@mark1russell7/packing",
+      "version": "0.10.2",
+      "measures": [
+        {
+          "id": "pack.area",
+          "unit": "square units",
+          "direction": "lower",
+          "family": "density",
+          "min": 0,
+          "max": null
+        },
+        {
+          "id": "pack.aspect",
+          "unit": "ratio",
+          "direction": "lower",
+          "family": "aspect",
+          "min": 1,
+          "max": null
+        },
+        {
+          "id": "pack.aspectError",
+          "unit": "natural log",
+          "direction": "lower",
+          "family": "aspect",
+          "min": 0,
+          "max": null
+        },
+        {
+          "id": "pack.balance.centroidOffset",
+          "unit": "0 to 1",
+          "direction": "lower",
+          "family": "balance",
+          "min": 0,
+          "max": 1
+        },
+        {
+          "id": "pack.balance.gapCv",
+          "unit": "ratio",
+          "direction": "lower",
+          "family": "balance",
+          "min": 0,
+          "max": null
+        },
+        {
+          "id": "pack.balance.side.bottom",
+          "unit": "0 to 1",
+          "direction": "lower",
+          "family": "balance",
+          "min": 0,
+          "max": 1
+        },
+        {
+          "id": "pack.balance.side.left",
+          "unit": "0 to 1",
+          "direction": "lower",
+          "family": "balance",
+          "min": 0,
+          "max": 1
+        },
+        {
+          "id": "pack.balance.side.right",
+          "unit": "0 to 1",
+          "direction": "lower",
+          "family": "balance",
+          "min": 0,
+          "max": 1
+        },
+        {
+          "id": "pack.balance.side.top",
+          "unit": "0 to 1",
+          "direction": "lower",
+          "family": "balance",
+          "min": 0,
+          "max": 1
+        },
+        {
+          "id": "pack.balance.sideRange",
+          "unit": "0 to 1",
+          "direction": "lower",
+          "family": "balance",
+          "min": 0,
+          "max": 1
+        },
+        {
+          "id": "pack.deterministic",
+          "unit": "boolean",
+          "direction": "higher",
+          "family": "determinism",
+          "min": 0,
+          "max": 1
+        },
+        {
+          "id": "pack.fill",
+          "unit": "share",
+          "direction": "higher",
+          "family": "density",
+          "min": 0,
+          "max": 1
+        },
+        {
+          "id": "pack.gap",
+          "unit": "share",
+          "direction": "lower",
+          "family": "bound",
+          "min": 0,
+          "max": 1
+        },
+        {
+          "id": "pack.gapToOpt",
+          "unit": "ratio",
+          "direction": "lower",
+          "family": "density",
+          "min": 0,
+          "max": null
+        },
+        {
+          "id": "pack.order.breaks",
+          "unit": "count",
+          "direction": "lower",
+          "family": "order",
+          "min": 0,
+          "max": null
+        },
+        {
+          "id": "pack.order.inversions",
+          "unit": "share",
+          "direction": "lower",
+          "family": "order",
+          "min": 0,
+          "max": 1
+        },
+        {
+          "id": "pack.overflow",
+          "unit": "count",
+          "direction": "lower",
+          "family": "overflow",
+          "min": 0,
+          "max": null
+        },
+        {
+          "id": "pack.overflow.area",
+          "unit": "share",
+          "direction": "lower",
+          "family": "overflow",
+          "min": 0,
+          "max": 1
+        },
+        {
+          "id": "pack.overflow.excess",
+          "unit": "count",
+          "direction": "lower",
+          "family": "overflow",
+          "min": 0,
+          "max": null
+        },
+        {
+          "id": "pack.overflow.excessArea",
+          "unit": "share",
+          "direction": "lower",
+          "family": "overflow",
+          "min": 0,
+          "max": 1
+        },
+        {
+          "id": "pack.overflow.forced",
+          "unit": "count",
+          "direction": "lower",
+          "family": "overflow",
+          "min": 0,
+          "max": null
+        },
+        {
+          "id": "pack.overflow.forcedArea",
+          "unit": "share",
+          "direction": "lower",
+          "family": "overflow",
+          "min": 0,
+          "max": 1
+        },
+        {
+          "id": "pack.overflow.forcedAreaMin",
+          "unit": "share",
+          "direction": "lower",
+          "family": "overflow",
+          "min": 0,
+          "max": 1
+        },
+        {
+          "id": "pack.overflow.rate",
+          "unit": "share",
+          "direction": "lower",
+          "family": "overflow",
+          "min": 0,
+          "max": 1
+        },
+        {
+          "id": "pack.raggedness",
+          "unit": "share",
+          "direction": "lower",
+          "family": "raggedness",
+          "min": 0,
+          "max": 1
+        },
+        {
+          "id": "pack.search.ms",
+          "unit": "milliseconds",
+          "direction": "lower",
+          "family": "speed",
+          "min": 0,
+          "max": null
+        },
+        {
+          "id": "pack.search.widths",
+          "unit": "count",
+          "direction": "lower",
+          "family": "speed",
+          "min": 0,
+          "max": null
+        },
+        {
+          "id": "pack.shapeFill",
+          "unit": "share",
+          "direction": "higher",
+          "family": "density",
+          "min": 0,
+          "max": 1
+        },
+        {
+          "id": "pack.stability.mean",
+          "unit": "container widths",
+          "direction": "lower",
+          "family": "stability",
+          "min": 0,
+          "max": null
+        },
+        {
+          "id": "pack.stability.moved",
+          "unit": "share",
+          "direction": "lower",
+          "family": "stability",
+          "min": 0,
+          "max": 1
+        },
+        {
+          "id": "pack.stability.procrustes",
+          "unit": "W for each change share",
+          "direction": "lower",
+          "family": "stability",
+          "min": 0,
+          "max": null
+        },
+        {
+          "id": "pack.stability.q95",
+          "unit": "container widths",
+          "direction": "lower",
+          "family": "stability",
+          "min": 0,
+          "max": null
+        },
+        {
+          "id": "pack.stability.seed",
+          "unit": "W",
+          "direction": "lower",
+          "family": "stability",
+          "min": 0,
+          "max": null
+        },
+        {
+          "id": "pack.whitespace",
+          "unit": "share",
+          "direction": "lower",
+          "family": "density",
+          "min": 0,
+          "max": 1
+        }
+      ]
+    },
+    {
+      "package": "@mark1russell7/highways",
+      "version": "0.15.0",
+      "measures": [
+        {
+          "id": "route.backtrack",
+          "unit": "0 to 1",
+          "direction": "lower",
+          "family": "R7"
+        },
+        {
+          "id": "route.balance.cv",
+          "unit": "no unit",
+          "direction": "lower",
+          "family": "R16"
+        },
+        {
+          "id": "route.balance.low",
+          "unit": "0 to 1",
+          "direction": "lower",
+          "family": "R16"
+        },
+        {
+          "id": "route.bends",
+          "unit": "count for each route",
+          "direction": "lower",
+          "family": "R3"
+        },
+        {
+          "id": "route.bundle.ambiguity",
+          "unit": "0 to 1",
+          "direction": "lower",
+          "family": "B4"
+        },
+        {
+          "id": "route.bundle.gap-closed",
+          "unit": "share of the gap",
+          "direction": "higher",
+          "family": "B10"
+        },
+        {
+          "id": "route.bundle.gap-closed.all",
+          "unit": "share of the gap",
+          "direction": "higher",
+          "family": "B10"
+        },
+        {
+          "id": "route.bundle.gap-closed.cap",
+          "unit": "ratio",
+          "direction": "lower",
+          "family": "B10"
+        },
+        {
+          "id": "route.bundle.gap-closed.cap.all",
+          "unit": "ratio",
+          "direction": "lower",
+          "family": "B10"
+        },
+        {
+          "id": "route.bundle.gap-closed.cap.collection",
+          "unit": "ratio",
+          "direction": "lower",
+          "family": "B10"
+        },
+        {
+          "id": "route.bundle.gap-closed.collection",
+          "unit": "share of the gap",
+          "direction": "higher",
+          "family": "B10"
+        },
+        {
+          "id": "route.bundle.gap-closed.mixed",
+          "unit": "0 or 1",
+          "direction": "lower",
+          "family": "B10"
+        },
+        {
+          "id": "route.bundle.ink-saved",
+          "unit": "0 to 1",
+          "direction": "higher",
+          "family": "B1"
+        },
+        {
+          "id": "route.bundle.lane-crossings",
+          "unit": "count",
+          "direction": "lower",
+          "family": "B5"
+        },
+        {
+          "id": "route.bundle.lane-fidelity.max",
+          "unit": "ratio",
+          "direction": "lower",
+          "family": "B9"
+        },
+        {
+          "id": "route.bundle.lane-fidelity.median",
+          "unit": "ratio",
+          "direction": "lower",
+          "family": "B9"
+        },
+        {
+          "id": "route.bundle.merge-angle.max",
+          "unit": "degrees",
+          "direction": "lower",
+          "family": "B6"
+        },
+        {
+          "id": "route.bundle.occupied-area",
+          "unit": "ratio",
+          "direction": "lower",
+          "family": "B7"
+        },
+        {
+          "id": "route.bundle.run-edges.max",
+          "unit": "count",
+          "direction": "higher",
+          "family": "B8"
+        },
+        {
+          "id": "route.bundle.run-edges.median",
+          "unit": "count",
+          "direction": "higher",
+          "family": "B8"
+        },
+        {
+          "id": "route.bundle.runs",
+          "unit": "count",
+          "direction": "lower",
+          "family": "B8"
+        },
+        {
+          "id": "route.bundle.share",
+          "unit": "0 to 1",
+          "direction": "higher",
+          "family": "B2"
+        },
+        {
+          "id": "route.bundle.stretch.max",
+          "unit": "ratio",
+          "direction": "lower",
+          "family": "B3"
+        },
+        {
+          "id": "route.bundle.stretch.median",
+          "unit": "ratio",
+          "direction": "lower",
+          "family": "B3"
+        },
+        {
+          "id": "route.bundle.stretch.model.max",
+          "unit": "ratio",
+          "direction": "lower",
+          "family": "B3"
+        },
+        {
+          "id": "route.bundle.stretch.q95",
+          "unit": "ratio",
+          "direction": "lower",
+          "family": "B3"
+        },
+        {
+          "id": "route.clearance.mean",
+          "unit": "units",
+          "direction": "higher",
+          "family": "R8"
+        },
+        {
+          "id": "route.clearance.tight",
+          "unit": "0 to 1",
+          "direction": "lower",
+          "family": "R8"
+        },
+        {
+          "id": "route.crossing-angle.mean",
+          "unit": "0 to 1",
+          "direction": "higher",
+          "family": "R2"
+        },
+        {
+          "id": "route.crossing-angle.min",
+          "unit": "degrees",
+          "direction": "higher",
+          "family": "R2"
+        },
+        {
+          "id": "route.crossings",
+          "unit": "count",
+          "direction": "lower",
+          "family": "R1"
+        },
+        {
+          "id": "route.crossings.estimated",
+          "unit": "0 or 1",
+          "direction": "lower",
+          "family": "R1"
+        },
+        {
+          "id": "route.crossings.pairs",
+          "unit": "count",
+          "direction": "lower",
+          "family": "R1"
+        },
+        {
+          "id": "route.crossings.pairs.estimated",
+          "unit": "0 or 1",
+          "direction": "lower",
+          "family": "R1"
+        },
+        {
+          "id": "route.crossings.per-edge",
+          "unit": "count for each edge",
+          "direction": "lower",
+          "family": "R1"
+        },
+        {
+          "id": "route.curve.c1.max",
+          "unit": "degrees",
+          "direction": "lower",
+          "family": "C1"
+        },
+        {
+          "id": "route.curve.c1.share",
+          "unit": "0 to 1",
+          "direction": "lower",
+          "family": "C1"
+        },
+        {
+          "id": "route.curve.c2.max",
+          "unit": "no unit",
+          "direction": "lower",
+          "family": "C2"
+        },
+        {
+          "id": "route.curve.c2.median",
+          "unit": "no unit",
+          "direction": "lower",
+          "family": "C2"
+        },
+        {
+          "id": "route.curve.c3.median",
+          "unit": "no unit",
+          "direction": "lower",
+          "family": "C3"
+        },
+        {
+          "id": "route.curve.c3.q95",
+          "unit": "no unit",
+          "direction": "lower",
+          "family": "C3"
+        },
+        {
+          "id": "route.curve.c4.median",
+          "unit": "no unit",
+          "direction": "lower",
+          "family": "C4"
+        },
+        {
+          "id": "route.curve.c4.q95",
+          "unit": "no unit",
+          "direction": "lower",
+          "family": "C4"
+        },
+        {
+          "id": "route.curve.c5.peak",
+          "unit": "curvature times the unit of the board",
+          "direction": "lower",
+          "family": "C5"
+        },
+        {
+          "id": "route.curve.c6.length",
+          "unit": "ratio",
+          "direction": "lower",
+          "family": "C6"
+        },
+        {
+          "id": "route.curve.c8.max",
+          "unit": "no unit",
+          "direction": "lower",
+          "family": "C8"
+        },
+        {
+          "id": "route.curve.c8.median",
+          "unit": "no unit",
+          "direction": "lower",
+          "family": "C8"
+        },
+        {
+          "id": "route.curve.rule.clear",
+          "unit": "count",
+          "direction": "lower",
+          "family": "C7"
+        },
+        {
+          "id": "route.curve.rule.ends",
+          "unit": "count",
+          "direction": "lower",
+          "family": "C10"
+        },
+        {
+          "id": "route.curve.rule.g1",
+          "unit": "count",
+          "direction": "lower",
+          "family": "C1"
+        },
+        {
+          "id": "route.curve.rule.simple",
+          "unit": "count",
+          "direction": "lower",
+          "family": "C9"
+        },
+        {
+          "id": "route.detour.max",
+          "unit": "ratio",
+          "direction": "lower",
+          "family": "R6"
+        },
+        {
+          "id": "route.detour.mean",
+          "unit": "ratio",
+          "direction": "lower",
+          "family": "R5"
+        },
+        {
+          "id": "route.detour.median",
+          "unit": "ratio",
+          "direction": "lower",
+          "family": "R5"
+        },
+        {
+          "id": "route.detour.q95",
+          "unit": "ratio",
+          "direction": "lower",
+          "family": "R5"
+        },
+        {
+          "id": "route.group.balance",
+          "unit": "0 to 1",
+          "direction": "higher",
+          "family": "G6"
+        },
+        {
+          "id": "route.group.cut",
+          "unit": "0 to 1",
+          "direction": "lower",
+          "family": "G2"
+        },
+        {
+          "id": "route.group.fill",
+          "unit": "0 to 1",
+          "direction": "higher",
+          "family": "G4"
+        },
+        {
+          "id": "route.group.modularity",
+          "unit": "-0.5 to 1",
+          "direction": "higher",
+          "family": "G1"
+        },
+        {
+          "id": "route.group.overlaps",
+          "unit": "count",
+          "direction": "lower",
+          "family": "G5"
+        },
+        {
+          "id": "route.group.silhouette",
+          "unit": "-1 to 1",
+          "direction": "higher",
+          "family": "G7"
+        },
+        {
+          "id": "route.group.stability",
+          "unit": "-1 to 1",
+          "direction": "higher",
+          "family": "G9"
+        },
+        {
+          "id": "route.group.tree-cost",
+          "unit": "0 to 1",
+          "direction": "lower",
+          "family": "G8"
+        },
+        {
+          "id": "route.inflections",
+          "unit": "count for each route",
+          "direction": "lower",
+          "family": "R15"
+        },
+        {
+          "id": "route.ink",
+          "unit": "units",
+          "direction": "lower",
+          "family": "R1"
+        },
+        {
+          "id": "route.lane.area",
+          "unit": "ratio",
+          "direction": "lower",
+          "family": "M1"
+        },
+        {
+          "id": "route.lane.separation",
+          "unit": "0 to 1",
+          "direction": "lower",
+          "family": "R12"
+        },
+        {
+          "id": "route.lane.through",
+          "unit": "count",
+          "direction": "lower",
+          "family": "M4"
+        },
+        {
+          "id": "route.level.counts-sum",
+          "unit": "count",
+          "direction": "lower",
+          "family": "Z1"
+        },
+        {
+          "id": "route.level.far-items",
+          "unit": "count",
+          "direction": "lower",
+          "family": "Z4"
+        },
+        {
+          "id": "route.level.link-agreement",
+          "unit": "no unit",
+          "direction": "lower",
+          "family": "Z9"
+        },
+        {
+          "id": "route.level.link-ends",
+          "unit": "count",
+          "direction": "lower",
+          "family": "Z2"
+        },
+        {
+          "id": "route.level.link-length",
+          "unit": "units",
+          "direction": "lower",
+          "family": "Z3"
+        },
+        {
+          "id": "route.level.nesting",
+          "unit": "count",
+          "direction": "lower",
+          "family": "Z6"
+        },
+        {
+          "id": "route.level.order",
+          "unit": "-1 to 1",
+          "direction": "higher",
+          "family": "Z8"
+        },
+        {
+          "id": "route.level.position",
+          "unit": "no unit",
+          "direction": "lower",
+          "family": "Z7"
+        },
+        {
+          "id": "route.level.ratio.max",
+          "unit": "ratio",
+          "direction": "lower",
+          "family": "Z5"
+        },
+        {
+          "id": "route.level.ratio.spread",
+          "unit": "no unit",
+          "direction": "lower",
+          "family": "Z5"
+        },
+        {
+          "id": "route.level.through",
+          "unit": "count",
+          "direction": "lower",
+          "family": "Z3"
+        },
+        {
+          "id": "route.no-graph",
+          "unit": "count",
+          "direction": "lower",
+          "family": "R17"
+        },
+        {
+          "id": "route.order.changed",
+          "unit": "0 to 1",
+          "direction": "lower",
+          "family": "W3"
+        },
+        {
+          "id": "route.order.crossings",
+          "unit": "IQR over the median",
+          "direction": "lower",
+          "family": "W3"
+        },
+        {
+          "id": "route.order.detour",
+          "unit": "IQR over the median",
+          "direction": "lower",
+          "family": "W3"
+        },
+        {
+          "id": "route.order.ink",
+          "unit": "IQR over the median",
+          "direction": "lower",
+          "family": "W3"
+        },
+        {
+          "id": "route.order.ink-saved",
+          "unit": "IQR over the median",
+          "direction": "lower",
+          "family": "W3"
+        },
+        {
+          "id": "route.order.poa",
+          "unit": "ratio",
+          "direction": "lower",
+          "family": "W3"
+        },
+        {
+          "id": "route.orthogonality",
+          "unit": "0 to 1",
+          "direction": "higher",
+          "family": "R14"
+        },
+        {
+          "id": "route.outside",
+          "unit": "count",
+          "direction": "lower",
+          "family": "R13"
+        },
+        {
+          "id": "route.overlap.peak",
+          "unit": "count",
+          "direction": "lower",
+          "family": "B11"
+        },
+        {
+          "id": "route.overlap.share",
+          "unit": "0 to 1",
+          "direction": "lower",
+          "family": "B11"
+        },
+        {
+          "id": "route.plug-angle",
+          "unit": "degrees",
+          "direction": "lower",
+          "family": "R10"
+        },
+        {
+          "id": "route.plug-spacing.min",
+          "unit": "0 to 1",
+          "direction": "higher",
+          "family": "R11"
+        },
+        {
+          "id": "route.plug-spacing.q05",
+          "unit": "0 to 1",
+          "direction": "higher",
+          "family": "R11"
+        },
+        {
+          "id": "route.room.displacement",
+          "unit": "no unit",
+          "direction": "lower",
+          "family": "M3"
+        },
+        {
+          "id": "route.room.distortion",
+          "unit": "0 to 1",
+          "direction": "lower",
+          "family": "M5"
+        },
+        {
+          "id": "route.room.order",
+          "unit": "count",
+          "direction": "lower",
+          "family": "M2"
+        },
+        {
+          "id": "route.row.fit",
+          "unit": "0 to 1",
+          "direction": "higher",
+          "family": "R18"
+        },
+        {
+          "id": "route.row.gap",
+          "unit": "no unit",
+          "direction": "higher",
+          "family": "R18"
+        },
+        {
+          "id": "route.stability.base.max",
+          "unit": "units of the board",
+          "direction": "lower",
+          "family": "Z10"
+        },
+        {
+          "id": "route.stability.base.mean",
+          "unit": "units of the board",
+          "direction": "lower",
+          "family": "Z10"
+        },
+        {
+          "id": "route.stability.base.moved",
+          "unit": "0 to 1",
+          "direction": "lower",
+          "family": "Z10"
+        },
+        {
+          "id": "route.stability.edits.mean",
+          "unit": "units of the board",
+          "direction": "lower",
+          "family": "Z10"
+        },
+        {
+          "id": "route.stability.edits.moved",
+          "unit": "0 to 1",
+          "direction": "lower",
+          "family": "Z10"
+        },
+        {
+          "id": "route.stability.highway-churn",
+          "unit": "0 to 1",
+          "direction": "lower",
+          "family": "Z10"
+        },
+        {
+          "id": "route.stability.highway-ids",
+          "unit": "0 to 1",
+          "direction": "higher",
+          "family": "Z10"
+        },
+        {
+          "id": "route.stability.max",
+          "unit": "units of the board",
+          "direction": "lower",
+          "family": "Z10"
+        },
+        {
+          "id": "route.stability.mean",
+          "unit": "units of the board",
+          "direction": "lower",
+          "family": "Z10"
+        },
+        {
+          "id": "route.stability.move.gain",
+          "unit": "no unit",
+          "direction": "lower",
+          "family": "Z11"
+        },
+        {
+          "id": "route.stability.move.spill",
+          "unit": "0 to 1",
+          "direction": "lower",
+          "family": "Z11"
+        },
+        {
+          "id": "route.stability.moved",
+          "unit": "0 to 1",
+          "direction": "lower",
+          "family": "Z10"
+        },
+        {
+          "id": "route.stability.seed.mean",
+          "unit": "units of the board",
+          "direction": "lower",
+          "family": "Z12"
+        },
+        {
+          "id": "route.stability.seed.moved",
+          "unit": "0 to 1",
+          "direction": "lower",
+          "family": "Z12"
+        },
+        {
+          "id": "route.symmetry",
+          "unit": "0 to 1",
+          "direction": "higher",
+          "family": "H3"
+        },
+        {
+          "id": "route.through",
+          "unit": "count",
+          "direction": "lower",
+          "family": "R9"
+        },
+        {
+          "id": "route.turn.max",
+          "unit": "degrees",
+          "direction": "lower",
+          "family": "R4"
+        },
+        {
+          "id": "route.turn.mean",
+          "unit": "half turns for each route",
+          "direction": "lower",
+          "family": "R4"
+        }
+      ]
+    }
+  ]
+}

@@ -2,11 +2,41 @@
 
 ## Unreleased
 
+- New exports: the measure registry (L65). `MeasureEntry` adds the source package, the noise, the normalization and the cost to `MeasureSpec`. `MEASURE_REGISTRY` holds the entries of the joint measures.
+- `measureEntry` makes an entry from a spec. `normalizeMeasure` gives a loss from 0 to 1 by the rule `range` or `scale`. `checkRegistry` gives the faults of a list of entries.
+- `MeasureSurvey`, `checkSurvey` and `surveyFindings` read the survey of the measures of each package. `docs/MEASURE-REGISTRY.md` tells the rules and the findings of the survey of 2026-11-09.
+- Unit rules (L65 part 2): `unitFault` gives the fault of a unit. A value from 0 to 1 has the unit `share` (`SHARE_UNIT`), and a unit text that names a range is a fault. `NO_UNIT` is the unit of a range with no other unit.
+- Breaking for a reader of the unit text: the specs use the new words. `joint.fill`, `joint.spill`, `joint.stability.moved`, the three balance measures and `text.raggedness` and `text.cacheHit` change from `0 to 1` to `share`. `joint.proxy.rank` changes from `-1 to 1` to `no unit`, and `text.overflow` changes to `wrap widths`. The values do not change.
+- `MeasureEntry.planned` holds the reason that no code computes a measure. `joint.stability.mean` and `joint.stability.moved` are planned, and `normalizeMeasure` gives an `Error` for a planned measure.
+- The rule `none` has a reason. A spec can have the `min` `-Infinity`. The rule `range` needs a finite `min` and `max`, and the rule `scale` needs a finite `min`.
+- New measure `balance.gapMean`: the mean of the nearest-neighbour gaps, in layout units. `Balance.gapMean`, `BALANCE_MEASURE_SUFFIXES`, `balanceMeasures` and `balanceMeasureSpecs` give it. Its role is `diagnostic`, because an objective gives it a target.
 - `Resize.reshape` lets a packer give a `rect` box a shape, for example the polygon cell of a Voronoi treemap (L161).
 - `Placement.shape` gives the shape of the placed box, relative to its origin, as `LayoutBox.shape`. `applyPack` gives the box that shape and removes its `shapeKind`.
 - `size-kept` also counts a placement with a shape on a box without `reshape`, or with a shape outside its size (`shapeFits`). A placement counts one time.
 - `packOutputForm` has the shape of a placement only when it is set. Thus the fingerprint of an output without a shape does not change.
 - `checkInput` gives a problem for a `reshape` value that is not `true` or `false`.
+
+## 0.9.9
+
+- PATCH before 1.0.0: new optional options and a new type. Without the new options, each layout stays the same.
+- `layoutText` gets `justify: { stretch, shrink }` (the type `TextJustify`). With it, `TextLayout.ratios` gives the adjustment ratio of each line, and `total-fit` chooses the lines by these ratios.
+- `layoutText` gets `hyphenate`, a hook that gives the hyphen places of a word. A break there costs 50, and the line ends with "-". `docs/TEXT.md` tells the rules.
+- `createTextLayoutCache` keys the values of `justify` and the identity of `hyphenate`.
+- Runtime dependency: the range of `@mark1russell7/typeset` goes from `^0.2.0` to `^0.5.1`. The package imports no hyphen pattern set.
+
+## 0.9.8
+
+- PATCH before 1.0.0: a fix and 4 new exports. `dimensionAt` and `dimensionUnit` use `paramAt` and `paramUnit` of `@mark1russell7/strategy-space`, so the scale of a range has one home.
+- The values of an `int` or a `real` dimension do not change. A dimension that is not numeric gives a `RangeError`. Before this change it gave a value that is not a number.
+- The package re-exports `paramAt` and `paramUnit`.
+- The range of `@mark1russell7/strategy-space` is `^0.0.5`. A caret range on `0.0.x` holds one patch only, so `^0.0.2` does not get 0.0.5. Version 0.0.5 adds `omitUnused`, and a space without it keeps each config id.
+- The geometry gets `ringCentroid(ring)` and `clipRing(ring, a, b, c)` for the cells of a power diagram (#311). `ringCentroid` gives the centroid of the area of a ring. `clipRing` gives the part of a ring in the half-plane `a * x + b * y <= c`.
+
+## 0.9.7
+
+- PATCH before 1.0.0: a new form of `ParamRoute`. `{ strategy, fixed }` tells that a stage option of a space is one value of another strategy (`docs/STRATEGY-CATALOG.md`).
+- `checkCatalog` examines the params of such a stage option against the declarations of that strategy, and each value of `fixed` against its declaration.
+- A route with an absent strategy, an absent or bad fixed option, or a param with the name of a fixed option is a fault. A `strategy` route on a param is also a fault.
 
 ## 0.9.6
 
