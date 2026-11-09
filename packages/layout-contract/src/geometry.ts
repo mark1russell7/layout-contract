@@ -54,8 +54,8 @@ export type Region =
   | { readonly kind: "rect"; readonly x: number; readonly y: number; readonly w: number; readonly h: number }
   | {
       readonly kind: "polygon";
-      readonly points: readonly (readonly [number, number])[];
-      readonly holes?: readonly (readonly (readonly [number, number])[])[];
+      readonly points: Ring;
+      readonly holes?: readonly Ring[];
     }
   | { readonly kind: "circle"; readonly cx: number; readonly cy: number; readonly r: number }
   | { readonly kind: "ellipse"; readonly cx: number; readonly cy: number; readonly rx: number; readonly ry: number };
@@ -193,6 +193,35 @@ export function pointSegmentDistance(p: Point, a: Point, b: Point): number {
   const l2 = dx * dx + dy * dy;
   const t = l2 === 0 ? 0 : Math.max(0, Math.min(1, ((p.x - a.x) * dx + (p.y - a.y) * dy) / l2));
   return Math.hypot(p.x - (a.x + t * dx), p.y - (a.y + t * dy));
+}
+
+/** A ring of a polygon: its corners in order, as `[x, y]` pairs. The last corner connects to the first. */
+export type Ring = readonly (readonly [number, number])[];
+
+/** This function tells if the point (`x`, `y`) is inside a ring, by the even-odd rule. A ring can be concave. The answer for a point on the border can be each value. */
+export function pointInRing(x: number, y: number, ring: Ring): boolean {
+  return pointInRings(x, y, [ring]);
+}
+
+/**
+ * This function tells if the point (`x`, `y`) is inside a set of rings, by the even-odd rule over all their sides.
+ * Thus a point inside the outer ring and inside a hole is out. The answer for a point on a border can be each value.
+ */
+export function pointInRings(x: number, y: number, rings: readonly Ring[]): boolean {
+  let inside = false;
+  for (const ring of rings) {
+    for (let i = 0, j = ring.length - 1; i < ring.length; j = i++) {
+      const [xi, yi] = ring[i]!;
+      const [xj, yj] = ring[j]!;
+      if (yi > y !== yj > y && x < ((xj - xi) * (y - yi)) / (yj - yi) + xi) inside = !inside;
+    }
+  }
+  return inside;
+}
+
+/** This function gives the distance between the centers of two rectangles. */
+export function boxCenterDistance(a: Rect, b: Rect): number {
+  return Math.hypot(b.x + b.w / 2 - (a.x + a.w / 2), b.y + b.h / 2 - (a.y + a.h / 2));
 }
 
 /**

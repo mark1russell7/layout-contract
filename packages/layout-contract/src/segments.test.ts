@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { crossingPoint, pointSegmentDistance, segmentsCross } from "./geometry.ts";
+import { boxCenterDistance, crossingPoint, pointInRing, pointInRings, pointSegmentDistance, segmentsCross, type Ring } from "./geometry.ts";
 
 const p = (x: number, y: number) => ({ x, y });
 
@@ -104,5 +104,44 @@ describe("pointSegmentDistance", () => {
 
   it("gives 0 for a point on the segment", () => {
     expect(pointSegmentDistance(p(4, 0), p(0, 0), p(10, 0))).toBe(0);
+  });
+});
+
+describe("pointInRing and pointInRings", () => {
+  const square: Ring = [[0, 0], [10, 0], [10, 10], [0, 10]];
+  // An L shape: the square without its top-right quarter.
+  const ell: Ring = [[0, 0], [10, 0], [10, 5], [5, 5], [5, 10], [0, 10]];
+  const hole: Ring = [[3, 3], [7, 3], [7, 7], [3, 7]];
+
+  it("tells if a point is inside a ring by the even-odd rule", () => {
+    expect(pointInRing(5, 5, square)).toBe(true);
+    expect(pointInRing(15, 5, square)).toBe(false);
+    expect(pointInRing(-1, 5, square)).toBe(false);
+    expect(pointInRing(2, 8, ell)).toBe(true);
+    expect(pointInRing(8, 8, ell)).toBe(false);
+    expect(pointInRing(8, 2, ell)).toBe(true);
+  });
+
+  it("counts a point in a hole as out", () => {
+    expect(pointInRings(5, 5, [square, hole])).toBe(false);
+    expect(pointInRings(1, 1, [square, hole])).toBe(true);
+    expect(pointInRings(5, 5, [square])).toBe(pointInRing(5, 5, square));
+  });
+
+  it("gives false for a ring with fewer than 3 corners and for no rings", () => {
+    expect(pointInRing(0, 0, [])).toBe(false);
+    expect(pointInRings(5, 5, [])).toBe(false);
+  });
+});
+
+describe("boxCenterDistance", () => {
+  it("gives the distance between the centers of two rectangles, in each order", () => {
+    const a = { x: 0, y: 0, w: 2, h: 2 };
+    const b = { x: 3, y: 4, w: 2, h: 2 };
+    expect(boxCenterDistance(a, b)).toBe(5);
+    expect(boxCenterDistance(b, a)).toBe(5);
+    expect(boxCenterDistance(a, a)).toBe(0);
+    // The centers are (1, 1) and (1, 4): a change of size moves the center.
+    expect(boxCenterDistance(a, { x: 0, y: 2, w: 2, h: 4 })).toBe(3);
   });
 });
