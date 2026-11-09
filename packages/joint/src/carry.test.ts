@@ -1,6 +1,7 @@
 import { REFUSED_PROBE, type LayoutInput, type LayoutRecord } from "@mark1russell7/layout-contract";
+import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
-import { AUDIT_LEAST, auditCompare, auditForm, auditHash, auditSample, CARRY_PROBE_SCHEMA, carryPlan, isTimeMeasure, localImports, mergeProbes, packKey, type CarryProbe } from "./carry.ts";
+import { AUDIT_LEAST, auditCompare, auditForm, auditHash, auditSample, CARRY_PROBE_SCHEMA, carryPlan, isTimeMeasure, localImports, lockVersions, mergeProbes, packKey, type CarryProbe } from "./carry.ts";
 import { carryProbe, packProbe } from "./carry-probe.ts";
 import { PACK_ENTRIES, runInput } from "./runner.ts";
 import { doneKey } from "./shard-run.ts";
@@ -137,5 +138,51 @@ describe("localImports", () => {
   it("follows the ./*.ts imports of a file", () => {
     const files: Record<string, string> = { "a.ts": 'import { b } from "./b.ts";\nimport x from "pkg";', "b.ts": 'export * from "./c.ts";', "c.ts": 'import { a } from "./a.ts";' };
     expect(localImports("a.ts", (f) => files[f]!)).toEqual(["a.ts", "b.ts", "c.ts"]);
+  });
+});
+
+describe("lockVersions", () => {
+  const lock = [
+    "lockfileVersion: '9.0'",
+    "",
+    "importers:",
+    "",
+    "  packages/joint:",
+    "    dependencies:",
+    "      '@mark1russell7/highways':",
+    "        specifier: ^0.15.0",
+    "        version: 0.15.0",
+    "      '@mark1russell7/layout-contract':",
+    "        specifier: workspace:*",
+    "        version: link:../layout-contract",
+    "      '@mark1russell7/packing':",
+    "        specifier: ^0.10.2",
+    "        version: 0.10.2(typescript@7.0.2)",
+    "",
+    "  packages/site:",
+    "    dependencies:",
+    "      '@mark1russell7/packing':",
+    "        specifier: ^0.9.0",
+    "        version: 0.9.0",
+    "",
+    "packages:",
+    "",
+  ].join("\n");
+
+  it("gives the version of each engine of one importer, without the peer suffix", () => {
+    expect(lockVersions(lock, "packages/joint")).toEqual({ "@mark1russell7/packing": "0.10.2", "@mark1russell7/highways": "0.15.0" });
+    expect(lockVersions(lock, "packages/site", ["@mark1russell7/packing"])).toEqual({ "@mark1russell7/packing": "0.9.0" });
+  });
+
+  it("refuses a missing importer, a missing package and a link", () => {
+    expect(() => lockVersions(lock, "packages/none")).toThrow(/no importer/);
+    expect(() => lockVersions(lock, "packages/site")).toThrow(/no package @mark1russell7\/highways/);
+    expect(() => lockVersions(lock, "packages/joint", ["@mark1russell7/layout-contract"])).toThrow(/not a version of npm/);
+  });
+
+  it("reads the lockfile of this repository", () => {
+    const text = readFileSync(new URL("../../../pnpm-lock.yaml", import.meta.url), "utf8");
+    const versions = lockVersions(text, "packages/joint");
+    expect(Object.keys(versions).sort()).toEqual(["@mark1russell7/highways", "@mark1russell7/packing"]);
   });
 });
