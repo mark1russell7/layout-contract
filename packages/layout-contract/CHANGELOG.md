@@ -1,10 +1,14 @@
 # Changelog
 
-## 0.9.5
+## 0.9.6
 
 - PATCH before 1.0.0: a new form of `ParamRoute`. `{ strategy, fixed }` tells that a stage option of a space is one value of another strategy (`docs/STRATEGY-CATALOG.md`).
 - `checkCatalog` examines the params of such a stage option against the declarations of that strategy, and each value of `fixed` against its declaration.
 - A route with an absent strategy, an absent or bad fixed option, or a param with the name of a fixed option is a fault. A `strategy` route on a param is also a fault.
+## 0.9.3
+
+- PATCH before 1.0.0: a new export only. `snapRect(rect)` gives a rectangle on whole pixels. It rounds each edge, not the size, so two rectangles that touch still touch.
+- `snapRect` gives 0, not -0. A property test with `fast-check` examines 2000 pairs of rectangles that touch.
 
 ## 0.9.2
 
