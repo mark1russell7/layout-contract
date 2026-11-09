@@ -1,6 +1,6 @@
 // The routers of the joint runner as points of `routeSpace` (roadmap item L34). Each point has the routes of its router on a small set of inputs of `joint-v1`.
-import { inputGraph, MEMBER_FORMS, type Result, routeConfig, routeSpace } from "@mark1russell7/highways";
-import { applyPack, checkConfig, type LayoutInput, type StrategySpace } from "@mark1russell7/layout-contract";
+import { configOfMember, inputGraph, MEMBER_FORMS, MEMBER_MISFITS, type Result, routeConfig, routeSpace } from "@mark1russell7/highways";
+import { applyPack, checkConfig, type LayoutInput, type StrategyConfig, type StrategySpace } from "@mark1russell7/layout-contract";
 import { packWith, UnsupportedCell } from "@mark1russell7/packing";
 import { describe, expect, it } from "vitest";
 import { jointInput, jointSpecs, SET } from "./corpus.ts";
@@ -58,24 +58,32 @@ function hashOf(run: () => Result): string {
   }
 }
 
+/** This function gives the point of a router of the cover: its named point, or the point of its member form. A router with no point gives `undefined`. */
+function pointOfRouter(id: string): StrategyConfig | undefined {
+  const named = SPACE.named?.[id];
+  if (named !== undefined) return named;
+  if (MEMBER_FORMS[id] === undefined) return undefined;
+  const member = configOfMember(id);
+  return member.ok ? member.config : undefined;
+}
+
 describe("the routers of the cover as points of routeSpace", () => {
   const all = [...ROUTERS, ...coverRouters()];
   const routers = all.filter((id) => SPACE.named?.[id] !== undefined);
+  const members = all.filter((id) => SPACE.named?.[id] === undefined && pointOfRouter(id) !== undefined);
   const inputs = testInputs();
 
-  it("has a named point for each router, apart from the portfolio, its member forms and the closed list of routers with no point", () => {
-    // `routeSpace` does not name these routers, and `highways` gives no function from a member form to a config. `docs/STRATEGY-SPACE.md` gives the gap.
-    const others = all.filter((id) => SPACE.named?.[id] === undefined);
-    // Each router with no point is in the closed list, and each router of the list has no point. When `highways` names one, remove it from the list.
-    expect(others.filter((id) => id !== PORTFOLIO_ROUTER && MEMBER_FORMS[id] === undefined).sort()).toEqual([...UNNAMED_ROUTERS].sort());
-    expect([routers.length, others.length]).toEqual([76, 86]);
+  it("has a point for each router, apart from the portfolio, the misfits of highways and the closed list of routers with no point", () => {
+    // `configOfMember` of `highways` gives the point of a member form. `docs/STRATEGY-SPACE.md` gives the gap of the other routers.
+    const others = all.filter((id) => pointOfRouter(id) === undefined);
+    // Each router with no point is the portfolio, a row of `MEMBER_MISFITS` or a router of the closed list. When `highways` names one, remove it from the list.
+    expect(others.filter((id) => id !== PORTFOLIO_ROUTER && MEMBER_MISFITS[id] === undefined).sort()).toEqual([...UNNAMED_ROUTERS].sort());
+    expect(others.filter((id) => MEMBER_MISFITS[id] !== undefined).sort()).toEqual([PORTFOLIO_ROUTER, "w3a:diffusion-l3"]);
+    expect([routers.length, members.length, others.length]).toEqual([76, 73, 13]);
   });
 
   it("gives points that pass the checks of routeSpace", () => {
-    for (const id of routers) {
-      const point = SPACE.named?.[id];
-      if (point !== undefined) expect(checkConfig(SPACE, point), id).toEqual([]);
-    }
+    for (const id of [...routers, ...members]) expect(checkConfig(SPACE, pointOfRouter(id)!), id).toEqual([]);
   });
 
   it("has an input of each container kind, with and without obstacles", () => {
@@ -86,9 +94,8 @@ describe("the routers of the cover as points of routeSpace", () => {
     const graphs = inputs.map((input) => ({ id: input.id, graph: graphOf(input) }));
     const routed = new Map<string, number>();
     for (const { id: input, graph } of graphs) {
-      for (const id of routers) {
-        const point = SPACE.named?.[id];
-        if (point === undefined) continue;
+      for (const id of [...routers, ...members]) {
+        const point = pointOfRouter(id)!;
         const want = hashOf(() => routerOf(routerEntryOf(id)).route(graph));
         expect(hashOf(() => routeConfig(graph, point)), `${id} ${input}`).toBe(want);
         if (!want.startsWith("error:")) routed.set(id, (routed.get(id) ?? 0) + 1);
