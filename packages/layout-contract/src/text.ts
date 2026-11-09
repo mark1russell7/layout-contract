@@ -1,4 +1,4 @@
-import { breakers, linesOf, type Box, type Item, type Penalty } from "@mark1russell7/typeset/breaking";
+import { adjustmentRatios, breakers, linesOf, type Box, type Glue, type Item, type Penalty } from "@mark1russell7/typeset/breaking";
 import { graphemes, lineBreaks } from "@mark1russell7/typeset/segmentation";
 import { partsOfWords } from "./word-parts.ts";
 import type { MeasureSpec } from "./measures.ts";
@@ -313,6 +313,26 @@ export interface TextLayoutOptions {
   readonly sizing?: TextSizing;
   /** The declared character set of `sizing`. `bound-first` and `bound` need it, and `exact` does not read it. */
   readonly charset?: TextCharset;
+  /**
+   * The stretch and the shrink of each space of a text that wraps, as a share of the width of a space. TeX uses a stretch of 0.5 and a shrink of 1/3.
+   * With this option, `total-fit` chooses the lines with the adjustment ratio, and the layout gives the ratio of each line in `ratios`.
+   * Without it, a space does not stretch or shrink.
+   */
+  readonly justify?: TextJustify;
+  /**
+   * The hyphenation hook of `paragraphOf` of `@mark1russell7/typeset`. It gives the offsets in a word where a break with a hyphen is possible.
+   * A line that ends at such an offset ends with "-". The subpaths `./hyphen/<language>` of typeset give a hook for each language.
+   * layout-contract imports no pattern set. Without the option, a word does not break at a hyphen.
+   */
+  readonly hyphenate?: (word: string) => readonly number[];
+}
+
+/** The stretch and the shrink of each space of a justified layout, as a share of the width of a space. */
+export interface TextJustify {
+  /** A finite number of 0 or more. */
+  readonly stretch: number;
+  /** A finite number from 0 to 1, because a space cannot be narrower than 0. */
+  readonly shrink: number;
 }
 
 /** The layout of a text: its lines and its box. */
@@ -330,6 +350,13 @@ export interface TextLayout {
   readonly truncated: boolean;
   /** `true` when the widths and the box come from the bound of a character set. Each width is then at or above the measured width. A measured layout does not have this field. */
   readonly bounded?: true;
+  /**
+   * The adjustment ratio of each line of a text that wraps with the option `justify`. A renderer adds `ratio × stretch × space` to each space of the
+   * line, or `ratio × shrink × space` when the ratio is negative. The last line does not stretch, so its ratio is not more than 0.
+   * The ratio is infinite for a line with free space and no space to stretch.
+   * A layout without `justify`, or a text that fits on one line at its natural width, does not have this field.
+   */
+  readonly ratios?: readonly number[];
 }
 
 /** A forced break: a penalty with no text, no width and the cost `-Infinity`. */
@@ -337,6 +364,21 @@ const FORCED: Penalty = { type: "penalty", text: "", width: 0, cost: -Infinity, 
 
 /** The glue between two words with no white space between them, for example after a hyphen or between two CJK characters. A line can end there. */
 const NO_GAP: Item = { type: "glue", text: "", width: 0 };
+
+/** The cost of a break at a hyphen: 50, as in TeX and in `paragraphOf` of typeset. */
+const HYPHEN_COST = 50;
+
+/**
+ * This function gives the hyphen places of a word from the hook, sorted, with no repeat.
+ * It keeps only the offsets between two grapheme clusters, so a place inside a surrogate pair or before a mark does not split a cluster.
+ */
+function hyphenPlaces(word: string, hyphenate: (word: string) => readonly number[]): number[] {
+  const edges = new Set<number>();
+  let at = 0;
+  for (const cluster of graphemesOf(word)) edges.add((at += cluster.length));
+  const places = hyphenate(word).filter((o) => o > 0 && o < word.length && edges.has(o));
+  return [...new Set(places)].sort((a, b) => a - b);
+}
 
 /** This function gives the box of a part of a word. */
 /** This function gives the units of a segment: the bound for one character times the length, or a measure when there is no bound. */
@@ -375,6 +417,10 @@ export function layoutText(text: string, options: TextLayoutOptions): TextLayout
   const sizing = options.sizing ?? "exact";
   if (sizing !== "exact" && sizing !== "bound-first" && sizing !== "bound") throw new RangeError(`layoutText: sizing is "exact", "bound-first" or "bound", not ${String(sizing)}.`);
   const charset = sizing === "exact" ? undefined : options.charset;
+  const { justify, hyphenate } = options;
+  if (justify !== undefined && !(Number.isFinite(justify.stretch) && justify.stretch >= 0 && Number.isFinite(justify.shrink) && justify.shrink >= 0 && justify.shrink <= 1)) {
+    throw new RangeError(`layoutText: justify has a finite stretch of 0 or more and a shrink from 0 to 1, not ${String(justify.stretch)} and ${String(justify.shrink)}.`);
+  }
   if (sizing !== "exact" && charset === undefined) throw new RangeError(`layoutText: sizing "${sizing}" needs a charset from createTextCharset.`);
   let truncated = false;
 
@@ -438,17 +484,45 @@ export function layoutText(text: string, options: TextLayoutOptions): TextLayout
     }
     if (cur !== undefined) items.push(boxOf(cur));
   };
+  const gap: Glue = justify === undefined ? { type: "glue", text: " ", width: space } : { type: "glue", text: " ", width: space, stretch: space * justify.stretch, shrink: space * justify.shrink };
+  const hyphen: Penalty | undefined = hyphenate === undefined ? undefined : { type: "penalty", text: "-", width: advanceOf("-", font, measurer, bound), cost: HYPHEN_COST, flagged: true };
+  /**
+   * This function puts the parts of a word between its hyphen places, with a hyphen penalty between two parts. A word with no place stays one box.
+   * The last part gets the width of the word minus the earlier parts. Thus the parts have the width of the whole word, also with kerning.
+   */
+  const hyphenated = (word: Word, w: number): void => {
+    const places = hyphen === undefined ? [] : hyphenPlaces(word.text, hyphenate!);
+    if (places.length === 0) {
+      items.push({ type: "box", text: word.text, width: w });
+      return;
+    }
+    let start = 0;
+    let rest = w;
+    for (const end of [...places, word.text.length]) {
+      if (start > 0) items.push(hyphen!);
+      const part = word.text.slice(start, end);
+      const units = end === word.text.length ? rest : advanceOf(part, font, measurer, bound);
+      items.push({ type: "box", text: part, width: units });
+      rest -= units;
+      start = end;
+    }
+  };
   words.forEach((word, i) => {
     const w = widths[i]!;
     if (w > limit && !keep) split(word);
     else {
-      if (items.length > 0) items.push(words[i - 1]!.spaced ? { type: "glue", text: " ", width: space } : NO_GAP);
-      items.push({ type: "box", text: word.text, width: w });
+      if (items.length > 0) items.push(words[i - 1]!.spaced ? gap : NO_GAP);
+      hyphenated(word, w);
     }
   });
   const paragraph = { items };
-  const lines: Line[] = linesOf(paragraph, breaker.breaks(paragraph, limit)).map((l) => ({ text: l.text, units: l.width }));
-  if (lines.length === 0) lines.push({ text: "", units: 0 });
+  const broken = linesOf(paragraph, breaker.breaks(paragraph, limit));
+  const lines: Line[] = broken.map((l) => ({ text: l.text, units: l.width }));
+  const ratios = justify === undefined ? undefined : adjustmentRatios(paragraph, broken, limit);
+  if (lines.length === 0) {
+    lines.push({ text: "", units: 0 });
+    ratios?.push(0);
+  }
 
   const maxLines = options.maxLines ?? Infinity;
   if (lines.length > maxLines) {
@@ -461,6 +535,11 @@ export function layoutText(text: string, options: TextLayoutOptions): TextLayout
     last.text = kept + ellipsis;
     last.units = lineUnits(kept) + tail;
     truncated = true;
+    // The cut line is the last line, so it does not stretch. The cut makes it fit, so it does not shrink.
+    if (ratios !== undefined) {
+      ratios.length = lines.length;
+      ratios[lines.length - 1] = 0;
+    }
   }
 
   const layout: TextLayout = {
@@ -471,6 +550,7 @@ export function layoutText(text: string, options: TextLayoutOptions): TextLayout
     height: lines.length * lineHeight,
     wrapWidth: options.wrapWidth,
     truncated,
+    ...(ratios === undefined ? {} : { ratios }),
   };
   return bound === undefined ? layout : { ...layout, bounded: true };
 }
@@ -509,7 +589,7 @@ function numberKey(value: number | undefined): string {
  * A number has no comma. The two lengths mark the end of the font and of the ellipsis.
  */
 function optionsKey(o: TextLayoutOptions): string {
-  const numbers = `${numberKey(o.lineHeight)},${numberKey(o.wrapWidth)},${numberKey(o.maxLines)},${numberKey(o.maxChars)},${numberKey(o.padding)},${numberKey(o.minWidth)},${numberKey(o.maxWidth)}`;
+  const numbers = `${numberKey(o.lineHeight)},${numberKey(o.wrapWidth)},${numberKey(o.maxLines)},${numberKey(o.maxChars)},${numberKey(o.padding)},${numberKey(o.minWidth)},${numberKey(o.maxWidth)},${numberKey(o.justify?.stretch)},${numberKey(o.justify?.shrink)}`;
   return `${numbers},${(o.wordBreak ?? "keep") === "keep"},${o.breaker},${o.sizing ?? "exact"},${o.font.length},${o.ellipsis?.length},${o.font}${o.ellipsis ?? ""}`;
 }
 
@@ -529,7 +609,10 @@ function sameOptions(a: TextLayoutOptions, b: TextLayoutOptions): boolean {
     a.wordBreak === b.wordBreak &&
     a.breaker === b.breaker &&
     a.sizing === b.sizing &&
-    a.charset === b.charset
+    a.charset === b.charset &&
+    a.hyphenate === b.hyphenate &&
+    Object.is(a.justify?.stretch, b.justify?.stretch) &&
+    Object.is(a.justify?.shrink, b.justify?.shrink)
   );
 }
 
@@ -543,7 +626,7 @@ interface CurrentOptions {
 }
 
 /**
- * This function gives a bounded cache of `layoutText` results, keyed by the text, the options, the measurer and the character set.
+ * This function gives a bounded cache of `layoutText` results, keyed by the text, the options, the measurer, the character set and the hyphenation hook.
  * A full cache removes one entry. It takes the set of options that a caller used least recently, and in it the text that a caller used least recently.
  * The key holds the raw font string, because a host can give two spellings of a font two different advances.
  * A measurer with `generation` starts a new set of keys after each `reset`. For a different measurer, start `reset` of the cache after a change of the advances.
@@ -572,10 +655,13 @@ export function createTextLayoutCache(options: TextLayoutCacheOptions = {}): Tex
   /** This function finds the layouts of a set of options, and it makes that set the most recently used. */
   const open = (layoutOptions: TextLayoutOptions, generation: number | undefined): CurrentOptions => {
     const charset = layoutOptions.charset === undefined ? "" : idOf(layoutOptions.charset);
-    const key = `${idOf(layoutOptions.measurer)},${generation},${charset},${optionsKey(layoutOptions)}`;
+    const hyphenate = layoutOptions.hyphenate === undefined ? "" : idOf(layoutOptions.hyphenate);
+    const key = `${idOf(layoutOptions.measurer)},${generation},${charset},${hyphenate},${optionsKey(layoutOptions)}`;
     const layouts = groups.get(key) ?? new Map<string, TextLayout>();
     if (groups.delete(key)) groups.set(key, layouts);
-    return { options: { ...layoutOptions }, generation, key, layouts };
+    // The copy of `justify` keeps its values, so a later change of the object of the caller does not touch the key.
+    const copy = layoutOptions.justify === undefined ? { ...layoutOptions } : { ...layoutOptions, justify: { ...layoutOptions.justify } };
+    return { options: copy, generation, key, layouts };
   };
   /** This function removes one entry. */
   const evict = (): void => {
@@ -603,6 +689,7 @@ export function createTextLayoutCache(options: TextLayoutCacheOptions = {}): Tex
       // The callers share this object, so it is frozen also when the cache does not keep it.
       Object.freeze(layout.lines);
       Object.freeze(layout.widths);
+      if (layout.ratios !== undefined) Object.freeze(layout.ratios);
       Object.freeze(layout);
       if (max > 0) {
         if (size >= max) evict();

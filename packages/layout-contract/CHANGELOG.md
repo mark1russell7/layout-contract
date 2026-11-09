@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.9.9
+
+- PATCH before 1.0.0: new optional options and a new type. Without the new options, each layout stays the same.
+- `layoutText` gets `justify: { stretch, shrink }` (the type `TextJustify`). With it, `TextLayout.ratios` gives the adjustment ratio of each line, and `total-fit` chooses the lines by these ratios.
+- `layoutText` gets `hyphenate`, a hook that gives the hyphen places of a word. A break there costs 50, and the line ends with "-". `docs/TEXT.md` tells the rules.
+- `createTextLayoutCache` keys the values of `justify` and the identity of `hyphenate`.
+- Runtime dependency: the range of `@mark1russell7/typeset` goes from `^0.2.0` to `^0.5.1`. The package imports no hyphen pattern set.
+
 ## 0.9.8
 
 - PATCH before 1.0.0: a fix and 4 new exports. `dimensionAt` and `dimensionUnit` use `paramAt` and `paramUnit` of `@mark1russell7/strategy-space`, so the scale of a range has one home.
