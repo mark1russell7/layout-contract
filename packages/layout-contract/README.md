@@ -8,7 +8,7 @@ The package has one runtime dependency: `@mark1russell7/rigor-generators`, the h
 
 | Part | Exports |
 |---|---|
-| Geometry | `Point`, `Rect`, `Region`, `Side`, `Sides`, `Margin`, `marginSides`, `grow`, `boundsOf`, `regionArea`, `translate`, `overlapOf`, `segmentsCross`, `crossingPoint`, `pointSegmentDistance`, `Ring`, `pointInRing`, `pointInRings`, `boxCenterDistance` |
+| Geometry | `Point`, `Rect`, `Region`, `Side`, `Sides`, `Margin`, `marginSides`, `grow`, `boundsOf`, `regionArea`, `regionPerimeter`, `translate`, `overlapOf`, `segmentsCross`, `crossingPoint`, `pointSegmentDistance`, `Ring`, `pointInRing`, `pointInRings`, `boxCenterDistance` |
 | The shape kinds | `ShapeKind`, `SHAPE_KINDS`, `SHAPE_KIND_IDS`, `ShapeKindSpec`, `ShapeGeometry`, `DEFAULT_SHAPES`, `ShapeSupport`, `ShapeBound`, `RuleLevel`, `ShapeLevel`, `ShapeCheck`, `isShapeKind`, `shapeKindOf`, `shapeKindsOf`, `itemShapeOf`, `shapeKindProblem`, `shapesOf`, `ruleLevel`, `shapeLevel`, `shapeSupportProblems`, `boxArea`, `checkShapes` |
 | The input `layout-input/1` | `LayoutInput`, `LayoutBox` (`Item` for the packer), `Port`, `portPoint`, `LayoutEdge`, `LayoutContainer`, `Obstacle`, `LayoutCell`, `LayoutGenerator`, `PairGap`, `canonicalInput` |
 | The packer | `PackInput`, `PackLink`, `toPackInput`, `packLinks`, `Placement`, `PackOutput`, `StageTrace`, `applyPack` |
@@ -16,6 +16,7 @@ The package has one runtime dependency: `@mark1russell7/rigor-generators`, the h
 | The strategies | `StrategyInfo` |
 | The measures | `MeasureSpec`, `Direction`, `JointMeasureId`, `JOINT_MEASURES`, `JOINT_MOVED_MIN`, `Verdict`, `compareMeasure`, `minEffectOf` |
 | The balance and stability measures | `balanceOf`, `Balance`, `nearestGaps`, `procrustesOf`, `ProcrustesOptions`, `perChange`, `balanceMeasures`, `balanceMeasureSpecs`, `BALANCE_MEASURE_SUFFIXES`, `BalanceMeasureSuffix`, `BALANCE_SIDE_DEPTH`, `PlacedBox` |
+| The cell measures | `cellsOf`, `Cells`, `CellItem`, `cellMeasures`, `cellMeasureSpecs`, `cellMeasureEntries`, `CELL_MEASURE_SUFFIXES`, `CellMeasureSuffix`, `CELL_SOURCE`, `SQUARE_COMPACTNESS` |
 | Text layout, in the subpath `/text` | `layoutText`, `TextLayout`, `TextLayoutOptions`, `TextSizing`, `createTextCharset`, `TextCharset`, `TextCharsetOptions`, `DIGITS`, `PRINTABLE_ASCII`, `createTextLayoutCache`, `TextLayoutCache`, `TextLayoutCacheOptions`, `TextLayoutCacheStats`, `createMeasurer`, `TextMeasurer`, `canvasAdvance`, `AdvanceFn`, `fontKey`, `graphemesOf`, `textMeasures`, `TEXT_MEASURES`, `TEXT_UNITS` |
 | The edges step | `edgeStep`, `EdgeShape`, `EdgeStepParams`, `EDGE_DENSITY`, `EDGE_STEP_VERSION` |
 | The random numbers | `mulberry32`, `fnv1a32`, `stepRandom`, `randomInt` |
@@ -109,6 +110,7 @@ The comments of the source name each doc as `docs/<NAME>.md`. The docs are in th
 | Doc | The subject |
 |---|---|
 | [`docs/BALANCE.md`](https://github.com/mark1russell7/layout-contract/blob/main/docs/BALANCE.md) | The balance and stability measures of a pack and of a joint layout |
+| [`docs/CELLS.md`](https://github.com/mark1russell7/layout-contract/blob/main/docs/CELLS.md) | The cell measures of a Voronoi treemap: the area error and the compactness of the cells |
 | [`docs/FRAMES.md`](https://github.com/mark1russell7/layout-contract/blob/main/docs/FRAMES.md) | The frame record `layout-frame/1`, the frames between two layouts and their laws |
 | [`docs/TEXT.md`](https://github.com/mark1russell7/layout-contract/blob/main/docs/TEXT.md) | The text layout of the subpath `/text`: the rules, the units and the measures |
 | [`docs/CORPUS.md`](https://github.com/mark1russell7/layout-contract/blob/main/docs/CORPUS.md) | The shared corpus registry, its dimensions and families |
