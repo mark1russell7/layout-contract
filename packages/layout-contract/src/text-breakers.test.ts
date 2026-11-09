@@ -2,7 +2,8 @@ import { describe, expect, it } from "vitest";
 import { deriveSeed, fnv1a32, random, type Random } from "@mark1russell7/rigor-generators";
 import * as released from "layout-contract-0221/text";
 import { breakWords, oldWords } from "../scripts/text-words.ts";
-import { createMeasurer, layoutText, TEXT_UNITS, textMeasures, type TextLayoutOptions } from "./text.ts";
+import { hyphenate as hyphenateEnUs } from "@mark1russell7/typeset/hyphen/en-us";
+import { createMeasurer, createTextLayoutCache, layoutText, TEXT_UNITS, textMeasures, type TextLayoutOptions } from "./text.ts";
 
 // The texts of the typeset corpus (github.com/mark1russell7/typeset, packages/corpus): the same seeds and draws, for the four
 // scripts of the report of the typeset breakers. Only the parts that these scripts use are copied.
@@ -180,5 +181,80 @@ describe("layoutText with the typeset breakers", () => {
     const bad = (breaker: string) => () => layoutText("a b", { font: FONT, measurer, lineHeight: 20, wrapWidth: 60, breaker: breaker as "greedy" });
     expect(bad("first-fit")).toThrow(RangeError);
     expect(bad("constructor")).toThrow(RangeError);
+  });
+});
+
+describe("layoutText with justify and hyphenate (typeset T14)", () => {
+  const JUSTIFY = { stretch: 0.5, shrink: 1 / 3 };
+  const PARAGRAPHS = TEXTS.filter((_, i) => Math.floor(i / 20) % 2 === 0);
+  const ENGLISH = "Hyphenation gives the breaker of a justified paragraph more places to choose from, so international typographers accept occasional hyphens in exchange for regular spacing.";
+
+  it("gives no field ratios without justify, and a ratio for each line with it", () => {
+    const measurer = createMeasurer(codePointPx);
+    for (const text of PARAGRAPHS.slice(0, 20)) {
+      expect(layoutText(text, { font: FONT, measurer, lineHeight: 20, wrapWidth: 240, breaker: "total-fit" })).not.toHaveProperty("ratios");
+      const layout = layoutText(text, { font: FONT, measurer, lineHeight: 20, wrapWidth: 240, breaker: "total-fit", justify: JUSTIFY });
+      expect(layout.ratios).toHaveLength(layout.lineCount);
+      expect(layout.ratios!.at(-1)).toBeLessThanOrEqual(0);
+    }
+  });
+
+  // The first measure (2026-11-09, typeset 0.5.0): at 480 px, total fit gives 11 of the 80 paragraphs a worst ratio of at most 1, and greedy gives 2.
+  // The mean worst ratio is 1.94 for total fit and 3.50 for greedy. At 240 px, the median is 10.28 against 16.71. The words of the corpus have up to 14 letters with no hyphen.
+  it("gives the corpus paragraphs a lower worst ratio with total-fit than with greedy, and a worst ratio of at most 1 for 11 of 80 at 480 px", () => {
+    const measurer = createMeasurer(codePointPx);
+    const worst = (wrapWidth: number, breaker: "greedy" | "total-fit"): number[] =>
+      PARAGRAPHS.map((text) => Math.max(...layoutText(text, { font: FONT, measurer, lineHeight: 20, wrapWidth, breaker, justify: JUSTIFY }).ratios!.map(Math.abs)));
+    const mean = (values: readonly number[]): number => values.reduce((s, v) => s + v, 0) / values.length;
+    const median = (values: readonly number[]): number => [...values].sort((a, b) => a - b)[values.length >> 1]!;
+    const [fit, greedy] = [worst(480, "total-fit"), worst(480, "greedy")];
+    expect(mean(fit)).toBeLessThan(mean(greedy));
+    expect([fit.filter((r) => r <= 1).length, greedy.filter((r) => r <= 1).length]).toEqual([11, 2]);
+    expect(median(worst(240, "total-fit"))).toBeLessThan(median(worst(240, "greedy")));
+  });
+
+  it("ends a line with a hyphen at a place of the en-us patterns, and keeps the letters of the text", () => {
+    const measurer = createMeasurer(codePointPx);
+    const words = new Set(ENGLISH.split(" "));
+    const layout = layoutText(ENGLISH, { font: FONT, measurer, lineHeight: 20, wrapWidth: 150, breaker: "total-fit", justify: JUSTIFY, hyphenate: hyphenateEnUs });
+    const hyphenated = layout.lines.slice(0, -1).filter((line) => line.endsWith("-"));
+    expect(hyphenated.length).toBeGreaterThan(0);
+    for (const line of hyphenated) {
+      const head = line.slice(line.lastIndexOf(" ") + 1, -1);
+      const next = layout.lines[layout.lines.indexOf(line) + 1]!.split(" ")[0]!;
+      const word = head + next;
+      expect(words.has(word) || words.has(word.replace(/[,.]$/u, "")) || [...words].some((w) => w.startsWith(word)), word).toBe(true);
+      expect(hyphenateEnUs(word.replace(/[^\p{L}]+$/u, ""))).toContain(head.length);
+    }
+    expect(layout.lines.map((line) => line.replace(/-$/u, "")).join(" ").replace(/\s+/gu, "")).toBe(ENGLISH.replace(/\s+/gu, ""));
+  });
+
+  it("gives the same layout with a hook that finds no place as with no hook", () => {
+    const measurer = createMeasurer(codePointPx);
+    for (const text of PARAGRAPHS.slice(0, 20)) {
+      const options = { font: FONT, measurer, lineHeight: 20, wrapWidth: 240 } as const;
+      expect(layoutText(text, { ...options, hyphenate: () => [] })).toEqual(layoutText(text, options));
+    }
+  });
+
+  it("refuses a justify with a negative stretch or a shrink above 1", () => {
+    const measurer = createMeasurer(codePointPx);
+    const bad = (justify: { stretch: number; shrink: number }) => () => layoutText("a b", { font: FONT, measurer, lineHeight: 20, wrapWidth: 60, justify });
+    expect(bad({ stretch: -1, shrink: 0 })).toThrow(RangeError);
+    expect(bad({ stretch: 0.5, shrink: 1.5 })).toThrow(RangeError);
+    expect(bad({ stretch: Number.NaN, shrink: 0 })).toThrow(RangeError);
+  });
+
+  it("keeps the key of a cache entry when the caller changes its justify object after the call", () => {
+    const cache = createTextLayoutCache();
+    const measurer = createMeasurer(codePointPx);
+    const justify = { stretch: 0.5, shrink: 1 / 3 };
+    const text = PARAGRAPHS[0]!;
+    const first = cache.layout(text, { font: FONT, measurer, lineHeight: 20, wrapWidth: 240, breaker: "total-fit", justify });
+    justify.stretch = 1;
+    const second = cache.layout(text, { font: FONT, measurer, lineHeight: 20, wrapWidth: 240, breaker: "total-fit", justify });
+    expect(second).not.toBe(first);
+    expect(second.ratios).toEqual(layoutText(text, { font: FONT, measurer, lineHeight: 20, wrapWidth: 240, breaker: "total-fit", justify }).ratios);
+    expect(Object.isFrozen(first.ratios)).toBe(true);
   });
 });

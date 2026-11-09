@@ -382,6 +382,7 @@ TEXT_MEASURES: build/text.d.ts#TEXT_MEASURES
 TEXT_UNITS: build/text.d.ts#TEXT_UNITS
 TextCharset: build/text.d.ts#TextCharset
 TextCharsetOptions: build/text.d.ts#TextCharsetOptions
+TextJustify: build/text.d.ts#TextJustify
 TextLayout: build/text.d.ts#TextLayout
 TextLayoutCache: build/text.d.ts#TextLayoutCache
 TextLayoutCacheOptions: build/text.d.ts#TextLayoutCacheOptions
@@ -1984,6 +1985,12 @@ export interface TextCharsetOptions {
   readonly pairMargin?: number;
 }
 
+### build/text.d.ts#TextJustify
+export interface TextJustify {
+  readonly stretch: number;
+  readonly shrink: number;
+}
+
 ### build/text.d.ts#TextLayout
 export interface TextLayout {
   readonly lines: readonly string[];
@@ -1994,6 +2001,7 @@ export interface TextLayout {
   readonly wrapWidth?: number;
   readonly truncated: boolean;
   readonly bounded?: true;
+  readonly ratios?: readonly number[];
 }
 
 ### build/text.d.ts#TextLayoutCache
@@ -2029,6 +2037,8 @@ export interface TextLayoutOptions {
   readonly breaker?: "greedy" | "total-fit" | "balanced";
   readonly sizing?: TextSizing;
   readonly charset?: TextCharset;
+  readonly justify?: TextJustify;
+  readonly hyphenate?: (word: string) => readonly number[];
 }
 
 ### build/text.d.ts#TextMeasureId
