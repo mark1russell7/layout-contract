@@ -289,6 +289,9 @@ clipRing: build/measures.chunk.d.ts#clipRing
 compareMeasure: build/measures.chunk.d.ts#compareMeasure
 composeFamily: build/index.d.ts#composeFamily
 configId: @mark1russell7/strategy-space#configId (external)
+convexCorners: build/measures.chunk.d.ts#convexCorners
+convexOverlap: build/measures.chunk.d.ts#convexOverlap
+cornersInConvex: build/measures.chunk.d.ts#cornersInConvex
 corpusHashOf: build/measures.chunk.d.ts#corpusHashOf
 corpusManifestText: build/index.d.ts#corpusManifestText
 countLinksThroughShapes: build/index.d.ts#countLinksThroughShapes
@@ -362,6 +365,7 @@ parseStrategyCatalog: build/index.d.ts#parseStrategyCatalog
 perChange: build/index.d.ts#perChange
 pickMoves: build/index.d.ts#pickMoves
 placedCircle: build/index.d.ts#placedCircle
+placedConvex: build/index.d.ts#placedConvex
 placedRect: build/index.d.ts#placedRect
 pointInRing: build/measures.chunk.d.ts#pointInRing
 pointInRings: build/measures.chunk.d.ts#pointInRings
@@ -785,7 +789,7 @@ export interface GenerateOptions {
 }
 
 ### build/index.d.ts#HARD_RULE_VERSION
-export declare const HARD_RULE_VERSION = 2;
+export declare const HARD_RULE_VERSION = 3;
 
 ### build/index.d.ts#HashOptions
 export interface HashOptions {
@@ -1619,6 +1623,9 @@ export declare function pickMoves(trace: Pick<PortfolioTrace, "picked">): {
 ### build/index.d.ts#placedCircle
 export declare function placedCircle(box: LayoutBox): PlacedCircle | undefined;
 
+### build/index.d.ts#placedConvex
+export declare function placedConvex(box: LayoutBox): Ring | undefined;
+
 ### build/index.d.ts#placedRect
 export declare function placedRect(box: LayoutBox): Rect | undefined;
 
@@ -2120,6 +2127,15 @@ declare function clipRing(ring: Ring, a: number, b: number, c: number): Ring;
 
 ### build/measures.chunk.d.ts#compareMeasure
 declare function compareMeasure(candidate: number, baseline: number, spec: Pick<MeasureSpec, "direction" | "minEffect">): Verdict;
+
+### build/measures.chunk.d.ts#convexCorners
+declare function convexCorners(region: Region): Ring | undefined;
+
+### build/measures.chunk.d.ts#convexOverlap
+declare function convexOverlap(a: Ring, b: Ring): number;
+
+### build/measures.chunk.d.ts#cornersInConvex
+declare function cornersInConvex(inner: Ring, outer: Ring, inset?: number, tolerance?: number): boolean;
 
 ### build/measures.chunk.d.ts#corpusHashOf
 declare function corpusHashOf(corpus: string, inputs: readonly CorpusEntry[]): string;

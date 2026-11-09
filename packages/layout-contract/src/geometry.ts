@@ -218,6 +218,106 @@ export function overlapOf(a: Rect, b: Rect): { readonly x: number; readonly y: n
   };
 }
 
+/**
+ * This function gives the corners of a convex region, or `undefined` for each other region.
+ * A `rect` gives its 4 corners. A `polygon` without holes gives its points when it has 3 or more corners, an area over 0, and each turn to the same side.
+ * The turns use exact signs. A corner on a straight side is permitted. A circle and an ellipse give `undefined`.
+ */
+export function convexCorners(region: Region): Ring | undefined {
+  if (region.kind === "rect") {
+    const { x, y, w, h } = region;
+    return [
+      [x, y],
+      [x + w, y],
+      [x + w, y + h],
+      [x, y + h],
+    ];
+  }
+  if (region.kind !== "polygon" || (region.holes !== undefined && region.holes.length > 0)) return undefined;
+  const ring = region.points;
+  if (ring.length < 3 || !ring.every(([x, y]) => Number.isFinite(x) && Number.isFinite(y))) return undefined;
+  let turn = 0;
+  for (let i = 0; i < ring.length; i++) {
+    const [ax, ay] = ring[i]!;
+    const [bx, by] = ring[(i + 1) % ring.length]!;
+    const [cx, cy] = ring[(i + 2) % ring.length]!;
+    const s = orient2dSign(ax, ay, bx, by, cx, cy);
+    if (s === 0) continue;
+    if (turn !== 0 && s !== turn) return undefined;
+    turn = s;
+  }
+  return turn === 0 ? undefined : ring;
+}
+
+/**
+ * This function gives the least overlap of two convex rings over the normals of their sides, in the units of the corners.
+ * By the separating axis theorem, a value of 0 or less tells that a line separates the rings. For two rectangles, the value is the lesser axis of `overlapOf`.
+ * A side of length 0 gives no normal. The rings come from `convexCorners`.
+ */
+export function convexOverlap(a: Ring, b: Ring): number {
+  let least = Infinity;
+  for (const ring of [a, b]) {
+    for (let i = 0; i < ring.length; i++) {
+      const [px, py] = ring[i]!;
+      const [qx, qy] = ring[(i + 1) % ring.length]!;
+      const length = Math.hypot(qx - px, qy - py);
+      if (length === 0) continue;
+      const nx = (py - qy) / length;
+      const ny = (qx - px) / length;
+      const [aLow, aHigh] = project(a, nx, ny);
+      const [bLow, bHigh] = project(b, nx, ny);
+      least = Math.min(least, Math.min(aHigh, bHigh) - Math.max(aLow, bLow));
+    }
+  }
+  return least;
+}
+
+/** This function gives the least and the greatest projection of the corners of a ring on the direction (`nx`, `ny`). */
+function project(ring: Ring, nx: number, ny: number): readonly [number, number] {
+  let low = Infinity;
+  let high = -Infinity;
+  for (const [x, y] of ring) {
+    const v = x * nx + y * ny;
+    if (v < low) low = v;
+    if (v > high) high = v;
+  }
+  return [low, high];
+}
+
+/**
+ * This function tells if each corner of the ring `inner` is inside the convex ring `outer` made smaller by `inset`, with the tolerance `tolerance`.
+ * For a convex `outer`, this test is exact: a polygon is inside a convex region when each of its corners is inside.
+ * The ring `outer` comes from `convexCorners`, in either direction of its corners.
+ */
+export function cornersInConvex(inner: Ring, outer: Ring, inset = 0, tolerance = 0): boolean {
+  const turn = Math.sign(ringTwiceArea(outer));
+  for (let i = 0; i < outer.length; i++) {
+    const [px, py] = outer[i]!;
+    const [qx, qy] = outer[(i + 1) % outer.length]!;
+    const length = Math.hypot(qx - px, qy - py);
+    if (length === 0) continue;
+    // The left normal of a side points inside when the signed area is over 0. The sign of the area chooses the inward normal.
+    const nx = (turn * (py - qy)) / length;
+    const ny = (turn * (qx - px)) / length;
+    const edge = px * nx + py * ny;
+    for (const [x, y] of inner) if (x * nx + y * ny - edge < inset - tolerance) return false;
+  }
+  return true;
+}
+
+/** This function gives two times the signed area of a ring, by the shoelace formula, relative to its first corner. */
+function ringTwiceArea(ring: Ring): number {
+  if (ring.length === 0) return 0;
+  const [ox, oy] = ring[0]!;
+  let twice = 0;
+  for (let i = 0; i < ring.length; i++) {
+    const [ax, ay] = ring[i]!;
+    const [bx, by] = ring[(i + 1) % ring.length]!;
+    twice += (ax - ox) * (by - oy) - (bx - ox) * (ay - oy);
+  }
+  return twice;
+}
+
 /** This function gives the cross product of `ab` and `ac`. The sign tells the side of `ab` that has `c`. */
 function orient(a: Point, b: Point, c: Point): number {
   return (b.x - a.x) * (c.y - a.y) - (b.y - a.y) * (c.x - a.x);

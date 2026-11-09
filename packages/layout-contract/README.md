@@ -8,7 +8,7 @@ The package has one runtime dependency: `@mark1russell7/rigor-generators`, the h
 
 | Part | Exports |
 |---|---|
-| Geometry | `Point`, `Rect`, `Region`, `Side`, `Sides`, `Margin`, `marginSides`, `grow`, `boundsOf`, `regionArea`, `regionPerimeter`, `translate`, `overlapOf`, `segmentsCross`, `crossingPoint`, `pointSegmentDistance`, `Ring`, `pointInRing`, `pointInRings`, `boxCenterDistance` |
+| Geometry | `Point`, `Rect`, `Region`, `Side`, `Sides`, `Margin`, `marginSides`, `grow`, `boundsOf`, `regionArea`, `regionPerimeter`, `translate`, `overlapOf`, `segmentsCross`, `crossingPoint`, `pointSegmentDistance`, `Ring`, `pointInRing`, `pointInRings`, `convexCorners`, `convexOverlap`, `cornersInConvex`, `boxCenterDistance` |
 | The shape kinds | `ShapeKind`, `SHAPE_KINDS`, `SHAPE_KIND_IDS`, `ShapeKindSpec`, `ShapeGeometry`, `DEFAULT_SHAPES`, `ShapeSupport`, `ShapeBound`, `RuleLevel`, `ShapeLevel`, `ShapeCheck`, `isShapeKind`, `shapeKindOf`, `shapeKindsOf`, `itemShapeOf`, `shapeKindProblem`, `shapesOf`, `ruleLevel`, `shapeLevel`, `shapeSupportProblems`, `boxArea`, `checkShapes` |
 | The input `layout-input/1` | `LayoutInput`, `LayoutBox` (`Item` for the packer), `Port`, `portPoint`, `LayoutEdge`, `LayoutContainer`, `Obstacle`, `LayoutCell`, `LayoutGenerator`, `PairGap`, `canonicalInput` |
 | The packer | `PackInput`, `PackLink`, `toPackInput`, `packLinks`, `Placement`, `PackOutput`, `StageTrace`, `applyPack` |
@@ -35,7 +35,7 @@ The package has one runtime dependency: `@mark1russell7/rigor-generators`, the h
 | The turn | `turnBox`, `turnPort`, `turnMargin`, `turnRegion`, `turnResize`, `turnSide`, `turnPoint` |
 | The resize | `Resize`, `SizeBounds`, `sizeBoundsOf`, `sizeFits`, `resizeBox`, `resizeProblems`, `shapeFits`, `countResizeBreaks` |
 | The tolerances | `EPS`, `EPS_STEPS`, `RECORD_EPS`, `RECORD_SCALE`, `Tolerance`, `DEFAULT_TOLERANCE` |
-| The hard rules | `HARD_RULE_VERSION`, `shapesOverlap`, `circleOverlaps`, `circlesOutside`, `placedCircle`, `PlacedCircle`, `segmentThroughShape`, `countLinksThroughShapes`, `ShapeLink`, `countOverlaps`, `countObstacleHits`, `regionHitsRect`, `rectInRegion`, `countOutside`, `ContainerTest`, `countPortsOffBorder`, `packHard`, `PackHard`, `PACK_HARD_RULES`, `countResizeBreaks`, `placedRect`, `checkInput` |
+| The hard rules | `HARD_RULE_VERSION`, `shapesOverlap`, `circleOverlaps`, `circlesOutside`, `placedCircle`, `PlacedCircle`, `placedConvex`, `segmentThroughShape`, `countLinksThroughShapes`, `ShapeLink`, `countOverlaps`, `countObstacleHits`, `regionHitsRect`, `rectInRegion`, `countOutside`, `ContainerTest`, `countPortsOffBorder`, `packHard`, `PackHard`, `PACK_HARD_RULES`, `countResizeBreaks`, `placedRect`, `checkInput` |
 
 ## The rules
 
@@ -59,10 +59,11 @@ The package has one runtime dependency: `@mark1russell7/rigor-generators`, the h
   - `portPoint(box, port)` gives the point of a port, relative to the top-left corner of the box. A port without a fixed point gives `undefined`, because the router picks the point.
   - A turn changes `along` of `left` and `right` to `1 - along`, because the start of the side moves to its other end. `along` of `top` and `bottom` stays.
   - An input without `along` keeps its hash.
-- **The hard rules of a pack.** `no-overlap` counts the pairs of boxes and the pairs of a box and an obstacle. Two circles count by the distance of their centers, and each other pair counts by its bounding boxes. A pair of `pairGaps` uses its gap in place of the margins. A locked box without a placement, or with a move of more than `RECORD_EPS`, breaks `locked-kept`. `checkInput` refuses a locked box without a position. Another box without a placement and not in `overflow` breaks `complete`.
-- **The container rule.** `in-container` counts each box that goes out of the container made smaller by `inset`. The box counts with its margin. A circle in a circle container counts by distance, also when the size is free.
+- **The shapes in `no-overlap`.** Two circles count by the distance of their centers. A convex polygon without a margin, beside a rectangle or another convex polygon, counts by the separating axis theorem. Each other pair counts by its bounding boxes.
+- **The hard rules of a pack.** `no-overlap` counts the pairs of boxes and the pairs of a box and an obstacle. A pair of `pairGaps` uses its gap in place of the margins. A locked box without a placement, or with a move of more than `RECORD_EPS`, breaks `locked-kept`. `checkInput` refuses a locked box without a position. Another box without a placement and not in `overflow` breaks `complete`.
+- **The container rule.** `in-container` counts each box that goes out of the container made smaller by `inset`. The box counts with its margin. A circle in a circle container counts by distance, also when the size is free. A convex polygon without a margin in a convex container counts by its corners.
 - **The exact container.** Since 0.4.0, a box of a shaped container with the size `fixed` must stay inside the shape. A cut corner, a notch and a hole count. A container with a free side keeps the bounding test. Give `{ exactContainer: false }` to `packHard` or `countOutside` for the bounding test on each shape.
-- **The version of the rules.** `HARD_RULE_VERSION` is 2. A record states the version in `hardRule`, and `hardRuleOf` gives 1 for a record without the field. On version 1, a count on a circle is an upper bound.
+- **The version of the rules.** `HARD_RULE_VERSION` is 3. A record states the version in `hardRule`, and `hardRuleOf` gives 1 for a record without the field. On version 1, a count on a circle is an upper bound. Before version 3, a count on a convex polygon is an upper bound.
 - **The shape kinds.** An item is a `rect`, a `polygon`, a `circle` or a `free` shape. Each measure and rule declares its kinds. `checkShapes` refuses the other kinds. `docs/SHAPES.md` tells the rules.
   - `regionArea(region)` gives the exact area of a region. `boxArea(box)` gives the exact area of a box, or `undefined` for a `free` box. A box with an ellipse shape is `free`.
   - `ShapeSupport.safe` lists the kinds with a safe count: an upper bound that does not miss a break. `ruleLevel(rule, kind)` gives `exact`, `safe` or `none`.

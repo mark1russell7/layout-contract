@@ -18,6 +18,11 @@
 - New cell measures (L161 part 2): `cell.areaError` (share, lower) and `cell.compactness` (ratio from 1, lower) of the cells of a Voronoi treemap.
   `cellsOf`, `cellMeasures`, `cellMeasureSpecs` and `cellMeasureEntries` give the values, the specs and the registry entries. `docs/CELLS.md` gives the definitions.
 - `regionPerimeter` gives the perimeter of a region. An ellipse uses the second formula of Ramanujan.
+- `HARD_RULE_VERSION` is 3. The counts of `no-overlap` and `in-container` on a convex polygon are exact (L161). The counts of each other input do not change.
+- `no-overlap`: a pair with a convex polygon and no margin, beside a rectangle or another convex polygon, counts by the separating axis theorem. Thus two cells of a Voronoi treemap with a common side do not count.
+- `in-container`: a convex polygon without a margin in a convex container with the size `fixed` counts by its corners.
+- A margin, a concave polygon, a hole, a circle, an obstacle and a pair of `pairGaps` keep the bounding box. The kind `polygon` stays `safe` in `PACK_HARD_RULES`, because a concave polygon is not exact.
+- New exports: `convexCorners`, `convexOverlap`, `cornersInConvex` and `placedConvex`.
 
 ## 0.9.9
 

@@ -290,7 +290,7 @@ describe("the stated limit of the exact count", () => {
 describe("the rule version of a record", () => {
   it("reads version 1 from a record without the field", () => {
     expect(hardRuleOf({})).toBe(1);
-    expect(hardRuleOf({ hardRule: HARD_RULE_VERSION })).toBe(2);
+    expect(hardRuleOf({ hardRule: HARD_RULE_VERSION })).toBe(3);
   });
 
   it("refuses a field that is not a number", () => {
