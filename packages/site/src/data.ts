@@ -108,6 +108,8 @@ export interface JointData {
   readonly cover?: boolean;
   /** This value is true for a short run: a run of some chosen pairs (`--pairs`, L132). It is not the headline of the page, and it refreshes only its own pairs. */
   readonly short?: boolean;
+  /** The facts of a carry (L147): the run kept records of an earlier run. Without the field, the run measured each record. */
+  readonly carry?: JointCarry;
   /** The cells of the headline inputs, outside the stress cell. */
   readonly cells: readonly CellSummary[];
   /** The headline cell: the rule `all` with the cap 1.25. */
@@ -115,6 +117,33 @@ export interface JointData {
   /** The same cell on the stress inputs. */
   readonly stress: CellView;
   readonly predictions: readonly Prediction[];
+}
+
+/**
+ * The facts of a carry, from the `carry.json` of the run (L147, `docs/JOINT-BENCH.md`).
+ * The page shows the date of the measure run next to the date of the run that keeps the records.
+ */
+export interface JointCarry {
+  /** The id of the earlier run that measured the kept records. */
+  readonly run: string;
+  /** The date of that run, as `YYYY-MM-DD`. It is not after the date of the run that keeps the records. */
+  readonly date: string;
+  /** The count of the kept records. The run measured the other records again. */
+  readonly kept: number;
+  /** The facts of a code bridge (L147 rule B): a carry over a change of the measure code. Without the field, the measure code did not change. */
+  readonly code?: JointCarryCode;
+}
+
+/** The facts of a code bridge. The next full run measures each kept record again. */
+export interface JointCarryCode {
+  /** The commit of the measure code of the kept records. */
+  readonly from: string;
+  /** The commit of the run that keeps the records. */
+  readonly to: string;
+  /** The count of the pairs of the code audit. Each pair had the same record, without the times, at the two commits. */
+  readonly audit: number;
+  /** The 95 % upper bound of the rate of a difference, from 0 differences in `audit` pairs. It is above 0 and not above 1. */
+  readonly upper: number;
 }
 
 /** One entry of the news. */
@@ -251,6 +280,31 @@ function checkView(out: Problems, v: unknown, at: string): void {
   });
 }
 
+/** The form of a commit in the facts of a code bridge: a full or a short sha. */
+const COMMIT = /^[0-9a-f]{7,40}$/;
+
+function checkCarry(out: Problems, c: unknown, date: unknown): void {
+  if (!isObj(c)) return void out.push("joint.carry is not an object");
+  need(out, c, "run", "string", "joint.carry");
+  need(out, c, "date", "date", "joint.carry");
+  need(out, c, "kept", "number", "joint.carry");
+  if (typeof c["run"] === "string" && !/^\d+$/.test(c["run"])) out.push("joint.carry.run is not the id of a CI run");
+  if (typeof c["kept"] === "number" && !(Number.isInteger(c["kept"]) && c["kept"] >= 0)) out.push("joint.carry.kept is not a count");
+  if (typeof c["date"] === "string" && typeof date === "string" && c["date"] > date) out.push("joint.carry.date is after the date of the run");
+  const code = c["code"];
+  if (code === undefined) return;
+  if (!isObj(code)) return void out.push("joint.carry.code is not an object");
+  for (const k of ["from", "to"]) {
+    need(out, code, k, "string", "joint.carry.code");
+    if (typeof code[k] === "string" && !COMMIT.test(code[k])) out.push(`joint.carry.code.${k} is not a commit`);
+  }
+  if (code["from"] === code["to"]) out.push("joint.carry.code.from and joint.carry.code.to are the same commit");
+  need(out, code, "audit", "number", "joint.carry.code");
+  need(out, code, "upper", "number", "joint.carry.code");
+  if (typeof code["audit"] === "number" && !(Number.isInteger(code["audit"]) && code["audit"] > 0)) out.push("joint.carry.code.audit is not a count above 0");
+  if (typeof code["upper"] === "number" && !(code["upper"] > 0 && code["upper"] <= 1)) out.push("joint.carry.code.upper is not above 0 and not above 1");
+}
+
 /** This function gives the problems of a joint benchmark file. An empty list tells that the file is good. */
 export function checkJoint(v: unknown): Problems {
   const out: Problems = [];
@@ -266,6 +320,7 @@ export function checkJoint(v: unknown): Problems {
   if (v["cover"] !== undefined && typeof v["cover"] !== "boolean") out.push("joint.cover is not a boolean");
   if (v["short"] !== undefined && typeof v["short"] !== "boolean") out.push("joint.short is not a boolean");
   if (v["cover"] === true && v["short"] === true) out.push("joint.cover and joint.short are both true, but a short run is not a cover run");
+  if (v["carry"] !== undefined) checkCarry(out, v["carry"], v["date"]);
   const cells = v["cells"];
   if (!Array.isArray(cells) || cells.length === 0) out.push("joint.cells is not a list with cells");
   else cells.forEach((c: unknown, i) => checkCell(out, c, `joint.cells[${i}]`));
