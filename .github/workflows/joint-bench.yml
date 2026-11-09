@@ -178,7 +178,7 @@ jobs:
           echo "shards=$(seq -s, 0 $((count - 1)) | sed 's/^/[/; s/$/]/')" >> "$GITHUB_OUTPUT"
 
   # The probes of a carry (L147). The side from probes the engines of the lockfile of the earlier run, and the side to probes the engines of this checkout.
-  # The code of the probe is the code of this checkout. The command carry keeps no record when the measure code changed after the earlier run.
+  # The code of the probe is the code of this checkout. When the measure code changed after the earlier run, the command carry makes a code bridge (L147 rule B).
   probe:
     needs: plan
     if: ${{ inputs.resume-run && inputs.carry }}

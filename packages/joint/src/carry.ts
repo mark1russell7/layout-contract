@@ -271,22 +271,6 @@ export function auditCompare(carried: readonly LayoutRecord[], measured: readonl
   return { pairs: carried.length, differing, missing, pass: differing.length === 0 && missing.length === 0 };
 }
 
-/**
- * This function gives the local files that a source file reads: the file, and each file of its `./*.ts` imports, again for each such file.
- * `read` gives the text of a file by its name in the folder. The result is sorted. A carry needs the same text of these files of `runner.ts` at the two commits.
- */
-export function localImports(entry: string, read: (file: string) => string): string[] {
-  const seen = new Set<string>();
-  const todo = [entry];
-  while (todo.length > 0) {
-    const file = todo.pop()!;
-    if (seen.has(file)) continue;
-    seen.add(file);
-    for (const match of read(file).matchAll(/from\s+"\.\/([^"]+\.ts)"/g)) todo.push(match[1]!);
-  }
-  return [...seen].sort();
-}
-
 /** This function gives the fingerprint of the probes of one router. It is `fingerprintOf` of the audit hash of the record of each probe input. */
 export function routerFingerprint(records: readonly LayoutRecord[]): string {
   return fingerprintOf(Object.fromEntries(records.map((r) => [r.input, auditHash(r)])));

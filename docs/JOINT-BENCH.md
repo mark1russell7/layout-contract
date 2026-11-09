@@ -119,6 +119,17 @@ Each kept record gets the field `carried.code` of `layout-contract`. It holds th
 
 A code bridge is a bridge only. The next carry measures each record with `carried.code` again (the reason `code bridge`). So the next full run at the commit of the bridge or later replaces each bridge record.
 
+### The check of the carry sources
+
+A pull request that changes the measure code ends the plain carry of each earlier run with the code of the base. The workflow `carry-sources.yml` names each such run before the merge:
+
+1. It reads the list of each manual start of `joint-bench.yml` in the last 30 days.
+2. It compares the text of the measure files at the commit of each run with the text at the base (`carrySourceCheck` of `src/carry-sources.ts`).
+3. For each run with the code of the base, it gives the line "This pull request ends the plain carry of run <run>".
+4. It fails until a line `Carry-Source: <run>` names each such run. The line goes in the body or in a commit message of the pull request.
+
+The module of the check has no package imports, so the job has no install.
+
 ### A carry in the workflow
 
 A manual run of `joint-bench.yml` with the inputs `resume-run` and `carry` makes a carry. Without `resume-run`, the job `plan` stops the run.
