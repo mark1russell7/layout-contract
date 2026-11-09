@@ -186,3 +186,11 @@ describe("the commands of the bench script that the nightly gate starts", () => 
     expect(readFileSync(at("out/refit.md"), "utf8")).toContain("### Refit of the memory limits");
   });
 });
+
+describe("the command of the bench script that the probe of a carry starts", () => {
+  it("prints the engines of the lockfile of a commit as name@version", () => {
+    // The probe job of `joint-bench.yml` gives this output to `pnpm add` (L147).
+    const out = start("bench.mjs", ["carry-engines", "--commit", "HEAD"]).trim();
+    expect(out).toMatch(/^@mark1russell7\/packing@\d+\.\d+\.\d+ @mark1russell7\/highways@\d+\.\d+\.\d+$|^@mark1russell7\/highways@\d+\.\d+\.\d+ @mark1russell7\/packing@\d+\.\d+\.\d+$/);
+  });
+});
