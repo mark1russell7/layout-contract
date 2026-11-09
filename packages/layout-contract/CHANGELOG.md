@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased
+
+- New exports: the measure registry (L65). `MeasureEntry` adds the source package, the noise, the normalization and the cost to `MeasureSpec`. `MEASURE_REGISTRY` holds the entries of the joint measures.
+- `measureEntry` makes an entry from a spec. `normalizeMeasure` gives a loss from 0 to 1 by the rule `range` or `scale`. `checkRegistry` gives the faults of a list of entries.
+- `MeasureSurvey`, `checkSurvey` and `surveyFindings` read the survey of the measures of each package. `docs/MEASURE-REGISTRY.md` tells the rules and the findings of the survey of 2026-11-09.
+
 ## 0.9.5
 
 - PATCH before 1.0.0: new exports and a fix. `pointInRing` and `pointInRings` tell if a point is inside a ring, or a ring with holes, by the even-odd rule. `Ring` is the type of a ring.

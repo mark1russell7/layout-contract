@@ -20,3 +20,5 @@ export * from "./strategy-space.ts";
 export * from "./strategy-catalog.ts";
 export * from "./verdict.ts";
 export * from "./families.ts";
+export * from "./measure-registry.ts";
+export * from "./measure-survey.ts";
