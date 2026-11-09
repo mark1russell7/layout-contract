@@ -8,6 +8,7 @@ import {
   checkRegistry,
   checkShapes,
   normalizeMeasure,
+  regionArea,
   regionPerimeter,
   SQUARE_COMPACTNESS,
   type CellItem,
@@ -74,6 +75,20 @@ describe("cellsOf", () => {
       { target: 1, cell: rect(50, 0, 50, 100) },
     ];
     expect(cellsOf(items, 100 * 100).areaError).toBeCloseTo(0.25, 12);
+  });
+
+  it("divides the targets by their sum, so a scale of the weights gives the same value", () => {
+    const cells = [rect(0, 0, 50, 100), rect(50, 0, 50, 100)];
+    const at = (k: number) => cellsOf([{ target: 3 * k, cell: cells[0]! }, { target: 1 * k, cell: cells[1]! }], 100 * 100).areaError;
+    expect(at(1e6)).toBeCloseTo(at(1), 12);
+    expect(at(1e-6)).toBeCloseTo(at(1), 12);
+  });
+
+  it("reads the area of a circle container from its region", () => {
+    const container: Region = { kind: "circle", cx: 0, cy: 0, r: 10 };
+    const items: CellItem[] = [{ target: 1, cell: container }];
+    expect(cellsOf(items, regionArea(container)).areaError).toBe(0);
+    expect(cellsOf(items, 20 * 20).areaError).toBeGreaterThan(0.1);
   });
 
   it("counts the empty area of the container against the cells", () => {

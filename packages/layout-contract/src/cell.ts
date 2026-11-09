@@ -5,7 +5,10 @@ import type { ShapeKind } from "./shapes.ts";
 
 /** One placed item for the cell measures: the area that the item asks for, and the region that it got. */
 export interface CellItem {
-  /** The target area of the item, for example the area `w` by `h` of its box in the input. It is a finite number above 0. */
+  /**
+   * The weight of the item, for example the area `w` by `h` of its box in the input. It is a finite number above 0.
+   * The targets do not need a sum of 1, because `cellsOf` divides each target by the sum of the targets.
+   */
   readonly target: number;
   /** The region that the item got, in any frame. A box without a shape gives its rectangle. */
   readonly cell: Region;
@@ -32,6 +35,7 @@ export const SQUARE_COMPACTNESS: number = 4 / Math.PI;
  * This function gives the cell measures of the placed items in a container of the area `containerArea`.
  *
  * - The cell share of an item is the area of its cell over `containerArea`. The target share is its `target` over the sum of the targets.
+ * - `containerArea` is the area of the container region. For a container with a shape, give `regionArea` of the shape, not `w` by `h`.
  * - `areaError` is half the sum of the absolute differences of the two shares. Cells that fill the container in the target shares give 0.
  *   Cells that overlap or go out of the container can give a sum over 1. Those cells break the hard rules, and the value stops at 1.
  * - `compactness` is the mean of `P * P / (4 * PI * A)` over the cells, for the perimeter `P` and the area `A` of each cell.

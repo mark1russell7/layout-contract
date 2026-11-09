@@ -16,6 +16,8 @@ Each stage adds its prefix to the suffixes of `CELL_MEASURE_SUFFIXES`. The packe
 `cellsOf(items, containerArea)` gives the values. Each item has a `target` area and the `cell` region that it got. The target is, for example, the area `w` by `h` of its box in the input.
 
 - The cell share of an item is the area of its cell over the area of the container. The target share is its target over the sum of the targets.
+- The targets are weights. They do not need a sum of 1, because `cellsOf` divides each target by their sum. A target that is not a finite number above 0 gives a `RangeError`.
+- The area of the container is the area of its region. For a circle or a polygon container, give `regionArea` of the shape, not `w` by `h`.
 - `cell.areaError` is half the sum of the absolute differences of the two shares. Cells that fill the container in the target shares give 0.
 - The empty area of the container counts against the cells. One cell of half the container, with the target share 1, gives 0.25.
 - Cells that overlap or go out of the container can give a sum over 1. These cells break the hard rules, and the value stops at 1.
