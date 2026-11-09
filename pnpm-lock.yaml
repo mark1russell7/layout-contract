@@ -245,6 +245,9 @@ importers:
 
   packages/layout-contract:
     dependencies:
+      '@mark1russell7/predicates':
+        specifier: ^0.1.1
+        version: 0.1.1
       '@mark1russell7/rigor-generators':
         specifier: ^0.1.8
         version: 0.1.8
@@ -608,6 +611,10 @@ packages:
 
   '@mark1russell7/predicates@0.1.0':
     resolution: {integrity: sha512-fslHobS+sp5FYdKx/EkjWj+vTCj6saBJeYkPkthbA8iAjTjcn6dQVwoZa19ynCyY3jsM2JZNolsbx5AnbVdk0w==}
+    engines: {node: '>=22'}
+
+  '@mark1russell7/predicates@0.1.1':
+    resolution: {integrity: sha512-i1hEZIfnFLLexRXvBReCNMEuaGzejHDSHunErk/GvJ+UYQcuI3ECIOKAouZeEUhwohXp+u6XEx3icagVk5l5mQ==}
     engines: {node: '>=22'}
 
   '@mark1russell7/rigor-bench@0.2.32':
@@ -2009,6 +2016,8 @@ snapshots:
       '@mark1russell7/rigor-generators': 0.1.8
 
   '@mark1russell7/predicates@0.1.0': {}
+
+  '@mark1russell7/predicates@0.1.1': {}
 
   '@mark1russell7/rigor-bench@0.2.32(esbuild@0.28.2)':
     dependencies:
