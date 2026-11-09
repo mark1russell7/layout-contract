@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.9.2
+
+- PATCH before 1.0.0: new exports only. `CorpusManifest<Spec, Claims, Input>` is the type of a corpus manifest `layout-corpus/1`, with `HeldOut` and `ManifestClaims` (`docs/CORPUS.md`).
+- `corpusManifestText` writes a manifest in one field order, with one line for each spec and each input. The style `spaced` is the form of the bench of `packing`, and the style `compact` is the form of the joint bench.
+- `manifestText` writes a manifest with other fields, and `lineJson` gives a value on one line.
+- The joint bench writes its manifest with `corpusManifestText`. Tests pin the writer to the bytes of 5 corpus files of `packing` and of the 3 joint corpus files.
+
 ## 0.9.1
 
 - PATCH before 1.0.0: new exports only. The record `layout-frame/1` is one frame of a layout change (`docs/FRAMES.md`).
