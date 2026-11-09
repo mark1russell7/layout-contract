@@ -319,8 +319,10 @@ packHard: build/index.d.ts#packHard
 packLinks: build/measures.chunk.d.ts#packLinks
 packOutputForm: build/index.d.ts#packOutputForm
 paramActive: @mark1russell7/strategy-space#paramActive (external)
+paramAt: @mark1russell7/strategy-space#paramAt (external)
 paramLevels: @mark1russell7/strategy-space#paramLevels (external)
 paramProblem: @mark1russell7/strategy-space#paramProblem (external)
+paramUnit: @mark1russell7/strategy-space#paramUnit (external)
 paramValue: @mark1russell7/strategy-space#paramValue (external)
 parseLayoutRecord: build/index.d.ts#parseLayoutRecord
 parseStrategyCatalog: build/index.d.ts#parseStrategyCatalog

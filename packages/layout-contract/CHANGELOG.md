@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.9.8
+
+- PATCH before 1.0.0: a fix and 4 new exports. `dimensionAt` and `dimensionUnit` use `paramAt` and `paramUnit` of `@mark1russell7/strategy-space`, so the scale of a range has one home.
+- The values of an `int` or a `real` dimension do not change. A dimension that is not numeric gives a `RangeError`. Before this change it gave a value that is not a number.
+- The package re-exports `paramAt` and `paramUnit`.
+- The range of `@mark1russell7/strategy-space` is `^0.0.5`. A caret range on `0.0.x` holds one patch only, so `^0.0.2` does not get 0.0.5. Version 0.0.5 adds `omitUnused`, and a space without it keeps each config id.
+- The geometry gets `ringCentroid(ring)` and `clipRing(ring, a, b, c)` for the cells of a power diagram (#311). `ringCentroid` gives the centroid of the area of a ring. `clipRing` gives the part of a ring in the half-plane `a * x + b * y <= c`.
+
 ## 0.9.7
 
 - PATCH before 1.0.0: a new form of `ParamRoute`. `{ strategy, fixed }` tells that a stage option of a space is one value of another strategy (`docs/STRATEGY-CATALOG.md`).
