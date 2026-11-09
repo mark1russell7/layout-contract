@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+- PATCH before 1.0.0: a new optional field. `carried.code` (`CarriedCode`) holds the facts of a carry over a change of the measure code (L147 rule B).
+  These facts are the two commits, the size of the code audit and the 95 % upper bound of the rate of a difference.
+- With `carried.code`, `checkLayoutRecord` accepts the same engine versions in `carried.from` and `carried.to`. A record without `carried.code` keeps the old rule.
+- `carryRecord` takes the option `code`. A record that a run carried before keeps its `carried.code.from`.
 - New exports: the measure registry (L65). `MeasureEntry` adds the source package, the noise, the normalization and the cost to `MeasureSpec`. `MEASURE_REGISTRY` holds the entries of the joint measures.
 - `measureEntry` makes an entry from a spec. `normalizeMeasure` gives a loss from 0 to 1 by the rule `range` or `scale`. `checkRegistry` gives the faults of a list of entries.
 - `MeasureSurvey`, `checkSurvey` and `surveyFindings` read the survey of the measures of each package. `docs/MEASURE-REGISTRY.md` tells the rules and the findings of the survey of 2026-11-09.
