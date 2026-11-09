@@ -1,6 +1,6 @@
 # Changelog
 
-## 0.9.4
+## 0.9.5
 
 - PATCH before 1.0.0: new optional fields and new exports. A packer can give a box another size.
 - `LayoutBox.resize` (`Resize`) gives the bounds of the size: `minW`, `maxW`, `minH`, `maxH` and `aspect` (`keep` or `free`). A bound that it does not set is the size of the box.
@@ -15,6 +15,10 @@
   - a size of the box outside its bounds.
 - `packOutputForm` has `w` and `h` of a placement only when they are set. Thus the fingerprint of an output without a size does not change.
 - `size-kept` is not in `PACK_HARD_RULES`. A rule of that list limits the shape kinds of each input, and `checkInput` already refuses a resize on a shape.
+## 0.9.3
+
+- PATCH before 1.0.0: a new export only. `snapRect(rect)` gives a rectangle on whole pixels. It rounds each edge, not the size, so two rectangles that touch still touch.
+- `snapRect` gives 0, not -0. A property test with `fast-check` examines 2000 pairs of rectangles that touch.
 
 ## 0.9.2
 
