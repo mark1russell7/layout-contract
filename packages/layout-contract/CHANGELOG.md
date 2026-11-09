@@ -1,6 +1,6 @@
 # Changelog
 
-## 0.9.5
+## 0.9.6
 
 - PATCH before 1.0.0: new optional fields and new exports. A packer can give a box another size.
 - `LayoutBox.resize` (`Resize`) gives the bounds of the size: `minW`, `maxW`, `minH`, `maxH` and `aspect` (`keep` or `free`). A bound that it does not set is the size of the box.
@@ -15,6 +15,19 @@
   - a size of the box outside its bounds.
 - `packOutputForm` has `w` and `h` of a placement only when they are set. Thus the fingerprint of an output without a size does not change.
 - `size-kept` is not in `PACK_HARD_RULES`. A rule of that list limits the shape kinds of each input, and `checkInput` already refuses a resize on a shape.
+
+## 0.9.5
+
+- PATCH before 1.0.0: new exports and a fix. `pointInRing` and `pointInRings` tell if a point is inside a ring, or a ring with holes, by the even-odd rule. `Ring` is the type of a ring.
+- `boxCenterDistance` gives the distance between the centers of two rectangles. `frameMove` uses it, and its values do not change.
+- The rules of the containers use `pointInRings`. Before this change, they had a private copy of it.
+- Fix: `segmentsCross` uses the exact signs of `orient2dSign` of `@mark1russell7/predicates`, in place of a float cross product. An input that is almost collinear gets the correct answer. A coordinate that is not finite gives `false`.
+- `crossingPoint` keeps its point on the segment `ab` when the float cross products and the exact signs do not agree.
+
+## 0.9.4
+
+- PATCH before 1.0.0: a new export only. `scaleRect(rect, factor)` gives a rectangle with each coordinate and each size times the factor. It changes the unit of a rectangle, for example from CSS pixels to the pixels of a window.
+
 ## 0.9.3
 
 - PATCH before 1.0.0: a new export only. `snapRect(rect)` gives a rectangle on whole pixels. It rounds each edge, not the size, so two rectangles that touch still touch.

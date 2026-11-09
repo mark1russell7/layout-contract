@@ -1,4 +1,4 @@
-import { boundsOf, grow, marginSides, overlapOf, type Margin, type Point, type Rect, type Region } from "./geometry.ts";
+import { boundsOf, grow, marginSides, overlapOf, pointInRings, type Margin, type Point, type Rect, type Region } from "./geometry.ts";
 import type { LayoutBox, LayoutContainer, LayoutInput, Obstacle, PairGap, Port } from "./input.ts";
 import { applyPack, type PackOutput } from "./output.ts";
 import { resizeProblems, sizeFits } from "./resize.ts";
@@ -537,19 +537,6 @@ function clipMid(ax: number, ay: number, bx: number, by: number, r: Rect): reado
   if (t1 <= t0) return undefined;
   const t = (t0 + t1) / 2;
   return [ax + t * dx, ay + t * dy];
-}
-
-/** The even-odd rule over the outer ring and the holes. */
-function pointInRings(x: number, y: number, rings: readonly (readonly (readonly [number, number])[])[]): boolean {
-  let inside = false;
-  for (const ring of rings) {
-    for (let i = 0, j = ring.length - 1; i < ring.length; j = i++) {
-      const [xi, yi] = ring[i]!;
-      const [xj, yj] = ring[j]!;
-      if (yi > y !== yj > y && x < ((xj - xi) * (y - yi)) / (yj - yi) + xi) inside = !inside;
-    }
-  }
-  return inside;
 }
 
 /**
