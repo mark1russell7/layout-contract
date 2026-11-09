@@ -132,6 +132,8 @@ describe("createTextLayoutCache: two different options do not share an entry", (
     breaker: { text: "aaa aaa aaa aaa a", a: { wrapWidth: 100, breaker: "greedy" }, b: { wrapWidth: 100, breaker: "balanced" } },
     sizing: { text: "aaaa", a: { sizing: "exact", charset: createTextCharset("a") }, b: { sizing: "bound", charset: createTextCharset("a") } },
     charset: { text: "aaaa", a: { sizing: "bound", charset: createTextCharset("a") }, b: { sizing: "bound", charset: createTextCharset("a", { pairMargin: 0.5 }) } },
+    justify: { text: "aaa aaa aaa aaa a", a: { wrapWidth: 100, breaker: "total-fit", justify: { stretch: 0.5, shrink: 1 / 3 } }, b: { wrapWidth: 100, breaker: "total-fit", justify: { stretch: 1, shrink: 1 / 3 } } },
+    hyphenate: { text: WORDS, a: { wrapWidth: 60, hyphenate: () => [] }, b: { wrapWidth: 60, hyphenate: () => [2] } },
   };
 
   for (const [field, { text, a, b }] of Object.entries(CASES)) {

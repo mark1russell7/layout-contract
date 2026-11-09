@@ -170,6 +170,7 @@ Rect: build/measures.chunk.d.ts#Rect
 Region: build/measures.chunk.d.ts#Region
 RegistryCell: build/index.d.ts#RegistryCell
 RegistryEntry: build/index.d.ts#RegistryEntry
+Resize: build/measures.chunk.d.ts#Resize
 Ring: build/measures.chunk.d.ts#Ring
 RngFactory: build/index.d.ts#RngFactory
 RuleLevel: build/measures.chunk.d.ts#RuleLevel
@@ -201,6 +202,7 @@ ShapeLink: build/index.d.ts#ShapeLink
 ShapeSupport: build/measures.chunk.d.ts#ShapeSupport
 Side: build/measures.chunk.d.ts#Side
 Sides: build/measures.chunk.d.ts#Sides
+SizeBounds: build/index.d.ts#SizeBounds
 SizedRect: build/measures.chunk.d.ts#SizedRect
 type SpaceConstraint: @mark1russell7/strategy-space#SpaceConstraint (external)
 type SpaceParam: @mark1russell7/strategy-space#SpaceParam (external)
@@ -283,6 +285,7 @@ checkSurvey: build/index.d.ts#checkSurvey
 circleOverlaps: build/index.d.ts#circleOverlaps
 circlesOutside: build/index.d.ts#circlesOutside
 clampOptions: @mark1russell7/strategy-space#clampOptions (external)
+clipRing: build/measures.chunk.d.ts#clipRing
 compareMeasure: build/measures.chunk.d.ts#compareMeasure
 composeFamily: build/index.d.ts#composeFamily
 configId: @mark1russell7/strategy-space#configId (external)
@@ -293,6 +296,7 @@ countObstacleHits: build/index.d.ts#countObstacleHits
 countOutside: build/index.d.ts#countOutside
 countOverlaps: build/index.d.ts#countOverlaps
 countPortsOffBorder: build/index.d.ts#countPortsOffBorder
+countResizeBreaks: build/index.d.ts#countResizeBreaks
 createFamilyRegistry: build/index.d.ts#createFamilyRegistry
 crossingPoint: build/measures.chunk.d.ts#crossingPoint
 declarationIssues: @mark1russell7/strategy-space#declarationIssues (external)
@@ -348,8 +352,10 @@ packHard: build/index.d.ts#packHard
 packLinks: build/measures.chunk.d.ts#packLinks
 packOutputForm: build/index.d.ts#packOutputForm
 paramActive: @mark1russell7/strategy-space#paramActive (external)
+paramAt: @mark1russell7/strategy-space#paramAt (external)
 paramLevels: @mark1russell7/strategy-space#paramLevels (external)
 paramProblem: @mark1russell7/strategy-space#paramProblem (external)
+paramUnit: @mark1russell7/strategy-space#paramUnit (external)
 paramValue: @mark1russell7/strategy-space#paramValue (external)
 parseLayoutRecord: build/index.d.ts#parseLayoutRecord
 parseStrategyCatalog: build/index.d.ts#parseStrategyCatalog
@@ -370,7 +376,10 @@ rectInRegion: build/index.d.ts#rectInRegion
 regionArea: build/measures.chunk.d.ts#regionArea
 regionHitsRect: build/index.d.ts#regionHitsRect
 regionPerimeter: build/measures.chunk.d.ts#regionPerimeter
+resizeBox: build/index.d.ts#resizeBox
+resizeProblems: build/index.d.ts#resizeProblems
 resolveDimensions: build/index.d.ts#resolveDimensions
+ringCentroid: build/measures.chunk.d.ts#ringCentroid
 ruleLevel: build/measures.chunk.d.ts#ruleLevel
 scaleRect: build/measures.chunk.d.ts#scaleRect
 segmentThroughShape: build/index.d.ts#segmentThroughShape
@@ -385,6 +394,8 @@ shapeSupportProblems: build/measures.chunk.d.ts#shapeSupportProblems
 shapesOf: build/measures.chunk.d.ts#shapesOf
 shapesOverlap: build/index.d.ts#shapesOverlap
 sharedDimension: build/index.d.ts#sharedDimension
+sizeBoundsOf: build/index.d.ts#sizeBoundsOf
+sizeFits: build/index.d.ts#sizeFits
 snapRect: build/measures.chunk.d.ts#snapRect
 spaceShapeKinds: build/index.d.ts#spaceShapeKinds
 spaceSize: build/index.d.ts#spaceSize
@@ -406,6 +417,7 @@ turnMargin: build/index.d.ts#turnMargin
 turnPoint: build/index.d.ts#turnPoint
 turnPort: build/index.d.ts#turnPort
 turnRegion: build/index.d.ts#turnRegion
+turnResize: build/index.d.ts#turnResize
 turnSide: build/index.d.ts#turnSide
 unitFault: build/index.d.ts#unitFault
 verdict: build/index.d.ts#verdict
@@ -423,6 +435,7 @@ TEXT_MEASURES: build/text.d.ts#TEXT_MEASURES
 TEXT_UNITS: build/text.d.ts#TEXT_UNITS
 TextCharset: build/text.d.ts#TextCharset
 TextCharsetOptions: build/text.d.ts#TextCharsetOptions
+TextJustify: build/text.d.ts#TextJustify
 TextLayout: build/text.d.ts#TextLayout
 TextLayoutCache: build/text.d.ts#TextLayoutCache
 TextLayoutCacheOptions: build/text.d.ts#TextLayoutCacheOptions
@@ -972,6 +985,7 @@ export interface PackHard {
   readonly "in-container": number;
   readonly "locked-kept": number;
   readonly complete: number;
+  readonly "size-kept"?: number;
 }
 
 ### build/index.d.ts#PackOutput
@@ -993,6 +1007,9 @@ export interface PackOutput {
 ### build/index.d.ts#ParamRoute
 export type ParamRoute = {
   readonly spaceOnly: string;
+} | {
+  readonly strategy: string;
+  readonly fixed?: Readonly<Record<string, unknown>>;
 } | {
   readonly option?: string;
   readonly value?: (value: ParamValue) => unknown;
@@ -1019,6 +1036,8 @@ export interface Placement {
   readonly x: number;
   readonly y: number;
   readonly turn?: 0 | 90;
+  readonly w?: number;
+  readonly h?: number;
 }
 
 ### build/index.d.ts#Portfolio
@@ -1161,6 +1180,15 @@ export interface ShapeLink {
   readonly source: string;
   readonly target: string;
   readonly points: readonly Point[];
+}
+
+### build/index.d.ts#SizeBounds
+export interface SizeBounds {
+  readonly minW: number;
+  readonly maxW: number;
+  readonly minH: number;
+  readonly maxH: number;
+  readonly aspect: "keep" | "free";
 }
 
 ### build/index.d.ts#Stage
@@ -1464,6 +1492,9 @@ export declare function countOverlaps(boxes: readonly LayoutBox[], tolerance?: n
 ### build/index.d.ts#countPortsOffBorder
 export declare function countPortsOffBorder(boxes: readonly LayoutBox[], eps?: number): number;
 
+### build/index.d.ts#countResizeBreaks
+export declare function countResizeBreaks(input: LayoutInput, output: PackOutput): number;
+
 ### build/index.d.ts#createFamilyRegistry
 export declare function createFamilyRegistry<O = LayoutInput>(families?: Iterable<CorpusFamily<O>>): FamilyRegistry<O>;
 
@@ -1607,6 +1638,12 @@ export declare function rectInRegion(region: Region, rect: Rect): boolean;
 ### build/index.d.ts#regionHitsRect
 export declare function regionHitsRect(region: Region, rect: Rect): boolean;
 
+### build/index.d.ts#resizeBox
+export declare function resizeBox(box: LayoutBox, w: number, h: number): LayoutBox;
+
+### build/index.d.ts#resizeProblems
+export declare function resizeProblems(box: LayoutBox): string[];
+
 ### build/index.d.ts#resolveDimensions
 export declare function resolveDimensions(dimensions: readonly CorpusDimension[], dims?: Readonly<Record<string, ParamValue>>, where?: string, by?: string): DimensionValues;
 
@@ -1624,6 +1661,12 @@ export declare function shapesOverlap(a: LayoutBox, b: LayoutBox, tolerance?: nu
 
 ### build/index.d.ts#sharedDimension
 export declare function sharedDimension(name: string, patch?: Partial<CorpusDimension>): CorpusDimension;
+
+### build/index.d.ts#sizeBoundsOf
+export declare function sizeBoundsOf(box: LayoutBox): SizeBounds;
+
+### build/index.d.ts#sizeFits
+export declare function sizeFits(box: LayoutBox, w: number, h: number): boolean;
 
 ### build/index.d.ts#spaceShapeKinds
 export declare function spaceShapeKinds(space: StrategySpace$1, options?: KindOptions$1): string[];
@@ -1654,6 +1697,9 @@ export declare function turnPort(port: Port, h: number): Port;
 
 ### build/index.d.ts#turnRegion
 export declare function turnRegion(region: Region, h: number): Region;
+
+### build/index.d.ts#turnResize
+export declare function turnResize(resize: Resize): Resize;
 
 ### build/index.d.ts#turnSide
 export declare function turnSide(side: Side): Side;
@@ -1747,6 +1793,7 @@ interface LayoutBox {
   readonly ports?: readonly Port[];
   readonly margin?: Margin;
   readonly turnable?: boolean;
+  readonly resize?: Resize;
   readonly data?: Readonly<Record<string, unknown>>;
 }
 
@@ -1925,6 +1972,15 @@ type Region = {
   readonly ry: number;
 };
 
+### build/measures.chunk.d.ts#Resize
+interface Resize {
+  readonly minW?: number;
+  readonly maxW?: number;
+  readonly minH?: number;
+  readonly maxH?: number;
+  readonly aspect?: "keep" | "free";
+}
+
 ### build/measures.chunk.d.ts#Ring
 type Ring = readonly (readonly [number, number])[];
 
@@ -2053,6 +2109,9 @@ declare function checkShapes(input: ShapeInput, uses: readonly ShapeSupport[], o
 ### build/measures.chunk.d.ts#checkSplit
 declare function checkSplit(split: unknown, corpus: SplitCorpus, name?: string): ClaimBreak[];
 
+### build/measures.chunk.d.ts#clipRing
+declare function clipRing(ring: Ring, a: number, b: number, c: number): Ring;
+
 ### build/measures.chunk.d.ts#compareMeasure
 declare function compareMeasure(candidate: number, baseline: number, spec: Pick<MeasureSpec, "direction" | "minEffect">): Verdict;
 
@@ -2121,6 +2180,9 @@ declare function regionArea(region: Region): number;
 
 ### build/measures.chunk.d.ts#regionPerimeter
 declare function regionPerimeter(region: Region): number;
+
+### build/measures.chunk.d.ts#ringCentroid
+declare function ringCentroid(ring: Ring): Point;
 
 ### build/measures.chunk.d.ts#ruleLevel
 declare function ruleLevel(rule: Pick<ShapeSupport, "shapes" | "safe">, kind: ShapeKind): RuleLevel;
@@ -2217,6 +2279,12 @@ export interface TextCharsetOptions {
   readonly pairMargin?: number;
 }
 
+### build/text.d.ts#TextJustify
+export interface TextJustify {
+  readonly stretch: number;
+  readonly shrink: number;
+}
+
 ### build/text.d.ts#TextLayout
 export interface TextLayout {
   readonly lines: readonly string[];
@@ -2227,6 +2295,7 @@ export interface TextLayout {
   readonly wrapWidth?: number;
   readonly truncated: boolean;
   readonly bounded?: true;
+  readonly ratios?: readonly number[];
 }
 
 ### build/text.d.ts#TextLayoutCache
@@ -2262,6 +2331,8 @@ export interface TextLayoutOptions {
   readonly breaker?: "greedy" | "total-fit" | "balanced";
   readonly sizing?: TextSizing;
   readonly charset?: TextCharset;
+  readonly justify?: TextJustify;
+  readonly hyphenate?: (word: string) => readonly number[];
 }
 
 ### build/text.d.ts#TextMeasureId

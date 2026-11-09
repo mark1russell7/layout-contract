@@ -6,6 +6,7 @@ export * from "./output.ts";
 export * from "./record.ts";
 export * from "./rules.ts";
 export * from "./turn.ts";
+export * from "./resize.ts";
 export * from "./measures.ts";
 export * from "./balance.ts";
 export * from "./cell.ts";
