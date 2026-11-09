@@ -68,6 +68,8 @@ Of 21 items of size M that shipped, the median took less than 1 day from start t
 | L127 | next | P1 | The page says that the data is current at the start of a run, and what it does not know |
 | L154 | next | P1 | A start frame and the frames of a run in `packing`: a fixed-point start gives the move 0 |
 | L155 | next | P2 | Coverage in CI: `@vitest/coverage-v8` in each package with Vitest |
+| L156 | next | P1 | Custom terms of the objective spec as Vex formulas over the measure record of one layout, after a bench of the cost of the evaluator (after L66, 11-18) |
+| L157 | next | P1 | A distribution axis for the shared layout families: a `DistributionSpec` for each size and aspect dimension, drawn with `sampler()` of `rigor-generators` (11-20) |
 
 ## Later
 
