@@ -88,7 +88,7 @@ A resume keeps only the records of the same stamp, and the stamp holds the versi
 
 The probe job starts the command `carry-probe` two times: with the engines of the earlier run, and with the engines of this run. Each probe gives two kinds of fingerprints:
 
-- The fingerprint of a pack entry on an input (`packProbe`). It is the hash of the pack output, the measures and the hard counts, from one pack of the input. The stage of the pack of `pairRuns` makes the same calls.
+- The fingerprint of a pack entry on an input (`packProbe`). It is the hash of the pack output, the measures and the hard counts, from one pack of the input. The stage of the pack of `pairRuns` makes the same calls. The hash leaves out the time measures, for example `pack.search.ms` of a size search. With them, each probe of an input with a container of free size had a new hash.
 - The fingerprint of a router: the hashes of its records on the inputs of the slice `pr`, without the times (`routerFingerprint`). The first pack entry packs these inputs.
 
 The command `carry` keeps a record when all of these conditions are true:

@@ -1,10 +1,44 @@
 # Changelog
 
-## 0.9.7
+## 0.9.8
 
 - PATCH before 1.0.0: a fix and 2 new re-exports. `dimensionAt` and `dimensionUnit` use `paramAt` and `paramUnit` of `@mark1russell7/strategy-space` 0.0.4, so the scale of a range has one home.
 - The values of an `int` or a `real` dimension do not change. A dimension that is not numeric gives a `RangeError`. Before this change it gave a value that is not a number.
 - The package re-exports `paramAt` and `paramUnit`. The range of `@mark1russell7/strategy-space` is `^0.0.4`.
+
+## 0.9.7
+
+- PATCH before 1.0.0: a new form of `ParamRoute`. `{ strategy, fixed }` tells that a stage option of a space is one value of another strategy (`docs/STRATEGY-CATALOG.md`).
+- `checkCatalog` examines the params of such a stage option against the declarations of that strategy, and each value of `fixed` against its declaration.
+- A route with an absent strategy, an absent or bad fixed option, or a param with the name of a fixed option is a fault. A `strategy` route on a param is also a fault.
+
+## 0.9.6
+
+- PATCH before 1.0.0: new optional fields and new exports. A packer can give a box another size.
+- `LayoutBox.resize` (`Resize`) gives the bounds of the size: `minW`, `maxW`, `minH`, `maxH` and `aspect` (`keep` or `free`). A bound that it does not set is the size of the box.
+- `Placement.w` and `Placement.h` give the size of the placed box after the turn. `applyPack` gives the box that size with `resizeBox`. A port with `x` or `y` moves with the scale, and a port with `along` stays. The margin stays.
+- `turnBox` turns the bounds of a resize with `turnResize`.
+- The hard rule `size-kept` (`countResizeBreaks`, `sizeFits`) counts each placement with a size outside the bounds of its box, in the tolerance `RECORD_EPS`. A placement with a size on a box without a resize breaks it.
+- `PackHard` has `size-kept` as an optional key. `packHard` gives it only when a box has `resize` or a placement has `w` or `h`. Thus the counts and the records of each other input do not change, and `HARD_RULE_VERSION` stays 2.
+- `checkInput` gives these problems of a resize (`resizeProblems`):
+  - a resize on a box with a shape, or with a kind other than `rect`
+  - a bound that is not positive and finite
+  - an `aspect` other than `keep` and `free`
+  - a size of the box outside its bounds.
+- `packOutputForm` has `w` and `h` of a placement only when they are set. Thus the fingerprint of an output without a size does not change.
+- `size-kept` is not in `PACK_HARD_RULES`. A rule of that list limits the shape kinds of each input, and `checkInput` already refuses a resize on a shape.
+
+## 0.9.5
+
+- PATCH before 1.0.0: new exports and a fix. `pointInRing` and `pointInRings` tell if a point is inside a ring, or a ring with holes, by the even-odd rule. `Ring` is the type of a ring.
+- `boxCenterDistance` gives the distance between the centers of two rectangles. `frameMove` uses it, and its values do not change.
+- The rules of the containers use `pointInRings`. Before this change, they had a private copy of it.
+- Fix: `segmentsCross` uses the exact signs of `orient2dSign` of `@mark1russell7/predicates`, in place of a float cross product. An input that is almost collinear gets the correct answer. A coordinate that is not finite gives `false`.
+- `crossingPoint` keeps its point on the segment `ab` when the float cross products and the exact signs do not agree.
+
+## 0.9.4
+
+- PATCH before 1.0.0: a new export only. `scaleRect(rect, factor)` gives a rectangle with each coordinate and each size times the factor. It changes the unit of a rectangle, for example from CSS pixels to the pixels of a window.
 
 ## 0.9.3
 

@@ -1,13 +1,19 @@
 import { boundsOf, translate } from "./geometry.ts";
 import type { LayoutInput } from "./input.ts";
+import { resizeBox } from "./resize.ts";
 import { turnBox } from "./turn.ts";
 
-/** The position of one item. `turn` is 90 when the packer turned a turnable item. */
+/**
+ * The position of one item. `turn` is 90 when the packer turned a turnable item.
+ * `w` and `h` are the size of the placed item after the turn, when the packer resized an item with `resize`. Without them, the item keeps its size.
+ */
 export interface Placement {
   readonly id: string;
   readonly x: number;
   readonly y: number;
   readonly turn?: 0 | 90;
+  readonly w?: number;
+  readonly h?: number;
 }
 
 /** The facts of one stage of a strategy, for the records and the site. */
@@ -33,6 +39,8 @@ export interface PackOutput {
  * This function gives the input with the output of a packer applied. Each placed box gets its position.
  * A turned box gets its turned size, ports, margin and shape. Each moved obstacle moves.
  * The container gets the size of the output. The router reads this result. It does not read `turn`.
+ *
+ * A placement with `w` or `h` gives the box that size after the turn (`resizeBox`).
  */
 export function applyPack(input: LayoutInput, output: PackOutput): LayoutInput {
   const at = new Map(output.placements.map((p) => [p.id, p]));
@@ -41,7 +49,8 @@ export function applyPack(input: LayoutInput, output: PackOutput): LayoutInput {
     const p = at.get(box.id);
     if (p === undefined) return box;
     const turned = p.turn === 90 ? turnBox(box) : box;
-    return { ...turned, x: p.x, y: p.y };
+    const sized = p.w === undefined && p.h === undefined ? turned : resizeBox(turned, p.w ?? turned.w, p.h ?? turned.h);
+    return { ...sized, x: p.x, y: p.y };
   });
   const obstacles = input.obstacles?.map((o) => {
     const m = moved.get(o.id);

@@ -1,5 +1,5 @@
 import { SIDES, marginSides, type Margin, type Region, type Side } from "./geometry.ts";
-import type { LayoutBox, Port } from "./input.ts";
+import type { LayoutBox, Port, Resize } from "./input.ts";
 
 /*
  * The turn: 90 degrees clockwise, with the y axis down. The turned box has `w` and `h` swapped,
@@ -42,6 +42,18 @@ export function turnMargin(margin: Margin): Margin {
   return { top: m.left, right: m.top, bottom: m.right, left: m.bottom };
 }
 
+/** This function gives the bounds of a resize after the turn: the bounds of the width and of the height change places. */
+export function turnResize(resize: Resize): Resize {
+  const { minW, maxW, minH, maxH, ...rest } = resize;
+  return {
+    ...rest,
+    ...(minH === undefined ? {} : { minW: minH }),
+    ...(maxH === undefined ? {} : { maxW: maxH }),
+    ...(minW === undefined ? {} : { minH: minW }),
+    ...(maxW === undefined ? {} : { maxH: maxW }),
+  };
+}
+
 /** This function gives a region relative to the origin of a box of height `h` after the turn. */
 export function turnRegion(region: Region, h: number): Region {
   switch (region.kind) {
@@ -60,7 +72,7 @@ export function turnRegion(region: Region, h: number): Region {
   }
 }
 
-/** This function gives a box after the turn: the size, the ports, the margin and the shape turn. The position stays. */
+/** This function gives a box after the turn: the size, the ports, the margin, the shape and the bounds of a resize turn. The position stays. */
 export function turnBox(box: LayoutBox): LayoutBox {
   return {
     ...box,
@@ -69,5 +81,6 @@ export function turnBox(box: LayoutBox): LayoutBox {
     ...(box.ports === undefined ? {} : { ports: box.ports.map((p) => turnPort(p, box.h)) }),
     ...(box.margin === undefined ? {} : { margin: turnMargin(box.margin) }),
     ...(box.shape === undefined ? {} : { shape: turnRegion(box.shape, box.h) }),
+    ...(box.resize === undefined ? {} : { resize: turnResize(box.resize) }),
   };
 }
