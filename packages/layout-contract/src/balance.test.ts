@@ -34,6 +34,7 @@ describe("balanceOf", () => {
   it("gives 0 for an even grid in the center", () => {
     const b = balanceOf(grid(4, 10, 25, 7.5, 7.5), container);
     expect(b.gapCv).toBe(0);
+    expect(b.gapMean).toBe(15);
     expect(b.centroidOffset).toBeCloseTo(0, 12);
     expect(b.sideRange).toBeCloseTo(0, 12);
   });
@@ -42,6 +43,8 @@ describe("balanceOf", () => {
     const center = balanceOf(grid(4, 10, 12, 26, 26), container);
     const corner = balanceOf(grid(4, 10, 12, 0, 52), container);
     expect(corner.gapCv).toBe(center.gapCv);
+    expect(corner.gapMean).toBe(2);
+    expect(corner.gapMean).toBe(center.gapMean);
     expect(corner.centroidOffset).toBeGreaterThan(center.centroidOffset + 0.05);
     expect(corner.side.top).toBe(1);
     expect(corner.side.right).toBe(1);
@@ -64,8 +67,19 @@ describe("balanceOf", () => {
   });
 
   it("gives 0 with no box and with one box", () => {
-    expect(balanceOf([], container)).toEqual({ gapCv: 0, centroidOffset: 0, side: { top: 1, right: 1, bottom: 1, left: 1 }, sideRange: 0 });
-    expect(balanceOf([{ x: 45, y: 45, w: 10, h: 10 }], container).gapCv).toBe(0);
+    expect(balanceOf([], container)).toEqual({ gapCv: 0, gapMean: 0, centroidOffset: 0, side: { top: 1, right: 1, bottom: 1, left: 1 }, sideRange: 0 });
+    expect(balanceOf([{ x: 45, y: 45, w: 10, h: 10 }], container)).toMatchObject({ gapCv: 0, gapMean: 0 });
+  });
+
+  it("gives the mean of the nearest gaps", () => {
+    const boxes = [
+      { x: 0, y: 0, w: 10, h: 10 },
+      { x: 12, y: 0, w: 10, h: 10 },
+      { x: 30, y: 0, w: 10, h: 10 },
+    ];
+    expect(nearestGaps(boxes)).toEqual([2, 2, 8]);
+    expect(balanceOf(boxes, container).gapMean).toBe(4);
+    expect(balanceMeasures("pack", balanceOf(boxes, container))["pack.balance.gapMean"]).toBe(4);
   });
 });
 

@@ -9,6 +9,7 @@ Each stage adds its prefix to the suffixes of `BALANCE_MEASURE_SUFFIXES`. The pa
 | Suffix | Unit | Better | Range | Minimum effect | Role |
 |---|---|---|---|---|---|
 | `balance.gapCv` | ratio | lower | 0 and more | 0.01 | objective |
+| `balance.gapMean` | layout units | no better side | 0 and more | none | diagnostic, or the target of an objective |
 | `balance.centroidOffset` | share | lower | 0 to 1 | 0.01 | objective |
 | `balance.side.top`, `.right`, `.bottom`, `.left` | share | lower | 0 to 1 | none | diagnostic |
 | `balance.sideRange` | share | lower | 0 to 1 | 0.02 | objective |
@@ -21,6 +22,7 @@ Each stage adds its prefix to the suffixes of `BALANCE_MEASURE_SUFFIXES`. The pa
 
 - The gap of a box is the distance from its bounding box to the bounding box of the nearest other box. Two boxes that touch have the gap 0.
 - `balance.gapCv` is the standard deviation of the gaps divided by their mean. A value of 0 tells that each box has the same gap. With fewer than 2 boxes, or when each gap is 0, the value is 0.
+- `balance.gapMean` is the mean of the gaps, in layout units. With fewer than 2 boxes, the value is 0. A spacing of a given length is a target, not a better side. Thus an objective gives the target, and the spec has the role `diagnostic`. The type `Direction` has no value for a target, so the spec has the direction `higher`, and the joint selector does not read it.
 - The free area is the container minus the boxes, clipped to the container. `balance.centroidOffset` is the distance from the centroid of the free area to the center of the container. The unit is half of the diagonal of the container.
 - Each side has a strip with the depth `BALANCE_SIDE_DEPTH` (0.25). For `top` and `bottom`, it is a share of the height. For `left` and `right`, it is a share of the width.
 - `balance.side.<side>` is the empty share of the strip of that side.

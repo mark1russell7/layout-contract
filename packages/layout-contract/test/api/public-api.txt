@@ -440,13 +440,14 @@ export declare const BALANCE_SIDE_DEPTH = .25;
 ### build/index.d.ts#Balance
 export interface Balance {
   readonly gapCv: number;
+  readonly gapMean: number;
   readonly centroidOffset: number;
   readonly side: Readonly<Record<Side, number>>;
   readonly sideRange: number;
 }
 
 ### build/index.d.ts#BalanceMeasureSuffix
-export type BalanceMeasureSuffix = "balance.gapCv" | "balance.centroidOffset" | "balance.side.top" | "balance.side.right" | "balance.side.bottom" | "balance.side.left" | "balance.sideRange" | "stability.procrustes" | "stability.seed";
+export type BalanceMeasureSuffix = "balance.gapCv" | "balance.gapMean" | "balance.centroidOffset" | "balance.side.top" | "balance.side.right" | "balance.side.bottom" | "balance.side.left" | "balance.sideRange" | "stability.procrustes" | "stability.seed";
 
 ### build/index.d.ts#CIRCLE_SCATTERED
 export declare const CIRCLE_SCATTERED: CorpusFamily<LayoutInput>;

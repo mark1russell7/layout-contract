@@ -13,6 +13,7 @@
 - Breaking for a reader of the unit text: the specs use the new words. `joint.fill`, `joint.spill`, `joint.stability.moved`, the three balance measures and `text.raggedness` and `text.cacheHit` change from `0 to 1` to `share`. `joint.proxy.rank` changes from `-1 to 1` to `no unit`, and `text.overflow` changes to `wrap widths`. The values do not change.
 - `MeasureEntry.planned` holds the reason that no code computes a measure. `joint.stability.mean` and `joint.stability.moved` are planned, and `normalizeMeasure` gives an `Error` for a planned measure.
 - The rule `none` has a reason. A spec can have the `min` `-Infinity`. The rule `range` needs a finite `min` and `max`, and the rule `scale` needs a finite `min`.
+- New measure `balance.gapMean`: the mean of the nearest-neighbour gaps, in layout units. `Balance.gapMean`, `BALANCE_MEASURE_SUFFIXES`, `balanceMeasures` and `balanceMeasureSpecs` give it. Its role is `diagnostic`, because an objective gives it a target.
 
 ## 0.9.5
 
