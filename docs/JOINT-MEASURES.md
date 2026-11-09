@@ -13,14 +13,14 @@ A joint run packs an input, and then routes the edges of the same input. The `jo
 
 | Name | Unit | Better | Floor | Tol | Min effect | Role |
 |---|---|---|---|---|---|---|
-| `joint.fill` | 0 to 1 | higher | 1 | none | 0.001 | guard |
+| `joint.fill` | share | higher | 1 | none | 0.001 | guard |
 | `joint.aspectError` | natural log | lower | 0 | 0.01 | 0.01 | guard |
-| `joint.spill` | 0 to 1 | lower | 0 | 0.001 | 0.001 | guard |
+| `joint.spill` | share | lower | 0 | 0.001 | 0.001 | guard |
 | `joint.straight.crossings` | count | lower | 0 | 0 | 0 | guard |
 | `joint.straight.length` | `S` for each edge | lower | 0 | 0.01 | 0.01 | guard |
 | `joint.stability.mean` | `W` | lower | 0 | 0.005 | 0.005 | guard on change pairs |
-| `joint.stability.moved` | 0 to 1 | lower | 0 | 0.02 | 0.02 | guard on change pairs |
-| `joint.proxy.rank` | -1 to 1 | higher | none | none | none | diagnostic |
+| `joint.stability.moved` | share | lower | 0 | 0.02 | 0.02 | guard on change pairs |
+| `joint.proxy.rank` | no unit | higher | none | none | none | diagnostic |
 | `joint.route.length` | layout units for each route | lower | none | none | none | diagnostic |
 | `joint.ms` | milliseconds | lower | none | none | none | time |
 

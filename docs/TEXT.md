@@ -36,6 +36,18 @@ The subpath `@mark1russell7/layout-contract/text` lays out the text of a label: 
 6. A word that is wider than `wrapWidth` stays whole with `wordBreak: "keep"`. With `wordBreak: "anywhere"`, it breaks between grapheme clusters, as `overflow-wrap: anywhere` in CSS. Each breaker keeps these forced breaks.
 7. With `maxLines`, a longer text keeps `maxLines` lines. The last line drops clusters until the line and the ellipsis fit in `wrapWidth`.
 
+## Justified lines and hyphens
+
+Two options of a text that wraps come from typeset 0.3.0 and later (typeset T14). Without them, each layout stays the same.
+
+- **`justify: { stretch, shrink }`.** Each space can stretch by `stretch` and shrink by `shrink`, as a share of the width of a space. TeX uses 0.5 and 1/3. The shrink is from 0 to 1.
+- **`ratios`.** With `justify`, the layout gives the adjustment ratio of each line. A text that fits on one line at its natural width does not have this field. A renderer adds `ratio × stretch × space` to each space of a line, or `ratio × shrink × space` for a negative ratio. The last line does not stretch, so its ratio is 0 or less. A line with free space and no space to stretch has an infinite ratio.
+- **`total-fit` with `justify`.** The total fit breaker chooses the lines by the adjustment ratio of Knuth and Plass. `greedy` and `balanced` do not read the stretch and the shrink, but the layout gives their ratios.
+- **`hyphenate`.** The hook gives the offsets in a word where a break with a hyphen is possible. A break there costs 50, as in TeX, and the line ends with "-". The layout keeps only the places between two grapheme clusters. The pieces of a word have the width of the whole word, so a hook does not change a line with no hyphen. The subpaths `./hyphen/en-us`, `./hyphen/de` and `./hyphen/fr` of typeset give a hook. layout-contract imports no pattern set, so its size does not change.
+- **The cache.** `createTextLayoutCache` keys the values of `justify` and the identity of `hyphenate`. Give the same function for each call, or the cache makes a new entry.
+
+The test in `src/text-breakers.test.ts` lays out the 80 corpus paragraphs with a stretch of 0.5 and a shrink of 1/3. At 480 px, total fit gives 11 paragraphs a worst ratio of 1 or less, and greedy gives 2. The mean worst ratio is 1.94 for total fit and 3.50 for greedy. The words of the corpus have no hyphen places, so most lines cannot reach the edge.
+
 ## The test of the break places
 
 `src/text-linebreak.test.ts` lays out each of the 19338 lines of `LineBreakTest.txt` of Unicode 17.0.0 with a line width smaller than each word. So each break place ends a line.
@@ -129,7 +141,7 @@ The bench `packages/layout-contract/scripts/bench-text.mjs` gives these numbers.
 | Id | Unit | Better | Role | Definition |
 |---|---|---|---|---|
 | `text.lines` | count | lower | objective | The count of the lines. |
-| `text.raggedness` | 0 to 1 | lower | objective | The mean of `((wrapWidth - width) / wrapWidth)^2` over the lines before the last line. A text on one line has the value 0. |
-| `text.overflow` | share of `wrapWidth` | lower | guard | The largest excess of a line over `wrapWidth`, divided by `wrapWidth`. Only a long word with `wordBreak: "keep"` makes it larger than 0. |
-| `text.cacheHit` | 0 to 1 | higher | diagnostic | The cache hits divided by the requests. The counts of a measurer give the share of the segments. The counts of a layout cache give the share of the layouts. |
+| `text.raggedness` | share | lower | objective | The mean of `((wrapWidth - width) / wrapWidth)^2` over the lines before the last line. A text on one line has the value 0. |
+| `text.overflow` | wrap widths | lower | guard | The largest excess of a line over `wrapWidth`, divided by `wrapWidth`. Only a long word with `wordBreak: "keep"` makes it larger than 0. |
+| `text.cacheHit` | share | higher | diagnostic | The cache hits divided by the requests. The counts of a measurer give the share of the segments. The counts of a layout cache give the share of the layouts. |
 | `text.ms` | milliseconds | lower | time | The time of the layout. The bench measures it. |

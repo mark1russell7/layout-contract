@@ -62,14 +62,14 @@ const AREA: readonly ShapeKind[] = ["rect"];
  * `joint.fill` and `joint.straight.length` read the area of each box, so they support only `rect`. `docs/SHAPES.md` tells the reasons.
  */
 export const JOINT_MEASURES: readonly MeasureSpec<JointMeasureId>[] = /* @__PURE__ */ Object.freeze([
-  { id: "joint.fill", minEffect: 0.001, unit: "0 to 1", direction: "higher", min: 0, max: 1, floor: 1, role: "guard", shapes: AREA },
+  { id: "joint.fill", minEffect: 0.001, unit: "share", direction: "higher", min: 0, max: 1, floor: 1, role: "guard", shapes: AREA },
   { id: "joint.aspectError", minEffect: 0.01, unit: "natural log", direction: "lower", min: 0, max: Infinity, floor: 0, tol: 0.01, role: "guard", shapes: BOUNDS_ONLY },
-  { id: "joint.spill", minEffect: 0.001, unit: "0 to 1", direction: "lower", min: 0, max: 1, floor: 0, tol: 0.001, role: "guard", shapes: BOUNDS_ONLY },
+  { id: "joint.spill", minEffect: 0.001, unit: "share", direction: "lower", min: 0, max: 1, floor: 0, tol: 0.001, role: "guard", shapes: BOUNDS_ONLY },
   { id: "joint.straight.crossings", minEffect: 0, unit: "count", direction: "lower", min: 0, max: Infinity, floor: 0, tol: 0, role: "guard", shapes: BOUNDS_ONLY },
   { id: "joint.straight.length", minEffect: 0.01, unit: "S for each edge", direction: "lower", min: 0, max: Infinity, floor: 0, tol: 0.01, role: "guard", shapes: AREA },
   { id: "joint.stability.mean", minEffect: 0.005, unit: "W", direction: "lower", min: 0, max: Infinity, floor: 0, tol: 0.005, role: "change-guard", shapes: BOUNDS_ONLY },
-  { id: "joint.stability.moved", minEffect: 0.02, unit: "0 to 1", direction: "lower", min: 0, max: 1, floor: 0, tol: 0.02, role: "change-guard", shapes: BOUNDS_ONLY },
-  { id: "joint.proxy.rank", unit: "-1 to 1", direction: "higher", min: -1, max: 1, role: "diagnostic", shapes: BOUNDS_ONLY },
+  { id: "joint.stability.moved", minEffect: 0.02, unit: "share", direction: "lower", min: 0, max: 1, floor: 0, tol: 0.02, role: "change-guard", shapes: BOUNDS_ONLY },
+  { id: "joint.proxy.rank", unit: "no unit", direction: "higher", min: -1, max: 1, role: "diagnostic", shapes: BOUNDS_ONLY },
   { id: "joint.route.length", unit: "layout units for each route", direction: "lower", min: 0, max: Infinity, role: "diagnostic", shapes: BOUNDS_ONLY },
   { id: "joint.ms", unit: "milliseconds", direction: "lower", min: 0, max: Infinity, role: "time", shapes: BOUNDS_ONLY },
 ] as const);

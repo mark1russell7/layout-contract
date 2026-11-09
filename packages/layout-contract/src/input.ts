@@ -51,6 +51,11 @@ export interface Resize {
   readonly minH?: number;
   readonly maxH?: number;
   readonly aspect?: "keep" | "free";
+  /**
+   * With `true`, the placement can give the box a shape (`Placement.shape`), for example the polygon cell of a Voronoi treemap.
+   * The bounds of the size also limit the bounds of that shape.
+   */
+  readonly reshape?: boolean;
 }
 
 /** A box of an input. In the packer, its name is item. */

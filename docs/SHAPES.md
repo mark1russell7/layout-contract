@@ -186,6 +186,15 @@ The same reason applies to the gate `ShapeCheck.level`. It has 3 values:
 - `boxArea` gives `undefined` for a box of the kind `free`, also with a shape. A box with an ellipse shape is `free` (`shapeKindOf`), so it gives `undefined`. This agrees with `SHAPE_KINDS`, where `free` has no area.
 - A box of the kind `polygon` or `circle` without a shape is a bad input. `boxArea` gives `undefined` for it.
 
+### The shape of a placement (L161)
+
+A packer can give a box a shape when the box has `resize.reshape`. A Voronoi treemap uses it: each item gets a convex polygon cell.
+
+- `Placement.shape` is a region relative to the origin of the placed box, as `LayoutBox.shape`. `x` and `y` are the corner of its bounds, and `w` and `h` are the size of its bounds.
+- `applyPack` gives the box the shape. The box loses its `shapeKind`, so a polygon cell has the kind `polygon`.
+- `size-kept` counts a shape on a box without `reshape`, and a shape outside the size of the placement (`shapeFits`).
+- `no-overlap` and `in-container` count a polygon by its bounding box. The cells of a Voronoi treemap fill the bounding boxes of their neighbours, so these counts are only an upper bound for them. L161 part 3 makes the count of a convex polygon exact.
+
 ## The strategy space
 
 - `StageOption.supports.shape` gives the kinds of an option. Without it, the option supports each kind.

@@ -6,7 +6,7 @@ import { documentHash } from "./hash.ts";
 import type { LayoutInput, Obstacle } from "./input.ts";
 import { mulberry32, randomInt, stepRandom } from "./random.ts";
 import { SHAPE_KIND_IDS } from "./shapes.ts";
-import { paramActive, paramLevels, paramProblem, paramValue, type ParamValue, type SpaceParam } from "./strategy-space.ts";
+import { paramActive, paramAt, paramLevels, paramProblem, paramUnit, paramValue, type ParamValue, type SpaceParam } from "./strategy-space.ts";
 
 /**
  * One dimension of a corpus: a param of `strategy-space.ts` with its meaning and the engines that use it.
@@ -385,26 +385,13 @@ const fromZero = (d: SpaceParam): boolean => d.scale === "log" && (d.min ?? 0) <
  * A log scale with a `min` of 0 or less is the log of `1 + x - min`. An `int` dimension gives a whole number.
  */
 export function dimensionAt(dim: SpaceParam, t: number): number {
-  const min = dim.min ?? 0;
-  const max = dim.max ?? min;
-  const u = Math.min(1, Math.max(0, t));
-  let v: number;
-  if (dim.scale !== "log") v = min + u * (max - min);
-  else if (fromZero(dim)) v = min + Math.expm1(u * Math.log1p(max - min));
-  else v = Math.exp(Math.log(min) + u * (Math.log(max) - Math.log(min)));
-  v = Math.min(max, Math.max(min, v));
+  const v = paramAt(dim, t);
   return dim.kind === "int" ? Math.round(v) : (paramValue(dim, v) as number);
 }
 
 /** This function gives the fraction of the range of a numeric dimension at a value, on its scale. It is the inverse of `dimensionAt`. */
 export function dimensionUnit(dim: SpaceParam, value: number): number {
-  const min = dim.min ?? 0;
-  const max = dim.max ?? min;
-  if (max === min) return 0;
-  const v = Math.min(max, Math.max(min, value));
-  if (dim.scale !== "log") return (v - min) / (max - min);
-  if (fromZero(dim)) return Math.log1p(v - min) / Math.log1p(max - min);
-  return (Math.log(v) - Math.log(min)) / (Math.log(max) - Math.log(min));
+  return paramUnit(dim, value);
 }
 
 /** This function gives the range of the supported values of a numeric dimension: its own `min` and `max` in place of the ends of `supported`. */

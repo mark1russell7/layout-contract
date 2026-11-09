@@ -6,10 +6,12 @@ import {
   countOutside,
   countOverlaps,
   overlapOf,
+  packHard,
   placedConvex,
   shapesOverlap,
   type LayoutBox,
   type LayoutInput,
+  type PackOutput,
   type Ring,
 } from "./index.ts";
 
@@ -145,5 +147,39 @@ describe("in-container of version 3", () => {
 
   it("keeps the bounds test for a rectangle box", () => {
     expect(countOutside({ ...triangle(), boxes: [{ id: "r", x: 10, y: 10, w: 50, h: 50 }] })).toBe(1);
+  });
+});
+
+// The cells of a Voronoi treemap, from a pack output with `Placement.shape` (L161 part 1) to the counts of version 3.
+describe("the polygon cells of a pack output", () => {
+  const cells: Ring[] = [
+    [[0, 0], [100, 0], [50, 50]],
+    [[100, 0], [100, 100], [50, 50]],
+    [[100, 100], [0, 100], [50, 50]],
+    [[0, 100], [0, 0], [50, 50]],
+  ];
+  const input: LayoutInput = {
+    schema: "layout-input/1",
+    id: "v",
+    container: { fixed: "size", w: 100, h: 100, shape: { kind: "polygon", points: [[0, 0], [100, 0], [100, 100], [0, 100]] } },
+    boxes: cells.map((_, i) => ({ id: `c${i}`, w: 10, h: 10, resize: { maxW: 100, maxH: 100, reshape: true } })),
+  };
+  const output = (dx: number): PackOutput => ({
+    placements: cells.map((points, i) => ({ id: `c${i}`, x: i === 0 ? dx : 0, y: 0, w: 100, h: 100, shape: { kind: "polygon", points } })),
+    overflow: [],
+    size: { w: 100, h: 100 },
+    moved: [],
+  });
+
+  it("counts no break for cells that fill the container, although their bounds overlap", () => {
+    // The bounds of the 4 cells are one square, so a count of the bounds gives each of the 6 pairs.
+    expect(countOverlaps(cells.map((_, i) => ({ id: `b${i}`, x: 0, y: 0, w: 100, h: 100 })))).toBe(6);
+    expect(packHard(input, output(0))).toMatchObject({ "no-overlap": 0, "in-container": 0, "size-kept": 0 });
+  });
+
+  it("counts a cell that moves into its neighbours and out of the container", () => {
+    const hard = packHard(input, output(20));
+    expect(hard["no-overlap"]).toBeGreaterThan(0);
+    expect(hard["in-container"]).toBe(1);
   });
 });
