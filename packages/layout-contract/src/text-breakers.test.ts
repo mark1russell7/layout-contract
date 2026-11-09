@@ -237,6 +237,43 @@ describe("layoutText with justify and hyphenate (typeset T14)", () => {
     }
   });
 
+  it("keeps the width of each word with a kerning measurer when the hook gives a place in each word", () => {
+    // A string of n code points has 7n + 2 px, so two pieces of a word are wider than the word.
+    const kerned = (text: string): number => 7 * [...text].length + 2;
+    const text = "aaaa bbbb cccc dddd eeee";
+    const hook = (): readonly number[] => [2];
+    for (const breaker of ["greedy", "total-fit"] as const) {
+      const measurer = createMeasurer(kerned);
+      const wrapWidth = layoutText("aaaa bbbb", { font: FONT, measurer, lineHeight: 20 }).widths[0]!;
+      const options = { font: FONT, measurer, lineHeight: 20, wrapWidth, breaker } as const;
+      const plain = layoutText(text, options);
+      expect(plain.lines, breaker).toEqual(["aaaa bbbb", "cccc dddd", "eeee"]);
+      expect(layoutText(text, { ...options, hyphenate: hook }), breaker).toEqual(plain);
+    }
+  });
+
+  it("gives one line and one negative ratio to a text that fits only when its spaces shrink", () => {
+    const measurer = createMeasurer((text: string) => 8 * [...text].length);
+    const options = { font: FONT, measurer, lineHeight: 20, breaker: "total-fit", justify: JUSTIFY } as const;
+    // The text has 72 px. At 70 px, its one space of 8 px shrinks by 2 px of the 8/3 px that it can give.
+    const shrunk = layoutText("aaaa bbbb", { ...options, wrapWidth: 70 });
+    expect(shrunk.lines).toEqual(["aaaa bbbb"]);
+    expect(shrunk.ratios).toHaveLength(1);
+    expect(shrunk.ratios![0]).toBeCloseTo(-0.75);
+    expect(layoutText("aaaa bbbb", { ...options, wrapWidth: 80 })).not.toHaveProperty("ratios");
+  });
+
+  it("keeps only the hook places between two grapheme clusters", () => {
+    const measurer = createMeasurer(codePointPx);
+    // The offset 3 of the first word is inside the surrogate pair of the emoji. The offset 1 of the second word is before a combining mark.
+    const text = "ab\u{1F600}cd ééé";
+    const hook = (word: string): readonly number[] => (word.startsWith("ab") ? [3] : [1]);
+    const options = { font: FONT, measurer, lineHeight: 20, wrapWidth: 30, breaker: "total-fit" } as const;
+    expect(layoutText(text, { ...options, hyphenate: hook })).toEqual(layoutText(text, options));
+    const layout = layoutText(text, { ...options, hyphenate: () => [2, 4] });
+    expect(layout.lines.join("").replace(/-/gu, "").replace(/\s+/gu, "")).toBe(text.replace(/\s+/gu, ""));
+  });
+
   it("refuses a justify with a negative stretch or a shrink above 1", () => {
     const measurer = createMeasurer(codePointPx);
     const bad = (justify: { stretch: number; shrink: number }) => () => layoutText("a b", { font: FONT, measurer, lineHeight: 20, wrapWidth: 60, justify });

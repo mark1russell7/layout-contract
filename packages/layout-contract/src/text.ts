@@ -353,7 +353,8 @@ export interface TextLayout {
   /**
    * The adjustment ratio of each line of a text that wraps with the option `justify`. A renderer adds `ratio × stretch × space` to each space of the
    * line, or `ratio × shrink × space` when the ratio is negative. The last line does not stretch, so its ratio is not more than 0.
-   * The ratio is infinite for a line with free space and no space to stretch. A layout without `justify` or on one line does not have this field.
+   * The ratio is infinite for a line with free space and no space to stretch.
+   * A layout without `justify`, or a text that fits on one line at its natural width, does not have this field.
    */
   readonly ratios?: readonly number[];
 }
@@ -367,9 +368,15 @@ const NO_GAP: Item = { type: "glue", text: "", width: 0 };
 /** The cost of a break at a hyphen: 50, as in TeX and in `paragraphOf` of typeset. */
 const HYPHEN_COST = 50;
 
-/** This function gives the hyphen places of a word from the hook: the whole offsets inside the word, sorted, with no repeat. */
+/**
+ * This function gives the hyphen places of a word from the hook, sorted, with no repeat.
+ * It keeps only the offsets between two grapheme clusters, so a place inside a surrogate pair or before a mark does not split a cluster.
+ */
 function hyphenPlaces(word: string, hyphenate: (word: string) => readonly number[]): number[] {
-  const places = hyphenate(word).filter((o) => Number.isInteger(o) && o > 0 && o < word.length);
+  const edges = new Set<number>();
+  let at = 0;
+  for (const cluster of graphemesOf(word)) edges.add((at += cluster.length));
+  const places = hyphenate(word).filter((o) => o > 0 && o < word.length && edges.has(o));
   return [...new Set(places)].sort((a, b) => a - b);
 }
 
@@ -479,7 +486,10 @@ export function layoutText(text: string, options: TextLayoutOptions): TextLayout
   };
   const gap: Glue = justify === undefined ? { type: "glue", text: " ", width: space } : { type: "glue", text: " ", width: space, stretch: space * justify.stretch, shrink: space * justify.shrink };
   const hyphen: Penalty | undefined = hyphenate === undefined ? undefined : { type: "penalty", text: "-", width: advanceOf("-", font, measurer, bound), cost: HYPHEN_COST, flagged: true };
-  /** This function puts the parts of a word between its hyphen places, with a hyphen penalty between two parts. A word with no place stays one box. */
+  /**
+   * This function puts the parts of a word between its hyphen places, with a hyphen penalty between two parts. A word with no place stays one box.
+   * The last part gets the width of the word minus the earlier parts. Thus the parts have the width of the whole word, also with kerning.
+   */
   const hyphenated = (word: Word, w: number): void => {
     const places = hyphen === undefined ? [] : hyphenPlaces(word.text, hyphenate!);
     if (places.length === 0) {
@@ -487,10 +497,13 @@ export function layoutText(text: string, options: TextLayoutOptions): TextLayout
       return;
     }
     let start = 0;
+    let rest = w;
     for (const end of [...places, word.text.length]) {
       if (start > 0) items.push(hyphen!);
       const part = word.text.slice(start, end);
-      items.push({ type: "box", text: part, width: advanceOf(part, font, measurer, bound) });
+      const units = end === word.text.length ? rest : advanceOf(part, font, measurer, bound);
+      items.push({ type: "box", text: part, width: units });
+      rest -= units;
       start = end;
     }
   };
