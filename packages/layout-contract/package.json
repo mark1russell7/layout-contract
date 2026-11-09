@@ -1,7 +1,7 @@
 {
   "$schema": "https://json.schemastore.org/package",
   "name": "@mark1russell7/layout-contract",
-  "version": "0.9.3",
+  "version": "0.9.7",
   "description": "The shared contract of the packing and highways layout engines: the input and record formats, the turn rule, margins, tolerances and hard rules.",
   "keywords": [
     "layout",
@@ -75,7 +75,7 @@
   "dependencies": {
     "@mark1russell7/rigor-generators": "^0.1.8",
     "@mark1russell7/rigor-statistics": "^0.1.23",
-    "@mark1russell7/strategy-space": "^0.0.2",
+    "@mark1russell7/strategy-space": "^0.0.4",
     "@mark1russell7/typeset": "^0.2.0"
   }
 }

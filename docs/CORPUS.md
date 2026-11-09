@@ -33,6 +33,7 @@ A dimension is a `CorpusDimension`. It is a `SpaceParam` of `docs/STRATEGY-SPACE
 - `levelsOf(dim, steps)` gives the values of a sweep. `levels` come first. Then an `enum` gives its values. With `steps`, a range gives `steps` points on its scale. Else the dimension gives its default.
 - With `supported`, `levelsOf` gives an `enum` and a `bool` only their supported values. The points of a range stay in the supported range.
 - `dimensionAt(dim, t)` gives the value at the fraction `t` of a range, on its scale. `dimensionUnit(dim, value)` gives the fraction of a value. A slider of a site uses the 2 functions.
+  They use `paramAt` and `paramUnit` of `@mark1russell7/strategy-space`. An `int` dimension gives a whole number, and a dimension that is not numeric gives a `RangeError`.
 - `dimensionSupports(dim, value)` tells if the family accepts a value. A site uses it, and not `levelsOf`, to show the values that a family does not support.
 - `resolveDimensions(dimensions, dims)` gives the full values of an input. It throws a `RangeError` for an unknown dimension, a bad value or a value that is not supported.
 
