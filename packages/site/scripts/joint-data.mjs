@@ -2,10 +2,12 @@
 //
 //   pnpm --filter @layout-contract/site run data:joint -- <report.json> --run <id> --date <YYYY-MM-DD> --item <id>
 //        --versions highways=<v>,packing=<v> [--corpus <set>] [--cover on] [--short on]
+//        [--carry <carry.json> --measured-run <id> --measured-date <YYYY-MM-DD>]
 //
 // It writes packages/site/data/joint/<run>.json, and it fails when the result does not pass checkJoint.
 // The corpus is joint-v2 by default. Each new result adds one file. The site shows the newest result that is not short, and it marks a cover run.
 // Give --short on for a run of some chosen pairs (the workflow input pairs, L132). Such a run refreshes only its own pairs.
+// Give --carry for a run that kept records of an earlier run (L147), with the id and the date of that run. The page shows both dates.
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -42,6 +44,19 @@ const versions = Object.fromEntries(
     }),
 );
 
+const carryPath = flags.get("carry");
+const measuredRun = flags.get("measured-run");
+const measuredDate = flags.get("measured-date");
+if ((carryPath === undefined) !== (measuredRun === undefined) || (carryPath === undefined) !== (measuredDate === undefined)) fail("give --carry, --measured-run and --measured-date together.");
+let carry;
+if (carryPath !== undefined) {
+  if (!/^\d+$/.test(measuredRun)) fail("--measured-run is not the id of a CI run.");
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(measuredDate)) fail("--measured-date is not YYYY-MM-DD.");
+  const summary = JSON.parse(readFileSync(carryPath, "utf8"));
+  if (!Number.isInteger(summary.kept)) fail(`${carryPath} has no count kept.`);
+  carry = { run: measuredRun, date: measuredDate, kept: summary.kept, ...(summary.code === undefined ? {} : { code: { from: summary.code.from, to: summary.code.to, audit: summary.code.audit, upper: summary.code.upper } }) };
+}
+
 const report = JSON.parse(readFileSync(reportPath, "utf8"));
 const data = jointData(report, {
   run: flags.get("run"),
@@ -51,6 +66,7 @@ const data = jointData(report, {
   versions,
   ...(flags.get("cover") === "on" ? { cover: true } : {}),
   ...(flags.get("short") === "on" ? { short: true } : {}),
+  ...(carry === undefined ? {} : { carry }),
 });
 const problems = checkJoint(data);
 if (problems.length > 0) fail(`the result is not good: ${problems.join("; ")}`);

@@ -2,10 +2,11 @@
 
 ## 0.9.8
 
-- PATCH before 1.0.0: a fix and 2 new re-exports. `dimensionAt` and `dimensionUnit` use `paramAt` and `paramUnit` of `@mark1russell7/strategy-space` 0.0.4, so the scale of a range has one home.
+- PATCH before 1.0.0: a fix and 4 new exports. `dimensionAt` and `dimensionUnit` use `paramAt` and `paramUnit` of `@mark1russell7/strategy-space`, so the scale of a range has one home.
 - The values of an `int` or a `real` dimension do not change. A dimension that is not numeric gives a `RangeError`. Before this change it gave a value that is not a number.
 - The package re-exports `paramAt` and `paramUnit`.
-- The range of `@mark1russell7/strategy-space` is `^0.0.5`. A caret range on `0.0.x` holds one patch only, so `^0.0.4` does not get 0.0.5. Version 0.0.5 adds `omitUnused`, and a space without it keeps each config id.
+- The range of `@mark1russell7/strategy-space` is `^0.0.5`. A caret range on `0.0.x` holds one patch only, so `^0.0.2` does not get 0.0.5. Version 0.0.5 adds `omitUnused`, and a space without it keeps each config id.
+- The geometry gets `ringCentroid(ring)` and `clipRing(ring, a, b, c)` for the cells of a power diagram (#311). `ringCentroid` gives the centroid of the area of a ring. `clipRing` gives the part of a ring in the half-plane `a * x + b * y <= c`.
 
 ## 0.9.7
 
@@ -28,6 +29,10 @@
   - a size of the box outside its bounds.
 - `packOutputForm` has `w` and `h` of a placement only when they are set. Thus the fingerprint of an output without a size does not change.
 - `size-kept` is not in `PACK_HARD_RULES`. A rule of that list limits the shape kinds of each input, and `checkInput` already refuses a resize on a shape.
+- The new optional field `carried.code` (`CarriedCode`) holds the facts of a carry over a change of the measure code (L147 rule B).
+  These facts are the two commits, the size of the code audit and the 95 % upper bound of the rate of a difference.
+- With `carried.code`, `checkLayoutRecord` accepts the same engine versions in `carried.from` and `carried.to`. A record without `carried.code` keeps the old rule.
+- `carryRecord` takes the option `code`. A record that a run carried before keeps its `carried.code.from`.
 
 ## 0.9.5
 

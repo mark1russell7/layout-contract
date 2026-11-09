@@ -16,6 +16,7 @@ CIRCLE_SCATTERED: build/index.d.ts#CIRCLE_SCATTERED
 CORPUS_DIMENSIONS: build/index.d.ts#CORPUS_DIMENSIONS
 CORPUS_MANIFEST_SCHEMA: build/index.d.ts#CORPUS_MANIFEST_SCHEMA
 Carried: build/index.d.ts#Carried
+CarriedCode: build/index.d.ts#CarriedCode
 CarryFacts: build/index.d.ts#CarryFacts
 CatalogCheck: build/index.d.ts#CatalogCheck
 CatalogCheckOptions: build/index.d.ts#CatalogCheckOptions
@@ -255,6 +256,7 @@ checkSplit: build/measures.chunk.d.ts#checkSplit
 circleOverlaps: build/index.d.ts#circleOverlaps
 circlesOutside: build/index.d.ts#circlesOutside
 clampOptions: @mark1russell7/strategy-space#clampOptions (external)
+clipRing: build/measures.chunk.d.ts#clipRing
 compareMeasure: build/measures.chunk.d.ts#compareMeasure
 composeFamily: build/index.d.ts#composeFamily
 configId: @mark1russell7/strategy-space#configId (external)
@@ -343,6 +345,7 @@ regionHitsRect: build/index.d.ts#regionHitsRect
 resizeBox: build/index.d.ts#resizeBox
 resizeProblems: build/index.d.ts#resizeProblems
 resolveDimensions: build/index.d.ts#resolveDimensions
+ringCentroid: build/measures.chunk.d.ts#ringCentroid
 ruleLevel: build/measures.chunk.d.ts#ruleLevel
 scaleRect: build/measures.chunk.d.ts#scaleRect
 segmentThroughShape: build/index.d.ts#segmentThroughShape
@@ -447,6 +450,15 @@ export interface Carried {
   readonly to: Readonly<Record<string, string>>;
   readonly fingerprints: Readonly<Record<string, string>>;
   readonly run?: string;
+  readonly code?: CarriedCode;
+}
+
+### build/index.d.ts#CarriedCode
+export interface CarriedCode {
+  readonly from: string;
+  readonly to: string;
+  readonly audit: number;
+  readonly upper: number;
 }
 
 ### build/index.d.ts#CarryFacts
@@ -455,6 +467,7 @@ export interface CarryFacts {
   readonly fingerprints: Readonly<Record<string, string>>;
   readonly from?: Readonly<Record<string, string>>;
   readonly run?: string;
+  readonly code?: CarriedCode;
 }
 
 ### build/index.d.ts#CatalogCheck
@@ -1892,6 +1905,9 @@ declare function checkShapes(input: ShapeInput, uses: readonly ShapeSupport[], o
 ### build/measures.chunk.d.ts#checkSplit
 declare function checkSplit(split: unknown, corpus: SplitCorpus, name?: string): ClaimBreak[];
 
+### build/measures.chunk.d.ts#clipRing
+declare function clipRing(ring: Ring, a: number, b: number, c: number): Ring;
+
 ### build/measures.chunk.d.ts#compareMeasure
 declare function compareMeasure(candidate: number, baseline: number, spec: Pick<MeasureSpec, "direction" | "minEffect">): Verdict;
 
@@ -1957,6 +1973,9 @@ declare function portPoint(box: Pick<LayoutBox, "w" | "h">, port: Port): Point |
 
 ### build/measures.chunk.d.ts#regionArea
 declare function regionArea(region: Region): number;
+
+### build/measures.chunk.d.ts#ringCentroid
+declare function ringCentroid(ring: Ring): Point;
 
 ### build/measures.chunk.d.ts#ruleLevel
 declare function ruleLevel(rule: Pick<ShapeSupport, "shapes" | "safe">, kind: ShapeKind): RuleLevel;

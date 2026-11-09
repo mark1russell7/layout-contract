@@ -75,6 +75,16 @@ The parts are local copies of the bench options. Both engines publish their spac
 2. Write a `JointAdapter` that gives the pack entry and the router of a config of these spaces.
 3. Change `BENCH_SPACE_VERSION`. The new version starts a new epoch of the data.
 
+The runner has the pack side of step 2 (L148 step 7):
+
+- `configEntry(config, id?)` gives a pack entry with a canonical config of `packSpace`. Its strategy is `CONFIG_PACK`, and it has no options. The default id is `cfg-` and the `configId` of the config.
+- `packEntry` packs an entry with a config with `packConfig`, and each other entry with `packWith`. The pack stage of `pairRuns` and the pack probe of the carry use it.
+- The record of a pair holds `packStrategy: "config"` and `packOptions: { config }`. Thus the carry compares the config.
+- `packSpace` holds no cells. Thus an entry with a config has no cell check before the pack. A refusal of `packConfig` (`UnsupportedCell`, and `UnsupportedShape` with it) gives a skip.
+- A test gives the config of 7 registry entries the records of their entry on 4 inputs of `joint-v1`.
+
+The router side waits for `routerOfConfig` of `highways` 0.18.0. It gives the router of a config of `routeSpace` with the node limit of its strategy.
+
 ### The fingerprint of the space
 
 The epoch key has the version of the space, not the space. Thus a change of the space under one version keeps the epoch, and the configs of two spaces go to one state (L133).

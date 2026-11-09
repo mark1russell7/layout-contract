@@ -91,6 +91,7 @@ import {
   limitRepeatsFor,
   refitLimits,
   refitMarkdown,
+  refitOfData,
   refitRefusal,
   memoryGate,
   manifestJson,
@@ -543,14 +544,21 @@ if (command === "check") {
   console.log(`Probe of shard ${shardIndex} of ${shards}: ${Object.keys(probe.packs).length} pack probes, ${Object.keys(probe.routers).length} routers, ${((performance.now() - t0) / 60000).toFixed(1)} min, engines ${JSON.stringify(probe.engines)}.`);
 } else if (command === "carry") {
   // The carry of L147. A record of an earlier run joins this run with no new measure when the probes of its pack and its router agree at the two versions.
-  // The measure code of the runner (the local imports of runner.ts) has the same text at --from-commit and here, else nothing joins.
+  // When the measure code of the runner (the local imports of runner.ts) has other text at --from-commit, the carry is a code bridge (L147 rule B):
+  // the code audit covers each pack entry, router and input family, and the bridge records are measured again at the next carry.
   for (const name of ["records", "from", "to", "from-commit", "run", "out"]) if (args[name] === undefined) throw new RangeError(`The command carry needs --${name}.`);
   const here = (file) => readFileSync(new URL(`../src/${file}`, import.meta.url), "utf8").replaceAll("\r\n", "\n");
   const changed = localImports("runner.ts", here).filter((file) => {
     const old = spawnSync("git", ["show", `${args["from-commit"]}:packages/joint/src/${file}`], { encoding: "utf8", maxBuffer: 1 << 26 });
     return old.status !== 0 || old.stdout.replaceAll("\r\n", "\n") !== here(file);
   });
-  if (changed.length > 0) throw new RangeError(`The measure code changed after ${args["from-commit"]} (${changed.join(", ")}), so the run measures each pair again.`);
+  const commitOf = (ref) => {
+    const r = spawnSync("git", ["rev-parse", "--verify", `${ref}^{commit}`], { encoding: "utf8" });
+    if (r.status !== 0) throw new RangeError(`git does not know the commit ${ref}.`);
+    return r.stdout.trim();
+  };
+  const code = changed.length === 0 ? undefined : { from: commitOf(args["from-commit"]), to: commitOf("HEAD") };
+  if (code !== undefined) console.log(`The measure code changed after ${code.from} (${changed.join(", ")}), so the carry is a code bridge to ${code.to}.`);
   const from = mergeProbes(probeFiles(args.from));
   const to = mergeProbes(probeFiles(args.to));
   mkdirSync(args.out, { recursive: true });
@@ -572,8 +580,9 @@ if (command === "check") {
   const records = [];
   const accepted = new Set(byKey.keys());
   for (const name of names.filter((n) => n.endsWith(".jsonl"))) for (const raw of keptRecordLines(readFileSync(join(args.records, name), "utf8"), accepted, seen)) records.push(JSON.parse(raw));
-  const plan = carryPlan(records, { from, to, packs: packFacts(cover.packs ?? PACK_ENTRIES), run: args.run });
-  const audit = new Set(auditSample(plan.carried.map((r) => doneKey(r.input, r.strategy)), args.seed ?? args.run));
+  const plan = carryPlan(records, { from, to, packs: packFacts(cover.packs ?? PACK_ENTRIES), run: args.run, ...(code === undefined ? {} : { code }) });
+  // A code bridge takes the code audit of the plan. Its seed comes from the two commits, so --seed does not change it.
+  const audit = new Set(plan.audit ?? auditSample(plan.carried.map((r) => doneKey(r.input, r.strategy)), args.seed ?? args.run));
   const kept = plan.carried.filter((r) => !audit.has(doneKey(r.input, r.strategy)));
   const stamp = benchStamp();
   const chunk = 20000;
@@ -581,10 +590,11 @@ if (command === "check") {
   writeFileSync(join(args.out, PRIOR_PAIRS_FILE), kept.map((r) => JSON.stringify({ ...byKey.get(doneKey(r.input, r.strategy)), stamp }) + "\n").join(""));
   writeFileSync(join(args.out, "carry-audit.jsonl"), plan.carried.filter((r) => audit.has(doneKey(r.input, r.strategy))).map((r) => JSON.stringify(r) + "\n").join(""));
   const changedPairs = plan.counts["pack changed"] + plan.counts["router changed"] + plan.counts["options changed"];
-  const summary = { fromStamp, stamp, from: from.engines, to: to.engines, records: records.length, carried: plan.carried.length, audit: audit.size, kept: kept.length, again: plan.counts, changedShare: records.length === 0 ? 0 : changedPairs / records.length };
+  const summary = { fromStamp, stamp, from: from.engines, to: to.engines, records: records.length, carried: plan.carried.length, audit: audit.size, kept: kept.length, again: plan.counts, changedShare: records.length === 0 ? 0 : changedPairs / records.length, codeChanged: changed, ...(plan.code === undefined ? {} : { code: plan.code }) };
   writeFileSync(join(args.out, "carry.json"), JSON.stringify(summary, null, 2) + "\n");
   console.log(`Carry from stamp ${fromStamp} to ${stamp}: ${records.length} records, ${plan.carried.length} carried (${audit.size} of them in the audit, so the run measures them again), ${kept.length} kept.`);
   console.log(`Measured again: ${JSON.stringify(plan.counts)}. Changed share: ${(100 * summary.changedShare).toFixed(2)} %.`);
+  if (plan.code !== undefined) console.log(`Code bridge: ${plan.code.audit} audit pairs, a 95 % upper bound of ${(100 * plan.code.upper).toFixed(2)} % for the rate of a difference with 0 differences.`);
 } else if (command === "carry-audit") {
   // The audit of a carry (L147). The run measured the audit pairs again. One pair with another record, without the times, fails the carry.
   if (args.audit === undefined || args.records === undefined) throw new RangeError("The arguments of carry-audit are --audit <file> --records <dir> [--out <file>].");
@@ -954,13 +964,14 @@ function refitPullRequest(id, trailer, bodyEnd) {
   const work = mkdtempSync(join(tmpdir(), "memory-refit-"));
   run("gh", ["run", "download", String(id), "--name", "memory-refit", "--dir", join(work, "artifact")]);
   const refit = JSON.parse(readFileSync(join(work, "artifact", "refit.json"), "utf8"));
-  const body = readFileSync(join(work, "artifact", "refit.md"), "utf8");
   run("git", ["fetch", "-q", "origin", "main"]);
   // The refusals are in `refitRefusal`, and its tests examine each of them. A refit that main took after the commit of the probes makes this refit old.
   const ancestor = spawnSync("git", ["merge-base", "--is-ancestor", refit.head, "origin/main"]).status === 0;
   const limitsChanged = ancestor && spawnSync("git", ["diff", "--quiet", refit.head, "origin/main", "--", "data/memory-limits.json"]).status !== 0;
   const refusal = refitRefusal(refit, id, { ancestor, limitsChanged });
   if (refusal !== undefined) throw new RangeError(refusal);
+  // The body comes from the code of this checkout, so a refit of an older run also gets the noise bands and the verdicts of each measure.
+  const body = refitMarkdown(refitOfData(refit.data), refit);
   // The change of each input, before the push.
   console.log(body);
   const branch = `memory-refit-${id}`;
