@@ -1,6 +1,7 @@
 // The frames of a layout change (`docs/FRAMES.md`): the record `layout-frame/1`, the frame at a time between two layouts, and the move between two frames.
 // A frame is a layout at one time of a change. A caller can stop at a frame and start the next layout from it.
 import type { PlacedBox } from "./balance.ts";
+import { boxCenterDistance } from "./geometry.ts";
 import type { Placement } from "./output.ts";
 
 /** The schema of a frame. */
@@ -141,7 +142,7 @@ export function frameMove(a: LayoutFrame, b: LayoutFrame): number {
   for (const q of b.boxes) {
     const p = before.get(q.id);
     if (p === undefined) continue;
-    sum += Math.hypot(q.x + q.w / 2 - (p.x + p.w / 2), q.y + q.h / 2 - (p.y + p.h / 2));
+    sum += boxCenterDistance(p, q);
   }
   return sum;
 }

@@ -8,7 +8,7 @@ The package has one runtime dependency: `@mark1russell7/rigor-generators`, the h
 
 | Part | Exports |
 |---|---|
-| Geometry | `Point`, `Rect`, `Region`, `Side`, `Sides`, `Margin`, `marginSides`, `grow`, `boundsOf`, `regionArea`, `translate`, `overlapOf`, `segmentsCross`, `crossingPoint`, `pointSegmentDistance` |
+| Geometry | `Point`, `Rect`, `Region`, `Side`, `Sides`, `Margin`, `marginSides`, `grow`, `boundsOf`, `regionArea`, `translate`, `overlapOf`, `segmentsCross`, `crossingPoint`, `pointSegmentDistance`, `Ring`, `pointInRing`, `pointInRings`, `boxCenterDistance` |
 | The shape kinds | `ShapeKind`, `SHAPE_KINDS`, `SHAPE_KIND_IDS`, `ShapeKindSpec`, `ShapeGeometry`, `DEFAULT_SHAPES`, `ShapeSupport`, `ShapeBound`, `RuleLevel`, `ShapeLevel`, `ShapeCheck`, `isShapeKind`, `shapeKindOf`, `shapeKindsOf`, `itemShapeOf`, `shapeKindProblem`, `shapesOf`, `ruleLevel`, `shapeLevel`, `shapeSupportProblems`, `boxArea`, `checkShapes` |
 | The input `layout-input/1` | `LayoutInput`, `LayoutBox` (`Item` for the packer), `Port`, `portPoint`, `LayoutEdge`, `LayoutContainer`, `Obstacle`, `LayoutCell`, `LayoutGenerator`, `PairGap`, `canonicalInput` |
 | The packer | `PackInput`, `PackLink`, `toPackInput`, `packLinks`, `Placement`, `PackOutput`, `StageTrace`, `applyPack` |
@@ -31,13 +31,16 @@ The package has one runtime dependency: `@mark1russell7/rigor-generators`, the h
 | The space functions | `checkSpace`, `checkConfig`, `canonicalConfig`, `configId`, `spaceSize`, `spaceShapeKinds`, `paramLevels`, `enumerateSpace`, `productSpace`, `joinConfigs`, `splitConfig`, `SpaceSize`, `SpaceSizeOptions`, `EnumerateOptions`, `GridOptions`, `SampleOptions` |
 | The option declarations | `OptionSchema`, `OptionDeclaration`, `AnyOption`, `NumberOption`, `BooleanOption`, `EnumOption`, `ValueOption`, `ListItem`, `NoDefault`, `DeclaredStrategy`, `listOptions`, `optionDefaults`, `checkOptions`, `clampOptions`, `sweepValues`, `sweepOf`, `sweepGrid`, `checkSchema` |
 | The strategy catalog | `StrategyCatalog`, `StrategyCatalogSource`, `CatalogEntry`, `ParamRoute`, `StrategyMember`, `CatalogLimit`, `OutputRow`, `OutputEvidence`, `OutputGridClass`, `OutputGridCounts`, `StrategyCatalogSchema`, `STRATEGY_CATALOG_SCHEMA`, `STRATEGY_CATALOG_SCHEMAS`, `OUTPUT_GRID_PROPERTIES`, `OUTPUT_NEAR_WHOLE`, `OUTPUT_CLASS_MIN_INPUTS`, `NODE_POSITIONS_DIMENSION`, `outputGridClass`, `parseStrategyCatalog`, `writeStrategyCatalog`, `checkCatalog`, `catalogDefaults`, `catalogOptions`, `catalogChoices`, `catalogKey`, `decodeOptionValue`, `encodeOptionValue` |
-| The turn | `turnBox`, `turnPort`, `turnMargin`, `turnRegion`, `turnSide`, `turnPoint` |
+| The turn | `turnBox`, `turnPort`, `turnMargin`, `turnRegion`, `turnResize`, `turnSide`, `turnPoint` |
+| The resize | `Resize`, `SizeBounds`, `sizeBoundsOf`, `sizeFits`, `resizeBox`, `resizeProblems`, `countResizeBreaks` |
 | The tolerances | `EPS`, `EPS_STEPS`, `RECORD_EPS`, `RECORD_SCALE`, `Tolerance`, `DEFAULT_TOLERANCE` |
-| The hard rules | `HARD_RULE_VERSION`, `shapesOverlap`, `circleOverlaps`, `circlesOutside`, `placedCircle`, `PlacedCircle`, `segmentThroughShape`, `countLinksThroughShapes`, `ShapeLink`, `countOverlaps`, `countObstacleHits`, `regionHitsRect`, `rectInRegion`, `countOutside`, `ContainerTest`, `countPortsOffBorder`, `packHard`, `PackHard`, `PACK_HARD_RULES`, `placedRect`, `checkInput` |
+| The hard rules | `HARD_RULE_VERSION`, `shapesOverlap`, `circleOverlaps`, `circlesOutside`, `placedCircle`, `PlacedCircle`, `segmentThroughShape`, `countLinksThroughShapes`, `ShapeLink`, `countOverlaps`, `countObstacleHits`, `regionHitsRect`, `rectInRegion`, `countOutside`, `ContainerTest`, `countPortsOffBorder`, `packHard`, `PackHard`, `PACK_HARD_RULES`, `countResizeBreaks`, `placedRect`, `checkInput` |
 
 ## The rules
 
 - **The turn.** A turn is 90 degrees clockwise, with the y axis down. A point (`px`, `py`) of a box of height `h` goes to (`h - py`, `px`). Each side moves one step clockwise. The router gets the turned box and ports, and does not read `turn`.
+- **The resize.** A box with `resize` can get another size from the packer, in its bounds. A bound that the resize does not set is the size of the box. The placement gives the size after the turn in `w` and `h`, and `applyPack` gives the box that size. A port with `x` or `y` moves with the scale, and a port with `along` keeps its place. Only a `rect` box without a shape can have a resize (`checkInput`).
+- **The rule `size-kept`.** It counts each placement with a size outside the bounds of its box. `packHard` gives it only for an input with a resize or an output with a size. Thus the counts of the other inputs do not change.
 - **The margin.** A margin is a ring around a box. No other box and no route enters it. A route from a port of the box crosses the ring at a right angle.
 - **The gap.** The gap is the free space between two boxes with their margins. Routes use it. Two boxes are `mA + gap + mB` apart.
 - **The pair gaps.** `pairGaps` gives a minimum distance to some pairs of boxes: `{ a, b, gap, lanes? }`. For its pair, the `gap` of an entry replaces `mA + gap + mB`.
