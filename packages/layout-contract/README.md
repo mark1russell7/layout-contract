@@ -112,6 +112,7 @@ The comments of the source name each doc as `docs/<NAME>.md`. The docs are in th
 |---|---|
 | [`docs/BALANCE.md`](https://github.com/mark1russell7/layout-contract/blob/main/docs/BALANCE.md) | The balance and stability measures of a pack and of a joint layout |
 | [`docs/CELLS.md`](https://github.com/mark1russell7/layout-contract/blob/main/docs/CELLS.md) | The cell measures of a Voronoi treemap: the area error and the compactness of the cells |
+| [`docs/CURVES.md`](https://github.com/mark1russell7/layout-contract/blob/main/docs/CURVES.md) | The Hilbert, Moore and Morton curves through a grid, as data |
 | [`docs/FRAMES.md`](https://github.com/mark1russell7/layout-contract/blob/main/docs/FRAMES.md) | The frame record `layout-frame/1`, the frames between two layouts and their laws |
 | [`docs/TEXT.md`](https://github.com/mark1russell7/layout-contract/blob/main/docs/TEXT.md) | The text layout of the subpath `/text`: the rules, the units and the measures |
 | [`docs/CORPUS.md`](https://github.com/mark1russell7/layout-contract/blob/main/docs/CORPUS.md) | The shared corpus registry, its dimensions and families |

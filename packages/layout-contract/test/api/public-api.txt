@@ -17,6 +17,8 @@ CELL_SOURCE: build/index.d.ts#CELL_SOURCE
 CIRCLE_SCATTERED: build/index.d.ts#CIRCLE_SCATTERED
 CORPUS_DIMENSIONS: build/index.d.ts#CORPUS_DIMENSIONS
 CORPUS_MANIFEST_SCHEMA: build/index.d.ts#CORPUS_MANIFEST_SCHEMA
+CURVE_MAX_SIDE: build/index.d.ts#CURVE_MAX_SIDE
+CURVE_SYMMETRIES: build/index.d.ts#CURVE_SYMMETRIES
 Carried: build/index.d.ts#Carried
 CarriedCode: build/index.d.ts#CarriedCode
 CarryFacts: build/index.d.ts#CarryFacts
@@ -40,6 +42,10 @@ CorpusSplit: build/measures.chunk.d.ts#CorpusSplit
 CorpusStep: build/index.d.ts#CorpusStep
 CostOrder: build/index.d.ts#CostOrder
 CrossEngine: build/index.d.ts#CrossEngine
+CurvePattern: build/index.d.ts#CurvePattern
+CurveQuadrant: build/index.d.ts#CurveQuadrant
+CurveSpec: build/index.d.ts#CurveSpec
+CurveSymmetry: build/index.d.ts#CurveSymmetry
 DEFAULT_FAMILY_BY: build/index.d.ts#DEFAULT_FAMILY_BY
 DEFAULT_RNG: build/index.d.ts#DEFAULT_RNG
 DEFAULT_SHAPES: build/measures.chunk.d.ts#DEFAULT_SHAPES
@@ -79,6 +85,8 @@ GenerateContext: build/index.d.ts#GenerateContext
 GenerateOptions: build/index.d.ts#GenerateOptions
 type GridOptions: @mark1russell7/strategy-space#GridOptions (external)
 HARD_RULE_VERSION: build/index.d.ts#HARD_RULE_VERSION
+HILBERT_CURVE: build/index.d.ts#HILBERT_CURVE
+HILBERT_PATTERN: build/index.d.ts#HILBERT_PATTERN
 HashOptions: build/index.d.ts#HashOptions
 HeldOut: build/index.d.ts#HeldOut
 INVALIDATED_FIELD: build/index.d.ts#INVALIDATED_FIELD
@@ -100,6 +108,9 @@ LayoutRecord: build/index.d.ts#LayoutRecord
 type ListItem: @mark1russell7/strategy-space#ListItem (external)
 MEASURE_REGISTRY: build/index.d.ts#MEASURE_REGISTRY
 MEASURE_SURVEY_SCHEMA: build/index.d.ts#MEASURE_SURVEY_SCHEMA
+MOORE_CURVE: build/index.d.ts#MOORE_CURVE
+MOORE_PATTERN: build/index.d.ts#MOORE_PATTERN
+MORTON_CURVE: build/index.d.ts#MORTON_CURVE
 ManifestClaims: build/index.d.ts#ManifestClaims
 ManifestField: build/index.d.ts#ManifestField
 ManifestTextOptions: build/index.d.ts#ManifestTextOptions
@@ -252,6 +263,7 @@ VerdictScope: build/index.d.ts#VerdictScope
 VerdictSide: build/index.d.ts#VerdictSide
 VerdictSignTest: build/index.d.ts#VerdictSignTest
 applyPack: build/index.d.ts#applyPack
+applySymmetry: build/index.d.ts#applySymmetry
 balanceMeasureSpecs: build/index.d.ts#balanceMeasureSpecs
 balanceMeasures: build/index.d.ts#balanceMeasures
 balanceOf: build/index.d.ts#balanceOf
@@ -302,6 +314,9 @@ countPortsOffBorder: build/index.d.ts#countPortsOffBorder
 countResizeBreaks: build/index.d.ts#countResizeBreaks
 createFamilyRegistry: build/index.d.ts#createFamilyRegistry
 crossingPoint: build/measures.chunk.d.ts#crossingPoint
+curveCell: build/index.d.ts#curveCell
+curveCells: build/index.d.ts#curveCells
+curveIndex: build/index.d.ts#curveIndex
 declarationIssues: @mark1russell7/strategy-space#declarationIssues (external)
 declaredClaimOf: build/measures.chunk.d.ts#declaredClaimOf
 declaredCounts: build/measures.chunk.d.ts#declaredCounts
@@ -327,7 +342,10 @@ frameMove: build/index.d.ts#frameMove
 frameOf: build/index.d.ts#frameOf
 grow: build/measures.chunk.d.ts#grow
 hardRuleOf: build/index.d.ts#hardRuleOf
+hilbertCell: build/index.d.ts#hilbertCell
+hilbertIndex: build/index.d.ts#hilbertIndex
 inputShapeLevel: build/measures.chunk.d.ts#inputShapeLevel
+inverseSymmetry: build/index.d.ts#inverseSymmetry
 isShapeKind: build/measures.chunk.d.ts#isShapeKind
 itemShapeOf: build/measures.chunk.d.ts#itemShapeOf
 joinConfigs: @mark1russell7/strategy-space#joinConfigs (external)
@@ -339,6 +357,10 @@ manifestText: build/index.d.ts#manifestText
 marginSides: build/measures.chunk.d.ts#marginSides
 measureEntry: build/index.d.ts#measureEntry
 minEffectOf: build/measures.chunk.d.ts#minEffectOf
+mooreCell: build/index.d.ts#mooreCell
+mooreIndex: build/index.d.ts#mooreIndex
+mortonCell: build/index.d.ts#mortonCell
+mortonIndex: build/index.d.ts#mortonIndex
 mulberry32: build/index.d.ts#mulberry32
 nameAfterStage: build/index.d.ts#nameAfterStage
 nearestGaps: build/index.d.ts#nearestGaps
@@ -492,6 +514,12 @@ export declare const CORPUS_DIMENSIONS: Readonly<Record<string, CorpusDimension>
 
 ### build/index.d.ts#CORPUS_MANIFEST_SCHEMA
 export declare const CORPUS_MANIFEST_SCHEMA = "layout-corpus/1";
+
+### build/index.d.ts#CURVE_MAX_SIDE
+export declare const CURVE_MAX_SIDE: number;
+
+### build/index.d.ts#CURVE_SYMMETRIES
+export declare const CURVE_SYMMETRIES: readonly CurveSymmetry[];
 
 ### build/index.d.ts#Carried
 export interface Carried {
@@ -656,6 +684,23 @@ export type CostOrder = string;
 ### build/index.d.ts#CrossEngine
 export type CrossEngine = "exact" | "libm-dependent";
 
+### build/index.d.ts#CurvePattern
+export type CurvePattern = readonly [CurveSymmetry, CurveSymmetry, CurveSymmetry, CurveSymmetry];
+
+### build/index.d.ts#CurveQuadrant
+export type CurveQuadrant = readonly [0 | 1, 0 | 1];
+
+### build/index.d.ts#CurveSpec
+export interface CurveSpec {
+  readonly name: string;
+  readonly order: readonly [CurveQuadrant, CurveQuadrant, CurveQuadrant, CurveQuadrant];
+  readonly root: CurvePattern;
+  readonly child: CurvePattern;
+}
+
+### build/index.d.ts#CurveSymmetry
+export type CurveSymmetry = "same" | "swap" | "back" | "half" | "rise" | "fall" | "flip-s" | "flip-t";
+
 ### build/index.d.ts#DEFAULT_FAMILY_BY
 export declare const DEFAULT_FAMILY_BY: FamilyBy;
 
@@ -791,6 +836,12 @@ export interface GenerateOptions {
 ### build/index.d.ts#HARD_RULE_VERSION
 export declare const HARD_RULE_VERSION = 3;
 
+### build/index.d.ts#HILBERT_CURVE
+export declare const HILBERT_CURVE: CurveSpec;
+
+### build/index.d.ts#HILBERT_PATTERN
+export declare const HILBERT_PATTERN: CurvePattern;
+
 ### build/index.d.ts#HashOptions
 export interface HashOptions {
   readonly grid?: number;
@@ -854,6 +905,15 @@ export declare const MEASURE_REGISTRY: readonly MeasureEntry<JointMeasureId>[];
 
 ### build/index.d.ts#MEASURE_SURVEY_SCHEMA
 export declare const MEASURE_SURVEY_SCHEMA = "measure-survey/1";
+
+### build/index.d.ts#MOORE_CURVE
+export declare const MOORE_CURVE: CurveSpec;
+
+### build/index.d.ts#MOORE_PATTERN
+export declare const MOORE_PATTERN: CurvePattern;
+
+### build/index.d.ts#MORTON_CURVE
+export declare const MORTON_CURVE: CurveSpec;
 
 ### build/index.d.ts#ManifestClaims
 export interface ManifestClaims {
@@ -1414,6 +1474,9 @@ export interface VerdictSignTest {
 ### build/index.d.ts#applyPack
 export declare function applyPack(input: LayoutInput, output: PackOutput): LayoutInput;
 
+### build/index.d.ts#applySymmetry
+export declare function applySymmetry(symmetry: CurveSymmetry, s: number, t: number, size?: number): [number, number];
+
 ### build/index.d.ts#balanceMeasureSpecs
 export declare function balanceMeasureSpecs<S extends string>(stage: S): readonly MeasureSpec<`${S}.${BalanceMeasureSuffix}`>[];
 
@@ -1504,6 +1567,15 @@ export declare function countResizeBreaks(input: LayoutInput, output: PackOutput
 ### build/index.d.ts#createFamilyRegistry
 export declare function createFamilyRegistry<O = LayoutInput>(families?: Iterable<CorpusFamily<O>>): FamilyRegistry<O>;
 
+### build/index.d.ts#curveCell
+export declare function curveCell(curve: CurveSpec, index: number, side: number): [number, number];
+
+### build/index.d.ts#curveCells
+export declare function curveCells(curve: CurveSpec, side: number): [number, number][];
+
+### build/index.d.ts#curveIndex
+export declare function curveIndex(curve: CurveSpec, x: number, y: number, side: number): number;
+
 ### build/index.d.ts#decodeOptionValue
 export declare function decodeOptionValue(value: unknown, declaration: AnyOption | ListItem): unknown;
 
@@ -1561,6 +1633,15 @@ export declare function frameOf(boxes: readonly FrameSource[]): LayoutFrame;
 ### build/index.d.ts#hardRuleOf
 export declare function hardRuleOf(record: Pick<LayoutRecord, "hardRule">): number;
 
+### build/index.d.ts#hilbertCell
+export declare function hilbertCell(index: number, side: number): [number, number];
+
+### build/index.d.ts#hilbertIndex
+export declare function hilbertIndex(x: number, y: number, side: number): number;
+
+### build/index.d.ts#inverseSymmetry
+export declare function inverseSymmetry(symmetry: CurveSymmetry): CurveSymmetry;
+
 ### build/index.d.ts#levelsOf
 export declare function levelsOf(dim: CorpusDimension, steps?: number): ParamValue[];
 
@@ -1572,6 +1653,18 @@ export declare function manifestText(fields: readonly ManifestField[], options?:
 
 ### build/index.d.ts#measureEntry
 export declare function measureEntry<Id extends string>(spec: MeasureSpec<Id>, facts: EntryFacts): MeasureEntry<Id>;
+
+### build/index.d.ts#mooreCell
+export declare function mooreCell(index: number, side: number): [number, number];
+
+### build/index.d.ts#mooreIndex
+export declare function mooreIndex(x: number, y: number, side: number): number;
+
+### build/index.d.ts#mortonCell
+export declare function mortonCell(index: number, side: number): [number, number];
+
+### build/index.d.ts#mortonIndex
+export declare function mortonIndex(x: number, y: number, side: number): number;
 
 ### build/index.d.ts#mulberry32
 export declare function mulberry32(seed: number): () => number;
