@@ -466,7 +466,7 @@ Before the run, the mean score of each input over all configs explained a median
 
 ### Folds by input and the wider λ list
 
-The strategist set 3 conditions before the trend starts. The prediction `layout-stack-L52-input-folds` came before this run.
+The maintainer set 3 conditions before the trend starts. The prediction `layout-stack-L52-input-folds` came before this run.
 
 1. The chosen λ is inside the list.
 2. The skill of the trend is out of sample, with folds by input. The record gives the in-sample skill beside it.
