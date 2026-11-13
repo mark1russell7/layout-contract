@@ -223,11 +223,11 @@ const SCALES: readonly OptionScale[] = ["linear", "log"];
 const TOP_FIELDS: readonly string[] = ["schema", "engine", "version", "strategies"];
 const ENTRY_FIELDS: readonly string[] = ["key", "id", "step", "family", "kind", "describe", "supports", "limits", "deterministic", "determinismNote", "optIn", "baseline", "output", "fingerprint", "options"];
 const COMMON_FIELDS: readonly string[] = ["type", "describe", "default", "noDefault", "when"];
-const NUMBER_FIELDS: readonly string[] = [...COMMON_FIELDS, "min", "max", "step", "scale", "special", "marks", "values"];
-const ENUM_FIELDS: readonly string[] = [...COMMON_FIELDS, "values", "custom"];
-const STRATEGY_FIELDS: readonly string[] = [...COMMON_FIELDS, "step", "kinds", "optionsKey", "inlineOptions", "optIn", "needs"];
+const NUMBER_FIELDS: readonly string[] = /* @__PURE__ */ COMMON_FIELDS.concat(["min", "max", "step", "scale", "special", "marks", "values"]);
+const ENUM_FIELDS: readonly string[] = /* @__PURE__ */ COMMON_FIELDS.concat(["values", "custom"]);
+const STRATEGY_FIELDS: readonly string[] = /* @__PURE__ */ COMMON_FIELDS.concat(["step", "kinds", "optionsKey", "inlineOptions", "optIn", "needs"]);
 const MEMBER_FIELDS: readonly string[] = ["strategy", "options", "id"];
-const LIST_FIELDS: readonly string[] = [...COMMON_FIELDS, "of", "min", "max"];
+const LIST_FIELDS: readonly string[] = /* @__PURE__ */ COMMON_FIELDS.concat(["of", "min", "max"]);
 const ROW_FIELDS: readonly string[] = ["property", "class", "evidence"];
 const EVIDENCE_FIELDS: readonly string[] = ["inputs", "fractionalInputs", "nearWholeInputs", "source", "optionSet", "catalogVersion"];
 /** The fields of a declaration, in the order of the file. */
