@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.10.1
+
+- PATCH: a fix of the shipped files, with no change to the API. A bundle that imports one export of the root gets only the code of that export again.
+- `build/index.js` holds all the modules of the root in one file, so the field `sideEffects` cannot remove an unused module from it. In 0.10.0, each bundle of it kept the curves, the measure registry, the strategy fields and `Math.PI`, approximately 1.2 kB gzip more for each export.
+- Each top-level call of `curves`, `measure-registry` and `strategy-catalog` has the mark `/* @__PURE__ */`. `COST_ORDER` is a regular expression literal. `SQUARE_COMPACTNESS` and `CURVE_MAX_SIDE` are number literals with the same values.
+- `tree-shake.test.ts` bundles the source also without the field `sideEffects`, as the one file of `build/` does.
+
 ## 0.10.0
 
 - MINOR before 1.0.0: a break. The unit text of the measure specs changes for its readers, and `HARD_RULE_VERSION` is 3. The other entries add exports or options.

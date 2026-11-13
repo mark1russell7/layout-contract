@@ -61,6 +61,8 @@ A run changes `data/stamps.json`. Set `inFlight` when a run starts on newer engi
 
 ### A new result of the joint benchmark
 
+The joint bench starts each Monday at 04:14 UTC (L160). The scheduled run is a carry run from the newest run of `data/stamps.json`, with the cover and a pair budget of 5. Give the input `weekly` to a manual run for the same run. The stamps of the measured pages have an age limit of 14 days, and the freshness gate reads this schedule against the limit.
+
 The records of a run are CI artifacts, and the repository does not keep them. Thus each result adds one compact file, made from the `report.json` of the run.
 
 1. Download the report of the run: `gh run download <run> -R mark1russell7/layout-contract -n joint-report -D <dir>`. A later analysis of the records of `<run>` keeps its report as the artifact `joint-report-of-<run>` of the later run.

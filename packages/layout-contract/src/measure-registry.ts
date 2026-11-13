@@ -56,9 +56,11 @@ export function unitFault(spec: Pick<MeasureSpec, "unit" | "min" | "max">): stri
  */
 export type CostOrder = string;
 
-/** The pattern of a `CostOrder`: terms of `1`, `n`, `e` or `p`, each with an optional `^2`, `^3` or `log`, joined by ` + `. */
-const COST_TERM = "(?:1|[nep](?:\\^[23])?(?: log [nep])?)";
-const COST_ORDER = /* @__PURE__ */ new RegExp(`^${COST_TERM}(?: \\+ ${COST_TERM})*$`);
+/**
+ * The pattern of a `CostOrder`: terms of `1`, `n`, `e` or `p`, each with an optional `^2`, `^3` or `log`, joined by ` + `. The pattern is a
+ * literal, because a bundler keeps a top-level `new RegExp` of a template, also when no code uses it.
+ */
+const COST_ORDER = /^(?:1|[nep](?:\^[23])?(?: log [nep])?)(?: \+ (?:1|[nep](?:\^[23])?(?: log [nep])?))*$/;
 
 /**
  * One entry of the measure registry: the spec of the measure, its source package, its noise, its normalization and its cost.
@@ -188,5 +190,5 @@ const JOINT_FACTS: Readonly<Record<JointMeasureId, Omit<EntryFacts, "source">>> 
  * The engines keep the specs of their own measures. `docs/measure-survey.json` lists them, and an engine adopts the registry with `measureEntry`.
  */
 export const MEASURE_REGISTRY: readonly MeasureEntry<JointMeasureId>[] = /* @__PURE__ */ Object.freeze(
-  JOINT_MEASURES.map((spec) => measureEntry(spec, { source: JOINT_SOURCE, ...JOINT_FACTS[spec.id] })),
+  /* @__PURE__ */ JOINT_MEASURES.map((spec) => measureEntry(spec, { source: JOINT_SOURCE, ...JOINT_FACTS[spec.id] })),
 );
