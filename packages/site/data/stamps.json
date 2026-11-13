@@ -5,34 +5,32 @@
       "page": "index.html",
       "runs": [
         {
-          "id": "41898523423",
-          "url": "https://github.com/mark1russell7/layout-contract/actions/runs/41898523423",
-          "date": "2026-11-04T19:36:10Z",
-          "engines": { "@mark1russell7/highways": "0.14.0", "@mark1russell7/packing": "0.7.0" }
+          "id": "42428038369",
+          "url": "https://github.com/mark1russell7/layout-contract/actions/runs/42428038369",
+          "date": "2026-11-08T00:03:52Z",
+          "engines": { "@mark1russell7/highways": "0.15.0", "@mark1russell7/packing": "0.10.2" }
         }
       ],
-      "inFlight": {
-        "id": "42388390209",
-        "url": "https://github.com/mark1russell7/layout-contract/actions/runs/42388390209",
-        "date": "2026-11-07T15:51:22Z",
-        "engines": { "@mark1russell7/highways": "0.15.0", "@mark1russell7/packing": "0.10.2" }
+      "limit": {
+        "days": 14,
+        "reason": "The joint benchmark runs again each week, and one full run takes about two days on three runners, so the data of this page can be up to 14 days old.",
+        "workflow": ".github/workflows/joint-bench.yml"
       }
     },
     {
       "page": "compare.html",
       "runs": [
         {
-          "id": "41898523423",
-          "url": "https://github.com/mark1russell7/layout-contract/actions/runs/41898523423",
-          "date": "2026-11-04T19:36:10Z",
-          "engines": { "@mark1russell7/highways": "0.14.0", "@mark1russell7/packing": "0.7.0" }
+          "id": "42428038369",
+          "url": "https://github.com/mark1russell7/layout-contract/actions/runs/42428038369",
+          "date": "2026-11-08T00:03:52Z",
+          "engines": { "@mark1russell7/highways": "0.15.0", "@mark1russell7/packing": "0.10.2" }
         }
       ],
-      "inFlight": {
-        "id": "42388390209",
-        "url": "https://github.com/mark1russell7/layout-contract/actions/runs/42388390209",
-        "date": "2026-11-07T15:51:22Z",
-        "engines": { "@mark1russell7/highways": "0.15.0", "@mark1russell7/packing": "0.10.2" }
+      "limit": {
+        "days": 14,
+        "reason": "The joint benchmark runs again each week, and one full run takes about two days on three runners, so the data of this page can be up to 14 days old.",
+        "workflow": ".github/workflows/joint-bench.yml"
       }
     }
   ]
