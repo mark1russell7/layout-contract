@@ -1,0 +1,583 @@
+{
+ "date": "2026-11-13",
+ "seed": 20261113,
+ "drift": 0,
+ "values": 7629,
+ "missing": 166,
+ "shards": [
+  {
+   "round": 1,
+   "shard": 0,
+   "planned": 15.924411222443657,
+   "real": 2.1217331907666668,
+   "costModel": "factors-2026-11-02"
+  },
+  {
+   "round": 1,
+   "shard": 1,
+   "planned": 13.333603793610553,
+   "real": 3.86304838625,
+   "costModel": "factors-2026-11-02"
+  },
+  {
+   "round": 1,
+   "shard": 10,
+   "planned": 13.333618851275949,
+   "real": 21.8495965274,
+   "costModel": "factors-2026-11-02",
+   "stopped": true,
+   "plannedDone": 9.441804005911337,
+   "done": 21,
+   "units": 22,
+   "elapsedMinutes": 100.01486666666666,
+   "censored": {
+    "unit": "joint-v2/rect-grid.freeAspect.ellipse.center.heavyTail.n1000.e-dense.hubs.flat.free.sp-stress/s1#1",
+    "input": "joint-v2/rect-grid.freeAspect.ellipse.center.heavyTail.n1000.e-dense.hubs.flat.free.sp-stress/s1",
+    "configs": [
+     "723d66396f92c3ec",
+     "04ff9b4ec879047a"
+    ],
+    "atLeastMs": 4687615,
+    "reason": "hard deadline"
+   }
+  },
+  {
+   "round": 1,
+   "shard": 11,
+   "planned": 13.333636566132265,
+   "real": 60.383626250566664,
+   "costModel": "factors-2026-11-02",
+   "stopped": true,
+   "plannedDone": 2.2226127764327632,
+   "done": 19,
+   "units": 22
+  },
+  {
+   "round": 1,
+   "shard": 12,
+   "planned": 13.333606297578443,
+   "real": 49.749557817,
+   "costModel": "factors-2026-11-02",
+   "stopped": true,
+   "plannedDone": 2.205022833102792,
+   "done": 18,
+   "units": 21
+  },
+  {
+   "round": 1,
+   "shard": 13,
+   "planned": 13.400743010431997,
+   "real": 41.91043687756666,
+   "costModel": "factors-2026-11-02"
+  },
+  {
+   "round": 1,
+   "shard": 14,
+   "planned": 13.333637954979967,
+   "real": 26.2386920285,
+   "costModel": "factors-2026-11-02"
+  },
+  {
+   "round": 1,
+   "shard": 15,
+   "planned": 13.33361880861252,
+   "real": 35.19122522643333,
+   "costModel": "factors-2026-11-02"
+  },
+  {
+   "round": 1,
+   "shard": 16,
+   "planned": 13.333598080552985,
+   "real": 90.811362411,
+   "costModel": "factors-2026-11-02",
+   "stopped": true,
+   "plannedDone": 9.47423116495555,
+   "done": 19,
+   "units": 20
+  },
+  {
+   "round": 1,
+   "shard": 17,
+   "planned": 13.333625370403588,
+   "real": 3.910389620633333,
+   "costModel": "factors-2026-11-02",
+   "stopped": true,
+   "plannedDone": 5.646134700376862,
+   "done": 18,
+   "units": 20,
+   "elapsedMinutes": 100.01865,
+   "censored": {
+    "unit": "joint-v2/rect-grid.freeAspect.polygon.wall.heavyTail.n1000.e-medium.bundled.flat.free.sp-stress/s1#0",
+    "input": "joint-v2/rect-grid.freeAspect.polygon.wall.heavyTail.n1000.e-medium.bundled.flat.free.sp-stress/s1",
+    "configs": [
+     "13c69254b3569998",
+     "7440c0c288a63571",
+     "c805da12956eda58",
+     "89f4da34199cfe85",
+     "0f2a021ea00c6660",
+     "6e037581781e7aa9",
+     "fd92a1017a4b5335",
+     "45c5560cd9d48841",
+     "c330534358c1cc40",
+     "07570c71054080ab",
+     "33f440b7474033b6"
+    ],
+    "atLeastMs": 5764764,
+    "reason": "hard deadline"
+   }
+  },
+  {
+   "round": 1,
+   "shard": 18,
+   "planned": 13.333607655289331,
+   "real": 21.49665429605,
+   "costModel": "factors-2026-11-02"
+  },
+  {
+   "round": 1,
+   "shard": 19,
+   "planned": 13.333622982757912,
+   "real": 15.8306396353,
+   "costModel": "factors-2026-11-02"
+  },
+  {
+   "round": 1,
+   "shard": 2,
+   "planned": 13.333605881014464,
+   "real": 16.113342105716665,
+   "costModel": "factors-2026-11-02"
+  },
+  {
+   "round": 1,
+   "shard": 3,
+   "planned": 13.333602839756766,
+   "real": 13.288765589250001,
+   "costModel": "factors-2026-11-02"
+  },
+  {
+   "round": 1,
+   "shard": 4,
+   "planned": 13.333637684700104,
+   "real": 13.172272658066667,
+   "costModel": "factors-2026-11-02"
+  },
+  {
+   "round": 1,
+   "shard": 5,
+   "planned": 13.333599701456599,
+   "real": 92.50359362198333,
+   "costModel": "factors-2026-11-02",
+   "stopped": true,
+   "plannedDone": 4.911893864510107,
+   "done": 20,
+   "units": 22
+  },
+  {
+   "round": 1,
+   "shard": 6,
+   "planned": 13.333634104925439,
+   "real": 13.131077540833335,
+   "costModel": "factors-2026-11-02"
+  },
+  {
+   "round": 1,
+   "shard": 7,
+   "planned": 13.333600597220874,
+   "real": 25.8657433117,
+   "costModel": "factors-2026-11-02"
+  },
+  {
+   "round": 1,
+   "shard": 8,
+   "planned": 13.333599856837424,
+   "real": 18.058455268299998,
+   "costModel": "factors-2026-11-02"
+  },
+  {
+   "round": 1,
+   "shard": 9,
+   "planned": 13.333602315333785,
+   "real": 45.80642271206667,
+   "costModel": "factors-2026-11-02"
+  },
+  {
+   "round": 2,
+   "shard": 0,
+   "planned": 15.924411222443657,
+   "real": 2.052499603433333,
+   "costModel": "factors-2026-11-02"
+  },
+  {
+   "round": 2,
+   "shard": 1,
+   "planned": 15.924411222443657,
+   "real": 2.3720250471499997,
+   "costModel": "factors-2026-11-02"
+  },
+  {
+   "round": 2,
+   "shard": 10,
+   "planned": 13.47668374264272,
+   "real": 18.47985636315,
+   "costModel": "factors-2026-11-02"
+  },
+  {
+   "round": 2,
+   "shard": 11,
+   "planned": 13.47430821659934,
+   "real": 7.315391269083333,
+   "costModel": "factors-2026-11-02"
+  },
+  {
+   "round": 2,
+   "shard": 12,
+   "planned": 13.475270647548857,
+   "real": 9.11295305925,
+   "costModel": "factors-2026-11-02"
+  },
+  {
+   "round": 2,
+   "shard": 13,
+   "planned": 13.475718370462621,
+   "real": 7.84335077985,
+   "costModel": "factors-2026-11-02"
+  },
+  {
+   "round": 2,
+   "shard": 14,
+   "planned": 13.476751806508732,
+   "real": 9.0759815708,
+   "costModel": "factors-2026-11-02"
+  },
+  {
+   "round": 2,
+   "shard": 15,
+   "planned": 13.476551028600456,
+   "real": 13.941112006433332,
+   "costModel": "factors-2026-11-02"
+  },
+  {
+   "round": 2,
+   "shard": 16,
+   "planned": 13.474357402919283,
+   "real": 10.665654834316667,
+   "costModel": "factors-2026-11-02"
+  },
+  {
+   "round": 2,
+   "shard": 17,
+   "planned": 13.476744828994466,
+   "real": 6.17720637335,
+   "costModel": "factors-2026-11-02"
+  },
+  {
+   "round": 2,
+   "shard": 18,
+   "planned": 13.475822028413964,
+   "real": 8.787817071433334,
+   "costModel": "factors-2026-11-02"
+  },
+  {
+   "round": 2,
+   "shard": 19,
+   "planned": 13.475929533712668,
+   "real": 9.228395102233334,
+   "costModel": "factors-2026-11-02"
+  },
+  {
+   "round": 2,
+   "shard": 2,
+   "planned": 13.476758447780595,
+   "real": 5.6207209203,
+   "costModel": "factors-2026-11-02"
+  },
+  {
+   "round": 2,
+   "shard": 3,
+   "planned": 13.474487786893633,
+   "real": 4.857951381516667,
+   "costModel": "factors-2026-11-02"
+  },
+  {
+   "round": 2,
+   "shard": 4,
+   "planned": 13.475661236383731,
+   "real": 8.809311553516666,
+   "costModel": "factors-2026-11-02"
+  },
+  {
+   "round": 2,
+   "shard": 5,
+   "planned": 13.47426737553405,
+   "real": 5.079647136116666,
+   "costModel": "factors-2026-11-02"
+  },
+  {
+   "round": 2,
+   "shard": 6,
+   "planned": 13.474291883005286,
+   "real": 8.445959186683334,
+   "costModel": "factors-2026-11-02"
+  },
+  {
+   "round": 2,
+   "shard": 7,
+   "planned": 13.476621522208761,
+   "real": 8.33519598865,
+   "costModel": "factors-2026-11-02"
+  },
+  {
+   "round": 2,
+   "shard": 8,
+   "planned": 13.476672119626853,
+   "real": 9.920708774566668,
+   "costModel": "factors-2026-11-02"
+  },
+  {
+   "round": 2,
+   "shard": 9,
+   "planned": 13.474445857434107,
+   "real": 9.29613229795,
+   "costModel": "factors-2026-11-02"
+  }
+ ],
+ "waiting": {
+  "1": {
+   "configs": 0,
+   "pairs": 0,
+   "overBudgetPairs": 0,
+   "overBudgetInputs": 0,
+   "noFresh": false
+  },
+  "2": {
+   "configs": 4,
+   "pairs": 712,
+   "overBudgetPairs": 0,
+   "overBudgetInputs": 0,
+   "noFresh": true
+  }
+ },
+ "round1": {
+  "configs": 69,
+  "sampled": 66,
+  "jobs": 7575,
+  "units": 363,
+  "shards": 20,
+  "minutes": 269.33021357531464,
+  "longest": 15.924411222443657
+ },
+ "history": {
+  "model": "factors-2026-11-02",
+  "nights": [
+   "2026-11-08",
+   "2026-11-09",
+   "2026-11-10",
+   "2026-11-11",
+   "2026-11-12"
+  ],
+  "shard": {
+   "lo": 0.9759352221813986,
+   "hi": 5.686546402062271,
+   "width": 5.826766236955534,
+   "n": 27
+  },
+  "round": {
+   "lo": 1.115788457481099,
+   "hi": 5.27773657902401,
+   "width": 4.730051241916,
+   "n": 10
+  },
+  "wall": {
+   "lo": 1.4013974378199934,
+   "hi": 5.357778783771818,
+   "width": 3.823168673767772,
+   "n": 10
+  }
+ },
+ "cost": {
+  "1": {
+   "scale": 1.9229355292864039,
+   "budget": 309,
+   "maxShards": 20,
+   "plannedMinutes": 269.33021357531464,
+   "plannedWall": 89.77673785843821
+  },
+  "2": {
+   "scale": 1.9678569432508206,
+   "budget": 316,
+   "maxShards": 20,
+   "plannedMinutes": 274.41016628015745,
+   "plannedWall": 91.47005542671916
+  }
+ },
+ "budget": {
+  "gateMinutes": 0,
+  "estimate": "the median at 3 lanes over 42755856166: longest job 265, 3152 job minutes; 42957614788: longest job 264, 3018 job minutes; 43160391706: longest job 259, 3143 job minutes",
+  "runsRead": 3,
+  "failedRead": null,
+  "fallback": false,
+  "windowEnd": "2026-11-13T14:00Z",
+  "lastGate": "105240066ec31ef4b3dc24a8f7fb2865509eb293"
+ },
+ "lost": {
+  "rounds": {
+   "1": {
+    "planned": 7575,
+    "noRecord": 170,
+    "noReference": 0,
+    "censored": 13
+   },
+   "2": {
+    "planned": 1131,
+    "noRecord": 0,
+    "noReference": 0,
+    "censored": 0
+   }
+  }
+ },
+ "race": {
+  "raced": 66,
+  "dropped": 41,
+  "halved": 16,
+  "alive": 9,
+  "full": 8,
+  "fullDropped": 0,
+  "aliveAtStart": 8,
+  "held": []
+ },
+ "round2": {
+  "configs": 6,
+  "sampled": 0,
+  "jobs": 1131,
+  "units": 246,
+  "shards": 20,
+  "minutes": 274.41016628015745,
+  "longest": 15.924411222443657
+ },
+ "run": "43360441335",
+ "wall": {
+  "rounds": {
+   "1": 301.1666666666667,
+   "2": 62.483333333333334
+  }
+ },
+ "counts": {
+  "baseline": 3,
+  "screened": 0,
+  "alive": 17,
+  "dropped": 66,
+  "halved": 28,
+  "design": 0
+ },
+ "facts": {
+  "costModel": {
+   "p": 0.6,
+   "within": 0.25,
+   "shards": 40,
+   "hits": 3,
+   "stopped": 6,
+   "brier": 0.34499999999999986,
+   "cost": {
+    "1": {
+     "scale": 1.9229355292864039,
+     "budget": 309,
+     "maxShards": 20,
+     "plannedMinutes": 269.33021357531464,
+     "plannedWall": 89.77673785843821
+    },
+    "2": {
+     "scale": 1.9678569432508206,
+     "budget": 316,
+     "maxShards": 20,
+     "plannedMinutes": 274.41016628015745,
+     "plannedWall": 91.47005542671916
+    }
+   },
+   "interval": {
+    "p": 0.8,
+    "widthCap": 5,
+    "capNote": "The cap of the width is provisional, and it was chosen after the back-test.",
+    "history": {
+     "model": "factors-2026-11-02",
+     "nights": [
+      "2026-11-08",
+      "2026-11-09",
+      "2026-11-10",
+      "2026-11-11",
+      "2026-11-12"
+     ],
+     "shard": {
+      "lo": 0.9759352221813986,
+      "hi": 5.686546402062271,
+      "width": 5.826766236955534,
+      "n": 27
+     },
+     "round": {
+      "lo": 1.115788457481099,
+      "hi": 5.27773657902401,
+      "width": 4.730051241916,
+      "n": 10
+     },
+     "wall": {
+      "lo": 1.4013974378199934,
+      "hi": 5.357778783771818,
+      "width": 3.823168673767772,
+      "n": 10
+     }
+    },
+    "jobMinutes": {
+     "planned": 543.7403798554722,
+     "lo": 606.6992397091241,
+     "hi": 2869.7184922556353,
+     "real": 950.9880359138,
+     "side": "hit",
+     "brier": 0.03999999999999998
+    },
+    "jobMinutesStatus": "scored",
+    "wall": {
+     "planned": 181.24679328515737,
+     "lo": 253.99879172290952,
+     "hi": 971.0802236898925,
+     "real": 363.65000000000003,
+     "side": "hit",
+     "brier": 0.03999999999999998
+    },
+    "wallStatus": "scored",
+    "shards": {
+     "lo": 0.9759352221813986,
+     "hi": 5.686546402062271,
+     "width": 5.826766236955534,
+     "overCap": true,
+     "shards": 40,
+     "hits": 14,
+     "low": 20,
+     "high": 6,
+     "stopped": 6,
+     "brier": 0.43000000000000027
+    }
+   }
+  },
+  "longestShard": 100.01865,
+  "newConfigs": 66,
+  "raced": 66,
+  "dropShare": 0.6212121212121212,
+  "better": 6,
+  "plannedMinutes": 543.7403798554722,
+  "realMinutes": 950.9880359138,
+  "misses": {
+   "rows+portfolio": {
+    "misses": 143,
+    "of": 222
+   },
+   "select+portfolio": {
+    "misses": 140,
+    "of": 222
+   },
+   "lanes-sides.maxrects-cp.corners+corners": {
+    "misses": 3,
+    "of": 222
+   }
+  },
+  "incumbent": "lanes-sides.maxrects-cp.corners+corners"
+ }
+}
