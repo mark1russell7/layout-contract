@@ -28,8 +28,11 @@ export type CellMeasureSuffix = "cell.areaError" | "cell.compactness";
 /** The suffixes of the cell measures, in the order of `cellMeasureSpecs`. */
 export const CELL_MEASURE_SUFFIXES: readonly CellMeasureSuffix[] = /* @__PURE__ */ Object.freeze(["cell.areaError", "cell.compactness"] as const);
 
-/** The compactness of a square: 4 over PI. */
-export const SQUARE_COMPACTNESS: number = 4 / Math.PI;
+/**
+ * The compactness of a square: 4 over PI. The value is the literal of `4 / Math.PI`, because a bundler keeps a top-level division, also when
+ * no code uses it.
+ */
+export const SQUARE_COMPACTNESS: number = 1.2732395447351628;
 
 /**
  * This function gives the cell measures of the placed items in a container of the area `containerArea`.

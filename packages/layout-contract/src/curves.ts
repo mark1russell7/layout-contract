@@ -27,7 +27,7 @@ export type CurveSymmetry =
   | "flip-t";
 
 /** The 8 symmetries of a square, in a fixed order. */
-export const CURVE_SYMMETRIES: readonly CurveSymmetry[] = Object.freeze(["same", "swap", "back", "half", "rise", "fall", "flip-s", "flip-t"]);
+export const CURVE_SYMMETRIES: readonly CurveSymmetry[] = /* @__PURE__ */ Object.freeze(["same", "swap", "back", "half", "rise", "fall", "flip-s", "flip-t"]);
 
 /** A quadrant of a square: `[0, 0]` is the low left quadrant, and `[1, 0]` is the quadrant with the high `s` and the low `t`. */
 export type CurveQuadrant = readonly [0 | 1, 0 | 1];
@@ -44,35 +44,38 @@ export interface CurveSpec {
 }
 
 /** The order of the parts of the Hilbert and Moore curves: low left, high left, high right and low right. */
-const LOOP_ORDER: CurveSpec["order"] = Object.freeze([
-  Object.freeze([0, 0] as const),
-  Object.freeze([0, 1] as const),
-  Object.freeze([1, 1] as const),
-  Object.freeze([1, 0] as const),
+const LOOP_ORDER: CurveSpec["order"] = /* @__PURE__ */ Object.freeze([
+  /* @__PURE__ */ Object.freeze([0, 0] as const),
+  /* @__PURE__ */ Object.freeze([0, 1] as const),
+  /* @__PURE__ */ Object.freeze([1, 1] as const),
+  /* @__PURE__ */ Object.freeze([1, 0] as const),
 ]);
 
 /** The parts of the Hilbert curve. The curve goes in at the corner `(0, 0)` and out at the corner `(size, 0)`. */
-export const HILBERT_PATTERN: CurvePattern = Object.freeze(["swap", "same", "same", "back"] as const);
+export const HILBERT_PATTERN: CurvePattern = /* @__PURE__ */ Object.freeze(["swap", "same", "same", "back"] as const);
 
 /** The top level of the Moore curve: four Hilbert curves in a loop. The loop goes in and out at the middle of the side `t = 0`. */
-export const MOORE_PATTERN: CurvePattern = Object.freeze(["rise", "rise", "fall", "fall"] as const);
+export const MOORE_PATTERN: CurvePattern = /* @__PURE__ */ Object.freeze(["rise", "rise", "fall", "fall"] as const);
 
 /** The Hilbert curve. Two cells in a row along the curve share a side. */
-export const HILBERT_CURVE: CurveSpec = Object.freeze({ name: "hilbert", order: LOOP_ORDER, root: HILBERT_PATTERN, child: HILBERT_PATTERN });
+export const HILBERT_CURVE: CurveSpec = /* @__PURE__ */ Object.freeze({ name: "hilbert", order: LOOP_ORDER, root: HILBERT_PATTERN, child: HILBERT_PATTERN });
 
 /** The Moore curve. Two cells in a row share a side, and the last cell shares a side with the first cell. */
-export const MOORE_CURVE: CurveSpec = Object.freeze({ name: "moore", order: LOOP_ORDER, root: MOORE_PATTERN, child: HILBERT_PATTERN });
+export const MOORE_CURVE: CurveSpec = /* @__PURE__ */ Object.freeze({ name: "moore", order: LOOP_ORDER, root: MOORE_PATTERN, child: HILBERT_PATTERN });
 
 /** The Morton curve (the Z order). The index of a cell has the bits of `x` at the even places and the bits of `y` at the odd places. */
-export const MORTON_CURVE: CurveSpec = Object.freeze({
+export const MORTON_CURVE: CurveSpec = /* @__PURE__ */ Object.freeze({
   name: "morton",
-  order: Object.freeze([Object.freeze([0, 0] as const), Object.freeze([1, 0] as const), Object.freeze([0, 1] as const), Object.freeze([1, 1] as const)] as const),
-  root: Object.freeze(["same", "same", "same", "same"] as const),
-  child: Object.freeze(["same", "same", "same", "same"] as const),
+  order: /* @__PURE__ */ Object.freeze([/* @__PURE__ */ Object.freeze([0, 0] as const), /* @__PURE__ */ Object.freeze([1, 0] as const), /* @__PURE__ */ Object.freeze([0, 1] as const), /* @__PURE__ */ Object.freeze([1, 1] as const)] as const),
+  root: /* @__PURE__ */ Object.freeze(["same", "same", "same", "same"] as const),
+  child: /* @__PURE__ */ Object.freeze(["same", "same", "same", "same"] as const),
 });
 
-/** The largest side of a curve grid: 2 to the power 26. Thus each index is less than 2 to the power 52, and is exact. */
-export const CURVE_MAX_SIDE: number = 2 ** 26;
+/**
+ * The largest side of a curve grid: 2 to the power 26. Thus each index is less than 2 to the power 52, and is exact. The value is a literal,
+ * because a bundler keeps a top-level `2 ** 26`, also when no code uses it.
+ */
+export const CURVE_MAX_SIDE: number = 67_108_864;
 
 /**
  * This function gives a point of the square `[0, size] x [0, size]` after a symmetry. The cell `(x, y)` of a grid of
