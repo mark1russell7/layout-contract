@@ -1,7 +1,7 @@
 {
   "schema": "site-space/1",
-  "source": "packing 0.17.3",
-  "date": "2026-11-13",
+  "source": "packing 0.19.0",
+  "date": "2026-11-14",
   "space": {
     "schema": "strategy-space/1",
     "engine": "packing",

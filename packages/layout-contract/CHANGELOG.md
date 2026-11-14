@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.11.0
+
+The release train changes the range of `@mark1russell7/strategy-space` to a version outside the old range. The public types name @mark1russell7/strategy-space, so its new version outside the old range can change them.
+
+### Breaking
+
+- The range `^0.0.5` of `@mark1russell7/strategy-space` in `dependencies` does not hold `0.0.6`, so it changes.
+
 ## 0.10.1
 
 - PATCH: a fix of the shipped files, with no change to the API. A bundle that imports one export of the root gets only the code of that export again.
