@@ -190,16 +190,16 @@
   },
   "joint-v2_packing-0.10.2_highways-0.15.0_space-bench-3": {
    "corpus": "joint-v2",
-   "nights": 6,
-   "last": "2026-11-13",
-   "missing": 166,
-   "configs": 114,
+   "nights": 7,
+   "last": "2026-11-14",
+   "missing": 0,
+   "configs": 126,
    "counts": {
     "baseline": 3,
     "screened": 0,
-    "alive": 17,
-    "dropped": 66,
-    "halved": 28,
+    "alive": 19,
+    "dropped": 72,
+    "halved": 32,
     "design": 0
    },
    "step": {
@@ -285,39 +285,39 @@
     }
    },
    "cost": {
-    "date": "2026-11-13",
+    "date": "2026-11-14",
     "jobMinutes": {
-     "planned": 543.7403798554722,
-     "lo": 606.6992397091241,
-     "hi": 2869.7184922556353,
-     "real": 950.9880359138,
+     "planned": 131.18942012707438,
+     "lo": 99.27471534362941,
+     "hi": 692.3832013856091,
+     "real": 142.88746801333335,
      "side": "hit",
      "brier": 0.03999999999999998
     },
     "jobMinutesStatus": "scored",
     "wall": {
-     "planned": 181.24679328515737,
-     "lo": 253.99879172290952,
-     "hi": 971.0802236898925,
-     "real": 363.65000000000003,
+     "planned": 43.73039966735866,
+     "lo": 37.870116606935625,
+     "hi": 234.2978075436364,
+     "real": 61.56666666666666,
      "side": "hit",
      "brier": 0.03999999999999998
     },
     "wallStatus": "scored",
     "shards": {
-     "lo": 0.9759352221813986,
-     "hi": 5.686546402062271,
-     "width": 5.826766236955534,
+     "lo": 0.3970282321256855,
+     "hi": 6.602181168256361,
+     "width": 16.628996716199108,
      "overCap": true,
-     "shards": 40,
-     "hits": 14,
-     "low": 20,
-     "high": 6,
-     "stopped": 6,
-     "brier": 0.43000000000000027
+     "shards": 6,
+     "hits": 6,
+     "low": 0,
+     "high": 0,
+     "stopped": 0,
+     "brier": 0.03999999999999998
     },
     "widthCap": 5,
-    "budget": "The gate already ran on this commit, so the budget holds no time for it.",
+    "budget": "The budget of the gate is 1048 minutes, from 3 gates.",
     "thin": false
    }
   }
