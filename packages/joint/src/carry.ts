@@ -4,6 +4,7 @@
 import { canonicalJson, carryRecord, fingerprintOf, sha256Hex, type CarriedCode, type LayoutRecord } from "@mark1russell7/layout-contract";
 import { random } from "@mark1russell7/rigor-generators";
 import { wilson, Z95 } from "@mark1russell7/rigor-statistics";
+import { NOT_RUN_OVER_BUDGET, OVER_BUDGET } from "./analysis.ts";
 import { familyOf } from "./memory-gate.ts";
 import { doneKey } from "./shard-run.ts";
 
@@ -188,6 +189,11 @@ export function carryPlan(records: readonly LayoutRecord[], facts: CarryFacts): 
   return { carried, again, counts, ...(audit === undefined ? {} : { audit }), ...(bridge === undefined ? {} : { code: bridge }) };
 }
 
+/** This function gives the strata of a pair of an audit: its pack entry, its router and the family of its input (`familyOf`). */
+export function auditStrata(record: LayoutRecord): string[] {
+  return [`pack\n${String(record.options["pack"])}`, `router\n${String(record.options["router"])}`, `family\n${familyOf(record.input)}`];
+}
+
 /** This function gives the seed of a code audit from the two commits, so each change of the code gets a new sample. */
 export function codeAuditSeed(code: CodeChange): string {
   return `code-audit\n${code.from}\n${code.to}`;
@@ -208,8 +214,7 @@ export function codeAuditSample(records: readonly LayoutRecord[], code: CodeChan
   const covered = new Set<string>();
   const picked = new Set<string>();
   for (const key of rng.shuffle(sorted)) {
-    const r = byKey.get(key)!;
-    const strata = [`pack\n${String(r.options["pack"])}`, `router\n${String(r.options["router"])}`, `family\n${familyOf(r.input)}`];
+    const strata = auditStrata(byKey.get(key)!);
     if (strata.every((s) => covered.has(s))) continue;
     for (const s of strata) covered.add(s);
     picked.add(key);
@@ -244,18 +249,40 @@ export interface AuditResult {
   readonly differing: readonly { readonly key: string; readonly fields: readonly string[] }[];
   /** The keys of the pairs of the audit with no measured record. */
   readonly missing: readonly string[];
-  /** This value is `true` when each pair of the audit has a measured record with the same audit form. */
+  /** The keys of the pairs with a skip of the time budget (`BUDGET_SKIPS`) on one side. These pairs give no read. */
+  readonly unread: readonly string[];
+  /** The count of the pairs that give a read: the pairs with a measured record and no skip of the time budget. */
+  readonly read: number;
+  /** The strata (`auditStrata`) of the pairs of the audit with no pair that gives a read. */
+  readonly unreadStrata: readonly string[];
+  /** The 95 % upper bound of the rate of a difference from the read pairs with 0 differences (`wilson` of `rigor-statistics`), or 1 with no read. */
+  readonly upper: number;
+  /**
+   * This value is `true` when no pair differs and no pair is missing.
+   * Also, each stratum of the audit has a read, and at least min(`AUDIT_LEAST`, `pairs`) pairs give a read.
+   */
   readonly pass: boolean;
 }
 
 /**
+ * The skips of a run that come from its time budget (docs/JOINT-BENCH.md, "A time budget for each pair"), not from the engines.
+ * The time of a stage depends on the load of the runner and on the order of the pairs.
+ * So the same engines can give a record in one run and this skip in another run.
+ */
+export const BUDGET_SKIPS: readonly string[] = Object.freeze([OVER_BUDGET, NOT_RUN_OVER_BUDGET]);
+
+/**
  * This function compares the carried records of an audit with the records that the run measured again.
  * One pair with another audit form or with no measured record fails the audit, so the run measures each pair again.
+ * A pair with a skip of the time budget on one side gives no read, not a difference (A/A run 43378909783: 2 of 9,516 pairs).
+ * A gate that cannot read a case does not pass. So the audit also fails when a stratum of its pairs has no read, or when fewer than min(`AUDIT_LEAST`, `pairs`) pairs give a read.
  */
 export function auditCompare(carried: readonly LayoutRecord[], measured: readonly LayoutRecord[]): AuditResult {
   const byKey = new Map(measured.map((r) => [doneKey(r.input, r.strategy), r]));
   const differing: { key: string; fields: string[] }[] = [];
   const missing: string[] = [];
+  const unread: string[] = [];
+  const budgetSkip = (r: LayoutRecord): boolean => r.skipped !== undefined && BUDGET_SKIPS.includes(r.skipped);
   for (const record of carried) {
     const key = doneKey(record.input, record.strategy);
     const other = byKey.get(key);
@@ -263,12 +290,23 @@ export function auditCompare(carried: readonly LayoutRecord[], measured: readonl
       missing.push(key);
       continue;
     }
+    if (budgetSkip(record) || budgetSkip(other)) {
+      unread.push(key);
+      continue;
+    }
     const a = auditForm(record);
     const b = auditForm(other);
     const fields = [...new Set([...Object.keys(a), ...Object.keys(b)])].filter((name) => canonicalJson(a[name] ?? null) !== canonicalJson(b[name] ?? null)).sort();
     if (fields.length > 0) differing.push({ key, fields });
   }
-  return { pairs: carried.length, differing, missing, pass: differing.length === 0 && missing.length === 0 };
+  const skipped = new Set([...missing, ...unread]);
+  const strata = new Set(carried.flatMap(auditStrata));
+  for (const record of carried) if (!skipped.has(doneKey(record.input, record.strategy))) for (const s of auditStrata(record)) strata.delete(s);
+  const unreadStrata = [...strata].sort();
+  const read = carried.length - missing.length - unread.length;
+  const upper = read === 0 ? 1 : wilson(0, read, Z95).high;
+  const pass = differing.length === 0 && missing.length === 0 && unreadStrata.length === 0 && read >= Math.min(AUDIT_LEAST, carried.length);
+  return { pairs: carried.length, differing, missing, unread, read, unreadStrata, upper, pass };
 }
 
 /** This function gives the fingerprint of the probes of one router. It is `fingerprintOf` of the audit hash of the record of each probe input. */

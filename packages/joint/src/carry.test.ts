@@ -9,6 +9,7 @@ import {
   auditForm,
   auditHash,
   auditSample,
+  BUDGET_SKIPS,
   CARRY_PROBE_SCHEMA,
   carryPlan,
   codeAuditSample,
@@ -19,6 +20,7 @@ import {
   packKey,
   type CarryProbe,
 } from "./carry.ts";
+import { NOT_RUN_OVER_BUDGET, OVER_BUDGET } from "./analysis.ts";
 import { carryProbe, packProbe } from "./carry-probe.ts";
 import { localImports } from "./carry-sources.ts";
 import { familyOf } from "./memory-gate.ts";
@@ -196,12 +198,42 @@ describe("the audit", () => {
 
   it("passes on equal records, and fails on one differing or missing pair", () => {
     const again = runInput(three, undefined, { packs: [rows, shelf], routers: ["straight", "corners"] });
-    expect(auditCompare(records, again)).toEqual({ pairs: records.length, differing: [], missing: [], pass: true });
+    expect(auditCompare(records, again)).toEqual({ pairs: records.length, differing: [], missing: [], unread: [], read: records.length, unreadStrata: [], upper: wilson(0, records.length, Z95).high, pass: true });
     const bent = again.map((r, i) => (i === 1 ? ({ ...r, outputHash: "0000000000000000" } as LayoutRecord) : r));
     const fail = auditCompare(records, bent);
     expect(fail.pass).toBe(false);
     expect(fail.differing).toEqual([{ key: doneKey(records[1]!.input, records[1]!.strategy), fields: ["outputHash"] }]);
     expect(auditCompare(records, again.slice(1)).missing).toEqual([doneKey(records[0]!.input, records[0]!.strategy)]);
+  });
+
+  // A/A run 43378909783: the run measured 2 of 9,516 audit pairs again over the time budget. The audit read these skips as differences and failed.
+  it("counts a skip of the time budget as no read, not as a difference", () => {
+    const many = Array.from({ length: 40 }, (_, i) => ({ input: `joint-v2/f${i % 2}/s${i}`, strategy: `p${i % 4}+r${i % 3}`, options: { pack: `p${i % 4}`, router: `r${i % 3}` }, outputHash: `h${i}`, measures: { fill: i } }) as unknown as LayoutRecord);
+    const key0 = doneKey(many[0]!.input, many[0]!.strategy);
+    expect(BUDGET_SKIPS).toEqual([OVER_BUDGET, NOT_RUN_OVER_BUDGET]);
+    for (const skip of BUDGET_SKIPS) {
+      const again = many.map((r, i) => (i === 0 ? ({ ...r, skipped: skip, outputHash: "", measures: {}, ms: 0 } as LayoutRecord) : r));
+      const result = auditCompare(many, again);
+      expect(result).toMatchObject({ differing: [], missing: [], unread: [key0], read: 39, unreadStrata: [], pass: true });
+      expect(result.upper).toBe(wilson(0, 39, Z95).high);
+    }
+    // Another skip comes from the engines, so it is a difference.
+    const refused = many.map((r, i) => (i === 0 ? ({ ...r, skipped: "unsupported" } as LayoutRecord) : r));
+    expect(auditCompare(many, refused)).toMatchObject({ differing: [{ key: key0, fields: ["skipped"] }], unread: [], pass: false });
+  });
+
+  it("fails when a stratum of the audit or too many pairs give no read", () => {
+    const many = Array.from({ length: 40 }, (_, i) => ({ input: `joint-v2/f${i % 2}/s${i}`, strategy: `p${i % 4}+r${i % 3}`, options: { pack: `p${i % 4}`, router: `r${i % 3}` }, measures: {} }) as unknown as LayoutRecord);
+    // The pack entry "solo" has one pair. Its skip leaves the stratum with no read.
+    const solo = many.map((r, i) => (i === 0 ? ({ ...r, strategy: "solo+r0", options: { pack: "solo", router: "r0" } } as unknown as LayoutRecord) : r));
+    const skipSolo = solo.map((r, i) => (i === 0 ? ({ ...r, skipped: OVER_BUDGET } as LayoutRecord) : r));
+    expect(auditCompare(solo, skipSolo)).toMatchObject({ differing: [], unreadStrata: ["pack\nsolo"], read: 39, pass: false });
+    // An audit of 4 pairs needs 4 reads (min(AUDIT_LEAST, 4)).
+    const again = runInput(three, undefined, { packs: [rows, shelf], routers: ["straight", "corners"] });
+    const skipOne = again.map((r, i) => (i === 1 ? ({ ...r, skipped: OVER_BUDGET } as LayoutRecord) : r));
+    expect(auditCompare(records, skipOne)).toMatchObject({ differing: [], unreadStrata: [], read: 3, pass: false });
+    // With no read, the bound is 1.
+    expect(auditCompare(many, many.map((r) => ({ ...r, skipped: NOT_RUN_OVER_BUDGET }) as LayoutRecord))).toMatchObject({ read: 0, upper: 1, pass: false });
   });
 });
 
