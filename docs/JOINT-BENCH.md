@@ -115,7 +115,12 @@ A change of `runner.ts` or of its local imports can change the records with no e
 
 One pair with another record, without the times, fails the audit. Then no record joins.
 
-Each kept record gets the field `carried.code` of `layout-contract`. It holds the commit of the measure, the commit of this run, the size of the audit and the upper bound. The upper bound is the 95 % upper bound of the rate of a difference with 0 differences in the audit. It is the Wilson interval of `rigor-statistics` (`wilson`). The file `carry.json` of the artifact `joint-carry-audit` has the changed files (`codeChanged`) and these facts (`code`).
+A skip of the time budget is not a difference. The time of a stage changes with the load of the runner. So the same engines can give a record in one run and the skip `over budget` in another run. An audit pair with this skip, or with the skip `not run: over budget on this input`, gives no read (`BUDGET_SKIPS`, `auditCompare`). In the A/A run 43378909783, 2 of 9,516 audit pairs had this skip, and the audit failed on them before this rule. A gate that cannot read a case does not pass, so the audit also fails in these cases:
+
+1. A stratum of the audit pairs (a pack entry, a router or an input family, `auditStrata`) has no pair that gives a read.
+2. Fewer than min(30, the audit size) pairs give a read.
+
+Each kept record gets the field `carried.code` of `layout-contract`. It holds the commit of the measure, the commit of this run, the size of the audit and the upper bound. The upper bound is the 95 % upper bound of the rate of a difference with 0 differences in the audit. It is the Wilson interval of `rigor-statistics` (`wilson`). The file `carry.json` of the artifact `joint-carry-audit` has the changed files (`codeChanged`) and these facts (`code`). The plan writes `carried.code` before the run, so its bound counts each audit pair. The file `audit.json` of the artifact `joint-carry-audit-result` gives the bound of the pairs that gave a read (`read`, `upper`). When some pairs give no read, the bound of `audit.json` is the true bound, and it is a little higher.
 
 A code bridge is a bridge only. The next carry measures each record with `carried.code` again (the reason `code bridge`). So the next full run at the commit of the bridge or later replaces each bridge record.
 

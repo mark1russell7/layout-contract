@@ -601,8 +601,13 @@ if (command === "check") {
   const carried = readFileSync(args.audit, "utf8").split("\n").filter((line) => line.trim() !== "").map((line) => JSON.parse(line));
   const result = auditCompare(carried, readRecords(args.records));
   if (args.out !== undefined) writeFileSync(args.out, JSON.stringify(result, null, 2) + "\n");
-  console.log(`Audit of the carry: ${result.pairs} pairs, ${result.differing.length} with another record, ${result.missing.length} not measured. ${result.pass ? "pass" : "fail"}.`);
+  console.log(
+    `Audit of the carry: ${result.pairs} pairs, ${result.differing.length} with another record, ${result.missing.length} not measured, ${result.unread.length} with no read (a skip of the time budget). ` +
+      `${result.read} reads give a 95 % upper bound of ${(100 * result.upper).toFixed(3)} % for the rate of a difference. ${result.unreadStrata.length} strata with no read. ${result.pass ? "pass" : "fail"}.`,
+  );
   for (const d of result.differing.slice(0, 20)) console.log(`  ${d.key.replaceAll("\n", " ")}: ${d.fields.join(", ")}`);
+  for (const key of result.unread.slice(0, 20)) console.log(`  no read: ${key.replaceAll("\n", " ")}`);
+  for (const s of result.unreadStrata.slice(0, 20)) console.log(`  stratum with no read: ${s.replaceAll("\n", " ")}`);
   if (!result.pass) {
     console.error("::error::The audit of the carry failed, so the carried records do not join. Measure each pair of the engine again: a resume with no carry.");
     process.exit(1);
