@@ -123,7 +123,7 @@ The ideas of the survey, and their state:
 
 ### The survey of 2026-11-13
 
-The joint bench moves to `packing` 0.17.3 and `highways` 0.17.1 (L161). Thus `docs/measure-survey.json` reads these versions.
+The joint bench moves to `packing` 0.17.3 and `highways` 0.17.1 (L163). Thus `docs/measure-survey.json` reads these versions.
 
 - The survey has 164 distinct ids: 10 of the contract, 34 of `packing` and 120 of `highways`.
 - The 4 new ids are of `highways`: `route.bundle.reach`, `route.crossings.pairs.low`, `route.crossings.pairs.high` and `route.crossings.pairs.contact-sampled`.

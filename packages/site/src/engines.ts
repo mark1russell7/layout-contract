@@ -325,7 +325,7 @@ export function packExtraKeys(): Record<string, string[]> {
 /**
  * This function gives the names of the router and highway entries of the registry of the pinned `highways`: the denominator of the measure `routers-on-compare`.
  * The other families of the registry (group, plugs, levels, curve, room, whole) are parts of a router, so they are not in the list.
- * Since `highways` 0.15.0, `KEYED_STRATEGIES` holds each keyed entry of the registry (L129). In `highways` 0.17.1, it has 90 router and highway names, and `STRATEGIES` holds 75 of them (L161).
+ * Since `highways` 0.15.0, `KEYED_STRATEGIES` holds each keyed entry of the registry (L129). In `highways` 0.17.1, it has 90 router and highway names, and `STRATEGIES` holds 75 of them (L163).
  */
 export function keyedRouterNames(): string[] {
   const routers = highways.listStrategies(highways.KEYED_STRATEGIES, "router") as unknown as readonly RouterStrategy[];

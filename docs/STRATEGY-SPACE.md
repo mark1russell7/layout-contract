@@ -26,7 +26,7 @@ The output of a named config is equal to the output of the old named strategy. T
 ### The joint pack entries in `packSpace`
 
 The joint cover has 48 pack entries, and each one is a point of `packSpace` of `packing` 0.17.3. `configOfStrategy` gives the point of each entry.
-The 3 entries `shelf-split-fit`, `shelf-floor-ceiling` and `shelf-knapsack` are new in `packing` 0.17.2 (L161).
+The 3 entries `shelf-split-fit`, `shelf-floor-ceiling` and `shelf-knapsack` are new in `packing` 0.17.2 (L163).
 Up to `packing` 0.7.0, the 8 standalone strategies were outside `packSpace`. Since 0.8.0 they are points too (roadmap item L129). The closed list of the strategies outside the space is thus empty.
 
 The test `pack-points.test.ts` checks each point with `checkConfig`, and compares the `outputHash` of `packConfig` with the hash of the entry on 17 inputs of `joint-v1`. It also compares them on one circle input for each container of `CIRCLE_CONTAINERS`, from `joint-v3`. Without them, `hole-degree` and `circle-quasi-physical` get no comparison.
@@ -40,7 +40,7 @@ With `packing` 0.10.2, 13 of 855 cases differed: 11 of `side-anchors`, and 1 eac
 
 The cover has 164 routers, and 76 of them are named points of `routeSpace` of `highways` 0.17.1. The test `route-points.test.ts` checks each of these points with `checkConfig`.
 It also compares the hash of the routes of the router and of `routeConfig` on 8 inputs of `joint-v1`. These inputs give one input for each container kind and obstacle case, and each hash is equal.
-Since `highways` 0.15.0, the cover takes its routers from `KEYED_STRATEGIES`. In `highways` 0.17.1, this list has 90 router and highway names, and `STRATEGIES` holds 75 of them (L161).
+Since `highways` 0.15.0, the cover takes its routers from `KEYED_STRATEGIES`. In `highways` 0.17.1, this list has 90 router and highway names, and `STRATEGIES` holds 75 of them (L163).
 
 `routeSpace` does not name the other 88 routers. 74 of them are member forms of `MEMBER_FORMS`, for example `corners-side` and `w2a:shared-ways+stretch`. `configOfMember` of `highways` gives the point of 73 of these forms (L148 step 7). The test checks each of these points with `checkConfig`, and compares the hashes of their routes on the 8 inputs. Each hash is equal. Thus 149 of the 164 routers of the cover have a point.
 

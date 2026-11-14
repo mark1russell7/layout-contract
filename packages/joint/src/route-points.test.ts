@@ -11,7 +11,7 @@ import { PACK_ENTRIES, packInputOf, PORTFOLIO_ROUTER, routeHash, routerEntryOf, 
 const SPACE = routeSpace as unknown as StrategySpace;
 
 /**
- * The router entries of `KEYED_STRATEGIES` that `routeSpace` of `highways` 0.17.1 does not name (L129, L161).
+ * The router entries of `KEYED_STRATEGIES` that `routeSpace` of `highways` 0.17.1 does not name (L129, L163).
  * The cover races them, but this test cannot compare a point with them. The fix belongs to `highways`.
  * Since `highways` 0.15.1, `BASELINE_STRATEGIES` has the routers `one-trunk` and `perimeter`. `routeSpace` does not name them.
  */
