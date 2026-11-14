@@ -1,6 +1,6 @@
 {
   "schema": "site-space/1",
-  "source": "packing 0.10.2",
+  "source": "packing 0.17.3",
   "date": "2026-11-13",
   "space": {
     "schema": "strategy-space/1",
@@ -47,14 +47,70 @@
             }
           },
           {
+            "id": "perimeter-desc",
+            "params": [],
+            "supports": {
+              "shape": [
+                "rect"
+              ]
+            }
+          },
+          {
+            "id": "long-side-desc",
+            "params": [],
+            "supports": {
+              "shape": [
+                "rect"
+              ]
+            }
+          },
+          {
+            "id": "short-side-desc",
+            "params": [],
+            "supports": {
+              "shape": [
+                "rect"
+              ]
+            }
+          },
+          {
+            "id": "side-diff-desc",
+            "params": [],
+            "supports": {
+              "shape": [
+                "rect"
+              ]
+            }
+          },
+          {
+            "id": "ratio-desc",
+            "params": [],
+            "supports": {
+              "shape": [
+                "rect"
+              ]
+            }
+          },
+          {
+            "id": "diagonal-desc",
+            "params": [],
+            "supports": {
+              "shape": [
+                "rect"
+              ]
+            }
+          },
+          {
             "id": "input",
             "params": [],
             "supports": {
               "shape": [
                 "rect",
+                "polygon",
                 "circle"
               ]
-            }
+            },
+            "identity": true
           },
           {
             "id": "graph-bfs",
@@ -94,9 +150,11 @@
             "supports": {
               "shape": [
                 "rect",
+                "polygon",
                 "circle"
               ]
-            }
+            },
+            "identity": true
           }
         ]
       },
@@ -391,6 +449,33 @@
             }
           },
           {
+            "id": "shelf-split-fit",
+            "params": [],
+            "supports": {
+              "shape": [
+                "rect"
+              ]
+            }
+          },
+          {
+            "id": "shelf-floor-ceiling",
+            "params": [],
+            "supports": {
+              "shape": [
+                "rect"
+              ]
+            }
+          },
+          {
+            "id": "shelf-knapsack",
+            "params": [],
+            "supports": {
+              "shape": [
+                "rect"
+              ]
+            }
+          },
+          {
             "id": "beam",
             "params": [
               {
@@ -459,7 +544,9 @@
             ],
             "supports": {
               "shape": [
-                "rect"
+                "rect",
+                "polygon",
+                "circle"
               ]
             }
           },
@@ -477,7 +564,9 @@
             ],
             "supports": {
               "shape": [
-                "rect"
+                "rect",
+                "polygon",
+                "circle"
               ]
             }
           },
@@ -518,9 +607,26 @@
                   "squarified",
                   "slice-dice",
                   "strip",
-                  "pivot-split"
+                  "pivot-split",
+                  "spiral"
                 ],
                 "default": "squarified"
+              },
+              {
+                "name": "pivot",
+                "kind": "enum",
+                "values": [
+                  "split",
+                  "middle",
+                  "size"
+                ],
+                "default": "split",
+                "when": {
+                  "param": "method",
+                  "in": [
+                    "pivot-split"
+                  ]
+                }
               }
             ],
             "supports": {
@@ -540,9 +646,11 @@
             "supports": {
               "shape": [
                 "rect",
+                "polygon",
                 "circle"
               ]
-            }
+            },
+            "identity": true
           }
         ]
       },
@@ -656,7 +764,8 @@
             "members": {
               "min": 2,
               "max": 5,
-              "ordered": true
+              "ordered": true,
+              "chooses": true
             },
             "supports": {
               "shape": [
@@ -1046,7 +1155,8 @@
                     }
                   }
                 ]
-              ]
+              ],
+              "chooses": true
             },
             "supports": {
               "shape": [
@@ -1070,7 +1180,8 @@
             "members": {
               "min": 2,
               "max": 2,
-              "ordered": true
+              "ordered": true,
+              "chooses": true
             },
             "supports": {
               "shape": [
@@ -1572,7 +1683,8 @@
                   "left",
                   "right",
                   "top",
-                  "bottom"
+                  "bottom",
+                  "none"
                 ],
                 "default": "left"
               },
@@ -1581,7 +1693,16 @@
                 "kind": "real",
                 "min": 0,
                 "max": 1,
-                "default": 0.5
+                "default": 0.5,
+                "when": {
+                  "param": "side",
+                  "in": [
+                    "left",
+                    "right",
+                    "top",
+                    "bottom"
+                  ]
+                }
               }
             ],
             "members": {
@@ -1703,6 +1824,66 @@
         "if": {
           "stage": "placement",
           "option": "shelf-online"
+        },
+        "then": {
+          "stage": "order",
+          "option": "input"
+        }
+      },
+      {
+        "if": {
+          "stage": "placement",
+          "option": "shelf-split-fit"
+        },
+        "then": {
+          "stage": "size-search",
+          "option": "none"
+        }
+      },
+      {
+        "if": {
+          "stage": "placement",
+          "option": "shelf-split-fit"
+        },
+        "then": {
+          "stage": "order",
+          "option": "input"
+        }
+      },
+      {
+        "if": {
+          "stage": "placement",
+          "option": "shelf-floor-ceiling"
+        },
+        "then": {
+          "stage": "size-search",
+          "option": "none"
+        }
+      },
+      {
+        "if": {
+          "stage": "placement",
+          "option": "shelf-floor-ceiling"
+        },
+        "then": {
+          "stage": "order",
+          "option": "input"
+        }
+      },
+      {
+        "if": {
+          "stage": "placement",
+          "option": "shelf-knapsack"
+        },
+        "then": {
+          "stage": "size-search",
+          "option": "none"
+        }
+      },
+      {
+        "if": {
+          "stage": "placement",
+          "option": "shelf-knapsack"
         },
         "then": {
           "stage": "order",
@@ -2665,6 +2846,57 @@
           }
         }
       },
+      "shelf-split-fit": {
+        "space": "packing",
+        "stages": {
+          "order": {
+            "option": "input"
+          },
+          "size-search": {
+            "option": "none"
+          },
+          "placement": {
+            "option": "shelf-split-fit"
+          },
+          "local-search": {
+            "option": "none"
+          }
+        }
+      },
+      "shelf-floor-ceiling": {
+        "space": "packing",
+        "stages": {
+          "order": {
+            "option": "input"
+          },
+          "size-search": {
+            "option": "none"
+          },
+          "placement": {
+            "option": "shelf-floor-ceiling"
+          },
+          "local-search": {
+            "option": "none"
+          }
+        }
+      },
+      "shelf-knapsack": {
+        "space": "packing",
+        "stages": {
+          "order": {
+            "option": "input"
+          },
+          "size-search": {
+            "option": "none"
+          },
+          "placement": {
+            "option": "shelf-knapsack"
+          },
+          "local-search": {
+            "option": "none"
+          }
+        }
+      },
       "beam": {
         "space": "packing",
         "stages": {
@@ -2941,7 +3173,70 @@
           "placement": {
             "option": "treemap",
             "params": {
-              "method": "pivot-split"
+              "method": "pivot-split",
+              "pivot": "split"
+            }
+          },
+          "local-search": {
+            "option": "none"
+          }
+        }
+      },
+      "treemap-pivot-middle": {
+        "space": "packing",
+        "stages": {
+          "order": {
+            "option": "input"
+          },
+          "size-search": {
+            "option": "none"
+          },
+          "placement": {
+            "option": "treemap",
+            "params": {
+              "method": "pivot-split",
+              "pivot": "middle"
+            }
+          },
+          "local-search": {
+            "option": "none"
+          }
+        }
+      },
+      "treemap-pivot-size": {
+        "space": "packing",
+        "stages": {
+          "order": {
+            "option": "input"
+          },
+          "size-search": {
+            "option": "none"
+          },
+          "placement": {
+            "option": "treemap",
+            "params": {
+              "method": "pivot-split",
+              "pivot": "size"
+            }
+          },
+          "local-search": {
+            "option": "none"
+          }
+        }
+      },
+      "treemap-spiral": {
+        "space": "packing",
+        "stages": {
+          "order": {
+            "option": "input"
+          },
+          "size-search": {
+            "option": "none"
+          },
+          "placement": {
+            "option": "treemap",
+            "params": {
+              "method": "spiral"
             }
           },
           "local-search": {

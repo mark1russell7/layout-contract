@@ -36,7 +36,7 @@ const KNOWN_DIFFER: readonly string[] = POINTS_FIXED ? [] : ["side-anchors", "ne
 
 /**
  * The entries that support none of the inputs of the test, so the test compares no hash of them (L129).
- * In `packing` 0.10.2, `packWith` refuses each input of the set for `masonry` and `treemap`.
+ * In `packing` 0.10.2 and 0.17.3, `packWith` refuses each input of the set for `masonry` and `treemap`.
  */
 const NO_TEST_INPUT: readonly string[] = ["masonry", "treemap"];
 

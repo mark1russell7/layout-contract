@@ -120,3 +120,13 @@ The ideas of the survey, and their state:
 - A range for each row of the `highways` measures, so that an objective can normalize them: `highways` 0.19.0. Until then, a row with no range gets the rule `none` with a reason.
 - One unit for the length of stability in each stage: `W`.
 - A spec with no code is debt: the two joint stability measures are planned.
+
+### The survey of 2026-11-13
+
+The joint bench moves to `packing` 0.17.3 and `highways` 0.17.1 (L163). Thus `docs/measure-survey.json` reads these versions.
+
+- The survey has 164 distinct ids: 10 of the contract, 34 of `packing` and 120 of `highways`.
+- The 4 new ids are of `highways`: `route.bundle.reach`, `route.crossings.pairs.low`, `route.crossings.pairs.high` and `route.crossings.pairs.contact-sampled`.
+- No id has two units or two directions. The two twins stay: `stability.mean` and `stability.moved`, with 6 of 164 ids.
+- The 120 measures of `highways` have no range.
+- R1 holds: 164. R2 does not hold: the twins hold 6 of 164 ids (4 %).
