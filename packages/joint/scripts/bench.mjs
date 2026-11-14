@@ -105,6 +105,7 @@ import {
   plannedCost,
   planShards,
   reportMarkdown,
+  sameTwiceLine,
   ROUTERS,
   runEnv,
   runInput,
@@ -913,6 +914,11 @@ if (command === "check") {
   const n = report.count;
   if (!n.ok) {
     console.error(`The record count check fails: ${n.recorded} of ${n.manifest} inputs have records, ${n.missing.length - n.allowed.length} missing inputs are not allowed, ${n.unknown.length} inputs are outside the manifest.`);
+    process.exit(1);
+  }
+  // The check "same twice" of L117: the two runs of each pack and each route give the same hash.
+  if (report.sameTwice.differ > 0) {
+    console.error(sameTwiceLine(report.sameTwice));
     process.exit(1);
   }
 } else {

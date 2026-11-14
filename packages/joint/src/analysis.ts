@@ -11,6 +11,7 @@ import {
 } from "@mark1russell7/layout-contract";
 import { bootstrapClusters, quantileSorted } from "@mark1russell7/rigor-statistics";
 import { recordCount, type RecordCount } from "./record-count.ts";
+import { sameTwice, sameTwiceLine, type SameTwice } from "./same-twice.ts";
 import { CAPS, ITER_STOPS, PAIR_SEPARATOR, pairId, ROUTERS } from "./runner.ts";
 import { isIterPack, isLanePack, laneParts } from "./lanes.ts";
 import { EXCESS_SPEC as EXCESS, HEADLINE, lexicographic, PICK_LEVELS, pickValues } from "./pick.ts";
@@ -476,6 +477,8 @@ export interface Report {
   readonly inputs: number;
   /** The record count check over all inputs of the analysis. */
   readonly count: RecordCount;
+  /** The check "same twice" over all records, also the records of an excluded pack (L117). The command analyze fails when a record differs. */
+  readonly sameTwice: SameTwice;
   /** The headline cell on the subset of `AnalysisOptions.subset`. */
   readonly subset?: SubsetReport;
   readonly records: number;
@@ -1467,6 +1470,7 @@ export function analyze(allRecords: readonly LayoutRecord[], allInputs: readonly
   const base = {
     inputs: inputs.length,
     count,
+    sameTwice: sameTwice(allRecords),
     ...(subset === undefined ? {} : { subset }),
     records: used.length,
     skipped,
@@ -1742,6 +1746,8 @@ export function reportMarkdown(report: Report, options: MarkdownOptions = {}): s
   const n = report.count;
   lines.push(
     `Inputs: ${n.recorded} with records, of ${n.manifest} in the manifest. The headline cells use the ${report.inputs} inputs outside the stress cell. Records: ${report.records}. Pairs: ${report.pairs}, in ${report.groups} output groups.`,
+    "",
+    sameTwiceLine(report.sameTwice),
     "",
   );
   if (n.missing.length > 0 || n.unknown.length > 0) {

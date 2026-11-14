@@ -346,6 +346,18 @@ The analysis counts the inputs from the records, not from the manifest. The func
 - `pnpm bench analyze` writes the report, and then fails on a missing input.
 - The option `--allow-missing <file>` gives a list of input ids. The check does not fail on a missing input of the list.
 
+### The check same twice
+
+The runner runs each pack and each route two times. The field `deterministic` of a record states if the two runs gave the same hash. Before L117, no code read this field. The function `sameTwice` of `src/same-twice.ts` reads it.
+
+- The line "Same twice" of the report counts the records with `true` and the records that differ. It also counts the records with one run and no claim, the skipped records and the records with no value.
+- The count reads all records, also the records of a pack of `--exclude-pack`.
+- The line lists the first 20 pairs that differ, in the order of the strategy and the input.
+- `pnpm bench analyze` writes the report, and then fails when a record differs.
+- A record with `oneRun: true` and `deterministic: null` makes no claim. The check counts it apart, and it does not fail on it.
+
+The base of the check: the 4 nights of the runs 41270043640, 41384329446, 41573500756 and 41962938304 have 31,590 records in 82 files. Each of them has `deterministic: true`.
+
 ### The headline on a subset
 
 The option `--subset <file>` of `pnpm bench analyze` gives a list of input ids. With it, the report also gives the headline cell on these inputs only.
