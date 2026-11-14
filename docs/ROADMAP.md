@@ -8,7 +8,7 @@ A row with the status `later (parked to 11-11)` waits until 2026-11-11. Until th
 
 | ID | Status | Priority | Title |
 | --- | --- | --- | --- |
-| L129 | in progress | P1 | The joint bench and the site use `packing` 0.10.2 and `highways` 0.15.0, and read the routers of `KEYED_STRATEGIES` (88 names) |
+| L129 | in progress | P1 | The joint bench and the site use `packing` 0.17.3 and `highways` 0.17.1 (L161), and read the routers of `KEYED_STRATEGIES` (90 names) |
 | L5 | later (parked to 11-11) | P2 | highways reads the contract |
 | L34 | in progress | P1 | The strategy space as data |
 | L52 | in progress | P1 | Measure joint space coverage, with a weekly trend that rises |
@@ -33,7 +33,7 @@ A row with the status `later (parked to 11-11)` waits until 2026-11-11. Until th
 | L148 | in progress | P1 | The strategy space as a package of its own (`@mark1russell7/strategy-space`): operators, combinators, the count of the grammar, screening and racing |
 | L159 | in progress | P1 | A catalog route for a stage option that is one value of another strategy (`{ strategy, fixed }`), so the check examines its params (0.9.7) |
 | L160 | in progress | P1 | The site data of the joint run of 2026-11-08 (42428038369, the cover), an age limit of 14 days for the measured pages, and a weekly carry run of the joint bench on a schedule (Monday 04:14 UTC, or the input `weekly`) |
-| L161 | next | P1 | The joint bench and the site use `highways` 0.17 and `packing` 0.17, then a carry run from 42428038369 gives new site data. The data of 42428038369 stays in the age limit until 2026-11-22 00:03 UTC |
+| L161 | in progress | P1 | The joint bench and the site use `highways` 0.17 and `packing` 0.17, then a carry run from 42428038369 gives new site data. The data of 42428038369 stays in the age limit until 2026-11-22 00:03 UTC |
 | L162 | next | P2 | The data of a finished weekly run goes to the site without a person: the workflow writes the data file and the stamps to a data branch, and the Pages build reads it |
 | L100 | later (parked to 11-11) | P2 | The step between two epochs: raw values of the baseline arm, with a marked step on the charts |
 | L122 | later (parked to 11-11) | P2 | A floor per option for a walk sample: the count per option beside uniform, a floor with its reason, a stratum if an option falls under it, and a test that pins the smallest count. By 2026-11-17. Part 1, the sample option `fixed`, is in version 0.5.4. |

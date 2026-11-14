@@ -25,29 +25,31 @@ The output of a named config is equal to the output of the old named strategy. T
 
 ### The joint pack entries in `packSpace`
 
-The joint cover has 45 pack entries, and each one is a point of `packSpace` of `packing` 0.10.2. `configOfStrategy` gives the point of each entry.
+The joint cover has 48 pack entries, and each one is a point of `packSpace` of `packing` 0.17.3. `configOfStrategy` gives the point of each entry.
+The 3 entries `shelf-split-fit`, `shelf-floor-ceiling` and `shelf-knapsack` are new in `packing` 0.17.2 (L161).
 Up to `packing` 0.7.0, the 8 standalone strategies were outside `packSpace`. Since 0.8.0 they are points too (roadmap item L129). The closed list of the strategies outside the space is thus empty.
+
 The test `pack-points.test.ts` checks each point with `checkConfig`, and compares the `outputHash` of `packConfig` with the hash of the entry on 17 inputs of `joint-v1`. It also compares them on one circle input for each container of `CIRCLE_CONTAINERS`, from `joint-v3`. Without them, `hole-degree` and `circle-quasi-physical` get no comparison.
 
-- 522 of the 855 cases have equal hashes.
-- In 320 cases, the strategy does not support the input. The point and the entry then both throw `UnsupportedCell`.
-- 13 cases differ. 11 of them are `side-anchors`. On 10 inputs, `packWith` refuses the input and `packConfig` packs it. On 1 input, the two hashes are not equal. The test keeps `side-anchors` in a closed list. The runner uses `packWith`, so the records of the bench do not change.
-- The other 2 are `near-rects` and `raster-nofit`. On the circle input with a rectangle container, `packWith` packs the input, but `packConfig` of their points refuses it. The closed list holds the three entries.
+- 528 of the 912 cases have equal hashes.
+- In 384 cases, the strategy does not support the input. The point and the entry then both throw `UnsupportedCell`.
+- No case differs. `packing` 0.10.4 fixed the point of `side-anchors`, and 0.10.5 fixed the points of `near-rects` and `raster-nofit`. Thus the closed list of the entries that differ is empty.
 - `masonry` and `treemap` support none of the inputs, so the test compares no hash of them. A closed list holds the two.
 
-**Gap:** the fix of `side-anchors`, `near-rects` and `raster-nofit` belongs to `packing`. `packConfig` must refuse each input that `packWith` refuses, and give the same output on each other input.
+With `packing` 0.10.2, 13 of 855 cases differed: 11 of `side-anchors`, and 1 each of `near-rects` and `raster-nofit`.
 
-The cover has 162 routers, and 76 of them are named points of `routeSpace` of `highways` 0.15.0. The test `route-points.test.ts` checks each of these points with `checkConfig`.
+The cover has 164 routers, and 76 of them are named points of `routeSpace` of `highways` 0.17.1. The test `route-points.test.ts` checks each of these points with `checkConfig`.
 It also compares the hash of the routes of the router and of `routeConfig` on 8 inputs of `joint-v1`. These inputs give one input for each container kind and obstacle case, and each hash is equal.
-Since `highways` 0.15.0, the cover takes its routers from `KEYED_STRATEGIES`: 88 router and highway names. `STRATEGIES` holds 75 of them.
+Since `highways` 0.15.0, the cover takes its routers from `KEYED_STRATEGIES`. In `highways` 0.17.1, this list has 90 router and highway names, and `STRATEGIES` holds 75 of them (L161).
 
-`routeSpace` does not name the other 86 routers. 74 of them are member forms of `MEMBER_FORMS`, for example `corners-side` and `w2a:shared-ways+stretch`. `configOfMember` of `highways` gives the point of 73 of these forms (L148 step 7). The test checks each of these points with `checkConfig`, and compares the hashes of their routes on the 8 inputs. Each hash is equal. Thus 149 of the 162 routers of the cover have a point.
+`routeSpace` does not name the other 88 routers. 74 of them are member forms of `MEMBER_FORMS`, for example `corners-side` and `w2a:shared-ways+stretch`. `configOfMember` of `highways` gives the point of 73 of these forms (L148 step 7). The test checks each of these points with `checkConfig`, and compares the hashes of their routes on the 8 inputs. Each hash is equal. Thus 149 of the 164 routers of the cover have a point.
 
-**Gap:** 13 routers have no point:
+**Gap:** 15 routers have no point:
 
 - `portfolio` is a selector over the routers, not a router. It becomes a term of the grammar of `@mark1russell7/strategy-space`, over the configs of its members.
 - The form `w3a:diffusion-l3` has the option `lambda` 3, and the schema of `diffusion` stops at 2. `MEMBER_MISFITS` of `highways` gives this reason.
-- 11 router entries of `KEYED_STRATEGIES` are not member forms, for example `nudge` and `springs`. `configOfMember` refuses them. A closed list of the test holds them. The fix belongs to `highways`.
+- 13 router entries of `KEYED_STRATEGIES` are not member forms, for example `nudge` and `springs`. `configOfMember` refuses them. A closed list of the test holds them. The fix belongs to `highways`.
+- 2 of these 13 entries are the baseline routers `one-trunk` and `perimeter` of `BASELINE_STRATEGIES`. They are in `highways` since 0.15.1.
 
 So a joint space of `productSpace(packSpace, routeSpace)` reaches 149 routers of the cover. The packing engine has `configOfStrategy` for the same job.
 

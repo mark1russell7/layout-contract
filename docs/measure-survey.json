@@ -1,6 +1,6 @@
 {
   "schema": "measure-survey/1",
-  "date": "2026-11-09",
+  "date": "2026-11-13",
   "sources": [
     {
       "package": "@mark1russell7/layout-contract",
@@ -80,7 +80,7 @@
     },
     {
       "package": "@mark1russell7/packing",
-      "version": "0.10.2",
+      "version": "0.17.3",
       "measures": [
         {
           "id": "pack.area",
@@ -358,7 +358,7 @@
     },
     {
       "package": "@mark1russell7/highways",
-      "version": "0.15.0",
+      "version": "0.17.1",
       "measures": [
         {
           "id": "route.backtrack",
@@ -469,6 +469,12 @@
           "family": "B7"
         },
         {
+          "id": "route.bundle.reach",
+          "unit": "0 to 1",
+          "direction": "lower",
+          "family": "B4"
+        },
+        {
           "id": "route.bundle.run-edges.max",
           "unit": "count",
           "direction": "higher",
@@ -559,8 +565,26 @@
           "family": "R1"
         },
         {
+          "id": "route.crossings.pairs.contact-sampled",
+          "unit": "0 or 1",
+          "direction": "lower",
+          "family": "R1"
+        },
+        {
           "id": "route.crossings.pairs.estimated",
           "unit": "0 or 1",
+          "direction": "lower",
+          "family": "R1"
+        },
+        {
+          "id": "route.crossings.pairs.high",
+          "unit": "count",
+          "direction": "lower",
+          "family": "R1"
+        },
+        {
+          "id": "route.crossings.pairs.low",
+          "unit": "count",
           "direction": "lower",
           "family": "R1"
         },

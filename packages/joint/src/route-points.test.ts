@@ -11,10 +11,11 @@ import { PACK_ENTRIES, packInputOf, PORTFOLIO_ROUTER, routeHash, routerEntryOf, 
 const SPACE = routeSpace as unknown as StrategySpace;
 
 /**
- * The router entries of `KEYED_STRATEGIES` that `routeSpace` of `highways` 0.15.0 does not name (L129).
+ * The router entries of `KEYED_STRATEGIES` that `routeSpace` of `highways` 0.17.1 does not name (L129, L161).
  * The cover races them, but this test cannot compare a point with them. The fix belongs to `highways`.
+ * Since `highways` 0.15.1, `BASELINE_STRATEGIES` has the routers `one-trunk` and `perimeter`. `routeSpace` does not name them.
  */
-const UNNAMED_ROUTERS: readonly string[] = ["adam", "annealing", "attraction", "canals", "nudge", "repel", "reroute", "springs", "tight", "seams", "shared-ways-all"];
+const UNNAMED_ROUTERS: readonly string[] = ["adam", "annealing", "attraction", "canals", "nudge", "repel", "reroute", "springs", "tight", "seams", "shared-ways-all", "one-trunk", "perimeter"];
 
 /** The largest count of boxes of an input of the set. */
 const MAX_BOXES = 30;
@@ -79,7 +80,7 @@ describe("the routers of the cover as points of routeSpace", () => {
     // Each router with no point is the portfolio, a row of `MEMBER_MISFITS` or a router of the closed list. When `highways` names one, remove it from the list.
     expect(others.filter((id) => id !== PORTFOLIO_ROUTER && MEMBER_MISFITS[id] === undefined).sort()).toEqual([...UNNAMED_ROUTERS].sort());
     expect(others.filter((id) => MEMBER_MISFITS[id] !== undefined).sort()).toEqual([PORTFOLIO_ROUTER, "w3a:diffusion-l3"]);
-    expect([routers.length, members.length, others.length]).toEqual([76, 73, 13]);
+    expect([routers.length, members.length, others.length]).toEqual([76, 73, 15]);
   });
 
   it("gives points that pass the checks of routeSpace", () => {
