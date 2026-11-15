@@ -1,7 +1,7 @@
 {
   "schema": "site-space/1",
   "source": "highways 0.17.1",
-  "date": "2026-11-13",
+  "date": "2026-11-15",
   "space": {
     "schema": "strategy-space/1",
     "engine": "highways",
