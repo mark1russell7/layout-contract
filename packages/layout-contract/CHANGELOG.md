@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.10.2
+
+- PATCH before 1.0.0: a new module, with no change to the other exports.
+- New module `geometry3`: the 3D records. `Point3` is a point or a vector, and `Box3` is a box with its sides along the axes. `Rotation3` is a unit quaternion, and `Transform3` is a rigid transform. `docs/GEOMETRY-3D.md` gives the rules.
+- `addPoints3`, `subtractPoints3`, `scalePoint3`, `dot3`, `cross3`, `length3` and `distance3` are the vector functions.
+- `rotationAbout` gives the rotation by an angle about an axis, by the right-hand rule. `rotatePoint3`, `composeRotations3`, `inverseRotation3` and `normalizeRotation3` use a rotation.
+- `transformPoint3`, `composeTransforms3` and `inverseTransform3` use a transform. `transformMatrix4` gives its matrix as 16 numbers, column by column, as WebGL, the glTF format and three.js read it.
+- `box3Center`, `box3Volume`, `box3Corners`, `boundsOf3`, `transformedBounds3` and `overlapOf3` are the box functions. `overlapOf3` has the rule of `overlapOf`.
+- The module has no dependency and no top-level call, so a bundle that does not import it does not get its code.
+
 ## 0.10.1
 
 - PATCH: a fix of the shipped files, with no change to the API. A bundle that imports one export of the root gets only the code of that export again.
