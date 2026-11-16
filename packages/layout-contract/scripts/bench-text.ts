@@ -20,7 +20,7 @@
 import { cpus } from "node:os";
 import { pathToFileURL } from "node:url";
 import { type CaseInterval, type ProcessArm, caseIntervals, timeArmRounds } from "@mark1russell7/rigor-bench";
-import { quantile } from "@mark1russell7/rigor-statistics";
+import { median } from "@mark1russell7/rigor-statistics";
 import type * as TextModule from "../src/text.ts";
 import { DIGIT_LABELS, helveticaAdvance, LETTER_LABELS as labels } from "./text-labels.ts";
 
@@ -162,7 +162,6 @@ interface Result {
   readonly aa: CaseInterval;
 }
 
-const median = (values: readonly number[]): number => quantile(values, 0.5, "higher");
 
 // The index of each case turns its arms before the order of the rounds, so the cases start with different arms.
 const results: Result[] = cases.map((c, offset) => {
