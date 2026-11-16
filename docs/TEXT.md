@@ -115,18 +115,19 @@ The cases that can break a bound:
 | A member with an advance of 0 or no number | That is a gap in the font. Each label of the font gets a measure. |
 | An ellipsis from `maxChars` | The check reads the text after the cut, so an ellipsis out of the set gives a measure. |
 
-The bench `packages/layout-contract/scripts/bench-text.mjs` gives these numbers. They come from the CI run 41766216704, with 100000 layouts for each round and 7 rounds, on Node 26. The bench is a report, not a gate. The labels are the 333 letter labels of the bench and 333 labels of digits, with `wrapWidth: 160` and `maxLines: 2`. The advances come from the Helvetica table of `scripts/text-labels.ts` at 12 pixels, with no kerning.
+The bench `packages/layout-contract/scripts/bench-text.ts` gives these numbers. They come from the CI run 43789338917 on an AMD EPYC 7763, with Node 26 and 16 rounds of `timeArmRounds` of rigor-bench. A batch holds 256 cold passes. The bench is a report, not a gate. The labels are the 333 letter labels of the bench and 333 labels of digits, with `wrapWidth: 160` and `maxLines: 2`. The advances come from the Helvetica table of `scripts/text-labels.ts` at 12 pixels, with no kerning.
 
-| Labels and set | Labels that skip | Measure calls, `exact` | Measure calls, `bound-first` | Median slack of `bound` | Time, `bound-first` / `exact` | Time, `exact` / `exact` (A/A) |
-|---|---|---|---|---|---|---|
-| Letters, `PRINTABLE_ASCII` | 82.9% | 387 | 200 | 109.7% | 0.703 | 0.999 |
-| Letters, a to z and the space | 91.9% | 387 | 97 | 72.1% | 0.622 | 0.998 |
-| Digits, `DIGITS` | 100.0% | 334 | 10 | 0.2% | 0.418 | 0.998 |
+| Labels and set | Labels that skip | Measure calls, `exact` | Measure calls, `bound-first` | Median slack of `bound` | Time, `bound-first` / `exact` | 95% interval | A/A | A/A 95% interval |
+|---|---|---|---|---|---|---|---|---|
+| Letters, `PRINTABLE_ASCII` | 82.9% | 387 | 200 | 109.7% | 0.624 | [0.620, 0.636] | 0.999 | [0.992, 1.005] |
+| Letters, a to z and the space | 91.9% | 387 | 97 | 72.1% | 0.527 | [0.521, 0.531] | 0.999 | [0.998, 1.003] |
+| Digits, `DIGITS` | 100.0% | 334 | 10 | 0.2% | 0.377 | [0.375, 0.380] | 1.001 | [0.997, 1.005] |
 
-- A caller that does not set `sizing` keeps the exact path. In the same run the head took 1.027 of the time of the release before it. One run gives no proof that this difference is real.
+- A caller that does not set `sizing` keeps the exact path. In the same run, the head took 1.006 [1.004, 1.008] of the time of the release 0.10.1.
+- The release and the head have the same text code. The release loaded a second time took 1.003 [1.000, 1.006]. Thus this run gives no proof that the difference comes from the code.
 - The slack is the bound minus the exact width, divided by the exact width, for the whole label on one line.
 - The counts come from one cold pass over the labels, so they are the same in each job.
-- Each time comes from passes with a new cold measurer for each pass. The table costs little, so a time ratio leaves out the cost of a real measure. The A/A column shows the noise of this job: differences under approximately 0.2% have no meaning here.
+- Each time comes from passes with a new cold measurer for each pass. The table costs little, so a time ratio leaves out the cost of a real measure. The intervals come from `caseIntervals` of rigor-bench over the rounds. The A/A arm is `exact` a second time, and its interval shows the noise of the job.
 - The time of `exact` with no cold measurer is in the same table of the bench. CI gives this time against the last release, on the pull request.
 - A small set gives a smaller slack. One wide character, for example `@`, sets the bound for all members.
 
