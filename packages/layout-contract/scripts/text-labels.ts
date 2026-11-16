@@ -1,4 +1,4 @@
-// The labels of the text bench. `bench-text.mjs` and `src/text-sizing.test.ts` read them, so the claims of L71 hold on the labels that the bench times.
+// The labels of the text bench. `bench-text.ts` and `src/text-sizing.test.ts` read them, so the claims of L71 hold on the labels that the bench times.
 import { mulberry32 } from "@mark1russell7/rigor-generators";
 
 /** This function gives a word of `n` characters from a letter function. */

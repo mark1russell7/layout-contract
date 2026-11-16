@@ -115,7 +115,7 @@ The cases that can break a bound:
 | A member with an advance of 0 or no number | That is a gap in the font. Each label of the font gets a measure. |
 | An ellipsis from `maxChars` | The check reads the text after the cut, so an ellipsis out of the set gives a measure. |
 
-The bench `packages/layout-contract/scripts/bench-text.mjs` gives these numbers. They come from the CI run 41766216704, with 100000 layouts for each round and 7 rounds, on Node 26. The bench is a report, not a gate. The labels are the 333 letter labels of the bench and 333 labels of digits, with `wrapWidth: 160` and `maxLines: 2`. The advances come from the Helvetica table of `scripts/text-labels.ts` at 12 pixels, with no kerning.
+The bench `packages/layout-contract/scripts/bench-text.ts` gives these numbers. They come from the CI run 41766216704 of the earlier bench (`bench-text.mjs`), with 100000 layouts for each round and 7 rounds, on Node 26. The bench is a report, not a gate. The labels are the 333 letter labels of the bench and 333 labels of digits, with `wrapWidth: 160` and `maxLines: 2`. The advances come from the Helvetica table of `scripts/text-labels.ts` at 12 pixels, with no kerning.
 
 | Labels and set | Labels that skip | Measure calls, `exact` | Measure calls, `bound-first` | Median slack of `bound` | Time, `bound-first` / `exact` | Time, `exact` / `exact` (A/A) |
 |---|---|---|---|---|---|---|
