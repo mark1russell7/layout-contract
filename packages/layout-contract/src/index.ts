@@ -1,4 +1,5 @@
 export * from "./geometry.ts";
+export * from "./geometry3.ts";
 export * from "./curves.ts";
 export * from "./shapes.ts";
 export * from "./tolerance.ts";

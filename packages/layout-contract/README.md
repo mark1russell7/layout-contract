@@ -9,6 +9,7 @@ The package has one runtime dependency: `@mark1russell7/rigor-generators`, the h
 | Part | Exports |
 |---|---|
 | Geometry | `Point`, `Rect`, `Region`, `Side`, `Sides`, `Margin`, `marginSides`, `grow`, `boundsOf`, `regionArea`, `regionPerimeter`, `translate`, `overlapOf`, `segmentsCross`, `crossingPoint`, `pointSegmentDistance`, `Ring`, `pointInRing`, `pointInRings`, `convexCorners`, `convexOverlap`, `cornersInConvex`, `boxCenterDistance` |
+| Geometry in 3D | `Point3`, `Box3`, `Rotation3`, `Transform3`, `ORIGIN3`, `NO_ROTATION3`, `NO_TRANSFORM3`, `addPoints3`, `subtractPoints3`, `scalePoint3`, `dot3`, `cross3`, `length3`, `distance3`, `rotationAbout`, `rotatePoint3`, `composeRotations3`, `inverseRotation3`, `normalizeRotation3`, `transformPoint3`, `composeTransforms3`, `inverseTransform3`, `transformMatrix4`, `box3Center`, `box3Volume`, `box3Corners`, `boundsOf3`, `transformedBounds3`, `overlapOf3` |
 | The shape kinds | `ShapeKind`, `SHAPE_KINDS`, `SHAPE_KIND_IDS`, `ShapeKindSpec`, `ShapeGeometry`, `DEFAULT_SHAPES`, `ShapeSupport`, `ShapeBound`, `RuleLevel`, `ShapeLevel`, `ShapeCheck`, `isShapeKind`, `shapeKindOf`, `shapeKindsOf`, `itemShapeOf`, `shapeKindProblem`, `shapesOf`, `ruleLevel`, `shapeLevel`, `shapeSupportProblems`, `boxArea`, `checkShapes` |
 | The input `layout-input/1` | `LayoutInput`, `LayoutBox` (`Item` for the packer), `Port`, `portPoint`, `LayoutEdge`, `LayoutContainer`, `Obstacle`, `LayoutCell`, `LayoutGenerator`, `PairGap`, `canonicalInput` |
 | The packer | `PackInput`, `PackLink`, `toPackInput`, `packLinks`, `Placement`, `PackOutput`, `StageTrace`, `applyPack` |
@@ -114,6 +115,7 @@ The comments of the source name each doc as `docs/<NAME>.md`. The docs are in th
 | [`docs/CELLS.md`](https://github.com/mark1russell7/layout-contract/blob/main/docs/CELLS.md) | The cell measures of a Voronoi treemap: the area error and the compactness of the cells |
 | [`docs/CURVES.md`](https://github.com/mark1russell7/layout-contract/blob/main/docs/CURVES.md) | The Hilbert, Moore and Morton curves through a grid, as data |
 | [`docs/FRAMES.md`](https://github.com/mark1russell7/layout-contract/blob/main/docs/FRAMES.md) | The frame record `layout-frame/1`, the frames between two layouts and their laws |
+| [`docs/GEOMETRY-3D.md`](https://github.com/mark1russell7/layout-contract/blob/main/docs/GEOMETRY-3D.md) | The 3D records: points, boxes, rotations and rigid transforms |
 | [`docs/TEXT.md`](https://github.com/mark1russell7/layout-contract/blob/main/docs/TEXT.md) | The text layout of the subpath `/text`: the rules, the units and the measures |
 | [`docs/CORPUS.md`](https://github.com/mark1russell7/layout-contract/blob/main/docs/CORPUS.md) | The shared corpus registry, its dimensions and families |
 | [`docs/CORPUS-CHECKS.md`](https://github.com/mark1russell7/layout-contract/blob/main/docs/CORPUS-CHECKS.md) | The corpus checks and the split files |
