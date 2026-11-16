@@ -3,9 +3,11 @@
 //   node scripts/bench-text.ts --base <file> --head <file> [--rounds 16] [--target-ms 50]
 //
 // <file> is the path of a built `text.js`. The labels have the shape of the labels of a consumer page: 333 distinct texts of approximately 8 characters, mostly one word.
-// `timeArmRounds` of `@mark1russell7/rigor-bench` times each case. Each round times one batch of the base arm, of the candidate arm and of the A/A arm
-// (the base a second time). The order of the arms turns in each round, so each pair has each order equally often. The count of calls of a batch
+// `timeArmRounds` of `@mark1russell7/rigor-bench` times each case. Each round times one batch of the base arm, of the candidate arm and of the A/A arm.
+// The order of the arms turns in each round, so each pair has each order equally often. The count of calls of a batch
 // grows until a batch of the base takes the target time, and each arm of the case uses that count.
+// In a case of two builds, the A/A arm is a second load of the base build: a separate module, as the head is. Two modules of the same code can
+// differ in time in one process, and the base arm a second time does not show it. In the other cases, the A/A arm is the base arm a second time.
 // The cases:
 // - labels: the head against the base, with one measurer for each build, as a page does.
 // - the cache: the head through one layout cache against the head. A head with `createTextLayoutCache` gets this case. After the warm-up, each call hits the cache.
@@ -66,10 +68,15 @@ interface Build {
   readonly segmenters: number;
 }
 
-/** This function imports a built `text.js`, and makes one pass over the labels. A file that does not exist stops the bench. */
-async function load(path: string): Promise<Build> {
+/**
+ * This function imports a built `text.js`, and makes one pass over the labels. A file that does not exist stops the bench.
+ * A `copy` name gives a separate module of the same file: the query of the URL makes a new entry in the module map.
+ */
+async function load(path: string, copy?: string): Promise<Build> {
   const before = made;
-  const text = (await import(pathToFileURL(path).href)) as Text;
+  const url = pathToFileURL(path);
+  if (copy !== undefined) url.searchParams.set("copy", copy);
+  const text = (await import(url.href)) as Text;
   const measurer = text.createMeasurer(advance);
   for (const label of labels) text.layoutText(label, { ...options, measurer });
   return { text, segmenters: made - before };
@@ -77,6 +84,7 @@ async function load(path: string): Promise<Build> {
 
 const base = await load(basePath);
 const head = await load(headPath);
+const baseCopy = await load(basePath, "aa");
 
 /** This function gives an arm that lays out the texts in turn, one text for each call. Each call gives the line count, so the work stays. */
 function cycle(id: string, texts: readonly string[], layout: (text: string) => TextModule.TextLayout): ProcessArm {
@@ -117,15 +125,30 @@ function coldArm(id: string, family: Family, sizing: TextModule.TextSizing): Pro
   };
 }
 
-/** One case of the bench: a base arm, a candidate arm, and the count of layouts in one call of each arm. */
+/**
+ * One case of the bench: a base arm, a candidate arm, and the count of layouts in one call of each arm. A case of two builds has an A/A arm
+ * on the second load of the base build. Without it, the A/A arm is the base arm a second time.
+ */
 interface Case {
   readonly name: string;
   readonly base: ProcessArm;
   readonly candidate: ProcessArm;
+  readonly aa?: ProcessArm;
   readonly layouts: number;
 }
 
-const cases: Case[] = [{ name: "labels", base: layoutArm("base", base, labels), candidate: layoutArm("head", head, labels), layouts: 1 }];
+/** This function gives a case of the base build against the head build, with the A/A arm on the second load of the base build. */
+function builds(name: string, texts: readonly string[], extra: Partial<TextModule.TextLayoutOptions> = {}): Case {
+  return {
+    name,
+    base: layoutArm("base", base, texts, extra),
+    candidate: layoutArm("head", head, texts, extra),
+    aa: layoutArm("base, second load", baseCopy, texts, extra),
+    layouts: 1,
+  };
+}
+
+const cases: Case[] = [builds("labels", labels)];
 
 // The base can be a release from before the cache, so the case is there only when the head has it.
 if (typeof head.text.createTextLayoutCache === "function") {
@@ -149,27 +172,30 @@ for (const family of families) {
 }
 
 // The cases of L144.
-cases.push({ name: "split of new texts", base: layoutArm("base", base, SPLIT_TEXTS), candidate: layoutArm("head", head, SPLIT_TEXTS), layouts: 1 });
-cases.push({ name: "overflow path", base: layoutArm("base", base, OVERFLOW_TEXTS, OVERFLOW), candidate: layoutArm("head", head, OVERFLOW_TEXTS, OVERFLOW), layouts: 1 });
+cases.push(builds("split of new texts", SPLIT_TEXTS));
+cases.push(builds("overflow path", OVERFLOW_TEXTS, OVERFLOW));
 
-/** The result of one case: the count of calls of a batch, the median batch times, the ratio of the case and its A/A ratio. */
+/** The result of one case: the batch count, the median batch times, the ratio, and the A/A arm with its ratio. */
 interface Result {
   readonly case: Case;
   readonly count: number;
   readonly baseMs: number;
   readonly candidateMs: number;
   readonly ratio: CaseInterval;
+  readonly aaId: string;
   readonly aa: CaseInterval;
 }
 
-
 // The index of each case turns its arms before the order of the rounds, so the cases start with different arms.
+// A case with its own A/A arm gives it as a second candidate, and `aa: false` leaves out the base arm a second time. Each case has 3 arms.
 const results: Result[] = cases.map((c, offset) => {
-  const run = timeArmRounds({ case: c.name, base: c.base, candidates: [c.candidate], rounds, offset, targetMs });
+  const candidates = c.aa === undefined ? [c.candidate] : [c.candidate, c.aa];
+  const run = timeArmRounds({ case: c.name, base: c.base, candidates, rounds, offset, targetMs, aa: c.aa === undefined });
   const records = run.pairs[c.candidate.id]!;
+  const aaId = c.aa?.id ?? `${c.base.id}~aa`;
   const [ratio] = caseIntervals(records);
-  const [aa] = caseIntervals(run.pairs[`${c.base.id}~aa`]!);
-  return { case: c, count: run.count, baseMs: median(records.map((r) => r.a)), candidateMs: median(records.map((r) => r.b)), ratio: ratio!, aa: aa! };
+  const [aa] = caseIntervals(run.pairs[aaId]!);
+  return { case: c, count: run.count, baseMs: median(records.map((r) => r.a)), candidateMs: median(records.map((r) => r.b)), ratio: ratio!, aaId, aa: aa! };
 });
 
 const micro = (ms: number, r: Result): string => ((ms * 1000) / (r.count * r.case.layouts)).toFixed(3);
@@ -181,14 +207,15 @@ console.log(
 console.log("");
 console.log(`The base made ${base.segmenters} segmenters on its import and its first pass over the labels, and the head made ${head.segmenters}.`);
 console.log("");
-console.log("| Case | Base | Candidate | Calls in a batch | Microseconds for each layout, base | Microseconds for each layout, candidate | Candidate / base | 95% interval | A/A | A/A 95% interval |");
-console.log("|---|---|---|---|---|---|---|---|---|---|");
+console.log("| Case | Base | Candidate | Calls in a batch | Microseconds for each layout, base | Microseconds for each layout, candidate | Candidate / base | 95% interval | A/A arm | A/A | A/A 95% interval |");
+console.log("|---|---|---|---|---|---|---|---|---|---|---|");
 for (const r of results) {
   const c = r.case;
-  console.log(`| ${c.name} | ${c.base.id} | ${c.candidate.id} | ${r.count} | ${micro(r.baseMs, r)} | ${micro(r.candidateMs, r)} | ${r.ratio.ratio.toFixed(3)} | ${span(r.ratio)} | ${r.aa.ratio.toFixed(3)} | ${span(r.aa)} |`);
+  console.log(`| ${c.name} | ${c.base.id} | ${c.candidate.id} | ${r.count} | ${micro(r.baseMs, r)} | ${micro(r.candidateMs, r)} | ${r.ratio.ratio.toFixed(3)} | ${span(r.ratio)} | ${r.aaId} | ${r.aa.ratio.toFixed(3)} | ${span(r.aa)} |`);
 }
 console.log("");
-console.log("A ratio below 1 is faster. The A/A columns time the base against itself in the same rounds: their interval shows the noise of the case.");
+console.log("A ratio below 1 is faster. The A/A columns time the A/A arm against the base in the same rounds: their interval shows the noise of the case.");
+console.log("In a case of two builds, the A/A arm is a second load of the base build. Its ratio shows how much two modules of the same code differ in this process.");
 console.log("");
 
 if (families.length > 0) {
