@@ -12,6 +12,7 @@ BALANCE_SIDE_DEPTH: build/index.d.ts#BALANCE_SIDE_DEPTH
 Balance: build/index.d.ts#Balance
 BalanceMeasureSuffix: build/index.d.ts#BalanceMeasureSuffix
 type BooleanOption: @mark1russell7/strategy-space#BooleanOption (external)
+Box3: build/index.d.ts#Box3
 CELL_MEASURE_SUFFIXES: build/index.d.ts#CELL_MEASURE_SUFFIXES
 CELL_SOURCE: build/index.d.ts#CELL_SOURCE
 CIRCLE_SCATTERED: build/index.d.ts#CIRCLE_SCATTERED
@@ -126,11 +127,14 @@ MemberTrace: build/index.d.ts#MemberTrace
 NODE_POSITIONS_DIMENSION: build/index.d.ts#NODE_POSITIONS_DIMENSION
 NOISE_KINDS: build/index.d.ts#NOISE_KINDS
 NO_FINITE_RANGE: build/index.d.ts#NO_FINITE_RANGE
+NO_ROTATION3: build/index.d.ts#NO_ROTATION3
+NO_TRANSFORM3: build/index.d.ts#NO_TRANSFORM3
 NO_UNIT: build/index.d.ts#NO_UNIT
 type NoDefault: @mark1russell7/strategy-space#NoDefault (external)
 type NoDefaultReason: @mark1russell7/strategy-space#NoDefaultReason (external)
 NoiseKind: build/index.d.ts#NoiseKind
 type NumberOption: @mark1russell7/strategy-space#NumberOption (external)
+ORIGIN3: build/index.d.ts#ORIGIN3
 OUTPUT_CLASS_MIN_INPUTS: build/index.d.ts#OUTPUT_CLASS_MIN_INPUTS
 OUTPUT_GRID_PROPERTIES: build/index.d.ts#OUTPUT_GRID_PROPERTIES
 OUTPUT_NEAR_WHOLE: build/index.d.ts#OUTPUT_NEAR_WHOLE
@@ -164,6 +168,7 @@ PlacedBox: build/index.d.ts#PlacedBox
 PlacedCircle: build/index.d.ts#PlacedCircle
 Placement: build/index.d.ts#Placement
 Point: build/measures.chunk.d.ts#Point
+Point3: build/index.d.ts#Point3
 Port: build/measures.chunk.d.ts#Port
 Portfolio: build/index.d.ts#Portfolio
 PortfolioKey: build/index.d.ts#PortfolioKey
@@ -184,6 +189,7 @@ RegistryEntry: build/index.d.ts#RegistryEntry
 Resize: build/measures.chunk.d.ts#Resize
 Ring: build/measures.chunk.d.ts#Ring
 RngFactory: build/index.d.ts#RngFactory
+Rotation3: build/index.d.ts#Rotation3
 RuleLevel: build/measures.chunk.d.ts#RuleLevel
 RunEnv: build/index.d.ts#RunEnv
 RunFacts: build/index.d.ts#RunFacts
@@ -244,6 +250,7 @@ SurveyMeasure: build/index.d.ts#SurveyMeasure
 SurveySource: build/index.d.ts#SurveySource
 type SweepOptions: @mark1russell7/strategy-space#SweepOptions (external)
 Tolerance: build/index.d.ts#Tolerance
+Transform3: build/index.d.ts#Transform3
 TwinConflict: build/index.d.ts#TwinConflict
 VERDICT_DRAWS: build/index.d.ts#VERDICT_DRAWS
 VERDICT_EXACT_CAP: build/index.d.ts#VERDICT_EXACT_CAP
@@ -262,12 +269,17 @@ VerdictResult: build/index.d.ts#VerdictResult
 VerdictScope: build/index.d.ts#VerdictScope
 VerdictSide: build/index.d.ts#VerdictSide
 VerdictSignTest: build/index.d.ts#VerdictSignTest
+addPoints3: build/index.d.ts#addPoints3
 applyPack: build/index.d.ts#applyPack
 applySymmetry: build/index.d.ts#applySymmetry
 balanceMeasureSpecs: build/index.d.ts#balanceMeasureSpecs
 balanceMeasures: build/index.d.ts#balanceMeasures
 balanceOf: build/index.d.ts#balanceOf
 boundsOf: build/measures.chunk.d.ts#boundsOf
+boundsOf3: build/index.d.ts#boundsOf3
+box3Center: build/index.d.ts#box3Center
+box3Corners: build/index.d.ts#box3Corners
+box3Volume: build/index.d.ts#box3Volume
 boxArea: build/measures.chunk.d.ts#boxArea
 boxCenterDistance: build/measures.chunk.d.ts#boxCenterDistance
 canonicalConfig: @mark1russell7/strategy-space#canonicalConfig (external)
@@ -300,6 +312,8 @@ clampOptions: @mark1russell7/strategy-space#clampOptions (external)
 clipRing: build/measures.chunk.d.ts#clipRing
 compareMeasure: build/measures.chunk.d.ts#compareMeasure
 composeFamily: build/index.d.ts#composeFamily
+composeRotations3: build/index.d.ts#composeRotations3
+composeTransforms3: build/index.d.ts#composeTransforms3
 configId: @mark1russell7/strategy-space#configId (external)
 convexCorners: build/measures.chunk.d.ts#convexCorners
 convexOverlap: build/measures.chunk.d.ts#convexOverlap
@@ -313,6 +327,7 @@ countOverlaps: build/index.d.ts#countOverlaps
 countPortsOffBorder: build/index.d.ts#countPortsOffBorder
 countResizeBreaks: build/index.d.ts#countResizeBreaks
 createFamilyRegistry: build/index.d.ts#createFamilyRegistry
+cross3: build/index.d.ts#cross3
 crossingPoint: build/measures.chunk.d.ts#crossingPoint
 curveCell: build/index.d.ts#curveCell
 curveCells: build/index.d.ts#curveCells
@@ -325,7 +340,9 @@ defaultNormalize: build/index.d.ts#defaultNormalize
 dimensionAt: build/index.d.ts#dimensionAt
 dimensionSupports: build/index.d.ts#dimensionSupports
 dimensionUnit: build/index.d.ts#dimensionUnit
+distance3: build/index.d.ts#distance3
 documentHash: build/index.d.ts#documentHash
+dot3: build/index.d.ts#dot3
 dropIndex: build/measures.chunk.d.ts#dropIndex
 edgeKeyStep: build/index.d.ts#edgeKeyStep
 edgeStep: build/index.d.ts#edgeStep
@@ -345,11 +362,14 @@ hardRuleOf: build/index.d.ts#hardRuleOf
 hilbertCell: build/index.d.ts#hilbertCell
 hilbertIndex: build/index.d.ts#hilbertIndex
 inputShapeLevel: build/measures.chunk.d.ts#inputShapeLevel
+inverseRotation3: build/index.d.ts#inverseRotation3
 inverseSymmetry: build/index.d.ts#inverseSymmetry
+inverseTransform3: build/index.d.ts#inverseTransform3
 isShapeKind: build/measures.chunk.d.ts#isShapeKind
 itemShapeOf: build/measures.chunk.d.ts#itemShapeOf
 joinConfigs: @mark1russell7/strategy-space#joinConfigs (external)
 leaveOneSeedOut: build/measures.chunk.d.ts#leaveOneSeedOut
+length3: build/index.d.ts#length3
 levelsOf: build/index.d.ts#levelsOf
 lineJson: build/index.d.ts#lineJson
 listOptions: @mark1russell7/strategy-space#listOptions (external)
@@ -365,6 +385,7 @@ mulberry32: build/index.d.ts#mulberry32
 nameAfterStage: build/index.d.ts#nameAfterStage
 nearestGaps: build/index.d.ts#nearestGaps
 normalizeMeasure: build/index.d.ts#normalizeMeasure
+normalizeRotation3: build/index.d.ts#normalizeRotation3
 optionDefaults: @mark1russell7/strategy-space#optionDefaults (external)
 optionIssue: @mark1russell7/strategy-space#optionIssue (external)
 outputGridClass: build/index.d.ts#outputGridClass
@@ -372,6 +393,7 @@ outputGroups: build/index.d.ts#outputGroups
 outputHash: build/index.d.ts#outputHash
 outputOf: build/index.d.ts#outputOf
 overlapOf: build/measures.chunk.d.ts#overlapOf
+overlapOf3: build/index.d.ts#overlapOf3
 ownerDimension: build/index.d.ts#ownerDimension
 packHard: build/index.d.ts#packHard
 packLinks: build/measures.chunk.d.ts#packLinks
@@ -406,7 +428,10 @@ resizeBox: build/index.d.ts#resizeBox
 resizeProblems: build/index.d.ts#resizeProblems
 resolveDimensions: build/index.d.ts#resolveDimensions
 ringCentroid: build/measures.chunk.d.ts#ringCentroid
+rotatePoint3: build/index.d.ts#rotatePoint3
+rotationAbout: build/index.d.ts#rotationAbout
 ruleLevel: build/measures.chunk.d.ts#ruleLevel
+scalePoint3: build/index.d.ts#scalePoint3
 scaleRect: build/measures.chunk.d.ts#scaleRect
 segmentThroughShape: build/index.d.ts#segmentThroughShape
 segmentsCross: build/measures.chunk.d.ts#segmentsCross
@@ -430,6 +455,7 @@ splitConfig: @mark1russell7/strategy-space#splitConfig (external)
 splitFileName: build/measures.chunk.d.ts#splitFileName
 splitFolds: build/measures.chunk.d.ts#splitFolds
 stepRandom: build/index.d.ts#stepRandom
+subtractPoints3: build/index.d.ts#subtractPoints3
 surveyFindings: build/index.d.ts#surveyFindings
 sweepGrid: @mark1russell7/strategy-space#sweepGrid (external)
 sweepOf: @mark1russell7/strategy-space#sweepOf (external)
@@ -438,6 +464,9 @@ toLayoutRecord: build/index.d.ts#toLayoutRecord
 toPackInput: build/measures.chunk.d.ts#toPackInput
 toRect: build/measures.chunk.d.ts#toRect
 toSizedRect: build/measures.chunk.d.ts#toSizedRect
+transformMatrix4: build/index.d.ts#transformMatrix4
+transformPoint3: build/index.d.ts#transformPoint3
+transformedBounds3: build/index.d.ts#transformedBounds3
 translate: build/measures.chunk.d.ts#translate
 turnBox: build/index.d.ts#turnBox
 turnMargin: build/index.d.ts#turnMargin
@@ -499,6 +528,16 @@ export interface Balance {
 
 ### build/index.d.ts#BalanceMeasureSuffix
 export type BalanceMeasureSuffix = "balance.gapCv" | "balance.gapMean" | "balance.centroidOffset" | "balance.side.top" | "balance.side.right" | "balance.side.bottom" | "balance.side.left" | "balance.sideRange" | "stability.procrustes" | "stability.seed";
+
+### build/index.d.ts#Box3
+export interface Box3 {
+  readonly x: number;
+  readonly y: number;
+  readonly z: number;
+  readonly w: number;
+  readonly h: number;
+  readonly d: number;
+}
 
 ### build/index.d.ts#CELL_MEASURE_SUFFIXES
 export declare const CELL_MEASURE_SUFFIXES: readonly CellMeasureSuffix[];
@@ -990,11 +1029,20 @@ export declare const NOISE_KINDS: readonly NoiseKind[];
 ### build/index.d.ts#NO_FINITE_RANGE
 export declare const NO_FINITE_RANGE = "The range is not finite, and the registry has no agreed scale for the measure.";
 
+### build/index.d.ts#NO_ROTATION3
+export declare const NO_ROTATION3: Rotation3;
+
+### build/index.d.ts#NO_TRANSFORM3
+export declare const NO_TRANSFORM3: Transform3;
+
 ### build/index.d.ts#NO_UNIT
 export declare const NO_UNIT = "no unit";
 
 ### build/index.d.ts#NoiseKind
 export type NoiseKind = "exact" | "sampled" | "timed";
+
+### build/index.d.ts#ORIGIN3
+export declare const ORIGIN3: Point3;
 
 ### build/index.d.ts#OUTPUT_CLASS_MIN_INPUTS
 export declare const OUTPUT_CLASS_MIN_INPUTS = 30;
@@ -1106,6 +1154,13 @@ export interface Placement {
   readonly shape?: Region;
 }
 
+### build/index.d.ts#Point3
+export interface Point3 {
+  readonly x: number;
+  readonly y: number;
+  readonly z: number;
+}
+
 ### build/index.d.ts#Portfolio
 export interface Portfolio<I, O> extends Member<I, O> {
   pick(input: I): PortfolioPick<O>;
@@ -1195,6 +1250,14 @@ export interface RegistryEntry {
 
 ### build/index.d.ts#RngFactory
 export type RngFactory = (seed: number) => () => number;
+
+### build/index.d.ts#Rotation3
+export interface Rotation3 {
+  readonly x: number;
+  readonly y: number;
+  readonly z: number;
+  readonly w: number;
+}
 
 ### build/index.d.ts#RunEnv
 export interface RunEnv {
@@ -1367,6 +1430,12 @@ export interface Tolerance {
   readonly through: number;
 }
 
+### build/index.d.ts#Transform3
+export interface Transform3 {
+  readonly position: Point3;
+  readonly rotation: Rotation3;
+}
+
 ### build/index.d.ts#TwinConflict
 export interface TwinConflict {
   readonly name: string;
@@ -1471,6 +1540,9 @@ export interface VerdictSignTest {
   readonly p: number;
 }
 
+### build/index.d.ts#addPoints3
+export declare function addPoints3(a: Point3, b: Point3): Point3;
+
 ### build/index.d.ts#applyPack
 export declare function applyPack(input: LayoutInput, output: PackOutput): LayoutInput;
 
@@ -1485,6 +1557,18 @@ export declare function balanceMeasures<S extends string>(stage: S, balance: Bal
 
 ### build/index.d.ts#balanceOf
 export declare function balanceOf(boxes: readonly Rect[], container: Rect): Balance;
+
+### build/index.d.ts#boundsOf3
+export declare function boundsOf3(points: readonly Point3[]): Box3 | undefined;
+
+### build/index.d.ts#box3Center
+export declare function box3Center(box: Box3): Point3;
+
+### build/index.d.ts#box3Corners
+export declare function box3Corners(box: Box3): readonly Point3[];
+
+### build/index.d.ts#box3Volume
+export declare function box3Volume(box: Box3): number;
 
 ### build/index.d.ts#canonicalJson
 export declare function canonicalJson(value: unknown): string;
@@ -1543,6 +1627,12 @@ export declare function circlesOutside(input: LayoutInput, tolerance?: number): 
 ### build/index.d.ts#composeFamily
 export declare function composeFamily(base: CorpusFamily<LayoutInput>, steps: readonly CorpusStep[], options?: ComposeOptions): CorpusFamily<LayoutInput>;
 
+### build/index.d.ts#composeRotations3
+export declare function composeRotations3(outer: Rotation3, inner: Rotation3): Rotation3;
+
+### build/index.d.ts#composeTransforms3
+export declare function composeTransforms3(outer: Transform3, inner: Transform3): Transform3;
+
 ### build/index.d.ts#corpusManifestText
 export declare function corpusManifestText<Spec, Claims extends object, Input>(manifest: CorpusManifest<Spec, Claims, Input>, options?: ManifestTextOptions): string;
 
@@ -1566,6 +1656,9 @@ export declare function countResizeBreaks(input: LayoutInput, output: PackOutput
 
 ### build/index.d.ts#createFamilyRegistry
 export declare function createFamilyRegistry<O = LayoutInput>(families?: Iterable<CorpusFamily<O>>): FamilyRegistry<O>;
+
+### build/index.d.ts#cross3
+export declare function cross3(a: Point3, b: Point3): Point3;
 
 ### build/index.d.ts#curveCell
 export declare function curveCell(curve: CurveSpec, index: number, side: number): [number, number];
@@ -1591,8 +1684,14 @@ export declare function dimensionSupports(dim: CorpusDimension, value: unknown):
 ### build/index.d.ts#dimensionUnit
 export declare function dimensionUnit(dim: SpaceParam, value: number): number;
 
+### build/index.d.ts#distance3
+export declare function distance3(a: Point3, b: Point3): number;
+
 ### build/index.d.ts#documentHash
 export declare function documentHash(doc: object, options?: HashOptions): string;
+
+### build/index.d.ts#dot3
+export declare function dot3(a: Point3, b: Point3): number;
 
 ### build/index.d.ts#edgeKeyStep
 export declare function edgeKeyStep(input: LayoutInput, params: EdgeKeyParams, seed?: number): LayoutInput;
@@ -1639,8 +1738,17 @@ export declare function hilbertCell(index: number, side: number): [number, numbe
 ### build/index.d.ts#hilbertIndex
 export declare function hilbertIndex(x: number, y: number, side: number): number;
 
+### build/index.d.ts#inverseRotation3
+export declare function inverseRotation3(rotation: Rotation3): Rotation3;
+
 ### build/index.d.ts#inverseSymmetry
 export declare function inverseSymmetry(symmetry: CurveSymmetry): CurveSymmetry;
+
+### build/index.d.ts#inverseTransform3
+export declare function inverseTransform3(transform: Transform3): Transform3;
+
+### build/index.d.ts#length3
+export declare function length3(vector: Point3): number;
 
 ### build/index.d.ts#levelsOf
 export declare function levelsOf(dim: CorpusDimension, steps?: number): ParamValue[];
@@ -1678,6 +1786,9 @@ export declare function nearestGaps(boxes: readonly Rect[]): number[];
 ### build/index.d.ts#normalizeMeasure
 export declare function normalizeMeasure(value: number, entry: Pick<MeasureEntry, "id" | "direction" | "min" | "max" | "normalize" | "planned">): number | undefined;
 
+### build/index.d.ts#normalizeRotation3
+export declare function normalizeRotation3(rotation: Rotation3): Rotation3;
+
 ### build/index.d.ts#outputGridClass
 export declare function outputGridClass(counts: OutputGridCounts): OutputGridClass;
 
@@ -1689,6 +1800,9 @@ export declare function outputHash(value: unknown, options?: HashOptions): strin
 
 ### build/index.d.ts#outputOf
 export declare function outputOf(frame: LayoutFrame): Placement[];
+
+### build/index.d.ts#overlapOf3
+export declare function overlapOf3(a: Box3, b: Box3): Point3;
 
 ### build/index.d.ts#ownerDimension
 export declare function ownerDimension(name: string, spec: OwnerDimensionSpec): CorpusDimension;
@@ -1749,6 +1863,15 @@ export declare function resizeProblems(box: LayoutBox): string[];
 ### build/index.d.ts#resolveDimensions
 export declare function resolveDimensions(dimensions: readonly CorpusDimension[], dims?: Readonly<Record<string, ParamValue>>, where?: string, by?: string): DimensionValues;
 
+### build/index.d.ts#rotatePoint3
+export declare function rotatePoint3(rotation: Rotation3, point: Point3): Point3;
+
+### build/index.d.ts#rotationAbout
+export declare function rotationAbout(axis: Point3, angle: number): Rotation3;
+
+### build/index.d.ts#scalePoint3
+export declare function scalePoint3(point: Point3, factor: number): Point3;
+
 ### build/index.d.ts#segmentThroughShape
 export declare function segmentThroughShape(a: Point, b: Point, box: LayoutBox, tolerance?: number): boolean;
 
@@ -1782,11 +1905,23 @@ export declare function spaceSize(space: StrategySpace$1, options: SpaceSizeOpti
 ### build/index.d.ts#stepRandom
 export declare function stepRandom(seed: number, step: string): () => number;
 
+### build/index.d.ts#subtractPoints3
+export declare function subtractPoints3(a: Point3, b: Point3): Point3;
+
 ### build/index.d.ts#surveyFindings
 export declare function surveyFindings(survey: MeasureSurvey): SurveyFindings;
 
 ### build/index.d.ts#toLayoutRecord
 export declare function toLayoutRecord(input: LayoutInput, run: RunFacts): LayoutRecord;
+
+### build/index.d.ts#transformMatrix4
+export declare function transformMatrix4(transform: Transform3): readonly number[];
+
+### build/index.d.ts#transformPoint3
+export declare function transformPoint3(transform: Transform3, point: Point3): Point3;
+
+### build/index.d.ts#transformedBounds3
+export declare function transformedBounds3(box: Box3, transform: Transform3): Box3;
 
 ### build/index.d.ts#turnBox
 export declare function turnBox(box: LayoutBox): LayoutBox;
