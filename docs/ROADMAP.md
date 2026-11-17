@@ -106,7 +106,6 @@ Of 21 items of size M that shipped, the median took less than 1 day from start t
 | L107 | later | P2 | An exact rule for a circle beside another shape kind, an obstacle or a polygon container, due 2026-11-28 |
 | L112 | later (parked to 11-11) | P2 | A flip test for each gate check of a measure: an injected fault turns the check red, with a clean copy green in the same job |
 | L117 | later (parked to 11-11) | P2 | One timed run over 60 s on the joint runner, with a same-twice check that can go red and its flip, in the engine epoch of 2026-11-15 |
-| L113 | later (parked to 11-11) | P2 | A CI read of the wait of each pull request gate and release gate, by UTC hour, with the memory gate running and not |
 | L116 | later (parked to 11-11) | P2 | A held config cannot stay out of the full race for ever: a censored row after 2 planned nights with a miss, a limit of 0.5 % of the inputs, a plan in part, and kept records that give a value once their reference returns. By 2026-11-12 |
 | L133 | later | P2 | The epoch key changes when the joint space changes |
 
@@ -114,6 +113,7 @@ Of 21 items of size M that shipped, the median took less than 1 day from start t
 
 | ID | Status | Priority | Title |
 | --- | --- | --- | --- |
+| L113 | done | P2 | A CI read of the wait of each pull request gate and release gate, by UTC hour. Ended on 2026-11-17, past its end date of 2026-11-14: the queue record of the CI slots reads each owner |
 | L161 | done | P1 | Voronoi treemap cells: a shape on a placement (part 1, #312), the cell measures `cell.areaError` and `cell.compactness` (part 2, #316), and exact counts of a convex polygon in the hard rules, `HARD_RULE_VERSION` 3 (part 3, #313) |
 | L154 | done | P1 | A start frame and the frames of a run in `packing`: a fixed-point start gives the move 0 (`packing` 0.15.0) |
 | L152 | done | P1 | One manifest type and one writer of `layout-corpus/1` in the contract, pinned to the bytes of the corpus files of `packing` and of the joint bench (0.9.2) |
