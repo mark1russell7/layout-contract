@@ -31,13 +31,19 @@ jobs:
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: 26
-      - name: Install the browser
+      - name: The Playwright package, outside the workspace
         run: |
           mkdir -p "$RUNNER_TEMP/pw"
           cd "$RUNNER_TEMP/pw"
           npm init -y > /dev/null
           npm install --no-audit --no-fund --ignore-scripts "playwright@$PLAYWRIGHT_VERSION"
-          npx playwright install --with-deps chromium
+      # The action of the template installs Chromium from a cache, with a time limit and a second try.
+      - name: Chromium
+        uses: mark1russell7/template/.github/actions/setup-playwright@94adcfe753a1ec7d03cc03f445f1f0559d5c205f # main
+        with:
+          browsers: chromium
+          command: npx --no-install playwright
+          working-directory: ${{ runner.temp }}/pw
       - name: Read the pages
         working-directory: packages/site
         env:
