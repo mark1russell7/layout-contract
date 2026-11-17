@@ -323,16 +323,16 @@
   },
   "joint-v2_packing-0.17.3_highways-0.17.1_space-bench-3": {
    "corpus": "joint-v2",
-   "nights": 2,
-   "last": "2026-11-16",
+   "nights": 3,
+   "last": "2026-11-17",
    "missing": 0,
-   "configs": 27,
+   "configs": 35,
    "counts": {
     "baseline": 3,
     "screened": 0,
-    "alive": 4,
-    "dropped": 16,
-    "halved": 4,
+    "alive": 6,
+    "dropped": 18,
+    "halved": 8,
     "design": 0
    },
    "step": {
@@ -418,39 +418,39 @@
     }
    },
    "cost": {
-    "date": "2026-11-16",
+    "date": "2026-11-17",
     "jobMinutes": {
-     "planned": 37.4522503875595,
-     "lo": 28.341168766519946,
-     "hi": 105.8707940910541,
-     "real": 50.12595623098334,
+     "planned": 87.29106381882008,
+     "lo": 71.50376833900741,
+     "hi": 261.21162142885873,
+     "real": 115.54853158751666,
      "side": "hit",
      "brier": 0.03999999999999998
     },
     "jobMinutesStatus": "scored",
     "wall": {
-     "planned": 23.686028526613185,
-     "lo": 20.511878900745106,
-     "hi": 85.72522691201091,
-     "real": 40.45,
+     "planned": 29.097231650621186,
+     "lo": 26.727073250172566,
+     "hi": 105.30962516397472,
+     "real": 45.416666666666664,
      "side": "hit",
      "brier": 0.03999999999999998
     },
     "wallStatus": "scored",
     "shards": {
-     "lo": 0.4170677201108136,
-     "hi": 7.612658440749502,
-     "width": 18.252811410882728,
+     "lo": 0.41305982251378803,
+     "hi": 7.617012610842206,
+     "width": 18.44045873182921,
      "overCap": true,
-     "shards": 3,
-     "hits": 3,
+     "shards": 6,
+     "hits": 6,
      "low": 0,
      "high": 0,
      "stopped": 0,
      "brier": 0.03999999999999998
     },
     "widthCap": 5,
-    "budget": "The budget of the gate is 1039 minutes, from 3 gates.",
+    "budget": "The budget of the gate is 991 minutes, from 3 gates.",
     "thin": false
    }
   }
