@@ -25,7 +25,7 @@ defaults:
 
 jobs:
   ci:
-    uses: mark1russell7/template/.github/workflows/reusable-ci.yml@1702dade663a51743de475fcaae8ce77fd77f456 # main
+    uses: mark1russell7/template/.github/workflows/reusable-ci.yml@2030c7dec9485afebb504772f79f41f23bdb2df7 # main
 
   # Each preset of `pnpm package add` makes a package, and that package passes its typecheck and its tests.
   # The tests of the preset service hold its entry to describe() and lint() of @mark1russell7/service (OTH-5).
@@ -61,13 +61,20 @@ jobs:
       - run: pnpm --filter "@template/$PACKAGE" typecheck
       - run: pnpm --filter "@template/$PACKAGE" test
 
+  # The site of .github/site.json: the build, the site check and the probe, with no deploy (CI.md of the
+  # template, "The site config"). The Pages workflow deploys the same site from main.
+  site:
+    uses: mark1russell7/template/.github/workflows/reusable-pages-check.yml@2030c7dec9485afebb504772f79f41f23bdb2df7 # main
+    permissions:
+      contents: read
+
   # The check that the ruleset of main names (CI.md, "The check of the ruleset"). It needs each job of this file.
   # It fails when a job did not pass. A job that its own if skips fails it too, unless ALLOW_SKIP names the job (template #85).
   # The joint bench is not in this file: release.yml calls this file with contents: read, and the bench needs actions: read.
   ci-ok:
     name: CI OK
     if: ${{ !cancelled() }}
-    needs: [ci, presets]
+    needs: [ci, presets, site]
     runs-on: ubuntu-latest
     timeout-minutes: 2
     permissions: {}
