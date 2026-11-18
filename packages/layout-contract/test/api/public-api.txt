@@ -98,6 +98,8 @@ JOINT_SOURCE: build/index.d.ts#JOINT_SOURCE
 JointMeasureId: build/measures.chunk.d.ts#JointMeasureId
 JsonStyle: build/index.d.ts#JsonStyle
 type KindOptions: @mark1russell7/strategy-space#KindOptions (external)
+LABEL_ALIGNS: build/index.d.ts#LABEL_ALIGNS
+LabelAlign: build/index.d.ts#LabelAlign
 LayoutBox: build/measures.chunk.d.ts#LayoutBox
 LayoutCell: build/measures.chunk.d.ts#LayoutCell
 LayoutContainer: build/measures.chunk.d.ts#LayoutContainer
@@ -105,6 +107,7 @@ LayoutEdge: build/measures.chunk.d.ts#LayoutEdge
 LayoutFrame: build/index.d.ts#LayoutFrame
 LayoutGenerator: build/measures.chunk.d.ts#LayoutGenerator
 LayoutInput: build/measures.chunk.d.ts#LayoutInput
+LayoutPicture: build/index.d.ts#LayoutPicture
 LayoutRecord: build/index.d.ts#LayoutRecord
 type ListItem: @mark1russell7/strategy-space#ListItem (external)
 MEASURE_REGISTRY: build/index.d.ts#MEASURE_REGISTRY
@@ -153,6 +156,8 @@ OutputGroup: build/index.d.ts#OutputGroup
 OutputRow: build/index.d.ts#OutputRow
 OwnerDimensionSpec: build/index.d.ts#OwnerDimensionSpec
 PACK_HARD_RULES: build/index.d.ts#PACK_HARD_RULES
+PATH_KINDS: build/index.d.ts#PATH_KINDS
+PICTURE_SCHEMA: build/index.d.ts#PICTURE_SCHEMA
 PackHard: build/index.d.ts#PackHard
 PackInput: build/measures.chunk.d.ts#PackInput
 PackInputOptions: build/measures.chunk.d.ts#PackInputOptions
@@ -163,7 +168,18 @@ type ParamKind: @mark1russell7/strategy-space#ParamKind (external)
 ParamRoute: build/index.d.ts#ParamRoute
 type ParamValue: @mark1russell7/strategy-space#ParamValue (external)
 type ParamWhen: @mark1russell7/strategy-space#ParamWhen (external)
+PathArc: build/index.d.ts#PathArc
+PathCubic: build/index.d.ts#PathCubic
+PathLine: build/index.d.ts#PathLine
+PathMove: build/index.d.ts#PathMove
+PathSegment: build/index.d.ts#PathSegment
+PathTangent: build/index.d.ts#PathTangent
 PickSpec: build/index.d.ts#PickSpec
+PictureBox: build/index.d.ts#PictureBox
+PictureLabel: build/index.d.ts#PictureLabel
+PictureParts: build/index.d.ts#PictureParts
+PictureRoute: build/index.d.ts#PictureRoute
+PictureRouteSource: build/index.d.ts#PictureRouteSource
 PlacedBox: build/index.d.ts#PlacedBox
 PlacedCircle: build/index.d.ts#PlacedCircle
 Placement: build/index.d.ts#Placement
@@ -300,6 +316,8 @@ checkDeclared: build/measures.chunk.d.ts#checkDeclared
 checkInput: build/index.d.ts#checkInput
 checkLayoutRecord: build/index.d.ts#checkLayoutRecord
 checkOptions: @mark1russell7/strategy-space#checkOptions (external)
+checkPath: build/index.d.ts#checkPath
+checkPicture: build/index.d.ts#checkPicture
 checkRegistry: build/index.d.ts#checkRegistry
 checkSchema: @mark1russell7/strategy-space#checkSchema (external)
 checkShapes: build/measures.chunk.d.ts#checkShapes
@@ -329,6 +347,7 @@ countResizeBreaks: build/index.d.ts#countResizeBreaks
 createFamilyRegistry: build/index.d.ts#createFamilyRegistry
 cross3: build/index.d.ts#cross3
 crossingPoint: build/measures.chunk.d.ts#crossingPoint
+cubicAt: build/index.d.ts#cubicAt
 curveCell: build/index.d.ts#curveCell
 curveCells: build/index.d.ts#curveCells
 curveIndex: build/index.d.ts#curveIndex
@@ -405,9 +424,16 @@ paramProblem: @mark1russell7/strategy-space#paramProblem (external)
 paramUnit: @mark1russell7/strategy-space#paramUnit (external)
 paramValue: @mark1russell7/strategy-space#paramValue (external)
 parseLayoutRecord: build/index.d.ts#parseLayoutRecord
+parsePicture: build/index.d.ts#parsePicture
 parseStrategyCatalog: build/index.d.ts#parseStrategyCatalog
+pathBounds: build/index.d.ts#pathBounds
+pathEnd: build/index.d.ts#pathEnd
+pathOf: build/index.d.ts#pathOf
+pathStart: build/index.d.ts#pathStart
 perChange: build/index.d.ts#perChange
 pickMoves: build/index.d.ts#pickMoves
+pictureBounds: build/index.d.ts#pictureBounds
+pictureOf: build/index.d.ts#pictureOf
 placedCircle: build/index.d.ts#placedCircle
 placedConvex: build/index.d.ts#placedConvex
 placedRect: build/index.d.ts#placedRect
@@ -431,6 +457,7 @@ ringCentroid: build/measures.chunk.d.ts#ringCentroid
 rotatePoint3: build/index.d.ts#rotatePoint3
 rotationAbout: build/index.d.ts#rotationAbout
 ruleLevel: build/measures.chunk.d.ts#ruleLevel
+samplePath: build/index.d.ts#samplePath
 scalePoint3: build/index.d.ts#scalePoint3
 scaleRect: build/measures.chunk.d.ts#scaleRect
 segmentThroughShape: build/index.d.ts#segmentThroughShape
@@ -464,6 +491,7 @@ toLayoutRecord: build/index.d.ts#toLayoutRecord
 toPackInput: build/measures.chunk.d.ts#toPackInput
 toRect: build/measures.chunk.d.ts#toRect
 toSizedRect: build/measures.chunk.d.ts#toSizedRect
+toSvgPath: build/index.d.ts#toSvgPath
 transformMatrix4: build/index.d.ts#transformMatrix4
 transformPoint3: build/index.d.ts#transformPoint3
 transformedBounds3: build/index.d.ts#transformedBounds3
@@ -899,10 +927,25 @@ export declare const JOINT_SOURCE = "@layout-contract/joint";
 ### build/index.d.ts#JsonStyle
 export type JsonStyle = "spaced" | "compact";
 
+### build/index.d.ts#LABEL_ALIGNS
+export declare const LABEL_ALIGNS: readonly ["left", "center", "right"];
+
+### build/index.d.ts#LabelAlign
+export type LabelAlign = (typeof LABEL_ALIGNS)[number];
+
 ### build/index.d.ts#LayoutFrame
 export interface LayoutFrame {
   readonly schema: typeof FRAME_SCHEMA;
   readonly boxes: readonly FrameBox[];
+}
+
+### build/index.d.ts#LayoutPicture
+export interface LayoutPicture {
+  readonly schema: typeof PICTURE_SCHEMA;
+  readonly id?: string;
+  readonly boxes: readonly PictureBox[];
+  readonly routes: readonly PictureRoute[];
+  readonly labels: readonly PictureLabel[];
 }
 
 ### build/index.d.ts#LayoutRecord
@@ -1092,6 +1135,12 @@ export type OwnerDimensionSpec = Omit<CorpusDimension, "name">;
 ### build/index.d.ts#PACK_HARD_RULES
 export declare const PACK_HARD_RULES: readonly ShapeSupport<keyof PackHard>[];
 
+### build/index.d.ts#PATH_KINDS
+export declare const PATH_KINDS: readonly ["move", "line", "cubic", "arc"];
+
+### build/index.d.ts#PICTURE_SCHEMA
+export declare const PICTURE_SCHEMA = "layout-picture/1";
+
 ### build/index.d.ts#PackHard
 export interface PackHard {
   readonly "no-overlap": number;
@@ -1128,8 +1177,87 @@ export type ParamRoute = {
   readonly value?: (value: ParamValue) => unknown;
 };
 
+### build/index.d.ts#PathArc
+export interface PathArc {
+  readonly kind: "arc";
+  readonly center: Point;
+  readonly radius: number;
+  readonly start: number;
+  readonly sweep: number;
+  readonly to: Point;
+}
+
+### build/index.d.ts#PathCubic
+export interface PathCubic {
+  readonly kind: "cubic";
+  readonly c1: Point;
+  readonly c2: Point;
+  readonly to: Point;
+}
+
+### build/index.d.ts#PathLine
+export interface PathLine {
+  readonly kind: "line";
+  readonly to: Point;
+}
+
+### build/index.d.ts#PathMove
+export interface PathMove {
+  readonly kind: "move";
+  readonly to: Point;
+}
+
+### build/index.d.ts#PathSegment
+export type PathSegment = PathMove | PathLine | PathCubic | PathArc;
+
+### build/index.d.ts#PathTangent
+export interface PathTangent {
+  readonly point: Point;
+  readonly direction: Point;
+}
+
 ### build/index.d.ts#PickSpec
 export type PickSpec = Pick<MeasureSpec, "direction" | "minEffect">;
+
+### build/index.d.ts#PictureBox
+export interface PictureBox extends PlacedBox {
+  readonly parent?: string;
+  readonly shape?: Region;
+  readonly data?: Readonly<Record<string, unknown>>;
+}
+
+### build/index.d.ts#PictureLabel
+export interface PictureLabel extends PlacedBox {
+  readonly box?: string;
+  readonly route?: string;
+  readonly lines: readonly string[];
+  readonly lineHeight: number;
+  readonly font: string;
+  readonly align?: LabelAlign;
+  readonly data?: Readonly<Record<string, unknown>>;
+}
+
+### build/index.d.ts#PictureParts
+export interface PictureParts {
+  readonly routes?: readonly PictureRouteSource[];
+  readonly labels?: readonly PictureLabel[];
+}
+
+### build/index.d.ts#PictureRoute
+export interface PictureRoute {
+  readonly id: string;
+  readonly source: string;
+  readonly target: string;
+  readonly path: readonly PathSegment[];
+  readonly data?: Readonly<Record<string, unknown>>;
+}
+
+### build/index.d.ts#PictureRouteSource
+export interface PictureRouteSource {
+  readonly edge: string;
+  readonly points: readonly Point[];
+  readonly path?: readonly PathSegment[];
+}
 
 ### build/index.d.ts#PlacedBox
 export interface PlacedBox extends Rect {
@@ -1609,6 +1737,12 @@ export declare function checkInput(input: LayoutInput): readonly string[];
 ### build/index.d.ts#checkLayoutRecord
 export declare function checkLayoutRecord(value: unknown): string[];
 
+### build/index.d.ts#checkPath
+export declare function checkPath(value: unknown): string[];
+
+### build/index.d.ts#checkPicture
+export declare function checkPicture(value: unknown): string[];
+
 ### build/index.d.ts#checkRegistry
 export declare function checkRegistry(entries: readonly MeasureEntry[]): string[];
 
@@ -1659,6 +1793,9 @@ export declare function createFamilyRegistry<O = LayoutInput>(families?: Iterabl
 
 ### build/index.d.ts#cross3
 export declare function cross3(a: Point3, b: Point3): Point3;
+
+### build/index.d.ts#cubicAt
+export declare function cubicAt(p0: Point, p1: Point, p2: Point, p3: Point, t: number): Point;
 
 ### build/index.d.ts#curveCell
 export declare function curveCell(curve: CurveSpec, index: number, side: number): [number, number];
@@ -1816,8 +1953,23 @@ export declare function packOutputForm(output: PackOutput): unknown;
 ### build/index.d.ts#parseLayoutRecord
 export declare function parseLayoutRecord(value: unknown): LayoutRecord;
 
+### build/index.d.ts#parsePicture
+export declare function parsePicture(value: unknown): LayoutPicture;
+
 ### build/index.d.ts#parseStrategyCatalog
 export declare function parseStrategyCatalog(value: unknown): StrategyCatalogParse;
+
+### build/index.d.ts#pathBounds
+export declare function pathBounds(segments: readonly PathSegment[]): Rect;
+
+### build/index.d.ts#pathEnd
+export declare function pathEnd(segments: readonly PathSegment[]): PathTangent;
+
+### build/index.d.ts#pathOf
+export declare function pathOf(points: readonly Point[]): PathSegment[];
+
+### build/index.d.ts#pathStart
+export declare function pathStart(segments: readonly PathSegment[]): PathTangent;
 
 ### build/index.d.ts#perChange
 export declare function perChange(move: number, changed: number, count: number): number;
@@ -1826,6 +1978,12 @@ export declare function perChange(move: number, changed: number, count: number):
 export declare function pickMoves(trace: Pick<PortfolioTrace, "picked">): {
   pick: number;
 };
+
+### build/index.d.ts#pictureBounds
+export declare function pictureBounds(picture: LayoutPicture): Rect | undefined;
+
+### build/index.d.ts#pictureOf
+export declare function pictureOf(input: Pick<LayoutInput, "id" | "boxes" | "edges">, parts?: PictureParts): LayoutPicture;
 
 ### build/index.d.ts#placedCircle
 export declare function placedCircle(box: LayoutBox): PlacedCircle | undefined;
@@ -1868,6 +2026,9 @@ export declare function rotatePoint3(rotation: Rotation3, point: Point3): Point3
 
 ### build/index.d.ts#rotationAbout
 export declare function rotationAbout(axis: Point3, angle: number): Rotation3;
+
+### build/index.d.ts#samplePath
+export declare function samplePath(segments: readonly PathSegment[], tolerance?: number): Point[];
 
 ### build/index.d.ts#scalePoint3
 export declare function scalePoint3(point: Point3, factor: number): Point3;
@@ -1913,6 +2074,9 @@ export declare function surveyFindings(survey: MeasureSurvey): SurveyFindings;
 
 ### build/index.d.ts#toLayoutRecord
 export declare function toLayoutRecord(input: LayoutInput, run: RunFacts): LayoutRecord;
+
+### build/index.d.ts#toSvgPath
+export declare function toSvgPath(segments: readonly PathSegment[], digits?: number): string;
 
 ### build/index.d.ts#transformMatrix4
 export declare function transformMatrix4(transform: Transform3): readonly number[];

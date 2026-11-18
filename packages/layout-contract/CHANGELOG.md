@@ -1,5 +1,18 @@
 # Changelog
 
+## 0.10.3
+
+- PATCH before 1.0.0: two new modules, with no change to the other exports.
+- New module `picture`: the record `layout-picture/1`. A picture holds the placed boxes, the route of each edge and the labels of a layout. A viewer that draws it shows the output of each engine, and it imports no engine. `docs/PICTURE.md` gives the rules.
+- `LayoutPicture`, `PictureBox`, `PictureRoute` and `PictureLabel` are the records. Each list is in the order of the paint, and a parent box comes before its children. A label keeps the lines and the font of a measured text.
+- `pictureOf` makes the picture of a placed input, with the routes of a router and the labels. Each box comes immediately before its children. `PictureRouteSource` has the form of a `Route` of `highways`.
+- `checkPicture` gives the problems of a picture, and `parsePicture` throws a `TypeError` with them. `pictureBounds` gives the bounding box of the boxes, the paths and the labels.
+- New module `path`: a path is a `move`, then lines, cubic curves and arcs. `PathSegment`, `PathMove`, `PathLine`, `PathCubic` and `PathArc` are the records, and `PATH_KINDS` lists the kinds.
+- The path record and `samplePath`, `cubicAt` and `toSvgPath` came from the curve model of `highways`. A curve of `highways` is a path with no change.
+- `pathOf` gives the path of a polyline. `pathBounds` gives the exact bounding box of a path. `pathStart` and `pathEnd` give an end of a path with its direction, for example for an arrow head.
+- `checkPath` gives the problems of a path, for example a second `move` or an arc that does not connect.
+- The two modules have no dependency and no top-level call, so a bundle that does not import them does not get their code.
+
 ## 0.10.2
 
 - PATCH before 1.0.0: a new module, with no change to the other exports.

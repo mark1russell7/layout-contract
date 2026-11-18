@@ -18,6 +18,8 @@ The package has one runtime dependency: `@mark1russell7/rigor-generators`, the h
 | The measures | `MeasureSpec`, `Direction`, `JointMeasureId`, `JOINT_MEASURES`, `JOINT_MOVED_MIN`, `Verdict`, `compareMeasure`, `minEffectOf` |
 | The balance and stability measures | `balanceOf`, `Balance`, `nearestGaps`, `procrustesOf`, `ProcrustesOptions`, `perChange`, `balanceMeasures`, `balanceMeasureSpecs`, `BALANCE_MEASURE_SUFFIXES`, `BalanceMeasureSuffix`, `BALANCE_SIDE_DEPTH`, `PlacedBox` |
 | The cell measures | `cellsOf`, `Cells`, `CellItem`, `cellMeasures`, `cellMeasureSpecs`, `cellMeasureEntries`, `CELL_MEASURE_SUFFIXES`, `CellMeasureSuffix`, `CELL_SOURCE`, `SQUARE_COMPACTNESS` |
+| The paths | `PathSegment`, `PathMove`, `PathLine`, `PathCubic`, `PathArc`, `PathTangent`, `PATH_KINDS`, `pathOf`, `samplePath`, `pathBounds`, `pathStart`, `pathEnd`, `toSvgPath`, `cubicAt`, `checkPath` |
+| The picture `layout-picture/1` | `LayoutPicture`, `PictureBox`, `PictureRoute`, `PictureLabel`, `LabelAlign`, `LABEL_ALIGNS`, `PICTURE_SCHEMA`, `pictureOf`, `PictureParts`, `PictureRouteSource`, `checkPicture`, `parsePicture`, `pictureBounds` |
 | Text layout, in the subpath `/text` | `layoutText`, `TextLayout`, `TextLayoutOptions`, `TextSizing`, `createTextCharset`, `TextCharset`, `TextCharsetOptions`, `DIGITS`, `PRINTABLE_ASCII`, `createTextLayoutCache`, `TextLayoutCache`, `TextLayoutCacheOptions`, `TextLayoutCacheStats`, `createMeasurer`, `TextMeasurer`, `canvasAdvance`, `AdvanceFn`, `fontKey`, `graphemesOf`, `textMeasures`, `TEXT_MEASURES`, `TEXT_UNITS` |
 | The edges step | `edgeStep`, `EdgeShape`, `EdgeStepParams`, `EDGE_DENSITY`, `EDGE_STEP_VERSION` |
 | The random numbers | `mulberry32`, `fnv1a32`, `stepRandom`, `randomInt` |
@@ -116,6 +118,7 @@ The comments of the source name each doc as `docs/<NAME>.md`. The docs are in th
 | [`docs/CURVES.md`](https://github.com/mark1russell7/layout-contract/blob/main/docs/CURVES.md) | The Hilbert, Moore and Morton curves through a grid, as data |
 | [`docs/FRAMES.md`](https://github.com/mark1russell7/layout-contract/blob/main/docs/FRAMES.md) | The frame record `layout-frame/1`, the frames between two layouts and their laws |
 | [`docs/GEOMETRY-3D.md`](https://github.com/mark1russell7/layout-contract/blob/main/docs/GEOMETRY-3D.md) | The 3D records: points, boxes, rotations and rigid transforms |
+| [`docs/PICTURE.md`](https://github.com/mark1russell7/layout-contract/blob/main/docs/PICTURE.md) | The picture record `layout-picture/1`: the placed boxes, the path of each route and the labels that a viewer draws |
 | [`docs/TEXT.md`](https://github.com/mark1russell7/layout-contract/blob/main/docs/TEXT.md) | The text layout of the subpath `/text`: the rules, the units and the measures |
 | [`docs/CORPUS.md`](https://github.com/mark1russell7/layout-contract/blob/main/docs/CORPUS.md) | The shared corpus registry, its dimensions and families |
 | [`docs/CORPUS-CHECKS.md`](https://github.com/mark1russell7/layout-contract/blob/main/docs/CORPUS-CHECKS.md) | The corpus checks and the split files |
