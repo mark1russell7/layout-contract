@@ -1599,7 +1599,7 @@ The gate takes its inputs from the bench, so it cannot leave out a family.
 - The gate runs each night on main when the sweep on main ends, also after a failed sweep. Thus the heavy jobs of the two do not overlap. The gate writes the sweep run that it followed in `gate.md`.
 - A night with no sweep gets the gate at 05:53 UTC. This scheduled run stops when a sweep on main started on the same day.
 - A nightly gate stops at its start when the last nightly gate examined the same commit of main. You can also start the gate. The full gate costs about as many CI minutes as one full bench.
-- The gate runs 3 probe jobs at the same time. The account runs at most 20 jobs at once for all repos, and the fleet rule of 2026-10-30 gives a heavy workflow 3 of them.
+- The gate runs 3 probe jobs at the same time. The account runs at most 20 jobs at once for all repos, and a rule of 2026-10-30 gives a heavy workflow 3 of them.
 
 ### The prediction for a gate with 3 jobs at once
 
@@ -1667,7 +1667,7 @@ Run `40993165948` on main examined 293 probes with the limit 3072 MB. 1 probe fa
 | M5 | 0.55 | void | none |
 | M6 | 0.5 | false | 0.250 |
 
-The mean Brier score of M1-M4 and M6 is 0.163. The fleet rule of 2026-10-30 makes M5 void. A time depends on the CPU model of the runner, and the jobs ran on 5 CPU models. Each record of the gate has the CPU model and the mode. A memory peak does not depend on the CPU model, so M1-M4 and M6 stand.
+The mean Brier score of M1-M4 and M6 is 0.163. A rule of 2026-10-30 makes M5 void. A time depends on the CPU model of the runner, and the jobs ran on 5 CPU models. Each record of the gate has the CPU model and the mode. A memory peak does not depend on the CPU model, so M1-M4 and M6 stand.
 
 - M5 is void, but its error is a lesson. I used the 67 minutes of the longest shard of the full bench as the time of one job. The job of the dense input with hubs runs its 3 seeds one after the other, and each seed takes approximately 80 minutes. Thus this one job sets the time of the run.
 - M6 is a miss. The seeds of bench-4 peaked from 3438 MB to 4287 MB in their shards. Alone, the peaks are from 2864 MB to 3337 MB, and seed 1 has the highest peak. The RSS of a shard includes the memory of the inputs before it. Thus the spread of bench-4 came from the shards, not from the seeds.
@@ -1736,7 +1736,7 @@ The mean Brier score of S1 to S4 is 0.212.
 
 ### The prediction for the A/A repeat
 
-The A/A repeat gives the noise of each measure, and the gate limits come from it (the fleet rule 1e10f489).
+The A/A repeat gives the noise of each measure, and the gate limits come from it.
 The run uses the mode `measure-6144` on the 3 seeds of the dense input with hubs. Each seed has 5 repeats, each in a fresh job.
 
 - `measure-6144` has the heap cap of `bench-6144`. It samples the allocations of each pair, and forces a full GC after each pair and at the end of the input.
@@ -2012,7 +2012,7 @@ A joint input has edges, and the pack input of `packInputOf` has no edges. The o
 
 ### The prediction
 
-The prediction `layout-stack-L47-graph-bfs-joint` of the fleet has the claims. The base rates of the fleet give each p. The claims came before the first push.
+The prediction `layout-stack-L47-graph-bfs-joint` has the claims. Base rates give each p. The claims came before the first push.
 
 - The slice `pr` of `joint-v2` has 30 inputs: 24 headline inputs and 6 stress inputs. The cell `all` with the cap 1.25 has 24 inputs.
 - 6 of the 13 comparison cells of each pair are the stress cells, with 6 inputs. They are below the `minRows` of 20 of `surrogate.ts`.
