@@ -409,6 +409,7 @@ mortonIndex: build/index.d.ts#mortonIndex
 mulberry32: build/index.d.ts#mulberry32
 nameAfterStage: build/index.d.ts#nameAfterStage
 nearestGaps: build/index.d.ts#nearestGaps
+nearestOnSegment: build/measures.chunk.d.ts#nearestOnSegment
 normalizeMeasure: build/index.d.ts#normalizeMeasure
 normalizeRotation3: build/index.d.ts#normalizeRotation3
 optionDefaults: @mark1russell7/strategy-space#optionDefaults (external)
@@ -2607,6 +2608,9 @@ declare function marginSides(margin: Margin | undefined): Sides;
 
 ### build/measures.chunk.d.ts#minEffectOf
 declare function minEffectOf(spec: Pick<MeasureSpec, "minEffect">, a?: number, b?: number): number;
+
+### build/measures.chunk.d.ts#nearestOnSegment
+declare function nearestOnSegment(p: Point, a: Point, b: Point): Point;
 
 ### build/measures.chunk.d.ts#overlapOf
 declare function overlapOf(a: Rect, b: Rect): {
