@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.10.5
+
+- PATCH before 1.0.0: a new module, with no change to the other exports.
+- New module `nest`: the boxes in boxes of an input. The field `parent` of a box makes a tree, and each engine reads a different form of it. `docs/NESTED.md` gives the rules.
+- `boxTree` gives the tree of the boxes as `BoxNode` records, for a layout engine that places the children of one box at a time. `topBoxes` gives the box with no parent that contains each box.
+- `siblingEdges` gives the edges between boxes with the same parent. An edge between two different places of the tree goes up to the two boxes with the same parent that contain its ends.
+- `flattenInput` gives the input of the boxes with no parent, for a router that does not go into a box. An inner box that an edge uses becomes a port on the border of its top box, at the middle of the inner box.
+- The option `sides` of `FlattenOptions` lists the sides that a port can use. The default `FLATTEN_SIDES` is `right`, then `left`. `flatPortId` gives the id of a port.
+- Each edge of the flat input keeps its id. Thus `pictureOf` puts the route of a router between the inner boxes of the input.
+
 ## 0.10.4
 
 - PATCH before 1.0.0: three new functions of the geometry, with no change to the other exports.

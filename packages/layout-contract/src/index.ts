@@ -15,6 +15,7 @@ export * from "./cell.ts";
 export * from "./frame.ts";
 export * from "./path.ts";
 export * from "./picture.ts";
+export * from "./nest.ts";
 export * from "./strategy.ts";
 export * from "./random.ts";
 export * from "./edges.ts";
