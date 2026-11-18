@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.10.4
+
+- PATCH before 1.0.0: three new functions of the geometry, with no change to the other exports.
+- `pointRegionDistance` gives the distance from a point to a region: 0 in the region, and the distance to its border out of it. A hole of a polygon is not in the region. For an ellipse, the distance is along the line to its center.
+- `pointPolylineDistance` gives the shortest distance from a point to a polyline.
+- A viewer finds the record below a pointer with them. A box has its rectangle or its `shape`, and a route has the polyline of `samplePath`.
+- `rectCenter` gives the middle of a rectangle. A viewer puts the middle of a group of boxes at the middle of its screen with it.
+
 ## 0.10.3
 
 - PATCH before 1.0.0: two new modules, with no change to the other exports.

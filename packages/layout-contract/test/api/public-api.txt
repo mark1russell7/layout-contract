@@ -439,6 +439,8 @@ placedConvex: build/index.d.ts#placedConvex
 placedRect: build/index.d.ts#placedRect
 pointInRing: build/measures.chunk.d.ts#pointInRing
 pointInRings: build/measures.chunk.d.ts#pointInRings
+pointPolylineDistance: build/measures.chunk.d.ts#pointPolylineDistance
+pointRegionDistance: build/measures.chunk.d.ts#pointRegionDistance
 pointSegmentDistance: build/measures.chunk.d.ts#pointSegmentDistance
 portPoint: build/measures.chunk.d.ts#portPoint
 portfolio: build/index.d.ts#portfolio
@@ -446,6 +448,7 @@ probeHash: build/index.d.ts#probeHash
 procrustesOf: build/index.d.ts#procrustesOf
 productSpace: @mark1russell7/strategy-space#productSpace (external)
 randomInt: build/index.d.ts#randomInt
+rectCenter: build/measures.chunk.d.ts#rectCenter
 rectInRegion: build/index.d.ts#rectInRegion
 regionArea: build/measures.chunk.d.ts#regionArea
 regionHitsRect: build/index.d.ts#regionHitsRect
@@ -2583,11 +2586,20 @@ declare function pointInRing(x: number, y: number, ring: Ring): boolean;
 ### build/measures.chunk.d.ts#pointInRings
 declare function pointInRings(x: number, y: number, rings: readonly Ring[]): boolean;
 
+### build/measures.chunk.d.ts#pointPolylineDistance
+declare function pointPolylineDistance(p: Point, points: readonly Point[]): number;
+
+### build/measures.chunk.d.ts#pointRegionDistance
+declare function pointRegionDistance(p: Point, region: Region): number;
+
 ### build/measures.chunk.d.ts#pointSegmentDistance
 declare function pointSegmentDistance(p: Point, a: Point, b: Point): number;
 
 ### build/measures.chunk.d.ts#portPoint
 declare function portPoint(box: Pick<LayoutBox, "w" | "h">, port: Port): Point | undefined;
+
+### build/measures.chunk.d.ts#rectCenter
+declare function rectCenter(rect: Rect): Point;
 
 ### build/measures.chunk.d.ts#regionArea
 declare function regionArea(region: Region): number;
