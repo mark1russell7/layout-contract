@@ -1,7 +1,10 @@
+import fc from "fast-check";
 import { describe, expect, it } from "vitest";
 import {
   boxCenterDistance,
   crossingPoint,
+  nearestOnSegment,
+  type Point,
   pointInRing,
   pointInRings,
   pointPolylineDistance,
@@ -116,6 +119,76 @@ describe("pointSegmentDistance", () => {
 
   it("gives 0 for a point on the segment", () => {
     expect(pointSegmentDistance(p(4, 0), p(0, 0), p(10, 0))).toBe(0);
+  });
+});
+
+describe("nearestOnSegment", () => {
+  it("gives the foot of the point inside the segment", () => {
+    expect(nearestOnSegment(p(5, 3), p(0, 0), p(10, 0))).toEqual(p(5, 0));
+    expect(nearestOnSegment(p(0, 4), p(0, 0), p(4, 4))).toEqual(p(2, 2));
+    // The direction of the segment does not change the foot.
+    expect(nearestOnSegment(p(4, -7), p(10, 0), p(0, 0))).toEqual(p(4, 0));
+  });
+
+  it("gives the nearest end past the segment", () => {
+    expect(nearestOnSegment(p(13, 4), p(0, 0), p(10, 0))).toEqual(p(10, 0));
+    expect(nearestOnSegment(p(-3, -4), p(0, 0), p(10, 0))).toEqual(p(0, 0));
+  });
+
+  it("gives the first end for a segment of length 0", () => {
+    expect(nearestOnSegment(p(3, 4), p(1, 2), p(1, 2))).toEqual(p(1, 2));
+    expect(nearestOnSegment(p(1, 2), p(1, 2), p(1, 2))).toEqual(p(1, 2));
+  });
+
+  it("gives the point itself for a point on the segment, also at an end", () => {
+    expect(nearestOnSegment(p(4, 0), p(0, 0), p(10, 0))).toEqual(p(4, 0));
+    expect(nearestOnSegment(p(0, 0), p(0, 0), p(10, 0))).toEqual(p(0, 0));
+    expect(nearestOnSegment(p(10, 0), p(0, 0), p(10, 0))).toEqual(p(10, 0));
+    expect(nearestOnSegment(p(3, 3), p(1, 1), p(5, 5))).toEqual(p(3, 3));
+  });
+
+  it("gives the float a + (b - a) at the end b, the point that pointSegmentDistance measures to", () => {
+    // 0.3 + (0.9 - 0.3) rounds to 0.9000000000000001, not to 0.9.
+    const [q, a, b] = [p(1.9, 0), p(0.3, 0), p(0.9, 0)];
+    const n = nearestOnSegment(q, a, b);
+    expect(n).toEqual(p(0.3 + (0.9 - 0.3), 0));
+    expect(n.x).not.toBe(b.x);
+    expect(Math.hypot(q.x - n.x, q.y - n.y)).toBe(pointSegmentDistance(q, a, b));
+  });
+
+  /** This function tells if `q` is on the segment `ab`, within `slack`. It reads the cross product and the dot product, not the function of the test. */
+  const onSegment = (q: Point, a: Point, b: Point, slack: number): boolean => {
+    const length = Math.hypot(b.x - a.x, b.y - a.y);
+    if (length === 0) return Math.hypot(q.x - a.x, q.y - a.y) <= slack;
+    const off = ((b.x - a.x) * (q.y - a.y) - (b.y - a.y) * (q.x - a.x)) / length;
+    const along = ((b.x - a.x) * (q.x - a.x) + (b.y - a.y) * (q.y - a.y)) / length;
+    return Math.abs(off) <= slack && along >= -slack && along <= length + slack;
+  };
+
+  // A small grid of whole numbers gives many segments of length 0, ends and points on the segment. The doubles give the rounding.
+  const grids: readonly (readonly [string, fc.Arbitrary<number>])[] = [
+    ["whole numbers", fc.integer({ min: -4, max: 4 })],
+    ["doubles", fc.double({ min: -1e4, max: 1e4, noNaN: true })],
+  ];
+
+  it.each(grids)("gives a point of the segment at the distance of pointSegmentDistance, and no sample of the segment is nearer, on %s", (_name, coordinate) => {
+    const point: fc.Arbitrary<Point> = fc.record({ x: coordinate, y: coordinate });
+    fc.assert(
+      fc.property(point, point, point, (q, a, b) => {
+        const n = nearestOnSegment(q, a, b);
+        expect(onSegment(n, a, b, 1e-9)).toBe(true);
+        // The two functions have the same float formula, so the distance is the same float, not only a near value.
+        const d = Math.hypot(q.x - n.x, q.y - n.y);
+        expect(d).toBe(pointSegmentDistance(q, a, b));
+        let least = Infinity;
+        for (let i = 0; i <= 64; i++) {
+          const s = i / 64;
+          least = Math.min(least, Math.hypot(q.x - ((1 - s) * a.x + s * b.x), q.y - ((1 - s) * a.y + s * b.y)));
+        }
+        expect(least).toBeGreaterThanOrEqual(d - 1e-9);
+      }),
+      { seed: 0x5e9, numRuns: 2000 },
+    );
   });
 });
 

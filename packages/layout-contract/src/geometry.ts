@@ -366,6 +366,19 @@ export function pointSegmentDistance(p: Point, a: Point, b: Point): number {
 }
 
 /**
+ * This function gives the point of the segment `ab` nearest to `p`. A segment of length 0 gives the point `a`.
+ * The point is `a + t * (b - a)`, with `t` from 0 to 1. Thus the point at the end `b` can differ from `b` by a rounding error.
+ * For finite coordinates, the `Math.hypot` distance from `p` to the point is the same float as `pointSegmentDistance(p, a, b)`.
+ */
+export function nearestOnSegment(p: Point, a: Point, b: Point): Point {
+  const dx = b.x - a.x;
+  const dy = b.y - a.y;
+  const l2 = dx * dx + dy * dy;
+  const t = l2 > 0 ? Math.max(0, Math.min(1, ((p.x - a.x) * dx + (p.y - a.y) * dy) / l2)) : 0;
+  return { x: a.x + t * dx, y: a.y + t * dy };
+}
+
+/**
  * This function gives the shortest distance from `p` to a polyline. A polyline of one point is that point, and an empty polyline gives `Infinity`.
  * The hit test of a route uses it with the polyline of `samplePath`.
  */

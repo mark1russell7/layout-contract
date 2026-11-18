@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.10.6
+
+- PATCH before 1.0.0: one new function of the geometry, with no change to the other exports.
+- `nearestOnSegment(p, a, b)` gives the point of the segment `ab` nearest to `p`. A segment of length 0 gives the point `a`.
+- The point is `a + t * (b - a)`, with `t` from 0 to 1, as in `pointSegmentDistance`. The values of `pointSegmentDistance` do not change.
+- For finite coordinates, the `Math.hypot` distance from `p` to the point is the same float as `pointSegmentDistance(p, a, b)`.
+- At the end `b`, the point is `a + (b - a)`. Thus it can differ from `b` by a rounding error.
+- `highways` has private copies of this function. The copies that divide by `dx * dx + dy * dy` give the same floats as this function.
+
 ## 0.10.5
 
 - PATCH before 1.0.0: a new module, with no change to the other exports.
