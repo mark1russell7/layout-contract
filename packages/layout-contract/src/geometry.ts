@@ -367,8 +367,8 @@ export function pointSegmentDistance(p: Point, a: Point, b: Point): number {
 
 /**
  * This function gives the point of the segment `ab` nearest to `p`. A segment of length 0 gives the point `a`.
- * The point is `a + t * (b - a)`, with `t` from 0 to 1. Thus the point at the end `b` can differ from `b` by a rounding error.
- * For finite coordinates, the `Math.hypot` distance from `p` to the point is the same float as `pointSegmentDistance(p, a, b)`.
+ * The point is `a + t * (b - a)`, with `t` from 0 to 1. The point at the end `b` is `a + (b - a)`, and it can differ from `b` by a rounding error.
+ * The `Math.hypot` distance from `p` to the point is the same float as `pointSegmentDistance(p, a, b)`, for finite coordinates.
  */
 export function nearestOnSegment(p: Point, a: Point, b: Point): Point {
   const dx = b.x - a.x;
