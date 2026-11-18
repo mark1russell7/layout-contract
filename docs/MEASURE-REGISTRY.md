@@ -77,7 +77,7 @@ A term is `1`, a variable, a variable with `^2` or `^3`, or one of these with `l
 
 ## The survey
 
-`docs/measure-survey.json` lists the measures of each package that the joint bench installs. The schema is `measure-survey/1`. `node scripts/measure-survey.ts <YYYY-MM-DD>` in `packages/joint` writes the file. A test compares the file with the installed packages, so an engine update makes the test fail until the survey is written again.
+`docs/measure-survey.json` lists the measures of each package that the joint bench installs. The schema is `measure-survey/1`. `node scripts/measure-survey.ts <YYYY-MM-DD>` in `packages/joint` writes the file. A test compares the file with the installed packages, so an engine update makes the test fail until the survey is written again. The root script `release-train:update` writes the survey after the install of each update of the release train.
 
 - `checkSurvey` gives the faults of a survey.
 - `surveyFindings` gives the facts for the idea queue.
