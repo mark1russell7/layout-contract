@@ -48,7 +48,7 @@ jobs:
     timeout-minutes: 60
     strategy:
       fail-fast: false
-      # The fleet rule of 2026-10-30 (STRATEGY.md) gives a heavy workflow 3 jobs at once, so gates and releases get runners.
+      # A rule of 2026-10-30 gives a heavy workflow 3 jobs at once, so gates and releases get runners.
       max-parallel: 3
       matrix:
         job: [0, 1, 2, 3, 4]

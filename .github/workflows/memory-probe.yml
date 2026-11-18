@@ -40,14 +40,14 @@ on:
         type: string
         default: "1"
   # The nightly gate on main finds a change that brings a peak back within a day. It uses the defaults of the inputs.
-  # It starts when the sweep on main ends, also after a failed sweep. Thus the heavy jobs of the two nights do not overlap (the fleet rule of 2026-10-30).
+  # It starts when the sweep on main ends, also after a failed sweep. Thus the heavy jobs of the two nights do not overlap (a rule of 2026-10-30).
   workflow_run:
     workflows: [Sweep]
     types: [completed]
     branches: [main]
   # The schedule is the fallback for a night with no sweep. It stops when a sweep on main started on the same day.
   schedule:
-    # Each scheduled heavy run of the fleet has its own minute (the rule of 2026-10-30).
+    # Each scheduled heavy run of the account has its own minute (the rule of 2026-10-30).
     - cron: "4 5 * * *"
 
 # A new run on the same ref waits for the run before it. A gate record that runs halfway has no value when it stops.
@@ -173,7 +173,7 @@ jobs:
     timeout-minutes: 340
     strategy:
       fail-fast: false
-      # The account runs at most 20 jobs at once, for all repos together. The fleet rule of 2026-10-30 (STRATEGY.md) gives a heavy workflow 3 jobs at once, so gates and releases get runners.
+      # The account runs at most 20 jobs at once, for all repos together. A rule of 2026-10-30 gives a heavy workflow 3 jobs at once, so gates and releases get runners.
       # The trial of 6 jobs at once for the nightly gate ended on 2026-11-08 (`docs/JOINT-BENCH.md`, "The end of the trial"). Each run has 3 jobs at once.
       # `GATE_LANES` (src/memory-gate.ts) is this number for the budget of the sweep, and a test compares them.
       max-parallel: 3

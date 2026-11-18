@@ -743,7 +743,7 @@ if (command === "check") {
       gc?.();
       const after = process.memoryUsage();
       const now = performance.now();
-      // Each fact has the CPU model and the heap mode, because a time and a peak are true only for them (the fleet rule of 2026-10-30).
+      // Each fact has the CPU model and the heap mode, because a time and a peak are true only for them (a rule of 2026-10-30).
       const fact = { input: id, pair: run.record.strategy, ms: Math.round(now - last), heapBefore: mb(before.heapUsed), heapLive: gc === undefined ? null : mb(after.heapUsed), rss: mb(before.rss), external: mb(before.external), buffers: mb(before.arrayBuffers), maxRss: mb(process.resourceUsage().maxRSS * 1024), allocMb: pairAlloc, cpu: env.cpu, mode: process.env.MODE ?? "none" };
       if (fact.heapLive !== null && fact.heapLive > liveMax) liveMax = fact.heapLive;
       lines.push(JSON.stringify(fact) + "\n");

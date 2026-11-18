@@ -379,7 +379,7 @@ The release train changes the range of `@mark1russell7/typeset` to a version out
 
 - MINOR before 1.0.0, a break: `LayoutRecord.deterministic` widens to `boolean | null`. A reader that expects a boolean breaks.
 - A skipped record has `deterministic: null`, because no run made a claim. A record without `skipped` keeps a boolean.
-- `RunEnv` has two new optional fields: `mode` and `context`. Each timing record names its mode, as the isolation rule of the fleet strategy asks.
+- `RunEnv` has two new optional fields: `mode` and `context`. Each timing record names its mode, as the isolation rule asks.
 - `checkLayoutRecord(value)` gives the problems of one record. `parseLayoutRecord(value)` reads one record, or throws a `TypeError` with the problems.
 - An old skipped record with `deterministic: true` is still correct. `parseLayoutRecord` gives `null` in its place.
 
