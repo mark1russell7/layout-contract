@@ -28,8 +28,8 @@
     "@mark1russell7/highways": "^0.19.0",
     "@mark1russell7/layout-contract": "workspace:*",
     "@mark1russell7/packing": "^0.17.3",
-    "@mark1russell7/site-pages": "^0.7.0",
-    "@mark1russell7/text": "^0.0.13",
+    "@mark1russell7/site-pages": "^0.8.0",
+    "@mark1russell7/text": "^0.0.15",
     "marked": "^18.1.2"
   },
   "description": "The GitHub Pages site of layout-contract: the joint benchmark, the strategy-space explorer and the news, from the data in the repository."
