@@ -1,5 +1,17 @@
 import { describe, expect, it } from "vitest";
-import { boxCenterDistance, crossingPoint, pointInRing, pointInRings, pointSegmentDistance, segmentsCross, type Ring } from "./geometry.ts";
+import {
+  boxCenterDistance,
+  crossingPoint,
+  pointInRing,
+  pointInRings,
+  pointPolylineDistance,
+  pointRegionDistance,
+  pointSegmentDistance,
+  rectCenter,
+  segmentsCross,
+  type Region,
+  type Ring,
+} from "./geometry.ts";
 
 const p = (x: number, y: number) => ({ x, y });
 
@@ -107,6 +119,39 @@ describe("pointSegmentDistance", () => {
   });
 });
 
+describe("pointPolylineDistance", () => {
+  // A polyline with a corner: 10 to the right, then 10 down.
+  const corner = [p(0, 0), p(10, 0), p(10, 10)];
+
+  it("measures to the nearest part of the polyline", () => {
+    expect(pointPolylineDistance(p(5, 3), corner)).toBe(3);
+    expect(pointPolylineDistance(p(12, 5), corner)).toBe(2);
+    expect(pointPolylineDistance(p(10, 4), corner)).toBe(0);
+    // The nearest point is the corner.
+    expect(pointPolylineDistance(p(13, -4), corner)).toBe(5);
+  });
+
+  it("treats a polyline of one point as that point, and gives Infinity for no point", () => {
+    expect(pointPolylineDistance(p(3, 4), [p(0, 0)])).toBe(5);
+    expect(pointPolylineDistance(p(3, 4), [])).toBe(Infinity);
+  });
+
+  it("is the smallest distance to a segment of the polyline, on a seeded walk", () => {
+    let state = 2024;
+    const next = (): number => {
+      state = (state * 48271) % 2147483647;
+      return (state % 41) - 20;
+    };
+    for (let round = 0; round < 200; round++) {
+      const points = Array.from({ length: 2 + (round % 5) }, () => p(next(), next()));
+      const q = p(next(), next());
+      let best = Infinity;
+      for (let i = 1; i < points.length; i++) best = Math.min(best, pointSegmentDistance(q, points[i - 1]!, points[i]!));
+      expect(pointPolylineDistance(q, points)).toBe(best);
+    }
+  });
+});
+
 describe("pointInRing and pointInRings", () => {
   const square: Ring = [[0, 0], [10, 0], [10, 10], [0, 10]];
   // An L shape: the square without its top-right quarter.
@@ -131,6 +176,100 @@ describe("pointInRing and pointInRings", () => {
   it("gives false for a ring with fewer than 3 corners and for no rings", () => {
     expect(pointInRing(0, 0, [])).toBe(false);
     expect(pointInRings(5, 5, [])).toBe(false);
+  });
+});
+
+describe("pointRegionDistance", () => {
+  const rect: Region = { kind: "rect", x: 0, y: 0, w: 10, h: 6 };
+
+  it("gives 0 in a rectangle and on its border, and the distance to a side or a corner out of it", () => {
+    expect(pointRegionDistance(p(5, 3), rect)).toBe(0);
+    expect(pointRegionDistance(p(10, 6), rect)).toBe(0);
+    expect(pointRegionDistance(p(5, -2), rect)).toBe(2);
+    expect(pointRegionDistance(p(14, 3), rect)).toBe(4);
+    expect(pointRegionDistance(p(13, 10), rect)).toBe(5);
+    expect(pointRegionDistance(p(-3, -4), rect)).toBe(5);
+  });
+
+  it("measures to the border of a circle", () => {
+    const circle: Region = { kind: "circle", cx: 10, cy: 10, r: 5 };
+    expect(pointRegionDistance(p(10, 10), circle)).toBe(0);
+    expect(pointRegionDistance(p(13, 14), circle)).toBe(0);
+    expect(pointRegionDistance(p(16, 18), circle)).toBe(5);
+  });
+
+  it("measures to an ellipse along the line to its center", () => {
+    const ellipse: Region = { kind: "ellipse", cx: 0, cy: 0, rx: 10, ry: 5 };
+    expect(pointRegionDistance(p(9, 0), ellipse)).toBe(0);
+    expect(pointRegionDistance(p(0, 5), ellipse)).toBe(0);
+    // On an axis, the value is the shortest distance.
+    expect(pointRegionDistance(p(14, 0), ellipse)).toBeCloseTo(4, 12);
+    expect(pointRegionDistance(p(0, -8), ellipse)).toBeCloseTo(3, 12);
+    // Off the axes, the value is the distance to a point of the ellipse, so it is not less than the shortest distance.
+    const q = p(12, 9);
+    const d = pointRegionDistance(q, ellipse);
+    let shortest = Infinity;
+    for (let i = 0; i < 3600; i++) {
+      const t = (i / 3600) * 2 * Math.PI;
+      shortest = Math.min(shortest, Math.hypot(q.x - 10 * Math.cos(t), q.y - 5 * Math.sin(t)));
+    }
+    expect(d).toBeGreaterThanOrEqual(shortest - 1e-6);
+    expect(d).toBeLessThan(shortest * 1.2);
+  });
+
+  it("treats an ellipse with no height as a segment, and an ellipse with no size as a point", () => {
+    expect(pointRegionDistance(p(4, 3), { kind: "ellipse", cx: 0, cy: 0, rx: 10, ry: 0 })).toBe(3);
+    expect(pointRegionDistance(p(13, 4), { kind: "ellipse", cx: 0, cy: 0, rx: 10, ry: 0 })).toBe(5);
+    expect(pointRegionDistance(p(3, 4), { kind: "ellipse", cx: 0, cy: 0, rx: 0, ry: 0 })).toBe(5);
+  });
+
+  it("gives 0 in a polygon, and the distance to the nearest side out of it and in a hole", () => {
+    // An L shape: the square without its top-right quarter.
+    const ell: Region = { kind: "polygon", points: [[0, 0], [10, 0], [10, 5], [5, 5], [5, 10], [0, 10]] };
+    expect(pointRegionDistance(p(2, 8), ell)).toBe(0);
+    expect(pointRegionDistance(p(8, 8), ell)).toBe(3);
+    expect(pointRegionDistance(p(13, -4), ell)).toBe(5);
+    const holed: Region = { kind: "polygon", points: [[0, 0], [10, 0], [10, 10], [0, 10]], holes: [[[3, 3], [7, 3], [7, 7], [3, 7]]] };
+    expect(pointRegionDistance(p(1, 1), holed)).toBe(0);
+    expect(pointRegionDistance(p(5, 4), holed)).toBe(1);
+    expect(pointRegionDistance(p(12, 5), holed)).toBe(2);
+  });
+
+  it("gives Infinity for a polygon with no corner", () => {
+    expect(pointRegionDistance(p(1, 1), { kind: "polygon", points: [] })).toBe(Infinity);
+  });
+
+  it("gives for a rectangle the value of the polygon with the same corners, on a seeded walk", () => {
+    let state = 777;
+    const next = (): number => {
+      state = (state * 48271) % 2147483647;
+      return (state % 41) - 20;
+    };
+    for (let round = 0; round < 300; round++) {
+      const x = next();
+      const y = next();
+      const w = 1 + Math.abs(next());
+      const h = 1 + Math.abs(next());
+      // A point with a half coordinate is not on a border, where the even-odd rule can give each answer.
+      const q = p(next() + 0.5, next() + 0.5);
+      const polygon: Region = { kind: "polygon", points: [[x, y], [x + w, y], [x + w, y + h], [x, y + h]] };
+      expect(pointRegionDistance(q, { kind: "rect", x, y, w, h })).toBeCloseTo(pointRegionDistance(q, polygon), 12);
+    }
+  });
+});
+
+describe("rectCenter", () => {
+  it("gives the middle of a rectangle, and the corner of a rectangle with no size", () => {
+    expect(rectCenter({ x: 2, y: -4, w: 6, h: 10 })).toEqual(p(5, 1));
+    expect(rectCenter({ x: 3, y: 7, w: 0, h: 0 })).toEqual(p(3, 7));
+  });
+
+  it("is the point that boxCenterDistance measures from", () => {
+    const a = { x: 0, y: 0, w: 2, h: 2 };
+    const b = { x: 3, y: 4, w: 2, h: 2 };
+    const from = rectCenter(a);
+    const to = rectCenter(b);
+    expect(Math.hypot(to.x - from.x, to.y - from.y)).toBe(boxCenterDistance(a, b));
   });
 });
 

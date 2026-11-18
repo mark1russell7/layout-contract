@@ -365,6 +365,18 @@ export function pointSegmentDistance(p: Point, a: Point, b: Point): number {
   return Math.hypot(p.x - (a.x + t * dx), p.y - (a.y + t * dy));
 }
 
+/**
+ * This function gives the shortest distance from `p` to a polyline. A polyline of one point is that point, and an empty polyline gives `Infinity`.
+ * The hit test of a route uses it with the polyline of `samplePath`.
+ */
+export function pointPolylineDistance(p: Point, points: readonly Point[]): number {
+  const first = points[0];
+  if (first === undefined) return Infinity;
+  let best = Math.hypot(p.x - first.x, p.y - first.y);
+  for (let i = 1; i < points.length; i++) best = Math.min(best, pointSegmentDistance(p, points[i - 1]!, points[i]!));
+  return best;
+}
+
 /** A ring of a polygon: its corners in order, as `[x, y]` pairs. The last corner connects to the first. */
 export type Ring = readonly (readonly [number, number])[];
 
@@ -387,6 +399,46 @@ export function pointInRings(x: number, y: number, rings: readonly Ring[]): bool
     }
   }
   return inside;
+}
+
+/**
+ * This function gives the distance from `p` to a region. A point in the region gives 0, so a hit test compares the value with its slack.
+ * A hole of a polygon is not in the region. A polygon with no corner gives `Infinity`.
+ * The distance to an ellipse is along the line to its center. Thus the value is the shortest distance or more, and the two are equal on the axes.
+ */
+export function pointRegionDistance(p: Point, region: Region): number {
+  switch (region.kind) {
+    case "rect":
+      return Math.hypot(Math.max(region.x - p.x, 0, p.x - region.x - region.w), Math.max(region.y - p.y, 0, p.y - region.y - region.h));
+    case "circle":
+      return Math.max(0, Math.hypot(p.x - region.cx, p.y - region.cy) - region.r);
+    case "ellipse": {
+      const dx = p.x - region.cx;
+      const dy = p.y - region.cy;
+      // An ellipse with no width or no height is a segment or a point.
+      if (!(region.rx > 0) || !(region.ry > 0)) {
+        const rx = Math.max(0, region.rx);
+        const ry = Math.max(0, region.ry);
+        return pointSegmentDistance(p, { x: region.cx - rx, y: region.cy - ry }, { x: region.cx + rx, y: region.cy + ry });
+      }
+      // The line from the center to `p` leaves the ellipse at the share 1 / `far` of its length.
+      const far = Math.hypot(dx / region.rx, dy / region.ry);
+      return far <= 1 ? 0 : Math.hypot(dx, dy) * (1 - 1 / far);
+    }
+    case "polygon": {
+      const rings = region.holes === undefined ? [region.points] : [region.points, ...region.holes];
+      if (pointInRings(p.x, p.y, rings)) return 0;
+      let best = Infinity;
+      for (const ring of rings) {
+        for (let i = 0, j = ring.length - 1; i < ring.length; j = i++) {
+          const [ax, ay] = ring[j]!;
+          const [bx, by] = ring[i]!;
+          best = Math.min(best, pointSegmentDistance(p, { x: ax, y: ay }, { x: bx, y: by }));
+        }
+      }
+      return best;
+    }
+  }
 }
 
 /**
@@ -438,6 +490,11 @@ export function clipRing(ring: Ring, a: number, b: number, c: number): Ring {
     }
   }
   return out;
+}
+
+/** This function gives the middle of a rectangle. */
+export function rectCenter(rect: Rect): Point {
+  return { x: rect.x + rect.w / 2, y: rect.y + rect.h / 2 };
 }
 
 /** This function gives the distance between the centers of two rectangles. */
