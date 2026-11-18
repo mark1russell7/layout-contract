@@ -13,6 +13,7 @@ Balance: build/index.d.ts#Balance
 BalanceMeasureSuffix: build/index.d.ts#BalanceMeasureSuffix
 type BooleanOption: @mark1russell7/strategy-space#BooleanOption (external)
 Box3: build/index.d.ts#Box3
+BoxNode: build/index.d.ts#BoxNode
 CELL_MEASURE_SUFFIXES: build/index.d.ts#CELL_MEASURE_SUFFIXES
 CELL_SOURCE: build/index.d.ts#CELL_SOURCE
 CIRCLE_SCATTERED: build/index.d.ts#CIRCLE_SCATTERED
@@ -72,12 +73,14 @@ type EnumOption: @mark1russell7/strategy-space#EnumOption (external)
 type EnumerateOptions: @mark1russell7/strategy-space#EnumerateOptions (external)
 ExerciseEvidence: build/index.d.ts#ExerciseEvidence
 FAMILY_ANY_KIND: build/measures.chunk.d.ts#FAMILY_ANY_KIND
+FLATTEN_SIDES: build/index.d.ts#FLATTEN_SIDES
 FRAME_SCHEMA: build/index.d.ts#FRAME_SCHEMA
 FRAME_STATES: build/index.d.ts#FRAME_STATES
 FamilyBy: build/measures.chunk.d.ts#FamilyBy
 FamilyCell: build/measures.chunk.d.ts#FamilyCell
 FamilyRegistry: build/index.d.ts#FamilyRegistry
 FamilyVerdict: build/index.d.ts#FamilyVerdict
+FlattenOptions: build/index.d.ts#FlattenOptions
 FrameAtOptions: build/index.d.ts#FrameAtOptions
 FrameBox: build/index.d.ts#FrameBox
 FrameSource: build/index.d.ts#FrameSource
@@ -298,6 +301,7 @@ box3Corners: build/index.d.ts#box3Corners
 box3Volume: build/index.d.ts#box3Volume
 boxArea: build/measures.chunk.d.ts#boxArea
 boxCenterDistance: build/measures.chunk.d.ts#boxCenterDistance
+boxTree: build/index.d.ts#boxTree
 canonicalConfig: @mark1russell7/strategy-space#canonicalConfig (external)
 canonicalInput: build/measures.chunk.d.ts#canonicalInput
 canonicalJson: build/index.d.ts#canonicalJson
@@ -372,6 +376,8 @@ familyKind: build/index.d.ts#familyKind
 familyOf: build/measures.chunk.d.ts#familyOf
 fingerprintOf: build/index.d.ts#fingerprintOf
 fixedPointMove: build/index.d.ts#fixedPointMove
+flatPortId: build/index.d.ts#flatPortId
+flattenInput: build/index.d.ts#flattenInput
 fnv1a32: build/index.d.ts#fnv1a32
 frameAt: build/index.d.ts#frameAt
 frameMove: build/index.d.ts#frameMove
@@ -476,6 +482,7 @@ shapeSupportProblems: build/measures.chunk.d.ts#shapeSupportProblems
 shapesOf: build/measures.chunk.d.ts#shapesOf
 shapesOverlap: build/index.d.ts#shapesOverlap
 sharedDimension: build/index.d.ts#sharedDimension
+siblingEdges: build/index.d.ts#siblingEdges
 sizeBoundsOf: build/index.d.ts#sizeBoundsOf
 sizeFits: build/index.d.ts#sizeFits
 snapRect: build/measures.chunk.d.ts#snapRect
@@ -495,6 +502,7 @@ toPackInput: build/measures.chunk.d.ts#toPackInput
 toRect: build/measures.chunk.d.ts#toRect
 toSizedRect: build/measures.chunk.d.ts#toSizedRect
 toSvgPath: build/index.d.ts#toSvgPath
+topBoxes: build/index.d.ts#topBoxes
 transformMatrix4: build/index.d.ts#transformMatrix4
 transformPoint3: build/index.d.ts#transformPoint3
 transformedBounds3: build/index.d.ts#transformedBounds3
@@ -568,6 +576,12 @@ export interface Box3 {
   readonly w: number;
   readonly h: number;
   readonly d: number;
+}
+
+### build/index.d.ts#BoxNode
+export interface BoxNode {
+  readonly box: LayoutBox;
+  readonly children: readonly BoxNode[];
 }
 
 ### build/index.d.ts#CELL_MEASURE_SUFFIXES
@@ -840,6 +854,9 @@ export interface ExerciseEvidence {
   readonly baseHashes?: readonly string[];
 }
 
+### build/index.d.ts#FLATTEN_SIDES
+export declare const FLATTEN_SIDES: readonly Side[];
+
 ### build/index.d.ts#FRAME_SCHEMA
 export declare const FRAME_SCHEMA = "layout-frame/1";
 
@@ -867,6 +884,11 @@ export interface FamilyVerdict {
   readonly n: number;
   readonly mean: number;
   readonly sign: -1 | 0 | 1;
+}
+
+### build/index.d.ts#FlattenOptions
+export interface FlattenOptions {
+  readonly sides?: readonly Side[];
 }
 
 ### build/index.d.ts#FrameAtOptions
@@ -1701,6 +1723,9 @@ export declare function box3Corners(box: Box3): readonly Point3[];
 ### build/index.d.ts#box3Volume
 export declare function box3Volume(box: Box3): number;
 
+### build/index.d.ts#boxTree
+export declare function boxTree(boxes: readonly LayoutBox[]): BoxNode[];
+
 ### build/index.d.ts#canonicalJson
 export declare function canonicalJson(value: unknown): string;
 
@@ -1856,6 +1881,12 @@ export declare function fingerprintOf(hashes: Readonly<Record<string, string>>):
 
 ### build/index.d.ts#fixedPointMove
 export declare function fixedPointMove(start: LayoutFrame, run: (start: LayoutFrame) => LayoutFrame): number;
+
+### build/index.d.ts#flatPortId
+export declare function flatPortId(box: string, side: Side): string;
+
+### build/index.d.ts#flattenInput
+export declare function flattenInput(input: LayoutInput, options?: FlattenOptions): LayoutInput;
 
 ### build/index.d.ts#fnv1a32
 export declare function fnv1a32(text: string): number;
@@ -2054,6 +2085,9 @@ export declare function shapesOverlap(a: LayoutBox, b: LayoutBox, tolerance?: nu
 ### build/index.d.ts#sharedDimension
 export declare function sharedDimension(name: string, patch?: Partial<CorpusDimension>): CorpusDimension;
 
+### build/index.d.ts#siblingEdges
+export declare function siblingEdges(input: Pick<LayoutInput, "boxes" | "edges">): LayoutEdge[];
+
 ### build/index.d.ts#sizeBoundsOf
 export declare function sizeBoundsOf(box: LayoutBox): SizeBounds;
 
@@ -2080,6 +2114,9 @@ export declare function toLayoutRecord(input: LayoutInput, run: RunFacts): Layou
 
 ### build/index.d.ts#toSvgPath
 export declare function toSvgPath(segments: readonly PathSegment[], digits?: number): string;
+
+### build/index.d.ts#topBoxes
+export declare function topBoxes(boxes: readonly LayoutBox[]): Map<string, string>;
 
 ### build/index.d.ts#transformMatrix4
 export declare function transformMatrix4(transform: Transform3): readonly number[];

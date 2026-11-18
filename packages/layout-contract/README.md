@@ -20,6 +20,7 @@ The package has one runtime dependency: `@mark1russell7/rigor-generators`, the h
 | The cell measures | `cellsOf`, `Cells`, `CellItem`, `cellMeasures`, `cellMeasureSpecs`, `cellMeasureEntries`, `CELL_MEASURE_SUFFIXES`, `CellMeasureSuffix`, `CELL_SOURCE`, `SQUARE_COMPACTNESS` |
 | The paths | `PathSegment`, `PathMove`, `PathLine`, `PathCubic`, `PathArc`, `PathTangent`, `PATH_KINDS`, `pathOf`, `samplePath`, `pathBounds`, `pathStart`, `pathEnd`, `toSvgPath`, `cubicAt`, `checkPath` |
 | The picture `layout-picture/1` | `LayoutPicture`, `PictureBox`, `PictureRoute`, `PictureLabel`, `LabelAlign`, `LABEL_ALIGNS`, `PICTURE_SCHEMA`, `pictureOf`, `PictureParts`, `PictureRouteSource`, `checkPicture`, `parsePicture`, `pictureBounds` |
+| The boxes in boxes | `BoxNode`, `boxTree`, `topBoxes`, `siblingEdges`, `flattenInput`, `FlattenOptions`, `FLATTEN_SIDES`, `flatPortId` |
 | Text layout, in the subpath `/text` | `layoutText`, `TextLayout`, `TextLayoutOptions`, `TextSizing`, `createTextCharset`, `TextCharset`, `TextCharsetOptions`, `DIGITS`, `PRINTABLE_ASCII`, `createTextLayoutCache`, `TextLayoutCache`, `TextLayoutCacheOptions`, `TextLayoutCacheStats`, `createMeasurer`, `TextMeasurer`, `canvasAdvance`, `AdvanceFn`, `fontKey`, `graphemesOf`, `textMeasures`, `TEXT_MEASURES`, `TEXT_UNITS` |
 | The edges step | `edgeStep`, `EdgeShape`, `EdgeStepParams`, `EDGE_DENSITY`, `EDGE_STEP_VERSION` |
 | The random numbers | `mulberry32`, `fnv1a32`, `stepRandom`, `randomInt` |
@@ -119,6 +120,7 @@ The comments of the source name each doc as `docs/<NAME>.md`. The docs are in th
 | [`docs/FRAMES.md`](https://github.com/mark1russell7/layout-contract/blob/main/docs/FRAMES.md) | The frame record `layout-frame/1`, the frames between two layouts and their laws |
 | [`docs/GEOMETRY-3D.md`](https://github.com/mark1russell7/layout-contract/blob/main/docs/GEOMETRY-3D.md) | The 3D records: points, boxes, rotations and rigid transforms |
 | [`docs/PICTURE.md`](https://github.com/mark1russell7/layout-contract/blob/main/docs/PICTURE.md) | The picture record `layout-picture/1`: the placed boxes, the path of each route and the labels that a viewer draws |
+| [`docs/NESTED.md`](https://github.com/mark1russell7/layout-contract/blob/main/docs/NESTED.md) | The boxes in boxes of an input: the tree for a layout engine, and the flat input with ports for a router |
 | [`docs/TEXT.md`](https://github.com/mark1russell7/layout-contract/blob/main/docs/TEXT.md) | The text layout of the subpath `/text`: the rules, the units and the measures |
 | [`docs/CORPUS.md`](https://github.com/mark1russell7/layout-contract/blob/main/docs/CORPUS.md) | The shared corpus registry, its dimensions and families |
 | [`docs/CORPUS-CHECKS.md`](https://github.com/mark1russell7/layout-contract/blob/main/docs/CORPUS-CHECKS.md) | The corpus checks and the split files |
