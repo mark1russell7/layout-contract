@@ -174,7 +174,7 @@ importers:
         version: 0.5.8
       '@mark1russell7/boundaries':
         specifier: ^0.3.0
-        version: 0.3.1(@swc/core@1.16.22)(dependency-cruiser@18.7.2)
+        version: 0.3.2(@swc/core@1.16.22)(dependency-cruiser@18.7.2)
       '@mark1russell7/conventions':
         specifier: ^0.42.0
         version: 0.42.0
@@ -568,8 +568,8 @@ packages:
     engines: {node: '>=22'}
     hasBin: true
 
-  '@mark1russell7/boundaries@0.3.1':
-    resolution: {integrity: sha512-i+nP6fCD+WIDPzVrOsMcS9y9J+Gdtyoj/ZF9OKT3s01Wn4TojgRBalB0xbwSuBM9QK7dJaGdbP4Rrs8WSw8FKw==}
+  '@mark1russell7/boundaries@0.3.2':
+    resolution: {integrity: sha512-PlgXsF+iJ6EoOusW61gx5Om1Oq86xySyTeMgmxEon6MM4/Eyi2ylDhf5a2YiwoWfpYJqPQE9zWj6pCcXvezFtQ==}
     engines: {node: '>=22'}
     peerDependencies:
       '@swc/core': ^1.10.0
@@ -2033,7 +2033,7 @@ snapshots:
     dependencies:
       '@mark1russell7/conventions': 0.42.0
 
-  '@mark1russell7/boundaries@0.3.1(@swc/core@1.16.22)(dependency-cruiser@18.7.2)':
+  '@mark1russell7/boundaries@0.3.2(@swc/core@1.16.22)(dependency-cruiser@18.7.2)':
     optionalDependencies:
       '@swc/core': 1.16.22
       dependency-cruiser: 18.7.2
