@@ -39,7 +39,7 @@ jobs:
           npm install --no-audit --no-fund --ignore-scripts "playwright@$PLAYWRIGHT_VERSION"
       # The action of the template installs Chromium from a cache, with a time limit and a second try.
       - name: Chromium
-        uses: mark1russell7/template/.github/actions/setup-playwright@bd73be16b68d0cc6eb0faf4e02d66d68bf75161b # main
+        uses: mark1russell7/template/.github/actions/setup-playwright@afc3a844abdf898aa6439835fbde1c49a0566e17 # main
         with:
           browsers: chromium
           command: npx --no-install playwright
