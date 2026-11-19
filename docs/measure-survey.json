@@ -358,7 +358,7 @@
     },
     {
       "package": "@mark1russell7/highways",
-      "version": "0.19.1",
+      "version": "0.19.3",
       "measures": [
         {
           "id": "route.backtrack",
