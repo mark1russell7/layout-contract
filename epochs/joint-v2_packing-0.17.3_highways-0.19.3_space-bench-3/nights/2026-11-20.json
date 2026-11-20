@@ -1,0 +1,277 @@
+{
+ "date": "2026-11-20",
+ "seed": 20261120,
+ "drift": 0,
+ "values": 1828,
+ "missing": 0,
+ "shards": [
+  {
+   "round": 1,
+   "shard": 0,
+   "planned": 12.14155920777602,
+   "real": 36.80550085111667,
+   "costModel": "factors-2026-11-02"
+  },
+  {
+   "round": 2,
+   "shard": 0,
+   "planned": 11.798437203710495,
+   "real": 40.09006180854999,
+   "costModel": "factors-2026-11-02"
+  },
+  {
+   "round": 2,
+   "shard": 1,
+   "planned": 11.79844304352452,
+   "real": 44.25927431341667,
+   "costModel": "factors-2026-11-02"
+  },
+  {
+   "round": 2,
+   "shard": 2,
+   "planned": 11.797758847306028,
+   "real": 38.87843334948334,
+   "costModel": "factors-2026-11-02"
+  }
+ ],
+ "waiting": {
+  "1": {
+   "configs": 0,
+   "pairs": 0,
+   "overBudgetPairs": 0,
+   "overBudgetInputs": 0,
+   "noFresh": false
+  },
+  "2": {
+   "configs": 0,
+   "pairs": 0,
+   "overBudgetPairs": 0,
+   "overBudgetInputs": 0,
+   "noFresh": false
+  }
+ },
+ "round1": {
+  "configs": 8,
+  "sampled": 3,
+  "jobs": 1216,
+  "units": 303,
+  "shards": 1,
+  "minutes": 12.14155920777602,
+  "longest": 12.14155920777602
+ },
+ "history": {
+  "model": "factors-2026-11-02",
+  "nights": [
+   "2026-11-15",
+   "2026-11-16",
+   "2026-11-17",
+   "2026-11-18",
+   "2026-11-19"
+  ],
+  "shard": {
+   "lo": 0.8710523976828906,
+   "hi": 5.657698736041944,
+   "width": 6.495245006031942,
+   "n": 25
+  },
+  "round": {
+   "lo": 1.0124530899610724,
+   "hi": 2.7963216785358913,
+   "width": 2.76192715125538,
+   "n": 10
+  },
+  "wall": {
+   "lo": 1.1955695603055125,
+   "hi": 3.154089261601621,
+   "width": 2.6381478471195217,
+   "n": 10
+  }
+ },
+ "cost": {
+  "1": {
+   "scale": 2.137267720506495,
+   "budget": 30,
+   "maxShards": 3,
+   "plannedMinutes": 12.14155920777602,
+   "plannedWall": 12.14155920777602
+  },
+  "2": {
+   "scale": 2.137267720506495,
+   "budget": 30,
+   "maxShards": 3,
+   "plannedMinutes": 35.39463909454104,
+   "plannedWall": 11.79844304352452
+  }
+ },
+ "budget": {
+  "gateMinutes": 974,
+  "estimate": "the median at 3 lanes over 44017432063: longest job 267, 2921 job minutes; 44245855540: longest job 261, 2921 job minutes; 44465016694: longest job 315, 3084 job minutes",
+  "runsRead": 3,
+  "failedRead": null,
+  "fallback": false,
+  "windowEnd": "2026-11-20T14:00Z",
+  "lastGate": "94d7679ceb8772460539e20b1367ce7820d867ac"
+ },
+ "lost": {
+  "rounds": {
+   "1": {
+    "planned": 1216,
+    "noRecord": 0,
+    "noReference": 0,
+    "censored": 0
+   },
+   "2": {
+    "planned": 1515,
+    "noRecord": 0,
+    "noReference": 0,
+    "censored": 0
+   }
+  }
+ },
+ "kept": 4,
+ "race": {
+  "raced": 5,
+  "dropped": 3,
+  "halved": 1,
+  "alive": 1,
+  "full": 2,
+  "fullDropped": 0,
+  "aliveAtStart": 2,
+  "held": []
+ },
+ "round2": {
+  "configs": 14,
+  "sampled": 13,
+  "jobs": 1515,
+  "units": 305,
+  "shards": 3,
+  "minutes": 35.39463909454104,
+  "longest": 11.79844304352452
+ },
+ "run": "44669209575",
+ "wall": {
+  "rounds": {
+   "1": 37.31666666666667,
+   "2": 44.833333333333336
+  }
+ },
+ "counts": {
+  "baseline": 3,
+  "screened": 13,
+  "alive": 3,
+  "dropped": 12,
+  "halved": 4,
+  "design": 0
+ },
+ "facts": {
+  "costModel": {
+   "p": 0.6,
+   "within": 0.25,
+   "shards": 4,
+   "hits": 0,
+   "stopped": 0,
+   "brier": 0.36,
+   "cost": {
+    "1": {
+     "scale": 2.137267720506495,
+     "budget": 30,
+     "maxShards": 3,
+     "plannedMinutes": 12.14155920777602,
+     "plannedWall": 12.14155920777602
+    },
+    "2": {
+     "scale": 2.137267720506495,
+     "budget": 30,
+     "maxShards": 3,
+     "plannedMinutes": 35.39463909454104,
+     "plannedWall": 11.79844304352452
+    }
+   },
+   "interval": {
+    "p": 0.8,
+    "widthCap": 5,
+    "capNote": "The cap of the width is provisional, and it was chosen after the back-test.",
+    "history": {
+     "model": "factors-2026-11-02",
+     "nights": [
+      "2026-11-15",
+      "2026-11-16",
+      "2026-11-17",
+      "2026-11-18",
+      "2026-11-19"
+     ],
+     "shard": {
+      "lo": 0.8710523976828906,
+      "hi": 5.657698736041944,
+      "width": 6.495245006031942,
+      "n": 25
+     },
+     "round": {
+      "lo": 1.0124530899610724,
+      "hi": 2.7963216785358913,
+      "width": 2.76192715125538,
+      "n": 10
+     },
+     "wall": {
+      "lo": 1.1955695603055125,
+      "hi": 3.154089261601621,
+      "width": 2.6381478471195217,
+      "n": 10
+     }
+    },
+    "jobMinutes": {
+     "planned": 47.53619830231706,
+     "lo": 48.128170856183196,
+     "hi": 132.92650182795023,
+     "real": 160.03327032256666,
+     "side": "high",
+     "brier": 0.6400000000000001
+    },
+    "jobMinutesStatus": "scored",
+    "wall": {
+     "planned": 23.94000225130054,
+     "lo": 28.62193796530037,
+     "hi": 75.50890402354567,
+     "real": 82.15,
+     "side": "high",
+     "brier": 0.6400000000000001
+    },
+    "wallStatus": "scored",
+    "shards": {
+     "lo": 0.8710523976828906,
+     "hi": 5.657698736041944,
+     "width": 6.495245006031942,
+     "overCap": true,
+     "shards": 4,
+     "hits": 4,
+     "low": 0,
+     "high": 0,
+     "stopped": 0,
+     "brier": 0.03999999999999998
+    }
+   }
+  },
+  "longestShard": 44.25927431341667,
+  "newConfigs": 16,
+  "raced": 5,
+  "dropShare": 0.6,
+  "better": 0,
+  "plannedMinutes": 47.53619830231706,
+  "realMinutes": 160.03327032256666,
+  "misses": {
+   "rows+portfolio": {
+    "misses": 143,
+    "of": 222
+   },
+   "select+portfolio": {
+    "misses": 140,
+    "of": 222
+   },
+   "lanes-sides.maxrects-cp.corners+corners": {
+    "misses": 3,
+    "of": 222
+   }
+  },
+  "incumbent": "lanes-sides.maxrects-cp.corners+corners"
+ }
+}
