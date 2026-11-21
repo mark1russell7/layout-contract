@@ -1,60 +1,60 @@
 {
   "runs": [
-    42195570083
+    44678525695
   ],
-  "head": "6cc58fa",
+  "head": "800bcd2",
   "engines": {
-    "node": "26.13.0",
-    "highways": "0.14.0",
-    "packing": "0.7.0"
+    "node": "26.13.1",
+    "highways": "0.19.3",
+    "packing": "0.17.3"
   },
   "probes": {
     "joint-v2/rect-grid.freeHeight.holes.none.bimodal.n1000.e-dense.hubs.none.free.sp-gap/s1": {
       "allocMb": [
-        2532937,
-        2537156,
-        2532885,
-        2536701,
-        2564716
+        2981811,
+        3006920,
+        2975548,
+        2982606,
+        2980656
       ],
       "liveMaxMb": [
-        396,
-        396,
-        396,
-        396,
-        396
+        471,
+        474,
+        474,
+        474,
+        475
       ]
     },
     "joint-v2/rect-grid.freeHeight.holes.none.bimodal.n1000.e-dense.hubs.none.free.sp-gap/s2": {
       "allocMb": [
-        3352996,
-        3354758,
-        3350234,
-        3351404,
-        3351730
+        3834664,
+        3853345,
+        3821652,
+        3853719,
+        3818813
       ],
       "liveMaxMb": [
-        423,
-        423,
-        423,
-        423,
-        423
+        509,
+        509,
+        509,
+        509,
+        509
       ]
     },
     "joint-v2/rect-grid.freeHeight.holes.none.bimodal.n1000.e-dense.hubs.none.free.sp-gap/s3": {
       "allocMb": [
-        3601107,
-        3609670,
-        3601418,
-        3601054,
-        3602628
+        4132940,
+        4157284,
+        4162485,
+        4112883,
+        4162791
       ],
       "liveMaxMb": [
-        505,
-        505,
-        505,
-        506,
-        505
+        614,
+        614,
+        614,
+        614,
+        614
       ]
     }
   }
