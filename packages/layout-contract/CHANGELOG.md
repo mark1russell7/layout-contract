@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.10.7
+
+An automated dependency update changes the shipped files, so this PATCH ships them.
+
 ## 0.10.6
 
 - PATCH before 1.0.0: one new function of the geometry, with no change to the other exports.
