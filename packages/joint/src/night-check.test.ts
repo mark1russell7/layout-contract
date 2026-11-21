@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { LOST_COUNT_SINCE, nightDue, nightLine, nightVerdict, readNightIndex } from "./night-check.ts";
+import { LOST_COUNT_SINCE, nightDue, nightLine, nightVerdict, readNightIndex, sameTwiceBreak } from "./night-check.ts";
 
 describe("nightDue", () => {
   it("gives yesterday before the hour of the rule, and today after it", () => {
@@ -41,11 +41,20 @@ describe("nightVerdict", () => {
 describe("readNightIndex", () => {
   it("reads the entry of the latest epoch", () => {
     const index = { latest: "b", epochs: { a: { last: "2026-10-29" }, b: { last: "2026-11-03", missing: 541 } } };
-    expect(readNightIndex(index)).toEqual({ last: "2026-11-03", missing: 541 });
+    expect(readNightIndex(index)).toEqual({ last: "2026-11-03", missing: 541, differ: null });
+    expect(readNightIndex({ latest: "a", epochs: { a: { last: "2026-11-06", missing: 0, differ: 3 } } })).toEqual({ last: "2026-11-06", missing: 0, differ: 3 });
   });
 
   it("gives no missing count for an index of an older night", () => {
-    expect(readNightIndex({ latest: "a", epochs: { a: { last: "2026-11-03" } } })).toEqual({ last: "2026-11-03", missing: null });
+    expect(readNightIndex({ latest: "a", epochs: { a: { last: "2026-11-03" } } })).toEqual({ last: "2026-11-03", missing: null, differ: null });
+  });
+
+  it("gives a break of the check same twice only for a count above 0 (L117)", () => {
+    expect(sameTwiceBreak("2026-11-06", null)).toBeUndefined();
+    expect(sameTwiceBreak("2026-11-06", 0)).toBeUndefined();
+    // Flip: one record that differs breaks the check.
+    expect(sameTwiceBreak("2026-11-06", 1)).toBe("The night 2026-11-06 has 1 record whose two runs gave different hashes. The runs are deterministic, so the expected count is 0. The summary of the night lists the first pairs.");
+    expect(sameTwiceBreak("2026-11-06", 4)).toContain("has 4 records whose");
   });
 
   it("gives a problem for an index with no date", () => {
