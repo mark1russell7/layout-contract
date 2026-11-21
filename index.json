@@ -456,16 +456,16 @@
   },
   "joint-v2_packing-0.17.3_highways-0.19.3_space-bench-3": {
    "corpus": "joint-v2",
-   "nights": 2,
-   "last": "2026-11-20",
-   "missing": 0,
-   "configs": 35,
+   "nights": 3,
+   "last": "2026-11-21",
+   "missing": 113,
+   "configs": 116,
    "counts": {
     "baseline": 3,
-    "screened": 13,
-    "alive": 3,
-    "dropped": 12,
-    "halved": 4,
+    "screened": 39,
+    "alive": 11,
+    "dropped": 42,
+    "halved": 21,
     "design": 0
    },
    "step": {
@@ -551,39 +551,39 @@
     }
    },
    "cost": {
-    "date": "2026-11-20",
+    "date": "2026-11-21",
     "jobMinutes": {
-     "planned": 47.53619830231706,
-     "lo": 48.128170856183196,
-     "hi": 132.92650182795023,
-     "real": 160.03327032256666,
-     "side": "high",
-     "brier": 0.6400000000000001
+     "planned": 413.50598472332115,
+     "lo": 418.6554119505225,
+     "hi": 1422.6464685182991,
+     "real": 1320.3569728136506,
+     "side": "hit",
+     "brier": 0.03999999999999998
     },
     "jobMinutesStatus": "scored",
     "wall": {
-     "planned": 23.94000225130054,
-     "lo": 28.62193796530037,
-     "hi": 75.50890402354567,
-     "real": 82.15,
-     "side": "high",
-     "brier": 0.6400000000000001
+     "planned": 137.83532824110705,
+     "lo": 164.79172277978634,
+     "hi": 550.2813307272414,
+     "real": 509.26666666666665,
+     "side": "hit",
+     "brier": 0.03999999999999998
     },
     "wallStatus": "scored",
     "shards": {
-     "lo": 0.8710523976828906,
-     "hi": 5.657698736041944,
-     "width": 6.495245006031942,
-     "overCap": true,
-     "shards": 4,
-     "hits": 4,
-     "low": 0,
-     "high": 0,
-     "stopped": 0,
-     "brier": 0.03999999999999998
+     "lo": 0.8626056479206963,
+     "hi": 3.377411984400826,
+     "width": 3.915360388077738,
+     "overCap": false,
+     "shards": 36,
+     "hits": 20,
+     "low": 3,
+     "high": 13,
+     "stopped": 5,
+     "brier": 0.30666666666666687
     },
     "widthCap": 5,
-    "budget": "The budget of the gate is 974 minutes, from 3 gates.",
+    "budget": "The gate already ran on this commit, so the budget holds no time for it.",
     "thin": false
    }
   }
