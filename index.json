@@ -456,16 +456,16 @@
   },
   "joint-v2_packing-0.17.3_highways-0.19.3_space-bench-3": {
    "corpus": "joint-v2",
-   "nights": 3,
-   "last": "2026-11-21",
-   "missing": 113,
-   "configs": 116,
+   "nights": 4,
+   "last": "2026-11-22",
+   "missing": 0,
+   "configs": 121,
    "counts": {
     "baseline": 3,
-    "screened": 39,
-    "alive": 11,
-    "dropped": 42,
-    "halved": 21,
+    "screened": 0,
+    "alive": 18,
+    "dropped": 65,
+    "halved": 35,
     "design": 0
    },
    "step": {
@@ -551,39 +551,39 @@
     }
    },
    "cost": {
-    "date": "2026-11-21",
+    "date": "2026-11-22",
     "jobMinutes": {
-     "planned": 413.50598472332115,
-     "lo": 418.6554119505225,
-     "hi": 1422.6464685182991,
-     "real": 1320.3569728136506,
+     "planned": 71.23543006556052,
+     "lo": 79.47325117487868,
+     "hi": 248.64472737709167,
+     "real": 97.02988329506667,
      "side": "hit",
      "brier": 0.03999999999999998
     },
     "jobMinutesStatus": "scored",
     "wall": {
-     "planned": 137.83532824110705,
-     "lo": 164.79172277978634,
-     "hi": 550.2813307272414,
-     "real": 509.26666666666665,
+     "planned": 23.745334763461017,
+     "lo": 36.92175811399438,
+     "hi": 94.99650103615919,
+     "real": 44.91666666666667,
      "side": "hit",
      "brier": 0.03999999999999998
     },
     "wallStatus": "scored",
     "shards": {
-     "lo": 0.8626056479206963,
-     "hi": 3.377411984400826,
-     "width": 3.915360388077738,
-     "overCap": false,
-     "shards": 36,
-     "hits": 20,
-     "low": 3,
-     "high": 13,
-     "stopped": 5,
-     "brier": 0.30666666666666687
+     "lo": 0.9017628162633706,
+     "hi": 8.93400910771388,
+     "width": 9.907271564748791,
+     "overCap": true,
+     "shards": 6,
+     "hits": 5,
+     "low": 1,
+     "high": 0,
+     "stopped": 0,
+     "brier": 0.14
     },
     "widthCap": 5,
-    "budget": "The gate already ran on this commit, so the budget holds no time for it.",
+    "budget": "The budget of the gate is 1009 minutes, from 3 gates.",
     "thin": false
    }
   }
