@@ -115,7 +115,7 @@ describe("the time verdict of the joint bench (L84)", () => {
 
   it("gives pooledVerdict the records of each job, its skipped cases and the margin", () => {
     const jobs = bench("glue", 0.7, 6, 2, 2);
-    const skip = { arm: CANDIDATE, case: "c5", round: 2, reason: "too large" };
+    const skip = { arm: CANDIDATE, case: "c5", round: 2, reason: "too large", kind: "line" as const };
     const input = [jobs[0]!, { ...jobs[1]!, records: jobs[1]!.records.filter((r) => r.case !== "c5"), skipped: [skip] }];
     const calls = vi.mocked(pooledVerdict).mock.calls.length;
     jointTimeVerdict([...input].reverse(), { timeMargin: 0.07 });
@@ -129,7 +129,7 @@ describe("the time verdict of the joint bench (L84)", () => {
 
   it("drops a case that one job skipped from all jobs, and the Markdown names it", () => {
     const jobs = bench("skipped", 0.7);
-    const skip = { arm: TIME_DEFAULT, case: "c3", round: 10, reason: "no route" };
+    const skip = { arm: TIME_DEFAULT, case: "c3", round: 10, reason: "no route", kind: "line" as const };
     const input = jobs.map((j) => (j.job === "2" ? { ...j, records: j.records.filter((r) => r.case !== "c3"), skipped: [skip] } : j));
     const result = jointTimeVerdict(input, JOINT_TIME);
     expect(result.dropped).toEqual(["c3"]);
