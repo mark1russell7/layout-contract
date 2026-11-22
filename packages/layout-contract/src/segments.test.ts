@@ -2,8 +2,11 @@ import fc from "fast-check";
 import { describe, expect, it } from "vitest";
 import {
   boxCenterDistance,
+  chainPolylines,
   crossingPoint,
+  locateOnPolyline,
   nearestOnSegment,
+  pointAlongPolyline,
   type Point,
   pointInRing,
   pointInRings,
@@ -222,6 +225,117 @@ describe("pointPolylineDistance", () => {
       for (let i = 1; i < points.length; i++) best = Math.min(best, pointSegmentDistance(q, points[i - 1]!, points[i]!));
       expect(pointPolylineDistance(q, points)).toBe(best);
     }
+  });
+});
+
+describe("locateOnPolyline", () => {
+  // A polyline with a corner: 10 to the right, then 10 down. The y axis points down.
+  const corner = [p(0, 0), p(10, 0), p(10, 10)];
+
+  it("gives the nearest point, its length along the polyline, the distance, the segment and the side", () => {
+    expect(locateOnPolyline(p(5, 3), corner)).toEqual({ point: p(5, 0), along: 5, distance: 3, segment: 0, side: 1 });
+    expect(locateOnPolyline(p(5, -3), corner)).toEqual({ point: p(5, 0), along: 5, distance: 3, segment: 0, side: -1 });
+    expect(locateOnPolyline(p(12, 5), corner)).toEqual({ point: p(10, 5), along: 15, distance: 2, segment: 1, side: -1 });
+    expect(locateOnPolyline(p(10, 4), corner)).toEqual({ point: p(10, 4), along: 14, distance: 0, segment: 1, side: 0 });
+  });
+
+  it("gives the first segment when two segments are at the same distance", () => {
+    // The corner is nearest. The two segments that meet at it give the same distance.
+    expect(locateOnPolyline(p(13, -4), corner)).toMatchObject({ point: p(10, 0), along: 10, distance: 5, segment: 0 });
+  });
+
+  it("treats a polyline of one point as that point, and gives undefined for no point", () => {
+    expect(locateOnPolyline(p(3, 4), [p(0, 0)])).toEqual({ point: p(0, 0), along: 0, distance: 5, segment: 0, side: 0 });
+    expect(locateOnPolyline(p(3, 4), [])).toBeUndefined();
+  });
+
+  it("gives side 0 on a segment of length 0, and counts no length for it", () => {
+    expect(locateOnPolyline(p(0, 2), [p(0, 0), p(0, 0), p(4, 0)])).toMatchObject({ point: p(0, 0), along: 0, distance: 2, segment: 0, side: 0 });
+    expect(locateOnPolyline(p(3, 2), [p(0, 0), p(0, 0), p(4, 0)])).toEqual({ point: p(3, 0), along: 3, distance: 2, segment: 1, side: 1 });
+  });
+
+  it("gives the distance of pointPolylineDistance, and a point that pointAlongPolyline gives back", () => {
+    const coordinate = fc.integer({ min: -50, max: 50 });
+    const point = fc.record({ x: coordinate, y: coordinate });
+    fc.assert(
+      fc.property(fc.array(point, { minLength: 1, maxLength: 7 }), point, (points, q) => {
+        const place = locateOnPolyline(q, points)!;
+        expect(place.distance).toBe(pointPolylineDistance(q, points));
+        const back = pointAlongPolyline(points, place.along)!;
+        expect(Math.hypot(back.x - place.point.x, back.y - place.point.y)).toBeLessThan(1e-9);
+      }),
+      { seed: 2026, numRuns: 300 },
+    );
+  });
+});
+
+describe("pointAlongPolyline", () => {
+  const corner = [p(0, 0), p(10, 0), p(10, 10)];
+
+  it("gives the point at a length along the polyline, moved to side 1 by a positive offset", () => {
+    expect(pointAlongPolyline(corner, 5)).toEqual(p(5, 0));
+    expect(pointAlongPolyline(corner, 5, 2)).toEqual(p(5, 2));
+    expect(pointAlongPolyline(corner, 15, 2)).toEqual(p(8, 5));
+    expect(pointAlongPolyline(corner, 15, -2)).toEqual(p(12, 5));
+    expect(locateOnPolyline(p(8, 5), corner)?.side).toBe(1);
+  });
+
+  it("gives an end point for a length out of the polyline, with the offset of the segment at that end", () => {
+    expect(pointAlongPolyline(corner, -3)).toEqual(p(0, 0));
+    expect(pointAlongPolyline(corner, 99)).toEqual(p(10, 10));
+    expect(pointAlongPolyline(corner, 99, 1)).toEqual(p(9, 10));
+  });
+
+  it("skips the segments of length 0, and gives undefined for no point", () => {
+    expect(pointAlongPolyline([p(0, 0), p(0, 0), p(4, 0)], 2, 1)).toEqual(p(2, 1));
+    expect(pointAlongPolyline([p(1, 1), p(1, 1)], 5, 3)).toEqual(p(1, 1));
+    expect(pointAlongPolyline([p(1, 1)], 5)).toEqual(p(1, 1));
+    expect(pointAlongPolyline([], 0)).toBeUndefined();
+  });
+});
+
+describe("chainPolylines", () => {
+  const a = p(0, 0);
+  const b = p(1, 0);
+  const c = p(2, 0);
+  const d = p(3, 0);
+
+  it("joins polylines at shared end points, and reverses a polyline when its direction is opposite", () => {
+    expect(chainPolylines([[a, b], [c, b], [c, d]])).toEqual([[a, b, c, d]]);
+    expect(chainPolylines([[c, d], [a, b], [b, c]])).toEqual([[a, b, c, d]]);
+    expect(chainPolylines([[b, c], [b, a]])).toEqual([[a, b, c]]);
+  });
+
+  it("keeps polylines with no shared end apart, and drops an empty polyline", () => {
+    expect(chainPolylines([[a, b], [], [c, d]])).toEqual([[a, b], [c, d]]);
+    expect(chainPolylines([])).toEqual([]);
+  });
+
+  it("keeps one branch of a branch point in the chain, and starts a chain for each other branch", () => {
+    const up = p(1, -1);
+    expect(chainPolylines([[a, b], [b, c], [b, up]])).toEqual([[a, b, c], [b, up]]);
+  });
+
+  it("gives back one polyline that a seeded shuffle cut into parts and reversed", () => {
+    fc.assert(
+      fc.property(fc.integer({ min: 2, max: 9 }), fc.integer({ min: 0, max: 2 ** 30 }), (parts, seed) => {
+        const line = Array.from({ length: parts + 1 }, (_, i) => p(i, (i * i) % 7));
+        let state = seed;
+        const next = (): number => {
+          state = (state * 48271 + 11) % 2147483647;
+          return state;
+        };
+        const pieces = Array.from({ length: parts }, (_, i) => (next() % 2 === 0 ? [line[i]!, line[i + 1]!] : [line[i + 1]!, line[i]!]));
+        for (let i = pieces.length - 1; i > 0; i--) {
+          const j = next() % (i + 1);
+          [pieces[i], pieces[j]] = [pieces[j]!, pieces[i]!];
+        }
+        const chains = chainPolylines(pieces);
+        expect(chains).toHaveLength(1);
+        expect([line, line.toReversed()]).toContainEqual(chains[0]);
+      }),
+      { seed: 2026, numRuns: 200 },
+    );
   });
 });
 

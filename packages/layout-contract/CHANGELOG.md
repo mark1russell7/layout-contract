@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.11.1
+
+- PATCH before 1.0.0: three new functions of the geometry, with no change to the other exports.
+- `locateOnPolyline(p, points)` gives the place on a polyline nearest to `p`: the point, its length along the polyline, the distance, the segment and the side.
+- The side is the exact sign of the cross product of the segment and `p`. When two segments are at the same distance, the first segment wins.
+- `pointAlongPolyline(points, along, offset)` gives the point at a length along a polyline, moved at a right angle by `offset`. A length out of the polyline gives an end point.
+- `chainPolylines(lines)` joins polylines at equal end points into longer polylines, and reverses a polyline when necessary. A branch point starts a new chain.
+- The distance of `locateOnPolyline` is the same float as `pointPolylineDistance`. A seeded property test holds this.
+
 ## 0.11.0
 
 The release train changes the range of `@mark1russell7/rigor-generators`, `@mark1russell7/rigor-statistics`, `@mark1russell7/strategy-space`, `@mark1russell7/typeset` to a version outside the old range. The public types name @mark1russell7/rigor-generators, @mark1russell7/rigor-statistics, @mark1russell7/strategy-space, @mark1russell7/typeset, so its new version outside the old range can change them.

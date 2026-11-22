@@ -390,6 +390,114 @@ export function pointPolylineDistance(p: Point, points: readonly Point[]): numbe
   return best;
 }
 
+/** The place on a polyline nearest to a point, from `locateOnPolyline`. */
+export interface PolylinePlace {
+  /** The point of the polyline nearest to the point. */
+  readonly point: Point;
+  /** The length of the polyline from its first point to `point`. */
+  readonly along: number;
+  /** The distance from the point to `point`. It is the same float as `pointPolylineDistance`. */
+  readonly distance: number;
+  /** The index of the first point of the segment of `point`. A polyline of one point gives 0. */
+  readonly segment: number;
+  /**
+   * The side of the point: the exact sign of the cross product of the segment and the vector from its start to the point.
+   * A point on the line of the segment gives 0. A polyline of one point gives 0.
+   */
+  readonly side: -1 | 0 | 1;
+}
+
+/**
+ * This function gives the place on a polyline nearest to `p`: the point, its length along the polyline, the distance and the side.
+ * When two segments are at the same distance, the first segment wins. An empty polyline gives `undefined`.
+ * A street address uses it: the length along the street line of each known number, and its side of the street.
+ */
+export function locateOnPolyline(p: Point, points: readonly Point[]): PolylinePlace | undefined {
+  const first = points[0];
+  if (first === undefined) return undefined;
+  if (points.length === 1) return { point: first, along: 0, distance: Math.hypot(p.x - first.x, p.y - first.y), segment: 0, side: 0 };
+  let best: PolylinePlace | undefined;
+  let run = 0;
+  for (let i = 1; i < points.length; i++) {
+    const a = points[i - 1]!;
+    const b = points[i]!;
+    const length = Math.hypot(b.x - a.x, b.y - a.y);
+    const near = nearestOnSegment(p, a, b);
+    const distance = pointSegmentDistance(p, a, b);
+    if (best === undefined || distance < best.distance) {
+      best = { point: near, along: run + Math.hypot(near.x - a.x, near.y - a.y), distance, segment: i - 1, side: length === 0 ? 0 : (side(a, b, p) as -1 | 0 | 1) };
+    }
+    run += length;
+  }
+  return best;
+}
+
+/**
+ * This function gives the point at the length `along` of a polyline, moved by `offset` at a right angle to its segment.
+ * A positive `offset` moves the point to the side 1 of `locateOnPolyline`, and a negative `offset` to the side -1.
+ *
+ * An `along` less than 0 gives the first point, and an `along` more than the length gives the last point. The offset then uses the segment at that end.
+ * Segments of length 0 have no direction, so the offset skips them. A polyline with no direction gives its point with no offset.
+ * An empty polyline gives `undefined`.
+ */
+export function pointAlongPolyline(points: readonly Point[], along: number, offset = 0): Point | undefined {
+  const first = points[0];
+  if (first === undefined) return undefined;
+  let run = 0;
+  let last: { a: Point; b: Point; length: number } | undefined;
+  for (let i = 1; i < points.length; i++) {
+    const a = points[i - 1]!;
+    const b = points[i]!;
+    const length = Math.hypot(b.x - a.x, b.y - a.y);
+    if (length === 0) continue;
+    if (along <= run + length) return offsetPoint(a, b, length, Math.max(0, along - run), offset);
+    last = { a, b, length };
+    run += length;
+  }
+  if (last === undefined) return first;
+  return offsetPoint(last.a, last.b, last.length, last.length, offset);
+}
+
+/** This function gives the point at the length `at` of the segment `ab`, moved by `offset` to the side 1 of the segment. */
+function offsetPoint(a: Point, b: Point, length: number, at: number, offset: number): Point {
+  const ux = (b.x - a.x) / length;
+  const uy = (b.y - a.y) / length;
+  return { x: a.x + at * ux - offset * uy, y: a.y + at * uy + offset * ux };
+}
+
+/**
+ * This function joins polylines at their shared end points into longer polylines, for example the ways of one street.
+ * Two ends join only when their coordinates are equal. A join reverses a polyline when its direction is opposite.
+ * The first polyline that is left starts each chain, and the chain grows at both ends with the first polyline that touches an end.
+ * Thus a branch point keeps one branch in the chain, and the other branches start their own chains. An empty polyline gives no chain.
+ */
+export function chainPolylines(lines: readonly (readonly Point[])[]): Point[][] {
+  const same = (a: Point, b: Point): boolean => a.x === b.x && a.y === b.y;
+  const rest = lines.filter((line) => line.length > 0).map((line) => [...line]);
+  const chains: Point[][] = [];
+  for (let chain = rest.shift(); chain !== undefined; chain = rest.shift()) {
+    let grew = true;
+    while (grew) {
+      grew = false;
+      for (let i = 0; i < rest.length; i++) {
+        const line = rest[i]!;
+        const start = chain[0]!;
+        const end = chain.at(-1)!;
+        if (same(line[0]!, end)) chain = [...chain, ...line.slice(1)];
+        else if (same(line.at(-1)!, end)) chain = [...chain, ...line.toReversed().slice(1)];
+        else if (same(line.at(-1)!, start)) chain = [...line.slice(0, -1), ...chain];
+        else if (same(line[0]!, start)) chain = [...line.toReversed().slice(0, -1), ...chain];
+        else continue;
+        rest.splice(i, 1);
+        grew = true;
+        break;
+      }
+    }
+    chains.push(chain);
+  }
+  return chains;
+}
+
 /** A ring of a polygon: its corners in order, as `[x, y]` pairs. The last corner connects to the first. */
 export type Ring = readonly (readonly [number, number])[];
 

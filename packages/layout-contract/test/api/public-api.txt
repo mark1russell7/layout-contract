@@ -188,6 +188,7 @@ PlacedCircle: build/index.d.ts#PlacedCircle
 Placement: build/index.d.ts#Placement
 Point: build/measures.chunk.d.ts#Point
 Point3: build/index.d.ts#Point3
+PolylinePlace: build/measures.chunk.d.ts#PolylinePlace
 Port: build/measures.chunk.d.ts#Port
 Portfolio: build/index.d.ts#Portfolio
 PortfolioKey: build/index.d.ts#PortfolioKey
@@ -314,6 +315,7 @@ cellMeasureEntries: build/index.d.ts#cellMeasureEntries
 cellMeasureSpecs: build/index.d.ts#cellMeasureSpecs
 cellMeasures: build/index.d.ts#cellMeasures
 cellsOf: build/index.d.ts#cellsOf
+chainPolylines: build/measures.chunk.d.ts#chainPolylines
 checkCatalog: build/index.d.ts#checkCatalog
 checkConfig: @mark1russell7/strategy-space#checkConfig (external)
 checkDeclared: build/measures.chunk.d.ts#checkDeclared
@@ -398,6 +400,7 @@ length3: build/index.d.ts#length3
 levelsOf: build/index.d.ts#levelsOf
 lineJson: build/index.d.ts#lineJson
 listOptions: @mark1russell7/strategy-space#listOptions (external)
+locateOnPolyline: build/measures.chunk.d.ts#locateOnPolyline
 manifestText: build/index.d.ts#manifestText
 marginSides: build/measures.chunk.d.ts#marginSides
 measureEntry: build/index.d.ts#measureEntry
@@ -444,6 +447,7 @@ pictureOf: build/index.d.ts#pictureOf
 placedCircle: build/index.d.ts#placedCircle
 placedConvex: build/index.d.ts#placedConvex
 placedRect: build/index.d.ts#placedRect
+pointAlongPolyline: build/measures.chunk.d.ts#pointAlongPolyline
 pointInRing: build/measures.chunk.d.ts#pointInRing
 pointInRings: build/measures.chunk.d.ts#pointInRings
 pointPolylineDistance: build/measures.chunk.d.ts#pointPolylineDistance
@@ -2376,6 +2380,15 @@ interface Point {
   readonly y: number;
 }
 
+### build/measures.chunk.d.ts#PolylinePlace
+interface PolylinePlace {
+  readonly point: Point;
+  readonly along: number;
+  readonly distance: number;
+  readonly segment: number;
+  readonly side: -1 | 0 | 1;
+}
+
 ### build/measures.chunk.d.ts#Port
 interface Port {
   readonly id: string;
@@ -2546,6 +2559,9 @@ declare function boxCenterDistance(a: Rect, b: Rect): number;
 ### build/measures.chunk.d.ts#canonicalInput
 declare function canonicalInput<T extends LayoutInput>(input: T): T;
 
+### build/measures.chunk.d.ts#chainPolylines
+declare function chainPolylines(lines: readonly (readonly Point[])[]): Point[][];
+
 ### build/measures.chunk.d.ts#checkDeclared
 declare function checkDeclared<I>(inputs: Iterable<I>, declares: Declares<I>, claim: DeclaredClaim, ids?: readonly string[], cellOf?: (input: I) => FamilyCell | undefined): ClaimBreak[];
 
@@ -2603,6 +2619,9 @@ declare function itemShapeOf(input: Pick<LayoutInput, "boxes">): ShapeKind | "mi
 ### build/measures.chunk.d.ts#leaveOneSeedOut
 declare function leaveOneSeedOut(seeds: readonly number[]): SplitFold[];
 
+### build/measures.chunk.d.ts#locateOnPolyline
+declare function locateOnPolyline(p: Point, points: readonly Point[]): PolylinePlace | undefined;
+
 ### build/measures.chunk.d.ts#marginSides
 declare function marginSides(margin: Margin | undefined): Sides;
 
@@ -2620,6 +2639,9 @@ declare function overlapOf(a: Rect, b: Rect): {
 
 ### build/measures.chunk.d.ts#packLinks
 declare function packLinks(input: LayoutInput): PackLink[];
+
+### build/measures.chunk.d.ts#pointAlongPolyline
+declare function pointAlongPolyline(points: readonly Point[], along: number, offset?: number): Point | undefined;
 
 ### build/measures.chunk.d.ts#pointInRing
 declare function pointInRing(x: number, y: number, ring: Ring): boolean;
