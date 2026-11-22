@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.11.0
+
+The release train changes the range of `@mark1russell7/rigor-generators`, `@mark1russell7/rigor-statistics`, `@mark1russell7/strategy-space`, `@mark1russell7/typeset` to a version outside the old range. The public types name @mark1russell7/rigor-generators, @mark1russell7/rigor-statistics, @mark1russell7/strategy-space, @mark1russell7/typeset, so its new version outside the old range can change them.
+
+### Breaking
+
+- The range `^0.1.8` of `@mark1russell7/rigor-generators` in `dependencies` does not hold `0.2.0`, so it changes.
+- The range `^0.1.23` of `@mark1russell7/rigor-statistics` in `dependencies` does not hold `0.2.19`, so it changes.
+- The range `^0.0.5` of `@mark1russell7/strategy-space` in `dependencies` does not hold `0.1.1`, so it changes.
+- The range `^0.5.1` of `@mark1russell7/typeset` in `dependencies` does not hold `0.7.0`, so it changes.
+
 ## 0.10.6
 
 - PATCH before 1.0.0: one new function of the geometry, with no change to the other exports.
