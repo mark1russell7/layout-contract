@@ -1,6 +1,6 @@
 {
   "schema": "measure-survey/1",
-  "date": "2026-11-21",
+  "date": "2026-11-22",
   "sources": [
     {
       "package": "@mark1russell7/layout-contract",
@@ -80,7 +80,7 @@
     },
     {
       "package": "@mark1russell7/packing",
-      "version": "0.17.3",
+      "version": "0.19.0",
       "measures": [
         {
           "id": "pack.area",
@@ -108,7 +108,7 @@
         },
         {
           "id": "pack.balance.centroidOffset",
-          "unit": "0 to 1",
+          "unit": "share",
           "direction": "lower",
           "family": "balance",
           "min": 0,
@@ -123,8 +123,16 @@
           "max": null
         },
         {
+          "id": "pack.balance.gapMean",
+          "unit": "layout units",
+          "direction": "higher",
+          "family": "balance",
+          "min": 0,
+          "max": null
+        },
+        {
           "id": "pack.balance.side.bottom",
-          "unit": "0 to 1",
+          "unit": "share",
           "direction": "lower",
           "family": "balance",
           "min": 0,
@@ -132,7 +140,7 @@
         },
         {
           "id": "pack.balance.side.left",
-          "unit": "0 to 1",
+          "unit": "share",
           "direction": "lower",
           "family": "balance",
           "min": 0,
@@ -140,7 +148,7 @@
         },
         {
           "id": "pack.balance.side.right",
-          "unit": "0 to 1",
+          "unit": "share",
           "direction": "lower",
           "family": "balance",
           "min": 0,
@@ -148,7 +156,7 @@
         },
         {
           "id": "pack.balance.side.top",
-          "unit": "0 to 1",
+          "unit": "share",
           "direction": "lower",
           "family": "balance",
           "min": 0,
@@ -156,7 +164,7 @@
         },
         {
           "id": "pack.balance.sideRange",
-          "unit": "0 to 1",
+          "unit": "share",
           "direction": "lower",
           "family": "balance",
           "min": 0,
