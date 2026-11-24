@@ -589,16 +589,16 @@
   },
   "joint-v2_packing-0.19.0_highways-0.19.3_space-bench-3": {
    "corpus": "joint-v2",
-   "nights": 1,
-   "last": "2026-11-23",
-   "missing": 7,
-   "configs": 7,
+   "nights": 2,
+   "last": "2026-11-24",
+   "missing": 0,
+   "configs": 26,
    "counts": {
     "baseline": 3,
-    "screened": 0,
-    "alive": 1,
-    "dropped": 2,
-    "halved": 1,
+    "screened": 6,
+    "alive": 3,
+    "dropped": 11,
+    "halved": 3,
     "design": 0
    },
    "step": {
@@ -684,39 +684,39 @@
     }
    },
    "cost": {
-    "date": "2026-11-23",
+    "date": "2026-11-24",
     "jobMinutes": {
-     "planned": 32.0784385878004,
-     "lo": 35.33513820497599,
-     "hi": 111.96864551818786,
-     "real": 132.00087887423334,
-     "side": "high",
-     "brier": 0.6400000000000001
+     "planned": 89.76970791043541,
+     "lo": 124.19718661256883,
+     "hi": 335.24388701548503,
+     "real": 260.3384607275,
+     "side": "hit",
+     "brier": 0.03999999999999998
     },
     "jobMinutesStatus": "scored",
     "wall": {
-     "planned": 14.489338495595666,
-     "lo": 22.38362192833187,
-     "hi": 57.96660578262959,
-     "real": 73.56666666666666,
-     "side": "high",
-     "brier": 0.6400000000000001
+     "planned": 30.096769347440762,
+     "lo": 50.27482058867985,
+     "hi": 173.05937760315692,
+     "real": 104.26666666666668,
+     "side": "hit",
+     "brier": 0.03999999999999998
     },
     "wallStatus": "scored",
     "shards": {
-     "lo": 0.9017628162633706,
-     "hi": 8.93400910771388,
-     "width": 9.907271564748791,
+     "lo": 0.9603780871747253,
+     "hi": 9.278649496740062,
+     "width": 9.661454817275482,
      "overCap": true,
-     "shards": 5,
-     "hits": 4,
-     "low": 0,
-     "high": 1,
-     "stopped": 1,
-     "brier": 0.16
+     "shards": 6,
+     "hits": 5,
+     "low": 1,
+     "high": 0,
+     "stopped": 0,
+     "brier": 0.14
     },
     "widthCap": 5,
-    "budget": "The budget of the gate is 986 minutes, from 3 gates.",
+    "budget": "The budget of the gate is 922 minutes, from 3 gates.",
     "thin": false
    }
   }
