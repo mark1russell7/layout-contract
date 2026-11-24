@@ -3,9 +3,9 @@
 //   node scripts/fit-cost.mjs --logs <dir> --run <run id> --commit <sha> [--corpus <set>] [--out <file>] [--terms auto|pair|lane|all]
 //
 // <dir> holds the logs of the `run (<i>)` jobs of one full run. One call of gh writes the logs of all jobs into one file:
-//   gh run view <run id> -R mark1russell7/layout-contract --log > <dir>/run.log
+//   gh run view <run id> -R metrograph-labs/layout-contract --log > <dir>/run.log
 // The logs of single jobs also work, one file for each job:
-//   gh api repos/mark1russell7/layout-contract/actions/jobs/<job id>/logs > <dir>/run-<i>.log
+//   gh api repos/metrograph-labs/layout-contract/actions/jobs/<job id>/logs > <dir>/run-<i>.log
 // Each shard prints one line for each input: `<input id>: <records> records, <skipped> skipped, <wall ms> ms`.
 // A shard of the sweep (`docs/SWEEP.md`) prints one line for each unit: `<input id>#<k>: ..., <pairs> pairs, <passes> lane passes`.
 // The script adds the times, the pairs and the passes of the units of one input.

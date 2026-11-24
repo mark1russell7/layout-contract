@@ -643,8 +643,8 @@ The limit of a shard job is 360 minutes, the limit of GitHub. At 64 shards, the 
 To fit the model again from a full run, write the logs of its jobs into one file. Then start `fit-cost.mjs` in `packages/joint`:
 
 ```sh
-gh run view <run id> -R mark1russell7/layout-contract --log > logs/run.log
-node scripts/fit-cost.mjs --logs logs --run <run id> --commit "$(gh run view <run id> -R mark1russell7/layout-contract --json headSha --jq .headSha)"
+gh run view <run id> -R metrograph-labs/layout-contract --log > logs/run.log
+node scripts/fit-cost.mjs --logs logs --run <run id> --commit "$(gh run view <run id> -R metrograph-labs/layout-contract --json headSha --jq .headSha)"
 ```
 
 - A line of the bench gives no counts. The script then counts the pairs and the passes of the code: 130 pairs since L32, and 24 passes with `--lanes on`.
@@ -690,7 +690,7 @@ A factor for each strategy does not make the plan better. The margin of the pair
 To write a set from a run, start `margins` in `packages/joint`:
 
 ```sh
-gh run download <run id> -R mark1russell7/layout-contract -p "joint-records-*" -D records
+gh run download <run id> -R metrograph-labs/layout-contract -p "joint-records-*" -D records
 pnpm bench margins --records records --run <run id> --commit <sha> --engines packing=<version>,highways=<version> > set.json
 ```
 

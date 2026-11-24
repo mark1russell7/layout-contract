@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.11.2
+
+- PATCH: the repository moved to metrograph-labs. The fields `repository`, `homepage` and `bugs` of `package.json` and the links of the README name the new repository. The code does not change.
+
 ## 0.11.1
 
 - PATCH before 1.0.0: three new functions of the geometry, with no change to the other exports.

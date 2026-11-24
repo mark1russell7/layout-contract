@@ -118,7 +118,7 @@ describe("the section", () => {
     const html = sweepHtml(state, 400);
     expect(html).toContain("One night so far. The trend starts with the next night.");
     expect(html).toContain(trendFileUrl(EPOCH));
-    expect(html).toContain(`https://github.com/mark1russell7/layout-contract/blob/sweep-data/epochs/${EPOCH}/surrogate-trend.jsonl`);
+    expect(html).toContain(`https://github.com/metrograph-labs/layout-contract/blob/sweep-data/epochs/${EPOCH}/surrogate-trend.jsonl`);
     expect(html).toContain(runUrl("41573500756"));
     expect(html).toContain("2026-11-03");
     expect(html).toContain("0.109");
@@ -139,7 +139,7 @@ describe("the section", () => {
   it("shows the failure with a link to the data", async () => {
     const state = await loadSweep(fake({ [`${SWEEP_RAW}/index.json`]: 500 }));
     expect(state).toEqual({ kind: "failed", message: "index.json gave HTTP 500" });
-    expect(sweepHtml(state)).toContain("https://github.com/mark1russell7/layout-contract/tree/sweep-data");
+    expect(sweepHtml(state)).toContain("https://github.com/metrograph-labs/layout-contract/tree/sweep-data");
     const thrown = await loadSweep(async () => Promise.reject(new Error("offline")));
     expect(thrown).toEqual({ kind: "failed", message: "offline" });
   });

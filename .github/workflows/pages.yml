@@ -1,4 +1,4 @@
-# Builds packages/site and publishes it to GitHub Pages at https://mark1russell7.github.io/layout-contract/, with
+# Builds packages/site and publishes it to GitHub Pages at https://metrograph-labs.github.io/layout-contract/, with
 # the shared Pages workflow of mark1russell7 (reusable-pages.yml of mark1russell7/template, its CI.md).
 # The Pages source of the repository is "GitHub Actions" (Settings > Pages).
 # The site reads only the data files in packages/site/data. docs/SITE.md tells how an item adds data.
@@ -16,7 +16,7 @@ on:
   workflow_dispatch:
   # The freshness gate reads the date of the data. With no push the gate has no other start, so old data fails on the next morning.
   schedule:
-    - cron: "40 5 * * *"
+    - cron: "18 5 * * *"
 
 permissions: {}
 

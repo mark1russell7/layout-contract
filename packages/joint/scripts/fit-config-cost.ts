@@ -3,7 +3,7 @@
 //   node scripts/fit-config-cost.ts --records <dir> --state <state.json> --plans <plan.json>,<plan.json> --run <run id> --night <date> [--out <file>]
 //
 // <dir> holds the artifacts `sweep-records-<round>-<shard>` of one run of `sweep.yml`. One call of gh downloads them:
-//   gh run download <run id> -R mark1russell7/layout-contract -p "sweep-records-*" -D <dir>
+//   gh run download <run id> -R metrograph-labs/layout-contract -p "sweep-records-*" -D <dir>
 // The records give the times, and the files `shard-<round>-<shard>.json` give the real minutes of each shard.
 // <state.json> is the state of the last round of the run (the artifact `sweep-night-2`). It gives the config of each record and the corpus.
 // The plans are the `plan.json` files of the rounds of the run (the artifacts `sweep-night-1` and `sweep-night-2`).

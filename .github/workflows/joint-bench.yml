@@ -28,7 +28,7 @@ name: Joint bench
 on:
   schedule:
     # Each schedule of a repository and file has its own minute (the rule runner-budget of conventions).
-    - cron: "14 4 * * 1"
+    - cron: "7 4 * * 1"
   workflow_dispatch:
     inputs:
       weekly:
