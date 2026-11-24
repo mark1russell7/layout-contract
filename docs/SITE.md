@@ -1,6 +1,6 @@
 # The project site
 
-The project site is at <https://mark1russell7.github.io/layout-contract/>. It has four sections:
+The project site is at <https://metrograph-labs.github.io/layout-contract/>. It has four sections:
 
 1. **Joint benchmark:** the headline cell of the latest result, the misses by router and by packer, the ranked pairs, the baselines and the stress cell.
 2. **Strategy space:** the schema `strategy-space/1`, and an interactive view of a space. Until an engine publishes its space, the view shows an example space.
@@ -65,7 +65,7 @@ The joint bench starts each Monday at 04:14 UTC (L160). The scheduled run is a c
 
 The records of a run are CI artifacts, and the repository does not keep them. Thus each result adds one compact file, made from the `report.json` of the run.
 
-1. Download the report of the run: `gh run download <run> -R mark1russell7/layout-contract -n joint-report -D <dir>`. A later analysis of the records of `<run>` keeps its report as the artifact `joint-report-of-<run>` of the later run.
+1. Download the report of the run: `gh run download <run> -R metrograph-labs/layout-contract -n joint-report -D <dir>`. A later analysis of the records of `<run>` keeps its report as the artifact `joint-report-of-<run>` of the later run.
 2. Make the data file. Use an absolute path for the report:
 
    ```sh
@@ -230,7 +230,7 @@ J2, J5 and J8 are the risky claims. The size of `highways` is the risk of J2: it
 
 The workflow `page-read.yml` reads pages of the live site in a browser, so a reader does not use a local browser.
 
-- Start it with `gh workflow run page-read.yml -R mark1russell7/layout-contract -f pages="index.html compare.html"`.
+- Start it with `gh workflow run page-read.yml -R metrograph-labs/layout-contract -f pages="index.html compare.html"`.
 - The artifact `page-read` holds one full screenshot and one set of crops for each page, width and color scheme.
 - Read the crops. A full screenshot of a long page scales down too far to read. A crop has the native scale and is at most 1,000 pixels tall.
 - The name of a crop gives its page, width, scheme, section and number, for example `index-html-390-dark-spaces-01.png`.

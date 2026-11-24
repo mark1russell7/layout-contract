@@ -12,7 +12,7 @@ on:
     branches: [main]
   schedule:
     # Each scheduled heavy run of the account has its own minute (the rule of 2026-10-30). This run is light, and it comes after the hour of the rule.
-    - cron: "17 16 * * *"
+    - cron: "28 16 * * *"
   workflow_dispatch:
 
 # Each commit of main has its own group, so each run of main ends with a result.

@@ -4,7 +4,7 @@ import { latestFull, shownAge, type CellView, type JointData } from "./data.ts";
 import type { CountSource, CountSources } from "./kpi.ts";
 import { barChart, esc, f3, interval, pct } from "./ui.ts";
 
-const REPO = "https://github.com/mark1russell7/layout-contract";
+const REPO = "https://github.com/metrograph-labs/layout-contract";
 const TOP = 20;
 
 interface State {

@@ -114,22 +114,22 @@ The comments of the source name each doc as `docs/<NAME>.md`. The docs are in th
 
 | Doc | The subject |
 |---|---|
-| [`docs/BALANCE.md`](https://github.com/mark1russell7/layout-contract/blob/main/docs/BALANCE.md) | The balance and stability measures of a pack and of a joint layout |
-| [`docs/CELLS.md`](https://github.com/mark1russell7/layout-contract/blob/main/docs/CELLS.md) | The cell measures of a Voronoi treemap: the area error and the compactness of the cells |
-| [`docs/CURVES.md`](https://github.com/mark1russell7/layout-contract/blob/main/docs/CURVES.md) | The Hilbert, Moore and Morton curves through a grid, as data |
-| [`docs/FRAMES.md`](https://github.com/mark1russell7/layout-contract/blob/main/docs/FRAMES.md) | The frame record `layout-frame/1`, the frames between two layouts and their laws |
-| [`docs/GEOMETRY-3D.md`](https://github.com/mark1russell7/layout-contract/blob/main/docs/GEOMETRY-3D.md) | The 3D records: points, boxes, rotations and rigid transforms |
-| [`docs/PICTURE.md`](https://github.com/mark1russell7/layout-contract/blob/main/docs/PICTURE.md) | The picture record `layout-picture/1`: the placed boxes, the path of each route and the labels that a viewer draws |
-| [`docs/NESTED.md`](https://github.com/mark1russell7/layout-contract/blob/main/docs/NESTED.md) | The boxes in boxes of an input: the tree for a layout engine, and the flat input with ports for a router |
-| [`docs/TEXT.md`](https://github.com/mark1russell7/layout-contract/blob/main/docs/TEXT.md) | The text layout of the subpath `/text`: the rules, the units and the measures |
-| [`docs/CORPUS.md`](https://github.com/mark1russell7/layout-contract/blob/main/docs/CORPUS.md) | The shared corpus registry, its dimensions and families |
-| [`docs/CORPUS-CHECKS.md`](https://github.com/mark1russell7/layout-contract/blob/main/docs/CORPUS-CHECKS.md) | The corpus checks and the split files |
-| [`docs/JOINT-CORPUS.md`](https://github.com/mark1russell7/layout-contract/blob/main/docs/JOINT-CORPUS.md) | The joint corpus |
-| [`docs/JOINT-MEASURES.md`](https://github.com/mark1russell7/layout-contract/blob/main/docs/JOINT-MEASURES.md) | The joint measures |
-| [`docs/PORTFOLIO.md`](https://github.com/mark1russell7/layout-contract/blob/main/docs/PORTFOLIO.md) | The portfolio and its pick rule |
-| [`docs/PROMOTION.md`](https://github.com/mark1russell7/layout-contract/blob/main/docs/PROMOTION.md) | The promotion guards |
-| [`docs/SHAPES.md`](https://github.com/mark1russell7/layout-contract/blob/main/docs/SHAPES.md) | The shape kinds, the levels of a rule and what a bound value proves |
-| [`docs/STRATEGY-SPACE.md`](https://github.com/mark1russell7/layout-contract/blob/main/docs/STRATEGY-SPACE.md) | The strategy space |
-| [`docs/VERDICT.md`](https://github.com/mark1russell7/layout-contract/blob/main/docs/VERDICT.md) | The verdict over families |
+| [`docs/BALANCE.md`](https://github.com/metrograph-labs/layout-contract/blob/main/docs/BALANCE.md) | The balance and stability measures of a pack and of a joint layout |
+| [`docs/CELLS.md`](https://github.com/metrograph-labs/layout-contract/blob/main/docs/CELLS.md) | The cell measures of a Voronoi treemap: the area error and the compactness of the cells |
+| [`docs/CURVES.md`](https://github.com/metrograph-labs/layout-contract/blob/main/docs/CURVES.md) | The Hilbert, Moore and Morton curves through a grid, as data |
+| [`docs/FRAMES.md`](https://github.com/metrograph-labs/layout-contract/blob/main/docs/FRAMES.md) | The frame record `layout-frame/1`, the frames between two layouts and their laws |
+| [`docs/GEOMETRY-3D.md`](https://github.com/metrograph-labs/layout-contract/blob/main/docs/GEOMETRY-3D.md) | The 3D records: points, boxes, rotations and rigid transforms |
+| [`docs/PICTURE.md`](https://github.com/metrograph-labs/layout-contract/blob/main/docs/PICTURE.md) | The picture record `layout-picture/1`: the placed boxes, the path of each route and the labels that a viewer draws |
+| [`docs/NESTED.md`](https://github.com/metrograph-labs/layout-contract/blob/main/docs/NESTED.md) | The boxes in boxes of an input: the tree for a layout engine, and the flat input with ports for a router |
+| [`docs/TEXT.md`](https://github.com/metrograph-labs/layout-contract/blob/main/docs/TEXT.md) | The text layout of the subpath `/text`: the rules, the units and the measures |
+| [`docs/CORPUS.md`](https://github.com/metrograph-labs/layout-contract/blob/main/docs/CORPUS.md) | The shared corpus registry, its dimensions and families |
+| [`docs/CORPUS-CHECKS.md`](https://github.com/metrograph-labs/layout-contract/blob/main/docs/CORPUS-CHECKS.md) | The corpus checks and the split files |
+| [`docs/JOINT-CORPUS.md`](https://github.com/metrograph-labs/layout-contract/blob/main/docs/JOINT-CORPUS.md) | The joint corpus |
+| [`docs/JOINT-MEASURES.md`](https://github.com/metrograph-labs/layout-contract/blob/main/docs/JOINT-MEASURES.md) | The joint measures |
+| [`docs/PORTFOLIO.md`](https://github.com/metrograph-labs/layout-contract/blob/main/docs/PORTFOLIO.md) | The portfolio and its pick rule |
+| [`docs/PROMOTION.md`](https://github.com/metrograph-labs/layout-contract/blob/main/docs/PROMOTION.md) | The promotion guards |
+| [`docs/SHAPES.md`](https://github.com/metrograph-labs/layout-contract/blob/main/docs/SHAPES.md) | The shape kinds, the levels of a rule and what a bound value proves |
+| [`docs/STRATEGY-SPACE.md`](https://github.com/metrograph-labs/layout-contract/blob/main/docs/STRATEGY-SPACE.md) | The strategy space |
+| [`docs/VERDICT.md`](https://github.com/metrograph-labs/layout-contract/blob/main/docs/VERDICT.md) | The verdict over families |
 
 The formats are in `docs/FORMAT.md` of `packing` and `docs/LAYOUT-RECORDS.md` of `highways`. The TSDoc of `ShapeBound` also has the table of what a bound value proves.

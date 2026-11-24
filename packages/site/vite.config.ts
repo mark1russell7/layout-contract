@@ -58,7 +58,7 @@ function catalogOfTheRuns(): ReturnType<typeof buildCatalog> {
 let npmRead: NpmRead | undefined;
 
 /** The file of measures of the last deploy. A build reads it only after a failed read of npm. */
-const LIVE_KPI = "https://mark1russell7.github.io/layout-contract/kpi.json";
+const LIVE_KPI = "https://metrograph-labs.github.io/layout-contract/kpi.json";
 
 /** This function gives the bytes of the file of measures of the last deploy, or `undefined` when they do not load. */
 async function lastKpi(): Promise<string | undefined> {

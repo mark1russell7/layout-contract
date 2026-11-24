@@ -15,7 +15,7 @@ name: Sweep
 on:
   schedule:
     # Each scheduled heavy run of the account has its own minute (the rule of 2026-10-30).
-    - cron: "37 3 * * *"
+    - cron: "9 3 * * *"
   workflow_dispatch:
     inputs:
       date:

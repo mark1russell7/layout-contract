@@ -48,7 +48,7 @@ on:
   # The schedule is the fallback for a night with no sweep. It stops when a sweep on main started on the same day.
   schedule:
     # Each scheduled heavy run of the account has its own minute (the rule of 2026-10-30).
-    - cron: "4 5 * * *"
+    - cron: "28 5 * * *"
 
 # A new run on the same ref waits for the run before it. A gate record that runs halfway has no value when it stops.
 # The event is in the key: GitHub keeps one pending run per group, and a dispatch with other inputs must not cancel a pending gate (fleet STRATEGY 0e36301bc).

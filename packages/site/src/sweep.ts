@@ -4,9 +4,9 @@ import { LOST_METHOD_NOTE, nightDue, nightVerdict } from "@layout-contract/joint
 import { chainLine, checkSweepIndex, epochStarts, type CostClaimFacts, type CostFacts, dayOf, FLAT_WEEK, mainLine, parseTrend, type StepFacts, type StepMove, type StepRouteFacts, type SweepIndex, type TrendRecord, WEEK_DAYS, type WeekView, weekView } from "./coverage.ts";
 import { esc, pct } from "./ui.ts";
 
-const REPO = "https://github.com/mark1russell7/layout-contract";
+const REPO = "https://github.com/metrograph-labs/layout-contract";
 /** The raw files of the branch `sweep-data`. This host sends `Access-Control-Allow-Origin: *`. */
-export const SWEEP_RAW = "https://raw.githubusercontent.com/mark1russell7/layout-contract/sweep-data";
+export const SWEEP_RAW = "https://raw.githubusercontent.com/metrograph-labs/layout-contract/sweep-data";
 /** The time limit of each read, in milliseconds. */
 const READ_LIMIT_MS = 15_000;
 

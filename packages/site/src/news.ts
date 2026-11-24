@@ -2,7 +2,7 @@
 import type { NewsData } from "./data.ts";
 import { esc } from "./ui.ts";
 
-const REPO = "https://github.com/mark1russell7/layout-contract";
+const REPO = "https://github.com/metrograph-labs/layout-contract";
 
 /** This function shows the news in the element `root`, from the newest item to the oldest. */
 export function renderNews(root: HTMLElement, news: NewsData | undefined): void {
