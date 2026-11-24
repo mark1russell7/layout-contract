@@ -32,7 +32,7 @@ jobs:
       security-events: write
       actions: read
     steps:
-      - uses: mark1russell7/template/.github/actions/security-scan@b00e6c77be906feac2a505888bab26be99d5c4c5 # main
+      - uses: mark1russell7/template/.github/actions/security-scan@02fda5f29cc4edb08cd7e3c493be8fea055ffb22 # main
 
   # The check that the ruleset of main names for the scans (template #81). It fails when a scan did not pass, also on a skip that ALLOW_SKIP does not name (template #85).
   # The scans stay in this file: release.yml calls ci.yml with contents: read, and a scan needs security-events: write.
