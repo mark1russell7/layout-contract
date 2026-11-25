@@ -13,4 +13,5 @@ export * from "./lanes.ts";
 export * from "./analysis.ts";
 export * from "./night-check.ts";
 export * from "./record-count.ts";
+export * from "./same-twice.ts";
 export * from "./space.ts";

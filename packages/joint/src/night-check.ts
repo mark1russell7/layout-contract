@@ -54,12 +54,21 @@ export function nightLine(v: NightVerdict): string {
   return `The last night is ${v.last}, and the night ${v.due} is due.`;
 }
 
-/** This function reads the last night and its missing count from `index.json` of the branch, or it gives a problem as text. */
-export function readNightIndex(value: unknown): { readonly last: string; readonly missing: number | null } | string {
-  const index = value as { latest?: unknown; epochs?: Record<string, { last?: unknown; missing?: unknown }> } | null;
+/**
+ * This function gives the break of the check "same twice" of the last night (L117), or `undefined` when it has none.
+ * The count `differ` holds the records whose two runs gave different hashes. A night from before L117 states no count, and gives no break.
+ */
+export function sameTwiceBreak(last: string, differ: number | null): string | undefined {
+  if (differ === null || differ === 0) return undefined;
+  return `The night ${last} has ${differ} ${differ === 1 ? "record" : "records"} whose two runs gave different hashes. The runs are deterministic, so the expected count is 0. The summary of the night lists the first pairs.`;
+}
+
+/** This function reads the last night from `index.json` of the branch, or it gives a problem as text. The result has the missing count and the count of records that differ. */
+export function readNightIndex(value: unknown): { readonly last: string; readonly missing: number | null; readonly differ: number | null } | string {
+  const index = value as { latest?: unknown; epochs?: Record<string, { last?: unknown; missing?: unknown; differ?: unknown }> } | null;
   const latest = index?.latest;
   if (typeof latest !== "string") return "index.json states no latest epoch.";
   const entry = index?.epochs?.[latest];
   if (typeof entry?.last !== "string" || Number.isNaN(Date.parse(entry.last))) return `index.json states no date for the epoch ${latest}.`;
-  return { last: entry.last, missing: typeof entry.missing === "number" ? entry.missing : null };
+  return { last: entry.last, missing: typeof entry.missing === "number" ? entry.missing : null, differ: typeof entry.differ === "number" ? entry.differ : null };
 }
