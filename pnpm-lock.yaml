@@ -177,13 +177,13 @@ importers:
         version: 0.3.2(@swc/core@1.16.22)(dependency-cruiser@18.7.2)
       '@mark1russell7/conventions':
         specifier: ^0.50.7
-        version: 0.50.11
+        version: 0.50.16
       '@mark1russell7/cue':
         specifier: ^2.1.1
         version: 2.1.4
       '@mark1russell7/ste-lint':
-        specifier: ^0.5.0
-        version: 0.5.0
+        specifier: ^0.6.0
+        version: 0.6.0
       '@mark1russell7/template-cli':
         specifier: ^0.1.0
         version: 0.1.9
@@ -219,13 +219,13 @@ importers:
         version: 0.19.0
       '@mark1russell7/rigor-bench':
         specifier: ^0.3.2
-        version: 0.3.3(esbuild@0.28.2)
+        version: 0.3.4(esbuild@0.28.2)
       '@mark1russell7/rigor-generators':
         specifier: ^0.2.0
-        version: 0.2.1
+        version: 0.2.4
       '@mark1russell7/rigor-statistics':
         specifier: ^0.2.19
-        version: 0.2.19
+        version: 0.2.25
     devDependencies:
       '@mark1russell7/cue':
         specifier: ^2.1.1
@@ -250,23 +250,23 @@ importers:
         version: 0.1.5
       '@mark1russell7/rigor-generators':
         specifier: ^0.2.0
-        version: 0.2.1
+        version: 0.2.4
       '@mark1russell7/rigor-statistics':
         specifier: ^0.2.19
-        version: 0.2.19
+        version: 0.2.25
       '@mark1russell7/strategy-space':
         specifier: ^0.1.1
         version: 0.1.1
       '@mark1russell7/typeset':
         specifier: ^0.7.0
-        version: 0.7.1
+        version: 0.7.2
     devDependencies:
       '@mark1russell7/cue':
         specifier: ^2.1.1
         version: 2.1.4
       '@mark1russell7/rigor-bench':
         specifier: ^0.3.2
-        version: 0.3.3(esbuild@0.28.2)
+        version: 0.3.4(esbuild@0.28.2)
       '@types/node':
         specifier: ^26.6.4
         version: 26.6.6
@@ -308,7 +308,7 @@ importers:
         version: 0.19.0
       '@mark1russell7/site-pages':
         specifier: ^0.8.0
-        version: 0.8.3
+        version: 0.8.4
       '@mark1russell7/text':
         specifier: ^0.0.17
         version: 0.0.17
@@ -588,8 +588,8 @@ packages:
     resolution: {integrity: sha512-KKAYIACji5XtOpbE3fIX4D3aVd0oddyM9dU+Pk+lXpgYOh6VTVoa/0yzwDTipZ42RKp+6BG+LSkLjCe/FjCHFA==}
     engines: {node: '>=22.12'}
 
-  '@mark1russell7/conventions@0.50.11':
-    resolution: {integrity: sha512-E4iUg+xWfngrudzgQVuyKj8YSQVb3AcG2X8CY6nlV+nslbw1HChdDetkg3oezTahPoeV8shkQRNvE73BIzv9+Q==}
+  '@mark1russell7/conventions@0.50.16':
+    resolution: {integrity: sha512-V5013CyiMEWdx2XYnKmmgvFH+xl+rXV3MF1y+36k5zsOAJJsrSjZvUn0h+qERGtQj2K1FYKy3RM4EgbRo2Nb1g==}
     engines: {node: '>=22'}
     hasBin: true
 
@@ -598,8 +598,8 @@ packages:
     engines: {node: '>=22'}
     hasBin: true
 
-  '@mark1russell7/files@0.0.5':
-    resolution: {integrity: sha512-2p3FGGlLJiHdPE3JFl41CjrS7nkewLbb0QKKhWLHEpjWHP1KT60IKSb7hP8kcF++Yof0XW6wwctQDnQ3p8jZeg==}
+  '@mark1russell7/files@0.0.6':
+    resolution: {integrity: sha512-VLsy9pwIP1LuDEOkzVpUKU/SOTw+/d3F/IYjSp0Fj+Cqfl440Qs/ad5islvClQEKPNmiDp5Zs+VraNO2QQ/MkQ==}
     engines: {node: '>=22'}
 
   '@mark1russell7/highways@0.19.3':
@@ -638,8 +638,8 @@ packages:
     resolution: {integrity: sha512-hn2C5jjOFCGKJqFQPHt57C/Cn1l9Lb9MltVNtL71KSu+nRrfPOmg8ujYB5n3oDFFWNdNA4bE/8LLT4tG3lmrGA==}
     engines: {node: '>=22'}
 
-  '@mark1russell7/rigor-bench@0.3.3':
-    resolution: {integrity: sha512-8iOCvKVL1jyhQrp++N01H317sEBGa8ZHCj1ubQLYVIzZD2kXXEvyNjH0OzmVWI6SSWuv1FYSyO+dt3Fw0c49uA==}
+  '@mark1russell7/rigor-bench@0.3.4':
+    resolution: {integrity: sha512-7vklCcNtxufPzRpLwx5LJAwJOQ3b6auqv1JpQTr+N2nclN09cboYSFFu1gAehRiwiYCj0+G3iy0Pj8kLrzlAKQ==}
     engines: {node: '>=22'}
     hasBin: true
     peerDependencies:
@@ -660,6 +660,10 @@ packages:
     resolution: {integrity: sha512-bWhgmh1I74o1KuNRycv43pZFseddTWTrvEAQjLWnMeiM3p9sB2ACvBiWradssLhCBhIrz2UxY9+5K34fZoUBnA==}
     engines: {node: '>=22'}
 
+  '@mark1russell7/rigor-generators@0.2.4':
+    resolution: {integrity: sha512-9eem6sh2XT0dEqhtDhJTeJWlY9vWsmiEG9hwTcQwdt+MF1jTALHjEzJqvkRP9DwdvGRAoMYBnXfo1kavTkqzMg==}
+    engines: {node: '>=22'}
+
   '@mark1russell7/rigor-statistics@0.1.28':
     resolution: {integrity: sha512-jynyIvNwFOCN3pHMxeB1iuxmG2PvikSW07MzCF0a5icg1SWsule3NIVf46I7lNVLKQrbR5Kkbxq82jReP1FKIA==}
     engines: {node: '>=22'}
@@ -668,13 +672,17 @@ packages:
     resolution: {integrity: sha512-zMfirguRPEJin3H1q5Rl3kCl6b5M5QSg0ukd/damhZXPwLEUQ/oAYXoRAJA5sSZ7tHW4wZF9DhK8FidiMGsbbg==}
     engines: {node: '>=22'}
 
-  '@mark1russell7/site-pages@0.8.3':
-    resolution: {integrity: sha512-ZYjdSgnBbBZBLtZ6J7Qs5WZYFNMswKT/SdGi8wHX6v69WvmOxr0F9fn1HuDNFrSoxFbE2h/jibfjjgJ84iQ9Rg==}
+  '@mark1russell7/rigor-statistics@0.2.25':
+    resolution: {integrity: sha512-rYx7IHbt2VD1x/Eo12VcxS3rskiYQu8ZUJY3eKanDBSMe4eUeWFyK1ILB35FvduBZkxRUdkfesXvnpcO6fdWJg==}
+    engines: {node: '>=22'}
+
+  '@mark1russell7/site-pages@0.8.4':
+    resolution: {integrity: sha512-pC0qcQqIsfQg5jTg+peUP/DGBXb4d1PQYiu6TCeCE1ALc5X8nyGhj9vMYKBCdhK7uHm8Chtx7INLKPWPmxpK3w==}
     engines: {node: '>=22'}
     hasBin: true
 
-  '@mark1russell7/ste-lint@0.5.0':
-    resolution: {integrity: sha512-FQ+fDY4qRnOXkjBWJn0pkDKHgrVE0acsgHvrW0fenvd4awpJqooDLsam65K3t7WGs+r7lkDBk3SGlNgSLDi21g==}
+  '@mark1russell7/ste-lint@0.6.0':
+    resolution: {integrity: sha512-4jt/c/n4hKa3Y32/iqbCrNk4MShb9ECxedm5WG28RYpYm0eCCxkn10wn00hzRKxvFtFe9qKDS0b5XGhfSuvTWQ==}
     engines: {node: '>=22'}
     hasBin: true
 
@@ -703,8 +711,8 @@ packages:
     resolution: {integrity: sha512-uKmmt2icpkn2k9Wn/y1fRZvBml80dgwRLRhI72e6SkGVSF3UWCiuPZdYTJA2WEstRolq0viSLRJjXb/o8NF8JQ==}
     engines: {node: '>=22.12'}
 
-  '@mark1russell7/typeset@0.7.1':
-    resolution: {integrity: sha512-yVVyNP/lpSWmcqZUe88bteErwXBkhnlUhqL4DksXrKyQhAOE/+TOyoRbVLRjGIPxaYYfHLJkKzQkRtdJzx1sjw==}
+  '@mark1russell7/typeset@0.7.2':
+    resolution: {integrity: sha512-5N3VMx+02Ge6cw+9PQztyQxTeybilaxpPyl3VHAW7akoZZBCC6912VEZK2MB+u0cRfUbRojBS8bGaBYb+is9hA==}
     engines: {node: '>=22.12'}
 
   '@napi-rs/wasm-runtime@1.2.6':
@@ -2013,7 +2021,7 @@ snapshots:
 
   '@mark1russell7/api-report@0.5.18':
     dependencies:
-      '@mark1russell7/conventions': 0.50.11
+      '@mark1russell7/conventions': 0.50.16
 
   '@mark1russell7/boundaries@0.3.2(@swc/core@1.16.22)(dependency-cruiser@18.7.2)':
     optionalDependencies:
@@ -2036,21 +2044,21 @@ snapshots:
     transitivePeerDependencies:
       - zod
 
-  '@mark1russell7/conventions@0.50.11':
+  '@mark1russell7/conventions@0.50.16':
     dependencies:
       '@mark1russell7/text': 0.0.17
       yaml: 2.9.1
 
   '@mark1russell7/cue@2.1.4': {}
 
-  '@mark1russell7/files@0.0.5': {}
+  '@mark1russell7/files@0.0.6': {}
 
   '@mark1russell7/highways@0.19.3':
     dependencies:
       '@mark1russell7/layout-contract': 0.10.6
       '@mark1russell7/predicates': 0.1.5
-      '@mark1russell7/rigor-generators': 0.2.1
-      '@mark1russell7/rigor-statistics': 0.2.19
+      '@mark1russell7/rigor-generators': 0.2.4
+      '@mark1russell7/rigor-statistics': 0.2.25
     transitivePeerDependencies:
       - zod
 
@@ -2085,10 +2093,10 @@ snapshots:
 
   '@mark1russell7/rational@0.1.2': {}
 
-  '@mark1russell7/rigor-bench@0.3.3(esbuild@0.28.2)':
+  '@mark1russell7/rigor-bench@0.3.4(esbuild@0.28.2)':
     dependencies:
-      '@mark1russell7/rigor-generators': 0.2.1
-      '@mark1russell7/rigor-statistics': 0.2.19
+      '@mark1russell7/rigor-generators': 0.2.4
+      '@mark1russell7/rigor-statistics': 0.2.25
       '@mark1russell7/text': 0.0.17
     optionalDependencies:
       esbuild: 0.28.2
@@ -2099,6 +2107,8 @@ snapshots:
 
   '@mark1russell7/rigor-generators@0.2.1': {}
 
+  '@mark1russell7/rigor-generators@0.2.4': {}
+
   '@mark1russell7/rigor-statistics@0.1.28':
     dependencies:
       '@mark1russell7/rigor-generators': 0.1.15
@@ -2107,13 +2117,17 @@ snapshots:
     dependencies:
       '@mark1russell7/rigor-generators': 0.2.1
 
-  '@mark1russell7/site-pages@0.8.3':
+  '@mark1russell7/rigor-statistics@0.2.25':
+    dependencies:
+      '@mark1russell7/rigor-generators': 0.2.4
+
+  '@mark1russell7/site-pages@0.8.4':
     dependencies:
       '@mark1russell7/rigor-statistics': 0.2.19
 
-  '@mark1russell7/ste-lint@0.5.0':
+  '@mark1russell7/ste-lint@0.6.0':
     dependencies:
-      '@mark1russell7/files': 0.0.5
+      '@mark1russell7/files': 0.0.6
       typescript: 6.0.3
 
   '@mark1russell7/strategy-space@0.0.5':
@@ -2128,8 +2142,8 @@ snapshots:
 
   '@mark1russell7/strategy-space@0.1.1':
     dependencies:
-      '@mark1russell7/rigor-generators': 0.2.1
-      '@mark1russell7/rigor-statistics': 0.2.19
+      '@mark1russell7/rigor-generators': 0.2.4
+      '@mark1russell7/rigor-statistics': 0.2.25
 
   '@mark1russell7/template-cli@0.1.9':
     dependencies:
@@ -2144,7 +2158,7 @@ snapshots:
     transitivePeerDependencies:
       - zod
 
-  '@mark1russell7/typeset@0.7.1':
+  '@mark1russell7/typeset@0.7.2':
     dependencies:
       '@mark1russell7/collections': 0.11.3
       '@mark1russell7/rigor-generators': 0.2.1
