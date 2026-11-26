@@ -20,6 +20,9 @@
     "check:conventions": "conventions check",
     "release-train:update": "pnpm --filter @layout-contract/site run data:spaces -- $(date -u +%F) && pnpm --filter @layout-contract/joint exec node scripts/measure-survey.ts $(date -u +%F)"
   },
+  "sitePages": {
+    "bareErrors": "fail"
+  },
   "devDependencies": {
     "@arethetypeswrong/core": "^0.18.5",
     "@mark1russell7/api-report": "^0.5.5",
