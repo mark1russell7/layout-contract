@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.11.5
+
+An automated dependency update changes the shipped files, so this PATCH ships them.
+
 ## 0.11.3
 
 An automated dependency update changes the shipped files, so this PATCH ships them.

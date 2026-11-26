@@ -188,7 +188,7 @@ The prediction for the first night with the budget:
 - B3 is risky: the budget uses the median gate of 375 minutes, and the gate time also changes with the queue of the runners.
 - B4 is risky: the spread of the ratio is large. One scale for all shards does not see which spec is slow.
 
-The result of the night of 2026-11-02 (run [41384329446](https://github.com/mark1russell7/layout-contract/actions/runs/41384329446)), Brier 0.286:
+The result of the night of 2026-11-02 (run [41384329446](https://github.com/metrograph-labs/layout-contract/actions/runs/41384329446)), Brier 0.286:
 
 | Id | Result | Hit |
 |---|---|---|
@@ -604,7 +604,7 @@ The model above gives each pair the same time. The records of the night of 2026-
 - `level` keeps the planned minutes of the jobs of the night of the fit. `scale` is the median of real over planned minutes of its 32 shards with the factors: 1.504.
 - Each plan and each shard entry keeps the id of the cost model (`costModel`). `costScale` uses only the shards of the current model. Before such a shard, it uses `scale`.
 
-The test of the models on the night of 2026-11-02 (run [41384329446](https://github.com/mark1russell7/layout-contract/actions/runs/41384329446)). Each model gets its fit and its scale from one round. The table gives the count of the shards of the other round within 25%:
+The test of the models on the night of 2026-11-02 (run [41384329446](https://github.com/metrograph-labs/layout-contract/actions/runs/41384329446)). Each model gets its fit and its scale from one round. The table gives the count of the shards of the other round within 25%:
 
 | Model | Fit on round 1, shards of round 2 | Fit on round 2, shards of round 1 |
 |---|---|---|

@@ -773,7 +773,7 @@ The other rules do not change: `selectBest` for each pick, the level `hard`, the
 
 ## The result of the joint-v2 run
 
-The run [40666991882](https://github.com/mark1russell7/layout-contract/actions/runs/40666991882) of 2026-10-28 used the commit `b77b59c`. It had 48 shards and 120 pairs.
+The run [40666991882](https://github.com/metrograph-labs/layout-contract/actions/runs/40666991882) of 2026-10-28 used the commit `b77b59c`. It had 48 shards and 120 pairs.
 
 ### The missing inputs
 
@@ -872,7 +872,7 @@ R4 gives the number with the hard tail. R5 shows the effect of the new versions 
 
 ## The result of the L28 run
 
-The run [40685494092](https://github.com/mark1russell7/layout-contract/actions/runs/40685494092) of 2026-10-28 used the commit `e54d81f`. It used `highways` 0.6.0 and `packing` 0.2.10, with 64 shards and 120 pairs.
+The run [40685494092](https://github.com/metrograph-labs/layout-contract/actions/runs/40685494092) of 2026-10-28 used the commit `e54d81f`. It used `highways` 0.6.0 and `packing` 0.2.10, with 64 shards and 120 pairs.
 
 All 303 inputs have records, 36360 records in total. The line "Records: 26640" of the report counts only the 222 inputs outside the stress cell.
 
@@ -921,7 +921,7 @@ The baseline is the default pack and the default router in sequence: `rows+portf
 
 ## The result of the sequential baseline (L10)
 
-The run [40709328189](https://github.com/mark1russell7/layout-contract/actions/runs/40709328189) of `joint-bench.yml` analyzed the records of the run 40685494092, with the input `records-run`. It did not start the benchmark again. The records hold 303 of 303 inputs and 120 pairs. The cells of the best pair and of the oracle are the same as in the result of the L28 run.
+The run [40709328189](https://github.com/metrograph-labs/layout-contract/actions/runs/40709328189) of `joint-bench.yml` analyzed the records of the run 40685494092, with the input `records-run`. It did not start the benchmark again. The records hold 303 of 303 inputs and 120 pairs. The cells of the best pair and of the oracle are the same as in the result of the L28 run.
 
 ### The verdicts
 
@@ -1041,7 +1041,7 @@ One analysis of the records gives the number of each claim. Start a manual run o
 
 ## The result of the select packer (L32)
 
-The run [40743187036](https://github.com/mark1russell7/layout-contract/actions/runs/40743187036) of `joint-bench.yml` used the commit `dba25d4`, with `highways` 0.8.1 and `packing` 0.2.16. It had 64 shards and 130 pairs, and each shard ended with success. The run [40746401999](https://github.com/mark1russell7/layout-contract/actions/runs/40746401999) analyzed its records again, with the options of the claims. The records hold 303 of 303 inputs.
+The run [40743187036](https://github.com/metrograph-labs/layout-contract/actions/runs/40743187036) of `joint-bench.yml` used the commit `dba25d4`, with `highways` 0.8.1 and `packing` 0.2.16. It had 64 shards and 130 pairs, and each shard ended with success. The run [40746401999](https://github.com/metrograph-labs/layout-contract/actions/runs/40746401999) analyzed its records again, with the options of the claims. The records hold 303 of 303 inputs.
 
 ### The verdicts
 
@@ -1164,7 +1164,7 @@ The job `analyze` of the run gives both reports in the artifact `joint-report`. 
 
 ## The result of routing-aware gaps (L13)
 
-Run [40757153151](https://github.com/mark1russell7/layout-contract/actions/runs/40757153151) ran the 148 pairs on the 222 inputs of `joint-v2`, with `lanes` on, in 64 shards. 8 of the 12 claims held. The Brier score is 0.220.
+Run [40757153151](https://github.com/metrograph-labs/layout-contract/actions/runs/40757153151) ran the 148 pairs on the 222 inputs of `joint-v2`, with `lanes` on, in 64 shards. 8 of the 12 claims held. The Brier score is 0.220.
 
 ### The verdicts
 
@@ -1341,7 +1341,7 @@ The rule is `confirmDefault`, and it does not change after the run.
 
 ## The result of iteration pairs (L11)
 
-In the run [40770430229](https://github.com/mark1russell7/layout-contract/actions/runs/40770430229), the runner used the 148 pairs on the 303 inputs of `joint-v2`, with `iterate` on. The run had 64 shards, on the commit `d85a642`. 10 of the 12 claims held. The Brier score is 0.126.
+In the run [40770430229](https://github.com/metrograph-labs/layout-contract/actions/runs/40770430229), the runner used the 148 pairs on the 303 inputs of `joint-v2`, with `iterate` on. The run had 64 shards, on the commit `d85a642`. 10 of the 12 claims held. The Brier score is 0.126.
 
 ### The verdicts
 
@@ -1565,7 +1565,7 @@ A9 is true by its construction, if the table copies `defaultLayoutOf`. On a fixe
 
 ## The result of bench-4 (L79)
 
-The full run [`40971129437`](https://github.com/mark1russell7/layout-contract/actions/runs/40971129437) ran on commit `a7d8f5f`. The run [`40990459481`](https://github.com/mark1russell7/layout-contract/actions/runs/40990459481) analyzed its records again with the baseline `pack+portfolio`. Each of the 303 inputs has a record for each of the 270 pairs, so the run has 81810 records.
+The full run [`40971129437`](https://github.com/metrograph-labs/layout-contract/actions/runs/40971129437) ran on commit `a7d8f5f`. The run [`40990459481`](https://github.com/metrograph-labs/layout-contract/actions/runs/40990459481) analyzed its records again with the baseline `pack+portfolio`. Each of the 303 inputs has a record for each of the 270 pairs, so the run has 81810 records.
 
 | Claim | p | Result | Data |
 |---|---|---|---|
@@ -1699,7 +1699,7 @@ A fix passes L81 only when seed 1 stays under 3072 MB in a full run of the gate 
 
 ### The result of step 2
 
-The run [41355387962](https://github.com/mark1russell7/layout-contract/actions/runs/41355387962) ran the pair `maxrects-cp+gaps` alone on seed 1 and on seed 2 of the dense input with hubs, with `highways` 0.10.0.
+The run [41355387962](https://github.com/metrograph-labs/layout-contract/actions/runs/41355387962) ran the pair `maxrects-cp+gaps` alone on seed 1 and on seed 2 of the dense input with hubs, with `highways` 0.10.0.
 
 | Mode | Seed | CPU | Peak RSS (MB) | Sampled allocation (GB) |
 |---|---|---|---|---|
@@ -1769,7 +1769,7 @@ If A1 and A2 are hits, the gate moves to `measure-6144`, with derived limits on 
 
 ### The result of the A/A repeat
 
-The run is [41360122516](https://github.com/mark1russell7/layout-contract/actions/runs/41360122516), on commit `2ece000`. The 15 probes ended with status 0, and each one has a line in `summary.jsonl`. The gate job failed, because it compares the peak RSS with the old limit of 3072 MB (A5).
+The run is [41360122516](https://github.com/metrograph-labs/layout-contract/actions/runs/41360122516), on commit `2ece000`. The 15 probes ended with status 0, and each one has a line in `summary.jsonl`. The gate job failed, because it compares the peak RSS with the old limit of 3072 MB (A5).
 
 | Seed | CPU model | Runs | Allocation (MB), min to max | `liveMaxMb` | `liveEndMb` | Peak RSS (MB), min to max | Time (min) |
 |---|---|---|---|---|---|---|---|
@@ -1814,7 +1814,7 @@ Thus the next run measures `main`, with 5 repeats of each seed. It gives the eff
 
 ### The result of the probe with a heap cap of 2048 MB
 
-The run is [41420167401](https://github.com/mark1russell7/layout-contract/actions/runs/41420167401), on commit `93c6010` of `main`. Each seed ran 1 time, in its own job.
+The run is [41420167401](https://github.com/metrograph-labs/layout-contract/actions/runs/41420167401), on commit `93c6010` of `main`. Each seed ran 1 time, in its own job.
 
 | Claim | p | Result | Hit |
 |---|---|---|---|
@@ -1838,7 +1838,7 @@ The limit run measures `main` after `9d584c8`. It has the mode `measure-6144` an
 
 ### The result of the limit run
 
-The run is [41408115284](https://github.com/mark1russell7/layout-contract/actions/runs/41408115284), on commit `93c6010` of `main`. The 15 probes ended with status 0 and 270 pairs. The gate job failed, because it compares the peak RSS with the old limit of 3072 MB.
+The run is [41408115284](https://github.com/metrograph-labs/layout-contract/actions/runs/41408115284), on commit `93c6010` of `main`. The 15 probes ended with status 0 and 270 pairs. The gate job failed, because it compares the peak RSS with the old limit of 3072 MB.
 
 | Seed | CPU model | Runs | Allocation (MB), min to max | `liveMaxMb` | `liveEndMb` | Peak RSS (MB), min to max | Time (min) |
 |---|---|---|---|---|---|---|---|
@@ -1875,7 +1875,7 @@ The formula of each limit is the worst value of the 5 probes of the run 41408115
 | s2 | 2886809 + 5588 | 2892397 | 369 + 1 | 370 |
 | s3 | 3175543 + 5864 | 3181407 | 450 + 1 (the spread is 0) | 451 |
 
-The re-fit of 2026-11-04 replaces these limits. It uses the same formula on the run [41654875543](https://github.com/mark1russell7/layout-contract/actions/runs/41654875543), on commit `21f9dc4` of `main`. Each seed has 300 pairs in that run, not 270, because the order `graph-bfs` added 30 pairs.
+The re-fit of 2026-11-04 replaces these limits. It uses the same formula on the run [41654875543](https://github.com/metrograph-labs/layout-contract/actions/runs/41654875543), on commit `21f9dc4` of `main`. Each seed has 300 pairs in that run, not 270, because the order `graph-bfs` added 30 pairs.
 
 | Seed | Allocation (MB): worst + margin | Allocation limit (MB) | `liveMaxMb` (MB): worst + margin | `liveMaxMb` limit (MB) |
 |---|---|---|---|---|
@@ -1887,7 +1887,7 @@ The re-fit of 2026-11-04 replaces these limits. It uses the same formula on the 
 - The 30 new pairs give the rise. The largest live heap is on `maxrects-bl-graph-bfs+corners-smooth` for each seed. The routers are the same, but the retained heap also depends on the layout that a router reads.
 - The peak RSS of this run is 3320 to 4700 MB. This is under the ceiling, so the ceiling does not change.
 
-A second re-fit on 2026-11-04 replaces the limits of s2 and s3. The gate of the run [41769223049](https://github.com/mark1russell7/layout-contract/actions/runs/41769223049), on commit `5a00107`, failed on s2. Its allocation is 3310056 MB, and the limit was 3308708 MB.
+A second re-fit on 2026-11-04 replaces the limits of s2 and s3. The gate of the run [41769223049](https://github.com/metrograph-labs/layout-contract/actions/runs/41769223049), on commit `5a00107`, failed on s2. Its allocation is 3310056 MB, and the limit was 3308708 MB.
 
 No engine changed after `21f9dc4`. The node version is the same. Each of the 300 records of each seed has the same result bytes as the 5 probes of the first re-fit. Thus the 6 probes are one sample, and the limits use the same formula on the 6 probes.
 
@@ -1920,7 +1920,7 @@ These limits do not catch each growth. The table gives the real growth of the al
 
 #### The versions of the limits
 
-The live heap is the same in each probe of one seed on one set of versions. Thus the limit of the live heap is a check of an exact value. A change of an engine can move the value over its limit. The gate of the run [41971168014](https://github.com/mark1russell7/layout-contract/actions/runs/41971168014), on commit `ef71e84`, failed by 1 MB on each seed of F:
+The live heap is the same in each probe of one seed on one set of versions. Thus the limit of the live heap is a check of an exact value. A change of an engine can move the value over its limit. The gate of the run [41971168014](https://github.com/metrograph-labs/layout-contract/actions/runs/41971168014), on commit `ef71e84`, failed by 1 MB on each seed of F:
 
 | Seed | Live heap of the 6 probes (MB) | Live heap in 41971168014 (MB) | Allocation of the worst probe (MB) | Allocation in 41971168014 (MB) |
 |---|---|---|---|---|
@@ -1978,7 +1978,7 @@ The cost of the 3 jobs comes from the times of the run 41408115284. It is not sm
 |---|---|
 | The time of one job, median (min to max) | s1 87 (50 to 90), s2 101 (67 to 112), s3 117 (96 to 192) minutes |
 | The sum of the medians of the 3 jobs | 305 runner minutes |
-| The last two full nightly gates, [41008166915](https://github.com/mark1russell7/layout-contract/actions/runs/41008166915) and [41042609930](https://github.com/mark1russell7/layout-contract/actions/runs/41042609930) | 978 and 1056 runner minutes, 3.4 and 6.3 hours |
+| The last two full nightly gates, [41008166915](https://github.com/metrograph-labs/layout-contract/actions/runs/41008166915) and [41042609930](https://github.com/metrograph-labs/layout-contract/actions/runs/41042609930) | 978 and 1056 runner minutes, 3.4 and 6.3 hours |
 | The added runner minutes | 29% to 31% |
 | The added time of the run, with 3 jobs at once | approximately 100 minutes |
 
