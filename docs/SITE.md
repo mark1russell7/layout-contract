@@ -9,7 +9,7 @@ The project site is at <https://metrograph-labs.github.io/layout-contract/>. It 
 
 Each section with data shows the date and the source of its data.
 
-The navigation of each page links to the sites of [highways](https://mark1russell7.github.io/highways/) and [packing](https://mark1russell7.github.io/packing/). The two engine sites link back to this site.
+The navigation of each page links to the sites of [highways](https://metrograph-labs.github.io/highways/) and [packing](https://metrograph-labs.github.io/packing/). The two engine sites link back to this site.
 
 - `ENGINE_SITES` in `packages/site/src/links.ts` holds the two addresses. No other file of the site holds them.
 - Each page has the mark `<!-- engine-sites -->` in its navigation. The Vite plugin `engineSites` puts the links there, and a page without the mark stops the build.

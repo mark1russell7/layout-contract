@@ -4,7 +4,7 @@
   "sources": [
     {
       "package": "@mark1russell7/layout-contract",
-      "version": "0.11.4",
+      "version": "0.11.5",
       "measures": [
         {
           "id": "joint.aspectError",

@@ -1,6 +1,6 @@
 # @mark1russell7/layout-contract
 
-The shared contract of two layout engines: [`packing`](https://github.com/mark1russell7/packing) places boxes, and [`highways`](https://github.com/mark1russell7/highways) routes the edges between them. Neither engine depends on the other. Both use this contract, so a placement and a routing compose.
+The shared contract of two layout engines: [`packing`](https://github.com/metrograph-labs/packing) places boxes, and [`highways`](https://github.com/metrograph-labs/highways) routes the edges between them. Neither engine depends on the other. Both use this contract, so a placement and a routing compose.
 
 The package has one runtime dependency: `@mark1russell7/rigor-generators`, the home of the seeded generator `mulberry32`.
 
