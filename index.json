@@ -589,16 +589,16 @@
   },
   "joint-v2_packing-0.19.0_highways-0.19.3_space-bench-3": {
    "corpus": "joint-v2",
-   "nights": 3,
-   "last": "2026-11-25",
-   "missing": 0,
-   "configs": 75,
+   "nights": 4,
+   "last": "2026-11-26",
+   "missing": 20,
+   "configs": 127,
    "counts": {
     "baseline": 3,
     "screened": 0,
-    "alive": 11,
-    "dropped": 42,
-    "halved": 19,
+    "alive": 20,
+    "dropped": 69,
+    "halved": 35,
     "design": 0
    },
    "step": {
@@ -684,36 +684,36 @@
     }
    },
    "cost": {
-    "date": "2026-11-25",
+    "date": "2026-11-26",
     "jobMinutes": {
-     "planned": 378.59019153716315,
-     "lo": 517.7856148850111,
-     "hi": 1792.5141112892875,
-     "real": 500.37466670148336,
+     "planned": 1025.8777661633108,
+     "lo": 899.7712820183718,
+     "hi": 4857.231944756171,
+     "real": 727.2943688776668,
      "side": "low",
      "brier": 0.6400000000000001
     },
     "jobMinutesStatus": "scored",
     "wall": {
-     "planned": 126.19673051238772,
-     "lo": 210.8039541435955,
-     "hi": 670.0492698233975,
-     "real": 181.71666666666667,
+     "planned": 341.9592553877703,
+     "lo": 374.2780037819462,
+     "hi": 1815.6536104509967,
+     "real": 282.81666666666666,
      "side": "low",
      "brier": 0.6400000000000001
     },
     "wallStatus": "scored",
     "shards": {
-     "lo": 0.9022525505646709,
-     "hi": 8.126180458928635,
-     "width": 9.006547505842905,
+     "lo": 0.7602222014494788,
+     "hi": 5.326055353048695,
+     "width": 7.005919246890927,
      "overCap": true,
-     "shards": 26,
-     "hits": 16,
-     "low": 10,
-     "high": 0,
-     "stopped": 0,
-     "brier": 0.2707692307692309
+     "shards": 40,
+     "hits": 6,
+     "low": 32,
+     "high": 2,
+     "stopped": 2,
+     "brier": 0.5500000000000004
     },
     "widthCap": 5,
     "budget": null,
