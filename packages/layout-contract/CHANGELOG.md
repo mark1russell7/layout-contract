@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.11.3
+
+An automated dependency update changes the shipped files, so this PATCH ships them.
+
 ## 0.11.2
 
 - PATCH: the repository moved to metrograph-labs. The fields `repository`, `homepage` and `bugs` of `package.json` and the links of the README name the new repository. The code does not change.
