@@ -1,10 +1,10 @@
 {
   "schema": "measure-survey/1",
-  "date": "2026-11-25",
+  "date": "2026-11-26",
   "sources": [
     {
       "package": "@mark1russell7/layout-contract",
-      "version": "0.11.2",
+      "version": "0.11.3",
       "measures": [
         {
           "id": "joint.aspectError",
