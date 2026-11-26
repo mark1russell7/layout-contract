@@ -284,13 +284,13 @@ describe("composeFamily", () => {
 const NODE_IMPORT = /^(node:|fs$|path$|os$|crypto$|worker_threads$|child_process$|module$|url$)/;
 const NODE_GLOBAL = /\b(process\.|Buffer\.|require\(|__dirname|__filename)/;
 /** The runtime dependencies of the package. Each one is the home of an area in the map of homes. The test examines its build too. */
-const RUNTIME_DEPENDENCIES = ["@mark1russell7/predicates", "@mark1russell7/rigor-generators", "@mark1russell7/rigor-statistics", "@mark1russell7/strategy-space", "@mark1russell7/typeset"];
+const RUNTIME_DEPENDENCIES = ["@mark1russell7/collections", "@mark1russell7/predicates", "@mark1russell7/rigor-generators", "@mark1russell7/rigor-statistics", "@mark1russell7/strategy-space", "@mark1russell7/typeset"];
 /**
  * The packages that the builds of the runtime dependencies import, and that the package itself does not import.
  * Each one is the home of an area in the map of homes. The test examines its build too.
- * `@mark1russell7/typeset` 0.1.8 imports `@mark1russell7/collections`, and that package imports `@mark1russell7/optional`.
+ * `@mark1russell7/collections` imports `@mark1russell7/algebra` and `@mark1russell7/optional`. The grid walk imports `@mark1russell7/collections`, so it is a runtime dependency.
  */
-const TRANSITIVE_DEPENDENCIES = ["@mark1russell7/collections", "@mark1russell7/optional"];
+const TRANSITIVE_DEPENDENCIES = ["@mark1russell7/algebra", "@mark1russell7/optional"];
 
 /** This function gives the local files of the import closure of a module, and the external imports. */
 function closure(entry: URL): { files: string[]; external: string[] } {
