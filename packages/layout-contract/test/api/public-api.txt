@@ -29,6 +29,7 @@ CatalogCheckOptions: build/index.d.ts#CatalogCheckOptions
 CatalogEntry: build/index.d.ts#CatalogEntry
 CatalogLimit: build/index.d.ts#CatalogLimit
 CatalogOptionsOptions: build/index.d.ts#CatalogOptionsOptions
+CellGrid: build/index.d.ts#CellGrid
 CellItem: build/index.d.ts#CellItem
 CellMeasureSuffix: build/index.d.ts#CellMeasureSuffix
 Cells: build/index.d.ts#Cells
@@ -88,6 +89,8 @@ FrameState: build/index.d.ts#FrameState
 GenerateContext: build/index.d.ts#GenerateContext
 GenerateOptions: build/index.d.ts#GenerateOptions
 type GridOptions: @mark1russell7/strategy-space#GridOptions (external)
+GridPoint: build/index.d.ts#GridPoint
+GridSearch: build/index.d.ts#GridSearch
 HARD_RULE_VERSION: build/index.d.ts#HARD_RULE_VERSION
 HILBERT_CURVE: build/index.d.ts#HILBERT_CURVE
 HILBERT_PATTERN: build/index.d.ts#HILBERT_PATTERN
@@ -188,6 +191,7 @@ PlacedCircle: build/index.d.ts#PlacedCircle
 Placement: build/index.d.ts#Placement
 Point: build/measures.chunk.d.ts#Point
 Point3: build/index.d.ts#Point3
+PolygonGridOptions: build/index.d.ts#PolygonGridOptions
 PolylinePlace: build/measures.chunk.d.ts#PolylinePlace
 Port: build/measures.chunk.d.ts#Port
 Portfolio: build/index.d.ts#Portfolio
@@ -311,9 +315,11 @@ catalogChoices: build/index.d.ts#catalogChoices
 catalogDefaults: build/index.d.ts#catalogDefaults
 catalogKey: build/index.d.ts#catalogKey
 catalogOptions: build/index.d.ts#catalogOptions
+cellCenter: build/index.d.ts#cellCenter
 cellMeasureEntries: build/index.d.ts#cellMeasureEntries
 cellMeasureSpecs: build/index.d.ts#cellMeasureSpecs
 cellMeasures: build/index.d.ts#cellMeasures
+cellNear: build/index.d.ts#cellNear
 cellsOf: build/index.d.ts#cellsOf
 chainPolylines: build/measures.chunk.d.ts#chainPolylines
 checkCatalog: build/index.d.ts#checkCatalog
@@ -388,6 +394,7 @@ grow: build/measures.chunk.d.ts#grow
 hardRuleOf: build/index.d.ts#hardRuleOf
 hilbertCell: build/index.d.ts#hilbertCell
 hilbertIndex: build/index.d.ts#hilbertIndex
+inSight: build/index.d.ts#inSight
 inputShapeLevel: build/measures.chunk.d.ts#inputShapeLevel
 inverseRotation3: build/index.d.ts#inverseRotation3
 inverseSymmetry: build/index.d.ts#inverseSymmetry
@@ -453,6 +460,8 @@ pointInRings: build/measures.chunk.d.ts#pointInRings
 pointPolylineDistance: build/measures.chunk.d.ts#pointPolylineDistance
 pointRegionDistance: build/measures.chunk.d.ts#pointRegionDistance
 pointSegmentDistance: build/measures.chunk.d.ts#pointSegmentDistance
+polygonGrid: build/index.d.ts#polygonGrid
+polylineLength: build/index.d.ts#polylineLength
 portPoint: build/measures.chunk.d.ts#portPoint
 portfolio: build/index.d.ts#portfolio
 probeHash: build/index.d.ts#probeHash
@@ -474,6 +483,7 @@ ruleLevel: build/measures.chunk.d.ts#ruleLevel
 samplePath: build/index.d.ts#samplePath
 scalePoint3: build/index.d.ts#scalePoint3
 scaleRect: build/measures.chunk.d.ts#scaleRect
+searchGrid: build/index.d.ts#searchGrid
 segmentThroughShape: build/index.d.ts#segmentThroughShape
 segmentsCross: build/measures.chunk.d.ts#segmentsCross
 selectBest: build/index.d.ts#selectBest
@@ -497,6 +507,7 @@ splitConfig: @mark1russell7/strategy-space#splitConfig (external)
 splitFileName: build/measures.chunk.d.ts#splitFileName
 splitFolds: build/measures.chunk.d.ts#splitFolds
 stepRandom: build/index.d.ts#stepRandom
+straightenWalk: build/index.d.ts#straightenWalk
 subtractPoints3: build/index.d.ts#subtractPoints3
 surveyFindings: build/index.d.ts#surveyFindings
 sweepGrid: @mark1russell7/strategy-space#sweepGrid (external)
@@ -521,6 +532,7 @@ turnResize: build/index.d.ts#turnResize
 turnSide: build/index.d.ts#turnSide
 unitFault: build/index.d.ts#unitFault
 verdict: build/index.d.ts#verdict
+walkCells: build/index.d.ts#walkCells
 writeStrategyCatalog: build/index.d.ts#writeStrategyCatalog
 
 ## ./text (build/text.d.ts): names
@@ -681,6 +693,15 @@ export interface CatalogLimit {
 ### build/index.d.ts#CatalogOptionsOptions
 export interface CatalogOptionsOptions {
   readonly strategyKey?: (value: unknown) => string | undefined;
+}
+
+### build/index.d.ts#CellGrid
+export interface CellGrid {
+  readonly origin: GridPoint;
+  readonly cell: number;
+  readonly columns: number;
+  readonly rows: number;
+  readonly inside: Uint8Array;
 }
 
 ### build/index.d.ts#CellItem
@@ -928,6 +949,15 @@ export interface GenerateContext {
 export interface GenerateOptions {
   readonly version?: number;
   readonly set?: string;
+}
+
+### build/index.d.ts#GridPoint
+export type GridPoint = readonly [number, number];
+
+### build/index.d.ts#GridSearch
+export interface GridSearch {
+  readonly distance: Float64Array;
+  readonly previous: Int32Array;
 }
 
 ### build/index.d.ts#HARD_RULE_VERSION
@@ -1317,6 +1347,12 @@ export interface Point3 {
   readonly x: number;
   readonly y: number;
   readonly z: number;
+}
+
+### build/index.d.ts#PolygonGridOptions
+export interface PolygonGridOptions {
+  readonly holes?: readonly Ring[] | undefined;
+  readonly largest?: number | undefined;
 }
 
 ### build/index.d.ts#Portfolio
@@ -1749,6 +1785,9 @@ export declare function catalogKey(id: string, step?: string): string;
 ### build/index.d.ts#catalogOptions
 export declare function catalogOptions(defaults: Readonly<Record<string, unknown>>, schema: Readonly<Record<string, AnyOption>>, options?: CatalogOptionsOptions): Record<string, AnyOption>;
 
+### build/index.d.ts#cellCenter
+export declare function cellCenter(grid: CellGrid, index: number): GridPoint;
+
 ### build/index.d.ts#cellMeasureEntries
 export declare function cellMeasureEntries<S extends string>(stage: S): readonly MeasureEntry<`${S}.${CellMeasureSuffix}`>[];
 
@@ -1757,6 +1796,9 @@ export declare function cellMeasureSpecs<S extends string>(stage: S): readonly M
 
 ### build/index.d.ts#cellMeasures
 export declare function cellMeasures<S extends string>(stage: S, cells: Cells): Record<`${S}.${CellMeasureSuffix}`, number>;
+
+### build/index.d.ts#cellNear
+export declare function cellNear(grid: CellGrid, [x, y]: GridPoint, reach?: number): number;
 
 ### build/index.d.ts#cellsOf
 export declare function cellsOf(items: readonly CellItem[], containerArea: number): Cells;
@@ -1914,6 +1956,9 @@ export declare function hilbertCell(index: number, side: number): [number, numbe
 ### build/index.d.ts#hilbertIndex
 export declare function hilbertIndex(x: number, y: number, side: number): number;
 
+### build/index.d.ts#inSight
+export declare function inSight(grid: CellGrid, [xa, ya]: GridPoint, [xb, yb]: GridPoint): boolean;
+
 ### build/index.d.ts#inverseRotation3
 export declare function inverseRotation3(rotation: Rotation3): Rotation3;
 
@@ -2033,6 +2078,12 @@ export declare function placedConvex(box: LayoutBox): Ring | undefined;
 ### build/index.d.ts#placedRect
 export declare function placedRect(box: LayoutBox): Rect | undefined;
 
+### build/index.d.ts#polygonGrid
+export declare function polygonGrid(ring: Ring, cell: number, options?: PolygonGridOptions): CellGrid;
+
+### build/index.d.ts#polylineLength
+export declare function polylineLength(points: readonly GridPoint[]): number;
+
 ### build/index.d.ts#portfolio
 export declare function portfolio<I, O>(id: string, members: readonly Member<I, O>[] | ((input: I) => readonly Member<I, O>[]), key: PortfolioKey<I, O>, options?: PortfolioOptions): Portfolio<I, O>;
 
@@ -2072,6 +2123,9 @@ export declare function samplePath(segments: readonly PathSegment[], tolerance?:
 ### build/index.d.ts#scalePoint3
 export declare function scalePoint3(point: Point3, factor: number): Point3;
 
+### build/index.d.ts#searchGrid
+export declare function searchGrid(grid: CellGrid, start: number, targets?: readonly number[]): GridSearch;
+
 ### build/index.d.ts#segmentThroughShape
 export declare function segmentThroughShape(a: Point, b: Point, box: LayoutBox, tolerance?: number): boolean;
 
@@ -2107,6 +2161,9 @@ export declare function spaceSize(space: StrategySpace$1, options: SpaceSizeOpti
 
 ### build/index.d.ts#stepRandom
 export declare function stepRandom(seed: number, step: string): () => number;
+
+### build/index.d.ts#straightenWalk
+export declare function straightenWalk(grid: CellGrid, points: readonly GridPoint[]): GridPoint[];
 
 ### build/index.d.ts#subtractPoints3
 export declare function subtractPoints3(a: Point3, b: Point3): Point3;
@@ -2158,6 +2215,9 @@ export declare function unitFault(spec: Pick<MeasureSpec, "unit" | "min" | "max"
 
 ### build/index.d.ts#verdict
 export declare function verdict<R extends VerdictRecord>(records: Iterable<R>, options: VerdictOptions<R>): VerdictResult;
+
+### build/index.d.ts#walkCells
+export declare function walkCells(search: GridSearch, end: number): number[];
 
 ### build/index.d.ts#writeStrategyCatalog
 export declare function writeStrategyCatalog(source: StrategyCatalogSource, version: string): string;

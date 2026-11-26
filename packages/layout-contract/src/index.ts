@@ -14,6 +14,7 @@ export * from "./balance.ts";
 export * from "./cell.ts";
 export * from "./frame.ts";
 export * from "./path.ts";
+export * from "./grid-walk.ts";
 export * from "./picture.ts";
 export * from "./nest.ts";
 export * from "./strategy.ts";
