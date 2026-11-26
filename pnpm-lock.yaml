@@ -264,6 +264,9 @@ importers:
 
   packages/layout-contract:
     dependencies:
+      '@mark1russell7/collections':
+        specifier: ^0.11.5
+        version: 0.11.5
       '@mark1russell7/predicates':
         specifier: ^0.1.1
         version: 0.1.5
@@ -603,8 +606,8 @@ packages:
     resolution: {integrity: sha512-WsLRfrej6msQLVqcS17x6KODic8bLf/IuOF2tD04NNbOhWKYCQi0xAEGBCy/TtthxRvRa6Yti2fcpeIQbX/nCA==}
     engines: {node: '>=22.12'}
 
-  '@mark1russell7/collections@0.11.3':
-    resolution: {integrity: sha512-KKAYIACji5XtOpbE3fIX4D3aVd0oddyM9dU+Pk+lXpgYOh6VTVoa/0yzwDTipZ42RKp+6BG+LSkLjCe/FjCHFA==}
+  '@mark1russell7/collections@0.11.5':
+    resolution: {integrity: sha512-ZWAbb/PRwllj+WjY536zytXYcB0ZUeYJcz4hHwVAKquCheIxl5VsfPBG8X2zPPNw9aS5mknM3TzlkL5Xk7bpfg==}
     engines: {node: '>=22.12'}
 
   '@mark1russell7/conventions@0.50.16':
@@ -2059,7 +2062,7 @@ snapshots:
     transitivePeerDependencies:
       - zod
 
-  '@mark1russell7/collections@0.11.3':
+  '@mark1russell7/collections@0.11.5':
     dependencies:
       '@mark1russell7/algebra': 0.8.3
       '@mark1russell7/optional': 1.2.0
@@ -2185,7 +2188,7 @@ snapshots:
 
   '@mark1russell7/typeset@0.7.2':
     dependencies:
-      '@mark1russell7/collections': 0.11.3
+      '@mark1russell7/collections': 0.11.5
       '@mark1russell7/rigor-generators': 0.2.6
     transitivePeerDependencies:
       - zod
