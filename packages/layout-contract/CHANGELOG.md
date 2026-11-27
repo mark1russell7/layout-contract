@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.12.0
+
+The release train changes the range of `@mark1russell7/collections`, `@mark1russell7/typeset` to a version outside the old range. The public types name @mark1russell7/collections, @mark1russell7/typeset, so its new version outside the old range can change them.
+
+### Breaking
+
+- The range `^0.11.5` of `@mark1russell7/collections` in `dependencies` does not hold `0.12.0`, so it changes.
+- The range `^0.7.0` of `@mark1russell7/typeset` in `dependencies` does not hold `0.8.1`, so it changes.
+
 ## 0.11.5
 
 An automated dependency update changes the shipped files, so this PATCH ships them.
